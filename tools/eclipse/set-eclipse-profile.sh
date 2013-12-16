@@ -21,6 +21,10 @@ for file in `find . -name org.eclipse.m2e.core.prefs | xargs`; do
     echo Skipping $file; 
   else 
 	echo Replacing $file; 
-    sed -i s/activeProfiles=/activeProfiles=eclipse/g $file; 
+    if [ "`uname -s`" == 'Darwin' ]; then
+      sed -i.bu s/activeProfiles=/activeProfiles=eclipse/g $file; 
+    else
+      sed -i s/activeProfiles=/activeProfiles=eclipse/g $file; 
+    fi
   fi; 
 done
