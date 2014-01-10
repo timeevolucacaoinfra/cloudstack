@@ -47,7 +47,14 @@
   
   <bean id="databaseUpgradeChecker" class="com.cloud.upgrade.DatabaseUpgradeChecker" />
   <bean id="configurationDaoImpl" class="com.cloud.configuration.dao.ConfigurationDaoImpl" />
-  <bean id="GlobalLoadBalancingRulesServiceImpl" class ="org.apache.cloudstack.region.gslb.GlobalLoadBalancingRulesServiceImpl" />
+  <bean id="GlobalLoadBalancingRulesServiceImpl" class="org.apache.cloudstack.region.gslb.GlobalLoadBalancingRulesServiceImpl" />
+
+  <!--
+    NetworkAPI components
+  -->
+  <bean id="NetworkAPINetworkGuru" class="com.globo.networkapi.guru.NetworkAPINetworkGuru">
+    <property name="name" value="NetworkAPI Guru"/>
+  </bean>
 
   <!--
     Nicira support components
@@ -263,6 +270,7 @@
           <ref bean="DirectNetworkGuru"/>
           <ref bean="OvsGuestNetworkGuru"/>
           <ref bean="PrivateNetworkGuru"/>
+          <ref bean="NetworkAPINetworkGuru"/>
           <ref bean="NiciraNvpGuestNetworkGuru"/>
           <ref bean="MidoNetGuestNetworkGuru"/>
           <ref bean="SspGuestNetworkGuru"/>
