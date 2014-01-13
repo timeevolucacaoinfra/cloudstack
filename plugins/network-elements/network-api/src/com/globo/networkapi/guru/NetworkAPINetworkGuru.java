@@ -16,6 +16,8 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
     
     public NetworkAPINetworkGuru() {
         _isolationMethods = new IsolationMethod[] { IsolationMethod.VLAN };
+        System.out.println("\n\n\n\n\n\n*********** FUI CHAMADO");
+        s_logger.trace("O logging está funcionando");
     }
 
 	@Override
@@ -30,7 +32,7 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
             return true;
         } else {
             s_logger.trace("We only take care of Guest networks of type   " + GuestType.Shared + " in zone of type " + NetworkType.Advanced);
-            return false;
+            return true;
         }
 	}
 
