@@ -16239,6 +16239,11 @@
                 name: 'SRX',
                 state: nspMap.srx ? nspMap.srx.state : 'Disabled'
             });
+            nspHardcodingArray.push({
+                id: 'NetworkAPI',
+                name: 'Network API',
+                state: nspMap.NetworkAPI ? nspMap.NetworkAPI.state : 'Disabled'
+            });
         }
     };
 
