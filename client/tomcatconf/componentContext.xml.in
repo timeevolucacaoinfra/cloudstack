@@ -295,7 +295,7 @@
           <ref bean="BareMetalDhcp"/>
           <ref bean="BareMetalPxe"/>
           <ref bean="BareMetalUserdata"/>
-          <ref bean="NetworkAPI"/>
+          <ref bean="NetworkAPINetworkElement"/>
       </list>
     </property>
   </bean>
