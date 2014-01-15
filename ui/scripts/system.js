@@ -5557,7 +5557,7 @@
                                     });
                                     args.response.success({
                                         data: providerObj,
-                                        actionFilter: networkProviderActionFilter('networkAPI')
+                                        actionFilter: networkProviderActionFilter('NetworkAPI')
                                     });
                                 }
                             }
@@ -5582,9 +5582,9 @@
                                     }
                                 },
                                 action: function(args) {
-                                    if (nspMap["networkAPI"] == null) {
+                                    if (nspMap["NetworkAPI"] == null) {
                                         $.ajax({
-                                            url: createURL("addNetworkServiceProvider&name=networkAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            url: createURL("addNetworkServiceProvider&name=NetworkAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                             dataType: "json",
                                             async: true,
                                             success: function(json) {
@@ -5600,7 +5600,7 @@
                                                             } else {
                                                                 clearInterval(addNetworkAPIProviderIntervalID);
                                                                 if (result.jobstatus == 1) {
-                                                                    nspMap["networkAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
+                                                                    nspMap["NetworkAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
                                                                     //addNiciraNvpDevice(args, selectedPhysicalNetworkObj, "addNiciraNvpDevice", "addniciranvpdeviceresponse", "niciranvpdevice")
                                                                 } else if (result.jobstatus == 2) {
                                                                     alert("addNetworkServiceProvider&name=NetworkAPI failed. Error: " + _s(result.jobresult.errortext));
@@ -5632,7 +5632,7 @@
                                 label: 'label.enable.provider',
                                 action: function(args) {
                                     $.ajax({
-                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["networkAPI"].id + "&state=Enabled"),
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id + "&state=Enabled"),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.updatenetworkserviceproviderresponse.jobid;
@@ -5663,7 +5663,7 @@
                                 label: 'label.disable.provider',
                                 action: function(args) {
                                     $.ajax({
-                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["networkAPI"].id + "&state=Disabled"),
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id + "&state=Disabled"),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.updatenetworkserviceproviderresponse.jobid;
@@ -5694,7 +5694,7 @@
                                 label: 'label.shutdown.provider',
                                 action: function(args) {
                                     $.ajax({
-                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["networkAPI"].id),
+                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.deletenetworkserviceproviderresponse.jobid;
