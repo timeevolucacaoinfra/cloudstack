@@ -57,6 +57,14 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 		return capabilities;
 	}
 
+	private static Map<Service, Map<Capability, String>> setCapabilities() {
+		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
+
+		// L2 Support : SDN provisioning
+		capabilities.put(Service.Connectivity, null);
+		return capabilities;
+	}
+
 	@Override
 	public Provider getProvider() {
 		return Provider.NetworkAPI;
@@ -82,7 +90,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
-		s_logger.debug("entering NiciraNvpElement implement function for network "
+		s_logger.debug("entering networkapiElement implement function for network "
 				+ network.getDisplayText()
 				+ " (state "
 				+ network.getState()
@@ -106,7 +114,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 			VirtualMachineProfile<? extends VirtualMachine> vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-
+		s_logger.debug("release method");
 		return true;
 	}
 
@@ -114,12 +122,14 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 	public boolean shutdown(Network network, ReservationContext context,
 			boolean cleanup) throws ConcurrentOperationException,
 			ResourceUnavailableException {
+		s_logger.debug("shutdown method");
 		return true;
 	}
 
 	@Override
 	public boolean destroy(Network network, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
+		s_logger.debug("shutdown method");
 		if (!canHandle(network, Service.Connectivity)) {
 			return false;
 		}
@@ -129,6 +139,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 
 	@Override
 	public boolean isReady(PhysicalNetworkServiceProvider provider) {
+		s_logger.debug("shutdown method");
 		return true;
 	}
 
@@ -137,11 +148,13 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 			PhysicalNetworkServiceProvider provider, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
 		// Nothing to do here.
+		s_logger.debug("shutdown method");
 		return true;
 	}
 
 	@Override
 	public boolean canEnableIndividualServices() {
+		s_logger.debug("shutdown method");
 		return true;
 	}
 
@@ -149,6 +162,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 	public boolean verifyServicesCombination(Set<Service> services) {
 		// This element can only function in a Nicra Nvp based
 		// SDN network, so Connectivity needs to be present here
+		s_logger.debug("shutdown method");
 		if (!services.contains(Service.Connectivity)) {
 			s_logger.warn("Unable to provide services without Connectivity service enabled for this element");
 			return false;
@@ -156,12 +170,5 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 		return true;
 	}
 
-	private static Map<Service, Map<Capability, String>> setCapabilities() {
-		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
-
-		// L2 Support : SDN provisioning
-		capabilities.put(Service.Connectivity, null);
-		return capabilities;
-	}
 
 }
