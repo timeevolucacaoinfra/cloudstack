@@ -55,6 +55,9 @@
   <bean id="NetworkAPINetworkGuru" class="com.globo.networkapi.guru.NetworkAPINetworkGuru">
     <property name="name" value="NetworkAPI Guru"/>
   </bean>
+  <bean id="NetworkAPINetworkElement" class="com.globo.networkapi.element.NetworkAPINetworkElement">
+    <property name="name" value="NetworkAPI"/>
+  </bean>
 
   <!--
     Nicira support components
@@ -292,6 +295,7 @@
           <ref bean="BareMetalDhcp"/>
           <ref bean="BareMetalPxe"/>
           <ref bean="BareMetalUserdata"/>
+          <ref bean="NetworkAPI"/>
       </list>
     </property>
   </bean>
