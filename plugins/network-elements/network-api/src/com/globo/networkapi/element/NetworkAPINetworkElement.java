@@ -105,7 +105,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
-
+		s_logger.debug("prepare method");
 		return true;
 	}
 
@@ -129,7 +129,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 	@Override
 	public boolean destroy(Network network, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
-		s_logger.debug("shutdown method");
+		s_logger.debug("destroy method");
 		if (!canHandle(network, Service.Connectivity)) {
 			return false;
 		}
@@ -139,7 +139,7 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 
 	@Override
 	public boolean isReady(PhysicalNetworkServiceProvider provider) {
-		s_logger.debug("shutdown method");
+		s_logger.debug("isReady method");
 		return true;
 	}
 
@@ -148,13 +148,13 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 			PhysicalNetworkServiceProvider provider, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
 		// Nothing to do here.
-		s_logger.debug("shutdown method");
+		s_logger.debug("shutdownProviderInstances method");
 		return true;
 	}
 
 	@Override
 	public boolean canEnableIndividualServices() {
-		s_logger.debug("shutdown method");
+		s_logger.debug("canEnableIndividualServices method");
 		return true;
 	}
 
@@ -162,11 +162,11 @@ public class NetworkAPINetworkElement extends AdapterBase implements NetworkElem
 	public boolean verifyServicesCombination(Set<Service> services) {
 		// This element can only function in a Nicra Nvp based
 		// SDN network, so Connectivity needs to be present here
-		s_logger.debug("shutdown method");
-		if (!services.contains(Service.Connectivity)) {
-			s_logger.warn("Unable to provide services without Connectivity service enabled for this element");
-			return false;
-		}
+		s_logger.debug("verifyServicesCombination method");
+//		if (!services.contains(Service.Connectivity)) {
+//			s_logger.warn("Unable to provide services without Connectivity service enabled for this element");
+//			return false;
+//		}
 		return true;
 	}
 
