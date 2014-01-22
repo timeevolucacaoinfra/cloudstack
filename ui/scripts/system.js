@@ -5582,18 +5582,22 @@
                                     }
                                 },
                                 action: function(args) {
+                                    console.debug('nspMap=', nspMap);
                                     if (nspMap["NetworkAPI"] == null) {
                                         $.ajax({
                                             url: createURL("addNetworkServiceProvider&name=NetworkAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                             dataType: "json",
                                             async: true,
                                             success: function(json) {
+                                                console.debug('json=', json);
                                                 var jobId = json.addnetworkserviceproviderresponse.jobid;
                                                 var addNetworkAPIProviderIntervalID = setInterval(function() {
                                                     $.ajax({
                                                         url: createURL("queryAsyncJobResult&jobId=" + jobId),
                                                         dataType: "json",
                                                         success: function(json) {
+                                                            // FIXME COLOCAR NO FULL REFRESH NO FINAL
+                                                            $(window).trigger('cloudStack.fullRefresh');
                                                             var result = json.queryasyncjobresultresponse;
                                                             if (result.jobstatus == 0) {
                                                                 return; //Job has not completed
