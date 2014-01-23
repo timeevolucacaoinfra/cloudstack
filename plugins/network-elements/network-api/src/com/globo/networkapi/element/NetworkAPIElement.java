@@ -118,7 +118,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         // L3 Support : SourceNat fake
         Map<Capability, String> sourceNatCapabilities = new HashMap<Capability, String>();
         sourceNatCapabilities.put(Capability.SupportedSourceNatTypes,
-                "perzone");
+                "peraccount");
         sourceNatCapabilities.put(Capability.RedundantRouter, "false");
 
 		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
