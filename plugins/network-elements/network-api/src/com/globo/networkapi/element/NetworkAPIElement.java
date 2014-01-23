@@ -171,7 +171,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
-		s_logger.debug("\n\n***** Here we call network api to alocate VLAN\n\n");
+		s_logger.debug("***** Here we call networkapi to alocate VLAN");
 		return true;
 	}
 
@@ -180,7 +180,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			VirtualMachineProfile<? extends VirtualMachine> vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-		s_logger.debug("\n\n*** Here we call networkapi to unallocate VLAN\n\n");
+		s_logger.debug("*** Here we call networkapi to unallocate VLAN");
 		return true;
 	}
 
@@ -255,14 +255,15 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         if (!canHandle(config, rules)) {
             return false;
         }
-
 		s_logger.debug("Called applyLBRules config " + config + " rules " + rules);
+        s_logger.debug("**** Configuring LB in networkapi");
         return applyLoadBalancerRules(config, rules);
     }
 
 	@Override
 	public boolean validateLBRule(Network network, LoadBalancingRule rule) {
 		s_logger.debug("Called validateLBRule Network " + network + " rule " + rule);
+        s_logger.debug("**** Validating LB in networkapi (???)");
 		return true;
 	}
 
@@ -279,6 +280,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			throws ResourceUnavailableException {
         // return true, as IP will be associated as part of LB rule configuration
 		s_logger.debug("Called applyIps Network " + network + " ipAddress " + ipAddress + " services " + services);
+        s_logger.debug("**** Adicionando reals in networkapi");
         return true;
 	}
 
