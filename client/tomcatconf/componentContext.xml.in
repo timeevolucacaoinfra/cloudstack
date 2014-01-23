@@ -52,10 +52,7 @@
   <!--
     NetworkAPI components
   -->
-  <bean id="NetworkAPINetworkGuru" class="com.globo.networkapi.guru.NetworkAPINetworkGuru">
-    <property name="name" value="NetworkAPI Guru"/>
-  </bean>
-  <bean id="NetworkAPINetworkElement" class="com.globo.networkapi.element.NetworkAPINetworkElement">
+  <bean id="NetworkAPIElement" class="com.globo.networkapi.element.NetworkAPIElement">
     <property name="name" value="NetworkAPI"/>
   </bean>
 
@@ -273,7 +270,6 @@
           <ref bean="DirectNetworkGuru"/>
           <ref bean="OvsGuestNetworkGuru"/>
           <ref bean="PrivateNetworkGuru"/>
-          <ref bean="NetworkAPINetworkGuru"/>
           <ref bean="NiciraNvpGuestNetworkGuru"/>
           <ref bean="MidoNetGuestNetworkGuru"/>
           <ref bean="SspGuestNetworkGuru"/>
@@ -295,7 +291,7 @@
           <ref bean="BareMetalDhcp"/>
           <ref bean="BareMetalPxe"/>
           <ref bean="BareMetalUserdata"/>
-          <ref bean="NetworkAPINetworkElement"/>
+          <ref bean="NetworkAPIElement"/>
       </list>
     </property>
   </bean>
