@@ -44,8 +44,10 @@ import com.cloud.network.PhysicalNetworkServiceProvider;
 import com.cloud.network.PublicIpAddress;
 import com.cloud.network.dao.ExternalLoadBalancerDeviceVO;
 import com.cloud.network.element.IpDeployer;
+import com.cloud.network.element.IpDeployingRequester;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
+import com.cloud.network.element.SourceNatServiceProvider;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LoadBalancerContainer;
@@ -58,8 +60,8 @@ import com.cloud.vm.VirtualMachineProfile;
 import com.google.gson.Gson;
 
 @Component
-@Local(value = { NetworkElement.class, LoadBalancingServiceProvider.class })
-public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer {
+@Local(value = { NetworkElement.class, LoadBalancingServiceProvider.class, SourceNatServiceProvider.class })
+public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer, SourceNatServiceProvider {
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIElement.class);
 
@@ -112,9 +114,16 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         Gson gson = new Gson();
         String stickyMethodList = gson.toJson(methodList);
         lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
+        
+        // L3 Support : SourceNat fake
+        Map<Capability, String> sourceNatCapabilities = new HashMap<Capability, String>();
+        sourceNatCapabilities.put(Capability.SupportedSourceNatTypes,
+                "perzone");
+        sourceNatCapabilities.put(Capability.RedundantRouter, "false");
 
 		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
         capabilities.put(Service.Lb, lbCapabilities);
+        capabilities.put(Service.SourceNat, sourceNatCapabilities);
 		return capabilities;
 	}
 
@@ -162,7 +171,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
-		s_logger.debug("prepare method");
+		s_logger.debug("\n\n***** Here we call network api to alocate VLAN\n\n");
 		return true;
 	}
 
@@ -171,7 +180,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			VirtualMachineProfile<? extends VirtualMachine> vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-		s_logger.debug("release method");
+		s_logger.debug("\n\n*** Here we call networkapi to unallocate VLAN\n\n");
 		return true;
 	}
 
