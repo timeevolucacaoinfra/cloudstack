@@ -48,10 +48,12 @@ import com.cloud.network.element.IpDeployingRequester;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.network.element.SourceNatServiceProvider;
+import com.cloud.network.element.StaticNatServiceProvider;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
+import com.cloud.network.rules.StaticNat;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
@@ -61,7 +63,7 @@ import com.google.gson.Gson;
 
 @Component
 @Local(value = { NetworkElement.class, LoadBalancingServiceProvider.class, SourceNatServiceProvider.class })
-public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer, SourceNatServiceProvider {
+public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer, StaticNatServiceProvider {
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIElement.class);
 
@@ -241,7 +243,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         ExternalLoadBalancerDeviceVO lbDevice = getExternalLoadBalancerForNetwork(network);
         if (lbDevice == null) {
             s_logger.error("Cannot find external load balanacer for network " + network.getName());
-            s_logger.error("Make F5 as dummy ip deployer, since we likely met this when clean up resource after shutdown network");
+            s_logger.error("Make networkapi as dummy ip deployer, since we likely met this when clean up resource after shutdown network");
             return this;
         }
         if (_networkManager.isNetworkInlineMode(network)) {
@@ -282,6 +284,15 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 		s_logger.debug("Called applyIps Network " + network + " ipAddress " + ipAddress + " services " + services);
         s_logger.debug("**** Adicionando reals in networkapi");
         return true;
+	}
+
+	@Override
+	public boolean applyStaticNats(Network config,
+			List<? extends StaticNat> rules)
+			throws ResourceUnavailableException {
+		// TODO Auto-generated method stub
+		s_logger.trace("*** applyStaticNats config = " + config + " rules=" + rules);
+		return false;
 	}
 
 
