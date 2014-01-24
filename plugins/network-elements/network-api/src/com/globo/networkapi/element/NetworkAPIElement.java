@@ -292,7 +292,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			throws ResourceUnavailableException {
 		// TODO Auto-generated method stub
 		s_logger.trace("*** applyStaticNats config = " + config + " rules=" + rules);
-		return false;
+		return true;
 	}
 
 
