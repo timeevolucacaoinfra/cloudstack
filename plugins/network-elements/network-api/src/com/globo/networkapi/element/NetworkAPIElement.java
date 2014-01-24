@@ -117,15 +117,9 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         String stickyMethodList = gson.toJson(methodList);
         lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
         
-        // L3 Support : SourceNat fake
-        Map<Capability, String> sourceNatCapabilities = new HashMap<Capability, String>();
-        sourceNatCapabilities.put(Capability.SupportedSourceNatTypes,
-                "peraccount");
-        sourceNatCapabilities.put(Capability.RedundantRouter, "false");
-
 		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
         capabilities.put(Service.Lb, lbCapabilities);
-        capabilities.put(Service.SourceNat, sourceNatCapabilities);
+        capabilities.put(Service.StaticNat, null);
 		return capabilities;
 	}
 
