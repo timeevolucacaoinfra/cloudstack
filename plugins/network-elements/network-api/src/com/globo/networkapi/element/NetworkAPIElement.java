@@ -271,7 +271,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			List<Vlan> vlans = (List<Vlan>) callNetworkapi("GET", "/vlan/ambiente/" + ambienteId + "/", null);
 			Vlan currentVlan = null;
 			for (Vlan vlan : vlans) {
-				if (vlanId.equals(vlan.getNum_vlan())) {
+				if (vlanId.equals(Long.valueOf(vlan.getNum_vlan()))) {
 					currentVlan = vlan;
 					break;
 				}
