@@ -189,6 +189,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
     	} catch (IOException e) {
     		throw new RuntimeException(e);
     	} finally {
+    		s_logger.debug("Called networkapi " + s_method + " " + url + ":\n" + body + "\n---------\n" + networkapi_xml);
     		method.releaseConnection();
     	}
 
@@ -229,7 +230,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
     	napi_network.setId_network_type(network_type_id);
     	
     	XStream xstream = getXStream();
-    	String body = "{ 'network': " + xstream.toXML(napi_network) + " }";
+    	String body = xstream.toXML(napi_network);
     	return (com.globo.networkapi.element.Network) callNetworkapi("POST", "/network/add/", body).get(0);
     }
     
