@@ -31,6 +31,7 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.methods.PostMethod;
@@ -168,6 +169,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 		String url = networkapi_host + path;
 
+		HttpClient client = new HttpClient();
 		HttpMethodBase method = null;
 		if ("GET".equalsIgnoreCase(s_method)) {
 			method = new GetMethod(url);
@@ -181,6 +183,8 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 		method.addRequestHeader("NETWORKAPI_PASSWORD", password);
 		String networkapi_xml = null;
     	try {
+    		int status_code = client.executeMethod(method);
+    		s_logger.debug("status_code = " + status_code);
     		networkapi_xml = method.getResponseBodyAsString();
     	} catch (IOException e) {
     		throw new RuntimeException(e);
@@ -188,7 +192,10 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
     		method.releaseConnection();
     	}
 
-        List<?> results = (List<?>) xstream.fromXML(networkapi_xml);
+    	if (networkapi_xml == null) {
+    		return null;
+    	}
+		List<?> results = (List<?>) xstream.fromXML(networkapi_xml);
     	return results;
     }
 
@@ -259,8 +266,8 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 					+ ")");
 			
 			long ambienteId = 82;
-			Long vlanId = network.getPhysicalNetworkId();
-			List<Vlan> vlans = (List<Vlan>) callNetworkapi("GET", "/vlan/ambiente/" + ambienteId, null);
+			Long vlanId = Long.parseLong(network.getBroadcastUri().getHost());
+			List<Vlan> vlans = (List<Vlan>) callNetworkapi("GET", "/vlan/ambiente/" + ambienteId + "/", null);
 			Vlan currentVlan = null;
 			for (Vlan vlan : vlans) {
 				if (vlanId.equals(vlan.getNum_vlan())) {
