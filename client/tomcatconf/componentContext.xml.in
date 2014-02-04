@@ -52,6 +52,8 @@
   <!--
     NetworkAPI components
   -->
+  <bean id="NetworkAPIManager" class="com.globo.networkapi.element.NetworkAPIManager">
+  </bean>
   <bean id="NetworkAPIElement" class="com.globo.networkapi.element.NetworkAPIElement">
     <property name="name" value="NetworkAPI"/>
   </bean>

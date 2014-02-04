@@ -26,8 +26,6 @@ public class NetworkAPIManager implements NetworkAPIService {
     @Inject
     NetworkServiceMapDao _ntwkSrvcDao;
     @Inject
-    NetworkAPIService _networkAPIService;
-    @Inject
     AgentManager _agentMgr;
     @Inject
     ResourceManager _resourceMgr;
