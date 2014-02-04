@@ -1,68 +1,45 @@
 package com.globo.networkapi.resource;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
+import org.xmlpull.v1.XmlPullParserException;
 
 import com.cloud.agent.IAgentControl;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.cloud.agent.api.ExternalNetworkResourceUsageCommand;
-import com.cloud.agent.api.MaintainCommand;
 import com.cloud.agent.api.PingCommand;
-import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
-import com.cloud.agent.api.routing.IpAssocCommand;
-import com.cloud.agent.api.routing.LoadBalancerConfigCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
+import com.cloud.utils.component.ManagerBase;
+import com.globo.networkapi.RequestProcessor;
+import com.globo.networkapi.commands.AllocateVlanCommand;
+import com.globo.networkapi.http.HttpXMLRequestProcessor;
+import com.globo.networkapi.model.Vlan;
+import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
-public class NetworkAPIResource implements ServerResource {
+public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private String _name;
 	
 	private String _host;
 	
 	private String _username;
 	
+	private String _url;
+
 	private String _password;
 	
+	private Long _environmentId;
+	
+	private RequestProcessor _napi;
+	
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
-
-	@Override
-	public String getName() {
-		return _name;
-	}
-
-	@Override
-	public void setName(String name) {
-		s_logger.trace("setName called with args " + name);
-//		_name = name;
-	}
-
-	@Override
-	public void setConfigParams(Map<String, Object> params) {
-		s_logger.trace("setConfigParams called with args " + params);
-	}
-
-	@Override
-	public Map<String, Object> getConfigParams() {
-		s_logger.trace("getConfigParams called");
-		return null;
-	}
-
-	@Override
-	public int getRunLevel() {
-		s_logger.trace("getRunLevel called");
-		return 0;
-	}
-
-	@Override
-	public void setRunLevel(int level) {
-		s_logger.trace("setRunLevel called with args " + level);
-	}
 
 	@Override
 	public boolean configure(String name, Map<String, Object> params)
@@ -73,16 +50,27 @@ public class NetworkAPIResource implements ServerResource {
 			throw new ConfigurationException("Unable to find name");
 		}
 
+		_url = (String) params.get("url");
+		if (_url == null) {
+			throw new ConfigurationException("Unable to find url");
+		}
+
 		_username = (String) params.get("username");
-		if (_name == null) {
+		if (_username == null) {
 			throw new ConfigurationException("Unable to find username");
 		}
 
 		_password = (String) params.get("password");
-		if (_name == null) {
+		if (_password == null) {
 			throw new ConfigurationException("Unable to find password");
 		}
 
+		_environmentId = (Long) params.get("environmentId");
+		if (_environmentId == null) {
+			throw new ConfigurationException("Unable to find environmentId");
+		}
+		
+		_napi = new HttpXMLRequestProcessor(_url, _username, _password);
 		return false;
 	}
 
@@ -134,21 +122,26 @@ public class NetworkAPIResource implements ServerResource {
 	@Override
 	public Answer executeRequest(Command cmd) {
 		s_logger.trace("executeRequest called with args " + cmd.getClass() + " - " + cmd);
-		if (cmd instanceof ReadyCommand) {
-//			return execute((ReadyCommand) cmd);
-		} else if (cmd instanceof MaintainCommand) {
-//			return execute((MaintainCommand) cmd);
-		} else if (cmd instanceof IpAssocCommand) {
-//			return execute((IpAssocCommand) cmd, numRetries);
-		} else if (cmd instanceof LoadBalancerConfigCommand) {
-//			return execute((LoadBalancerConfigCommand) cmd, numRetries);
-		} else if (cmd instanceof ExternalNetworkResourceUsageCommand) {
-//			return execute((ExternalNetworkResourceUsageCommand) cmd);
-		} else {
-			return Answer.createUnsupportedCommandAnswer(cmd);
+		if (cmd instanceof AllocateVlanCommand) {
+			return execute((AllocateVlanCommand) cmd);
 		}
-		// FIXME
 		return Answer.createUnsupportedCommandAnswer(cmd);
+	}
+	
+	public Answer execute(AllocateVlanCommand cmd) {
+		try {
+			List<Vlan> vlans = _napi.getVlanAPI().allocateWithoutNetwork(cmd.getEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
+			if (vlans.isEmpty()) {
+				return new Answer(cmd, false, "Vlan not created");
+			}
+			Vlan vlan = vlans.get(0);
+			return new NetworkAPIVlanResponse(cmd, vlan.getVlanNum(), vlan.getId());
+		} catch (IOException e) {
+			return new Answer(cmd, e);
+		} catch (XmlPullParserException e) {
+			return new Answer(cmd, e);
+		}
+		
 	}
 	
 }

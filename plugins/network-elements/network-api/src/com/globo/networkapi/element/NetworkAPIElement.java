@@ -16,12 +16,7 @@ package com.globo.networkapi.element;
 //KIND, either express or implied.  See the License for the
 //specific language governing permissions and limitations
 //under the License.
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,60 +26,56 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethodBase;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
-import com.amazonaws.util.StringInputStream;
 import com.cloud.agent.api.to.LoadBalancerTO;
+import com.cloud.dc.DataCenter;
+import com.cloud.dc.DataCenter.NetworkType;
+import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
 import com.cloud.network.Network;
-import com.cloud.network.NetworkModel;
 import com.cloud.network.Network.Capability;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.Network.Service;
+import com.cloud.network.NetworkModel;
+import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetworkServiceProvider;
 import com.cloud.network.PublicIpAddress;
-import com.cloud.network.dao.ExternalLoadBalancerDeviceVO;
+import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.element.IpDeployer;
-import com.cloud.network.element.IpDeployingRequester;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
-import com.cloud.network.element.SourceNatServiceProvider;
-import com.cloud.network.element.StaticNatServiceProvider;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.LbStickinessMethod;
-import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
-import com.cloud.network.rules.StaticNat;
+import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.google.gson.Gson;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.mapper.MapperWrapper;
 
 @Component
 @Local(value = { NetworkElement.class, LoadBalancingServiceProvider.class })
-public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer {
+public class NetworkAPIElement implements NetworkElement, LoadBalancingServiceProvider, IpDeployer {
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIElement.class);
 
 	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
 
     @Inject
+    DataCenterDao _dcDao;
+    @Inject
     NetworkModel _networkManager;
+    @Inject
+    NetworkServiceMapDao _ntwkSrvcDao;
+    @Inject
+    NetworkAPIService _networkAPIService;
 
     @Override
 	public Map<Service, Map<Capability, String>> getCapabilities() {
@@ -133,7 +124,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         
 		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
         capabilities.put(Service.Lb, lbCapabilities);
-//        capabilities.put(Service.StaticNat, null);
 		return capabilities;
 	}
 
@@ -143,115 +133,29 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 	}
 
 	protected boolean canHandle(Network network, Service service) {
-		s_logger.debug("Checking if NetworkAPI can handle service "
+		s_logger.trace("Checking if NetworkAPI can handle service "
 				+ service.getName() + " on network " + network.getDisplayText());
-		return true;
-	}
+		
+        DataCenter zone = _dcDao.findById(network.getDataCenterId());
+        boolean handleInAdvanceZone = (zone.getNetworkType() == NetworkType.Advanced &&
+                network.getGuestType() == Network.GuestType.Shared && network.getTrafficType() == TrafficType.Guest);
 
-    private boolean canHandle(Network config, List<LoadBalancingRule> rules) {
-        return true;
-    }
+        if (!handleInAdvanceZone) {
+            s_logger.trace("Not handling network with Type  " + network.getGuestType() + " and traffic type " + network.getTrafficType() + " in zone of type " + zone.getNetworkType());
+            return false;
+        }
+
+        return (_networkManager.isProviderForNetwork(getProvider(), network.getId()) && _ntwkSrvcDao.canProviderSupportServiceInNetwork(network.getId(), service, Network.Provider.NetworkAPI));
+	}
 
     @Override
 	public boolean configure(String name, Map<String, Object> params)
 			throws ConfigurationException {
-		super.configure(name, params);
 		s_logger.debug("Configure " + name + " params " + params);
 		// _resourceMgr.registerResourceStateAdapter(name, this);
 		return true;
 	}
     
-    protected List<?> callNetworkapi(String s_method, String path, String body) {
-		final String networkapi_host = "http://networkapi.qa01.globoi.com";
-		final String user = System.getenv("NAPI_USER");
-		final String password = System.getenv("NAPI_PASS");
-		final XStream xstream = getXStream();
-
-		String url = networkapi_host + path;
-
-		HttpClient client = new HttpClient();
-		HttpMethodBase method = null;
-		if ("GET".equalsIgnoreCase(s_method)) {
-			method = new GetMethod(url);
-		} else if ("POST".equalsIgnoreCase(s_method)) {
-			method = new PostMethod(url);
-			((PostMethod) method).setRequestBody(body);
-			
-		}
-
-		method.addRequestHeader("NETWORKAPI_USERNAME", user);
-		method.addRequestHeader("NETWORKAPI_PASSWORD", password);
-		String networkapi_xml = null;
-    	try {
-    		int status_code = client.executeMethod(method);
-    		s_logger.debug("status_code = " + status_code);
-    		networkapi_xml = method.getResponseBodyAsString();
-    	} catch (IOException e) {
-    		throw new RuntimeException(e);
-    	} finally {
-    		s_logger.debug("Called networkapi " + s_method + " " + url + ":\n" + body + "\n---------\n" + networkapi_xml);
-    		method.releaseConnection();
-    	}
-
-    	if (networkapi_xml == null) {
-    		return null;
-    	}
-		List<?> results = (List<?>) xstream.fromXML(networkapi_xml);
-    	return results;
-    }
-
-    protected XStream getXStream() {
-        XStream xstream = new XStream() {
-            @Override
-            protected MapperWrapper wrapMapper(MapperWrapper next) {
-                return new MapperWrapper(next) {
-                    @Override
-                    public boolean shouldSerializeMember(Class definedIn, String fieldName) {
-                        if (definedIn == Object.class) {
-                            return false;
-                        }
-                        return super.shouldSerializeMember(definedIn, fieldName);
-                    }
-                };
-            }
-        };
-        xstream.alias("networkapi", List.class);
-        xstream.alias("vlan", Vlan.class);
-        xstream.alias("network", com.globo.networkapi.element.Network.class);
-        return xstream;
-    }
-    
-    protected com.globo.networkapi.element.Network addNetwork(long ip_version, long vlanId, long network_type_id, Long environment_vip_id) {
-    	
-    	s_logger.debug("addNetwork with ip_version=" + ip_version +  " vlanId=" + vlanId + " network_type_id=" + network_type_id);
-    	com.globo.networkapi.element.Network napi_network = new com.globo.networkapi.element.Network();
-    	napi_network.setNetwork(ip_version);
-    	napi_network.setId_vlan(vlanId);
-    	napi_network.setId_network_type(network_type_id);
-    	
-    	XStream xstream = getXStream();
-    	String body = xstream.toXML(napi_network);
-    	return (com.globo.networkapi.element.Network) callNetworkapi("POST", "/network/add/", body).get(0);
-    }
-    
-    protected void create_networks(Long vlanId, Long... napi_network_ids) {
-
-    	s_logger.debug("create_networks with vlanId=" + vlanId +  " ids=" + StringUtils.join(napi_network_ids, ','));
-    	StringBuilder s = new StringBuilder();
-    	s.append("{'network': { [");
-    	for (Long napi_network_id : napi_network_ids) {
-    		s.append(napi_network_id);
-    		s.append(',');
-    	}
-    	s.deleteCharAt(s.length()-1);
-    	s.append("], 'id_vlan': ");
-    	s.append(vlanId);
-    	s.append("} }");
-    	
-    	Object o = callNetworkapi("POST", "/network/add/", s.toString());
-    	return;
-    }
-
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean implement(Network network, NetworkOffering offering,
@@ -266,26 +170,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 					+ network.getState()
 					+ ")");
 			
-			long ambienteId = 82;
-			Long vlanId = Long.parseLong(network.getBroadcastUri().getHost());
-			List<Vlan> vlans = (List<Vlan>) callNetworkapi("GET", "/vlan/ambiente/" + ambienteId + "/", null);
-			Vlan currentVlan = null;
-			for (Vlan vlan : vlans) {
-				if (vlanId.equals(Long.valueOf(vlan.getNum_vlan()))) {
-					currentVlan = vlan;
-					break;
-				}
-			}
-			
-			if (currentVlan == null) {
-				throw new RuntimeException("Vlan with id " + vlanId + " not found in networkapi environmentId " + ambienteId);
-			}
-			
-			// call id_network = Network.add_network(self, network=0 /* ipv4 */, id_vlan=vlan_id,id_network_type=6, id_environment_vip=None)
-			com.globo.networkapi.element.Network napi_network = addNetwork(0, currentVlan.getId(), 6, null);
-			
-			// call Network.create_networks(ids=[id_network], vlan_id)
-			create_networks(currentVlan.getId(), napi_network.getId());
 		
 		} finally {
 			s_logger.debug("leaving networkapiElement implement function for network "
@@ -305,6 +189,9 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
 		s_logger.debug("***** Here we call networkapi to alocate VLAN");
+
+		_networkAPIService.allocateVlan(network, dest.getCluster());
+
 		return true;
 	}
 
@@ -371,26 +258,18 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 	@Override
 	public IpDeployer getIpDeployer(Network network) {
-        ExternalLoadBalancerDeviceVO lbDevice = getExternalLoadBalancerForNetwork(network);
-        if (lbDevice == null) {
-            s_logger.error("Cannot find external load balanacer for network " + network.getName());
-            s_logger.error("Make networkapi as dummy ip deployer, since we likely met this when clean up resource after shutdown network");
-            return this;
-        }
-        if (_networkManager.isNetworkInlineMode(network)) {
-            return getIpDeployerForInlineMode(network);
-        }
         return this;
 	}
 
     @Override
     public boolean applyLBRules(Network config, List<LoadBalancingRule> rules) throws ResourceUnavailableException {
-        if (!canHandle(config, rules)) {
-            return false;
-        }
+//        if (!canHandle(config, rules)) {
+//            return false;
+//        }
 		s_logger.debug("Called applyLBRules config " + config + " rules " + rules);
         s_logger.debug("**** Configuring LB in networkapi");
-        return applyLoadBalancerRules(config, rules);
+//        return applyLoadBalancerRules(config, rules);
+        return false;
     }
 
 	@Override
@@ -415,6 +294,54 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 		s_logger.debug("Called applyIps Network " + network + " ipAddress " + ipAddress + " services " + services);
         s_logger.debug("**** Adicionando reals in networkapi");
         return true;
+	}
+
+	@Override
+	public String getName() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setName(String name) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void setConfigParams(Map<String, Object> params) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public Map<String, Object> getConfigParams() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int getRunLevel() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void setRunLevel(int level) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean start() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean stop() {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }
