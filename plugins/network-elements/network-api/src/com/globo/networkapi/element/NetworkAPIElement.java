@@ -37,6 +37,7 @@ import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
+import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
 import com.cloud.network.Network.Provider;
@@ -54,6 +55,7 @@ import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
 import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.offering.NetworkOffering;
+import com.cloud.resource.ResourceManager;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
@@ -62,7 +64,7 @@ import com.google.gson.Gson;
 
 @Component
 @Local(value = { NetworkElement.class, LoadBalancingServiceProvider.class })
-public class NetworkAPIElement implements NetworkElement, LoadBalancingServiceProvider, IpDeployer {
+public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer {
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIElement.class);
 
@@ -76,6 +78,8 @@ public class NetworkAPIElement implements NetworkElement, LoadBalancingServicePr
     NetworkServiceMapDao _ntwkSrvcDao;
     @Inject
     NetworkAPIService _networkAPIService;
+    @Inject
+    ResourceManager _resourceMgr;
 
     @Override
 	public Map<Service, Map<Capability, String>> getCapabilities() {
@@ -152,7 +156,7 @@ public class NetworkAPIElement implements NetworkElement, LoadBalancingServicePr
 	public boolean configure(String name, Map<String, Object> params)
 			throws ConfigurationException {
 		s_logger.debug("Configure " + name + " params " + params);
-		// _resourceMgr.registerResourceStateAdapter(name, this);
+		super.configure(name, params);
 		return true;
 	}
     
