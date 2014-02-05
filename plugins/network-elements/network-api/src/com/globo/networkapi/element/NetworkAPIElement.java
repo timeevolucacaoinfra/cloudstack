@@ -177,12 +177,18 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			InsufficientCapacityException {
 		
 		try {
-			s_logger.debug("entering networkapiElement implement function for network "
+			s_logger.debug("\n\n\n*** entering networkapiElement implement function for network "
 					+ network.getDisplayText()
 					+ " (state "
 					+ network.getState()
 					+ ")");
 			
+			try {
+				_networkAPIService.allocateVlan(network, dest.getCluster());
+			} catch (ConfigurationException e) {
+				throw new InsufficientNetworkCapacityException("Unable to configure NetworkAPI as resource", Network.class, network.getId());
+			}
+
 		
 		} finally {
 			s_logger.debug("leaving networkapiElement implement function for network "
@@ -202,12 +208,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
 		s_logger.debug("***** Here we call networkapi to alocate VLAN");
-
-		try {
-			_networkAPIService.allocateVlan(network, dest.getCluster());
-		} catch (ConfigurationException e) {
-			throw new InsufficientNetworkCapacityException("Unable to configure NetworkAPI as resource", VirtualMachine.class, vm.getId());
-		}
 
 		return true;
 	}
