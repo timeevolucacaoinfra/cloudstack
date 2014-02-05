@@ -29,6 +29,8 @@ import javax.naming.ConfigurationException;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.cloud.agent.api.StartupCommand;
+import com.cloud.agent.api.StartupExternalLoadBalancerCommand;
 import com.cloud.agent.api.to.LoadBalancerTO;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
@@ -39,6 +41,7 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
+import com.cloud.host.HostVO;
 import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
@@ -58,6 +61,7 @@ import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
 import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.resource.ResourceManager;
+import com.cloud.resource.ServerResource;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
@@ -308,4 +312,14 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         return true;
 	}
 
+	@Override
+    public HostVO createHostVOForDirectConnectAgent(HostVO host, final StartupCommand[] startup, ServerResource resource, Map<String, String> details, List<String> hostTags) {
+        if (!(startup[0] instanceof StartupCommand)) {
+            return null;
+        }
+        host.setType(Host.Type.L2Networking);
+        return host;
+	}
+
+	
 }
