@@ -94,7 +94,9 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	@Override
 	public StartupCommand[] initialize() {
 		s_logger.trace("initialize called");
-		return new StartupCommand[] {};
+		StartupCommand cmd = new StartupCommand(getType());
+		cmd.setGuid("networkapi");
+		return new StartupCommand[] {cmd};
 	}
 
 	@Override
@@ -124,6 +126,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		s_logger.trace("executeRequest called with args " + cmd.getClass() + " - " + cmd);
 		if (cmd instanceof AllocateVlanCommand) {
 			return execute((AllocateVlanCommand) cmd);
+		} else if (cmd instanceof StartupCommand) {
+			// null
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}

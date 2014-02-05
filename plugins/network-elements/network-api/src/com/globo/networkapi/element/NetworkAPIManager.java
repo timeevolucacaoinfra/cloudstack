@@ -66,7 +66,7 @@ public class NetworkAPIManager implements NetworkAPIService {
         cfg.put("username", "gcloud");
         cfg.put("password", "gcloud");
         cfg.put("environmentId", "120");
-        Host host = _resourceMgr.addHost(zoneId, resource, Host.Type.L2Networking, cfg);
+        Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(), cfg);
 		
 		AllocateVlanCommand cmd = new AllocateVlanCommand();
 		cmd.setEnvironmentId(getEnvironmentIdFromPod(cluster));
