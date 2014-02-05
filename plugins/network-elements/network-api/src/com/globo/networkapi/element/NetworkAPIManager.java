@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
 
@@ -50,22 +51,30 @@ public class NetworkAPIManager implements NetworkAPIService {
     HostPodDao _hostPodDao;
     @Inject
     PhysicalNetworkDao _physicalNetworkDao;
-
+    
 	@Override
-	public Object allocateVlan(Network network, Cluster cluster) throws ResourceUnavailableException {
+	public Object allocateVlan(Network network, Cluster cluster) throws ResourceUnavailableException, ConfigurationException {
 
 		PhysicalNetworkVO pNetwork = _physicalNetworkDao.findById(network.getPhysicalNetworkId());
 		// FIXME NULL!!!
         long zoneId = pNetwork.getDataCenterId();
 		
-        NetworkAPIResource resource = new NetworkAPIResource();
         Map<String, String> cfg = new HashMap<String, String>();
         cfg.put("guid", "networkapi"); // FIXME
         cfg.put("name", network.getDisplayText());
         cfg.put("url", "https://networkapi.globoi.com");
         cfg.put("username", "gcloud");
         cfg.put("password", "gcloud");
+        cfg.put("zoneId", String.valueOf(zoneId));
+        cfg.put("podId", String.valueOf(cluster.getPodId()));
+        cfg.put("clusterId", String.valueOf(cluster.getId()));
         cfg.put("environmentId", "120");
+
+        NetworkAPIResource resource = new NetworkAPIResource();
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.putAll(cfg);
+        resource.configure("networkapi", params);
+
         Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(), cfg);
 		
 		AllocateVlanCommand cmd = new AllocateVlanCommand();

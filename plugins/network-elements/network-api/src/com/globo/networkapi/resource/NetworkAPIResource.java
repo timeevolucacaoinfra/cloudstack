@@ -14,6 +14,7 @@ import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.PingCommand;
 import com.cloud.agent.api.StartupCommand;
+import com.cloud.agent.api.StartupExternalLoadBalancerCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
@@ -27,17 +28,19 @@ import com.globo.networkapi.response.NetworkAPIVlanResponse;
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private String _name;
 	
-	private String _host;
-	
 	private String _username;
 	
 	private String _url;
 	
-	private String _zoneId;
-
 	private String _password;
 	
 	private Long _environmentId;
+	
+	private String _zoneId;
+
+	private String _podId;
+	
+	private String _clusterId;
 	
 	private RequestProcessor _napi;
 	
@@ -57,11 +60,6 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			throw new ConfigurationException("Unable to find url");
 		}
 		
-		_zoneId = (String) params.get("zoneId");
-		if (_zoneId == null) {
-			throw new ConfigurationException("Unable to find zone Id in the configuration parameters");
-		}
-
 		_username = (String) params.get("username");
 		if (_username == null) {
 			throw new ConfigurationException("Unable to find username");
@@ -75,6 +73,21 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		_environmentId = (Long) params.get("environmentId");
 		if (_environmentId == null) {
 			throw new ConfigurationException("Unable to find environmentId");
+		}
+		
+		_zoneId = (String) params.get("zoneId");
+		if (_zoneId == null) {
+			throw new ConfigurationException("Unable to find zone Id in the configuration parameters");
+		}
+		
+		_podId = (String) params.get("podId");
+		if (_podId == null) {
+			throw new ConfigurationException("Unable to find pod in the configuration parameters");
+		}
+
+		_clusterId = (String) params.get("clusterId");
+		if (_clusterId == null) {
+			throw new ConfigurationException("Unable to find cluster in the configuration parameters");
 		}
 		
 		_napi = new HttpXMLRequestProcessor(_url, _username, _password);
@@ -104,6 +117,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		StartupCommand cmd = new StartupCommand(getType());
 		cmd.setGuid("networkapi");
 		cmd.setDataCenter(_zoneId);
+		cmd.setPod(_podId);
+		cmd.setCluster(_clusterId);
 		return new StartupCommand[] {cmd};
 	}
 
