@@ -192,7 +192,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 
 			Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
 			Ip4Address gateway = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
-			s_logger.info("Created network " + ipv4Network.getId() + " with gateway " + gateway + " and mask " + mask);
+			s_logger.info("Created network " + ipv4Network.getId() + " with gateway " + gateway.ip4() + " and mask " + mask.ip4());
 			return new NetworkAPIVlanResponse(cmd, vlan.getVlanNum(), vlan.getId(), gateway, mask);
 		} catch (IOException e) {
 			return new Answer(cmd, e);
