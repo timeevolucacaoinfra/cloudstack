@@ -36,6 +36,7 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
+import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
@@ -197,7 +198,11 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			InsufficientCapacityException {
 		s_logger.debug("***** Here we call networkapi to alocate VLAN");
 
-		_networkAPIService.allocateVlan(network, dest.getCluster());
+		try {
+			_networkAPIService.allocateVlan(network, dest.getCluster());
+		} catch (ConfigurationException e) {
+			throw new InsufficientNetworkCapacityException("Unable to configure NetworkAPI as resource", VirtualMachine.class, vm.getId());
+		}
 
 		return true;
 	}
