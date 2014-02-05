@@ -315,7 +315,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 	@Override
     public HostVO createHostVOForDirectConnectAgent(HostVO host, final StartupCommand[] startup, ServerResource resource, Map<String, String> details, List<String> hostTags) {
-        if (!(startup[0] instanceof StartupCommand) && !(resource instanceof NetworkAPIResource)) {
+        if (!(startup[0] instanceof StartupCommand && resource instanceof NetworkAPIResource)) {
             return null;
         }
         host.setType(Host.Type.L2Networking);
