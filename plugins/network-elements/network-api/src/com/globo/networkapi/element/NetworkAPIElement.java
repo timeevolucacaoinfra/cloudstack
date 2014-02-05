@@ -66,6 +66,7 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.networkapi.resource.NetworkAPIResource;
 import com.google.gson.Gson;
 
 @Component
@@ -314,7 +315,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 	@Override
     public HostVO createHostVOForDirectConnectAgent(HostVO host, final StartupCommand[] startup, ServerResource resource, Map<String, String> details, List<String> hostTags) {
-        if (!(startup[0] instanceof StartupCommand)) {
+        if (!(startup[0] instanceof StartupCommand) && !(resource instanceof NetworkAPIResource)) {
             return null;
         }
         host.setType(Host.Type.L2Networking);
