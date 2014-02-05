@@ -12,7 +12,11 @@ import org.xmlpull.v1.XmlPullParserException;
 import com.cloud.agent.IAgentControl;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
+import com.cloud.agent.api.MaintainAnswer;
+import com.cloud.agent.api.MaintainCommand;
 import com.cloud.agent.api.PingCommand;
+import com.cloud.agent.api.ReadyAnswer;
+import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.agent.api.StartupExternalLoadBalancerCommand;
 import com.cloud.host.Host;
@@ -153,9 +157,14 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		s_logger.trace("executeRequest called with args " + cmd.getClass() + " - " + cmd);
 		if (cmd instanceof AllocateVlanCommand) {
 			return execute((AllocateVlanCommand) cmd);
+		} else if (cmd instanceof ReadyCommand) {
+			return new ReadyAnswer((ReadyCommand) cmd);
+		} else if (cmd instanceof MaintainCommand) {
+			return new MaintainAnswer((MaintainCommand) cmd);
 		} else if (cmd instanceof StartupCommand) {
 			// null
 		}
+		s_logger.error("*** \n\nError executando command " + cmd.getClass());
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
 	
