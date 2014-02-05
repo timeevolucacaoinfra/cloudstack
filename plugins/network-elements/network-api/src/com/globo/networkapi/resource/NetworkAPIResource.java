@@ -70,7 +70,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			throw new ConfigurationException("Unable to find password");
 		}
 
-		_environmentId = (Long) params.get("environmentId");
+		_environmentId = Long.valueOf((String) params.get("environmentId"));
 		if (_environmentId == null) {
 			throw new ConfigurationException("Unable to find environmentId");
 		}
