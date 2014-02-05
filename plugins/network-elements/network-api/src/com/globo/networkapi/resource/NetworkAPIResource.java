@@ -115,10 +115,14 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	public StartupCommand[] initialize() {
 		s_logger.trace("initialize called");
 		StartupCommand cmd = new StartupCommand(getType());
+		cmd.setName(_name);
 		cmd.setGuid("networkapi");
 		cmd.setDataCenter(_zoneId);
 		cmd.setPod(_podId);
 		cmd.setCluster(_clusterId);
+		cmd.setPrivateIpAddress("10.70.129.47"); // resolver ip da networkapi
+		cmd.setStorageIpAddress("");
+		cmd.setVersion(NetworkAPIResource.class.getPackage().getImplementationVersion());
 		return new StartupCommand[] {cmd};
 	}
 
