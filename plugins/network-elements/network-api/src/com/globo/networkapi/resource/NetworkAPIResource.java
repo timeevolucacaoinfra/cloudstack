@@ -23,9 +23,12 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
+import com.cloud.utils.net.Ip4Address;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.AllocateVlanCommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
+import com.globo.networkapi.model.IPv4Network;
+import com.globo.networkapi.model.Network;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
@@ -161,8 +164,6 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return new ReadyAnswer((ReadyCommand) cmd);
 		} else if (cmd instanceof MaintainCommand) {
 			return new MaintainAnswer((MaintainCommand) cmd);
-		} else if (cmd instanceof StartupCommand) {
-			// null
 		}
 		s_logger.error("*** \n\nError executando command " + cmd.getClass());
 		return Answer.createUnsupportedCommandAnswer(cmd);
@@ -175,7 +176,24 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd, false, "Vlan not created");
 			}
 			Vlan vlan = vlans.get(0);
-			return new NetworkAPIVlanResponse(cmd, vlan.getVlanNum(), vlan.getId());
+			
+			List<Network> new_networks = _napi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(6), null);
+			if (new_networks.isEmpty()) {
+				return new Answer(cmd, false, "Network not created");
+			}
+			Network network = new_networks.get(0);
+			
+			// Tosco, o objeto de criar rede nao esta retornando o ID rede
+			vlan = _napi.getVlanAPI().getById(vlan.getId()).get(0);
+			IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
+			
+			// create network in switches
+			_napi.getNetworkAPI().createNetworks(ipv4Network.getId(), vlan.getId());
+
+			Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
+			Ip4Address gateway = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
+			s_logger.info("Created network " + ipv4Network.getId() + " with gateway " + gateway + " and mask " + mask);
+			return new NetworkAPIVlanResponse(cmd, vlan.getVlanNum(), vlan.getId(), gateway, mask);
 		} catch (IOException e) {
 			return new Answer(cmd, e);
 		} catch (XmlPullParserException e) {
