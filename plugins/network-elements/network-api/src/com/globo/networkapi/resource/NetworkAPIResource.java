@@ -32,6 +32,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private String _username;
 	
 	private String _url;
+	
+	private String _zoneId;
 
 	private String _password;
 	
@@ -53,6 +55,11 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		_url = (String) params.get("url");
 		if (_url == null) {
 			throw new ConfigurationException("Unable to find url");
+		}
+		
+		_zoneId = (String) params.get("zoneId");
+		if (_zoneId == null) {
+			throw new ConfigurationException("Unable to find zone Id in the configuration parameters");
 		}
 
 		_username = (String) params.get("username");
@@ -96,6 +103,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		s_logger.trace("initialize called");
 		StartupCommand cmd = new StartupCommand(getType());
 		cmd.setGuid("networkapi");
+		cmd.setDataCenter(_zoneId);
 		return new StartupCommand[] {cmd};
 	}
 

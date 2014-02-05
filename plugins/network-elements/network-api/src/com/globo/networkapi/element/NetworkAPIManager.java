@@ -74,7 +74,7 @@ public class NetworkAPIManager implements NetworkAPIService {
 		cmd.setVlanDescription(network.getDisplayText());
 		Answer answer = _agentMgr.easySend(host.getId(), cmd);
 		if (answer == null || !answer.getResult()) {
-			String msg = "Unable do execute command";
+			String msg = "Unable to execute command";
 			s_logger.error(msg);
             throw new ResourceUnavailableException(msg, DataCenter.class, network.getDataCenterId());
 		}
