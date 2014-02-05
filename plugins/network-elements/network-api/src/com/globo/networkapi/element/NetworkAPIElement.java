@@ -80,6 +80,8 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
     NetworkAPIService _networkAPIService;
     @Inject
     ResourceManager _resourceMgr;
+    
+    private String name;
 
     @Override
 	public Map<Service, Map<Capability, String>> getCapabilities() {
@@ -298,54 +300,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 		s_logger.debug("Called applyIps Network " + network + " ipAddress " + ipAddress + " services " + services);
         s_logger.debug("**** Adicionando reals in networkapi");
         return true;
-	}
-
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public void setName(String name) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void setConfigParams(Map<String, Object> params) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Map<String, Object> getConfigParams() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getRunLevel() {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public void setRunLevel(int level) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public boolean start() {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	public boolean stop() {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 }
