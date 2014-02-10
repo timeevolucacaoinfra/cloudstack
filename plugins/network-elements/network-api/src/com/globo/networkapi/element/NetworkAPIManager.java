@@ -1,6 +1,8 @@
 package com.globo.networkapi.element;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -36,13 +38,15 @@ import com.cloud.org.Cluster;
 import com.cloud.resource.ResourceManager;
 import com.cloud.user.Account;
 import com.cloud.user.UserContext;
+import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.net.Ip4Address;
+import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 
-public class NetworkAPIManager implements NetworkAPIService {
+public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIManager.class);
@@ -191,6 +195,13 @@ public class NetworkAPIManager implements NetworkAPIService {
 	protected Long getEnvironmentIdFromPod(Cluster cluster) {
 		// FIXME Search for networkapiID from pod or cluster
 		return 120L;
+	}
+
+	@Override
+	public List<Class<?>> getCommands() {
+		List<Class<?>> cmdList = new ArrayList<Class<?>>();
+		cmdList.add(AddNetworkApiVlanCmd.class);
+		return cmdList;
 	}
 
 }
