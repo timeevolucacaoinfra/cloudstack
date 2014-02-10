@@ -18,12 +18,11 @@ package com.globo.networkapi.commands;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
-import org.apache.cloudstack.api.BaseAsyncCmd;
+import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.log4j.Logger;
 
-import com.cloud.event.EventTypes;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
@@ -31,12 +30,12 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.networkapi.response.NetworkAPIResponse;
+import com.globo.networkapi.response.AddNetworkApiVlanCmdResponse;
 
-@APICommand(name = "addNetworkAPIVlan", responseObject=NetworkAPIResponse.class, description="Adds a vlan/network from Network API")
-public class AddNetworkAPIVlanCmd extends BaseAsyncCmd {
+@APICommand(name = "addNetworkApiVlan", responseObject=AddNetworkApiVlanCmdResponse.class, description="Adds a vlan/network from Network API")
+public class AddNetworkApiVlanCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(AddNetworkAPIVlanCmd.class.getName());
+    public static final Logger s_logger = Logger.getLogger(AddNetworkApiVlanCmd.class.getName());
     private static final String s_name = "addnetworkapivlan";
 
     /* Parameters */
@@ -67,21 +66,16 @@ public class AddNetworkAPIVlanCmd extends BaseAsyncCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId);
+        	AddNetworkApiVlanCmdResponse response = new AddNetworkApiVlanCmdResponse();
+        	response.setReturnCode("200 - OK");
+        	response.setObjectName("returnCode");
+        	response.setResponseName(getCommandName());
+        	this.setResponseObject(response);
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }
-    }
-
-    @Override
-    public String getEventDescription() {
-        return "Adding a VLAN network from NetworkAPI.";
-    }
-
-    @Override
-    public String getEventType() {
-        return EventTypes.EVENT_NETWORK_CREATE;
     }
  
     @Override

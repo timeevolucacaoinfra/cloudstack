@@ -18,6 +18,15 @@ package com.globo.networkapi.response;
 
 import org.apache.cloudstack.api.BaseResponse;
 
-public class NetworkAPIResponse extends BaseResponse {
+import com.cloud.serializer.Param;
+import com.google.gson.annotations.SerializedName;
 
+public class AddNetworkApiVlanCmdResponse extends BaseResponse {
+	
+	@SerializedName("returnCode") @Param(description="Return code")
+	private String returnCode;
+
+	public void setReturnCode(String returnCode) {
+		this.returnCode = returnCode;
+	}
 }

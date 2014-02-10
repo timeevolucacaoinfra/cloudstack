@@ -1,6 +1,8 @@
 package com.globo.networkapi.element;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -16,7 +18,6 @@ import com.cloud.dc.dao.HostPodDao;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.host.dao.HostDao;
-import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.network.Network;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.dao.NetworkServiceMapDao;
@@ -24,13 +25,14 @@ import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.org.Cluster;
 import com.cloud.resource.ResourceManager;
-import com.cloud.vm.VirtualMachineManager;
+import com.cloud.utils.component.PluggableService;
+import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.AllocateVlanCommand;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 
-public class NetworkAPIManager implements NetworkAPIService {
+public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIManager.class);
@@ -114,6 +116,13 @@ public class NetworkAPIManager implements NetworkAPIService {
 	protected Long getEnvironmentIdFromPod(Cluster cluster) {
 		// FIXME Search for networkapiID from pod or cluster
 		return 120L;
+	}
+
+	@Override
+	public List<Class<?>> getCommands() {
+		List<Class<?>> cmdList = new ArrayList<Class<?>>();
+		cmdList.add(AddNetworkApiVlanCmd.class);
+		return cmdList;
 	}
 
 }

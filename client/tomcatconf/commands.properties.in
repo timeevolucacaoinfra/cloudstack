@@ -675,4 +675,4 @@ listDedicatedClusters=1
 listDedicatedHosts=1
 
 ### Network API commands
-addNetworkAPIVlan=1
+addNetworkApiVlan=1
