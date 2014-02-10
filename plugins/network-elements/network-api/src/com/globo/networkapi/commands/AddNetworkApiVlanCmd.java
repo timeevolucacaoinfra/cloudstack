@@ -34,6 +34,7 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
+import com.cloud.network.Network;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.element.NetworkAPIService;
@@ -86,10 +87,10 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId);
-        	_ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId);
+        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId);
         	AddNetworkApiVlanCmdResponse response = new AddNetworkApiVlanCmdResponse();
-        	response.setReturnCode("200 - OK");
-        	response.setObjectName("returnCode");
+        	response.setNetwork(network);
+        	response.setObjectName("network");
         	response.setResponseName(getCommandName());
         	this.setResponseObject(response);
         }  catch (InvalidParameterValueException invalidParamExcp) {
