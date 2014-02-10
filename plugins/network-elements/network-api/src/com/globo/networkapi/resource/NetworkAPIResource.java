@@ -1,7 +1,6 @@
 package com.globo.networkapi.resource;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import javax.naming.ConfigurationException;
@@ -18,7 +17,6 @@ import com.cloud.agent.api.PingCommand;
 import com.cloud.agent.api.ReadyAnswer;
 import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
-import com.cloud.agent.api.StartupExternalLoadBalancerCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
@@ -171,20 +169,12 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	public Answer execute(AllocateVlanCommand cmd) {
 		try {
-			List<Vlan> vlans = _napi.getVlanAPI().allocateWithoutNetwork(cmd.getEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
-			if (vlans.isEmpty()) {
-				return new Answer(cmd, false, "Vlan not created");
-			}
-			Vlan vlan = vlans.get(0);
+			Vlan vlan = _napi.getVlanAPI().allocateWithoutNetwork(cmd.getEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
 			
-			List<Network> new_networks = _napi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(6), null);
-			if (new_networks.isEmpty()) {
-				return new Answer(cmd, false, "Network not created");
-			}
-			Network network = new_networks.get(0);
+			Network network = _napi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(6), null);
 			
 			// Tosco, o objeto de criar rede nao esta retornando o ID rede
-			vlan = _napi.getVlanAPI().getById(vlan.getId()).get(0);
+			vlan = _napi.getVlanAPI().getById(vlan.getId());
 			IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
 			
 			// create network in switches

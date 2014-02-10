@@ -673,3 +673,6 @@ listDedicatedZones=1
 listDedicatedPods=1
 listDedicatedClusters=1
 listDedicatedHosts=1
+
+### Network API commands
+addNetworkAPIVlan=1
