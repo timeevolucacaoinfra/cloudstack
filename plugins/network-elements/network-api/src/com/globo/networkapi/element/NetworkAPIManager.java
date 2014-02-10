@@ -40,6 +40,7 @@ import com.cloud.user.Account;
 import com.cloud.user.UserContext;
 import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.net.Ip4Address;
+import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.resource.NetworkAPIResource;
@@ -120,7 +121,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		Ip4Address networkAddress = response.getNetworkAddress();
 		Ip4Address gateway = new Ip4Address(networkAddress.toLong()+1);
-		String cidr = "192.168.56.0/24";
+		String cidr = NetUtils.getCidrFromGatewayAndNetmask(gateway.ip4(), response.getMask().ip4());
 
 		s_logger.info("Creating network with name " + response.getVlanName() +
 				" (" + response.getVlanId() +

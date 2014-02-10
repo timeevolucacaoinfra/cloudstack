@@ -173,7 +173,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 //			Network network = _napi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(6), null);
 			
 			// Tosco, o objeto de criar rede nao esta retornando o ID rede
-			Vlan vlan = _napi.getVlanAPI().getById(null);
+			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
 			IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
 			
 			// create network in switches
