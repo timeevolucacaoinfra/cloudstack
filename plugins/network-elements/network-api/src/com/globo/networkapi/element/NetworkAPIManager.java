@@ -103,10 +103,11 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setVlanId(vlanId);
 		
 		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
-		cfg.putIfAbsent("zoneId", String.valueOf(zoneId));
-		cfg.putIfAbsent("podId", String.valueOf(1L /*FIXME*/));
-		cfg.putIfAbsent("clusterId", String.valueOf(1L /*FIXME*/));
-		cfg.putIfAbsent("environmentId", "120");
+		cfg.put("name", "napivlan-" + vlanId);
+		cfg.put("zoneId", String.valueOf(zoneId));
+		cfg.put("podId", String.valueOf(1L /*FIXME*/));
+		cfg.put("clusterId", String.valueOf(1L /*FIXME*/));
+		cfg.put("environmentId", "120");
 
 		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, cfg);
 		
