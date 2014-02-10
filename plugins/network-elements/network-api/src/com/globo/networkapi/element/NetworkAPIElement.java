@@ -30,7 +30,6 @@ import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.cloud.agent.api.StartupCommand;
-import com.cloud.agent.api.StartupExternalLoadBalancerCommand;
 import com.cloud.agent.api.to.LoadBalancerTO;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
@@ -38,7 +37,6 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
-import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.host.HostVO;
@@ -88,8 +86,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
     @Inject
     ResourceManager _resourceMgr;
     
-    private String name;
-
     @Override
 	public Map<Service, Map<Capability, String>> getCapabilities() {
 		return capabilities;
@@ -183,11 +179,11 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 					+ network.getState()
 					+ ")");
 			
-			try {
-				_networkAPIService.allocateVlan(network, dest.getCluster());
-			} catch (ConfigurationException e) {
-				throw new InsufficientNetworkCapacityException("Unable to configure NetworkAPI as resource", Network.class, network.getId());
-			}
+//			try {
+//				_networkAPIService.allocateVlan(network, dest.getCluster());
+//			} catch (ConfigurationException e) {
+//				throw new InsufficientNetworkCapacityException("Unable to configure NetworkAPI as resource", Network.class, network.getId());
+//			}
 
 		
 		} finally {

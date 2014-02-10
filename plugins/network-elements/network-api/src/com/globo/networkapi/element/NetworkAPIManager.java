@@ -2,30 +2,42 @@ package com.globo.networkapi.element;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
+import com.cloud.agent.api.Command;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
+import com.cloud.exception.ConcurrentOperationException;
+import com.cloud.exception.InsufficientCapacityException;
+import com.cloud.exception.InvalidParameterValueException;
+import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.host.dao.HostDao;
-import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.network.Network;
+import com.cloud.network.NetworkManager;
 import com.cloud.network.NetworkModel;
+import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
-import com.cloud.network.dao.PhysicalNetworkVO;
+import com.cloud.offerings.NetworkOfferingVO;
+import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Cluster;
 import com.cloud.resource.ResourceManager;
-import com.cloud.vm.VirtualMachineManager;
-import com.globo.networkapi.commands.AllocateVlanCommand;
+import com.cloud.user.Account;
+import com.cloud.user.UserContext;
+import com.cloud.utils.net.Ip4Address;
+import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
@@ -51,24 +63,101 @@ public class NetworkAPIManager implements NetworkAPIService {
     HostPodDao _hostPodDao;
     @Inject
     PhysicalNetworkDao _physicalNetworkDao;
+    @Inject
+    NetworkOfferingDao _networkOfferingDao;
+    @Inject
+    NetworkManager _networkMgr;
     
-	@Override
-	public Object allocateVlan(Network network, Cluster cluster) throws ResourceUnavailableException, ConfigurationException {
+    @Override
+    public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId, Long networkOfferingId, Long physicalNetworkId) throws ResourceUnavailableException, ConfigurationException, ResourceAllocationException, ConcurrentOperationException, InsufficientCapacityException {
+    	
+        // Validate network offering
+        NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
+        if (ntwkOff == null || ntwkOff.isSystemOnly()) {
+            InvalidParameterValueException ex = new InvalidParameterValueException("Unable to find network offering by specified id");
+            if (ntwkOff != null) {
+                ex.addProxyObject(ntwkOff.getUuid(), "networkOfferingId");
+            }
+            throw ex;
+        }
+        // validate physical network and zone
+        // Check if physical network exists
+        PhysicalNetwork pNtwk = null;
+        if (physicalNetworkId != null) {
+            pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
+            if (pNtwk == null) {
+                throw new InvalidParameterValueException("Unable to find a physical network having the specified physical network id");
+            }
+        }
 
-		PhysicalNetworkVO pNetwork = _physicalNetworkDao.findById(network.getPhysicalNetworkId());
-		// FIXME NULL!!!
-        long zoneId = pNetwork.getDataCenterId();
+        if (zoneId == null) {
+            zoneId = pNtwk.getDataCenterId();
+        }
+
+        // Get VlanInfo from NetworkAPI
+		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
+		cmd.setVlanId(vlanId);
 		
-        Map<String, String> cfg = new HashMap<String, String>();
-        cfg.put("guid", "networkapi"); // FIXME
-        cfg.put("name", network.getDisplayText());
-        cfg.put("url", "https://networkapi.globoi.com");
-        cfg.put("username", "gcloud");
-        cfg.put("password", "gcloud");
-        cfg.put("zoneId", String.valueOf(zoneId));
-        cfg.put("podId", String.valueOf(cluster.getPodId()));
-        cfg.put("clusterId", String.valueOf(cluster.getId()));
-        cfg.put("environmentId", "120");
+		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
+		cfg.putIfAbsent("zoneId", String.valueOf(zoneId));
+		cfg.putIfAbsent("podId", String.valueOf(1L /*FIXME*/));
+		cfg.putIfAbsent("clusterId", String.valueOf(1L /*FIXME*/));
+		cfg.putIfAbsent("environmentId", "120");
+
+		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, cfg);
+		
+		if (response == null || !response.getResult()) {
+			String msg = "Unable to execute command " + cmd.getClass().getSimpleName();
+			s_logger.error(msg);
+			// FIXME Understand this exception, and put more specific object
+            throw new ResourceUnavailableException(msg, DataCenter.class, zoneId);
+		}
+		
+		Ip4Address networkAddress = response.getNetworkAddress();
+		Ip4Address gateway = new Ip4Address(networkAddress.toLong()+1);
+		String cidr = "192.168.56.0/24";
+
+		s_logger.info("Creating network with name " + response.getVlanName() +
+				" (" + response.getVlanId() +
+				"), network " + networkAddress.ip4() +
+				" and gateway " + gateway.ip4()
+				);
+		
+		Account owner = UserContext.current().getCaller();
+
+        Network network = _networkMgr.createGuestNetwork(
+        		networkOfferingId.longValue(),
+        		response.getVlanName(),
+        		response.getVlanDescription(),
+        		gateway.ip4(),
+        		cidr,
+        		String.valueOf(response.getVlanNum()),
+        		(String) null, //networkDomain,
+        		owner,
+        		1l, //sharedDomainId,
+        		pNtwk,
+        		zoneId,
+        		ACLType.Domain,
+        		true, //subdomainAccess,
+        		null, //vpcId,
+        		null, //ip6Gateway,
+        		null, //ip6Cidr,
+        		true, //displayNetwork,
+        		null //isolatedPvlan
+        		);
+
+        
+        return network;
+    }
+    
+    private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
+    	Long zoneId = Long.valueOf(cfg.get("zoneId"));
+    	
+        cfg.putIfAbsent("guid", "networkapi"); // FIXME
+//        cfg.putIfAbsent("name", network.getDisplayText());
+        cfg.putIfAbsent("url", "https://networkapi.globoi.com");
+        cfg.putIfAbsent("username", "gcloud");
+        cfg.putIfAbsent("password", "gcloud");
 
         NetworkAPIResource resource = new NetworkAPIResource();
         Map<String, Object> params = new HashMap<String, Object>();
@@ -77,22 +166,10 @@ public class NetworkAPIManager implements NetworkAPIService {
 
         Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(), cfg);
 		
-		AllocateVlanCommand cmd = new AllocateVlanCommand();
-		cmd.setEnvironmentId(getEnvironmentIdFromPod(cluster));
-		cmd.setVlanName("tst-" + network.getName());
-		cmd.setVlanDescription(network.getDisplayText());
 		Answer answer = _agentMgr.easySend(host.getId(), cmd);
-		if (answer == null || !answer.getResult()) {
-			String msg = "Unable to execute command";
-			s_logger.error(msg);
-            throw new ResourceUnavailableException(msg, DataCenter.class, network.getDataCenterId());
-		}
-		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
-		s_logger.info("Vlan allocated in " + response.getVlanNum());
-		
-		return null;
-	}
-
+		return answer;
+    }
+    
     /**
      * Get the number of vlan associate with {@code network}.
      * @param network
