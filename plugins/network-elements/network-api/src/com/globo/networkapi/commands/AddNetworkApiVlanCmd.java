@@ -39,13 +39,12 @@ import com.cloud.network.Network;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.element.NetworkAPIService;
-import com.globo.networkapi.response.AddNetworkApiVlanCmdResponse;
 
-@APICommand(name = "addNetworkApiVlan", responseObject=AddNetworkApiVlanCmdResponse.class, description="Adds a vlan/network from Network API")
+@APICommand(name = "addNetworkApiVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from Network API")
 public class AddNetworkApiVlanCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddNetworkApiVlanCmd.class.getName());
-    private static final String s_name = "addnetworkapivlan";
+    private static final String s_name = "addnetworkapivlanresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
@@ -63,7 +62,7 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     private Long networkOfferingId;
     
     @Parameter(name=ApiConstants.PHYSICAL_NETWORK_ID, type=CommandType.UUID, entityType = PhysicalNetworkResponse.class,
-            description="the Physical Network ID the network belongs to")
+            required=true, description="the Physical Network ID the network belongs to")
     private Long physicalNetworkId;
 
     /* Accessors */
@@ -87,7 +86,7 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId);
+        	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId);
         	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
