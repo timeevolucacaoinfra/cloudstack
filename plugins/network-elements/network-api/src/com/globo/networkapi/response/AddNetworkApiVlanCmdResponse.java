@@ -18,15 +18,16 @@ package com.globo.networkapi.response;
 
 import org.apache.cloudstack.api.BaseResponse;
 
+import com.cloud.network.Network;
 import com.cloud.serializer.Param;
 import com.google.gson.annotations.SerializedName;
 
 public class AddNetworkApiVlanCmdResponse extends BaseResponse {
 	
 	@SerializedName("network") @Param(description="Created network")
-	private String network;
+	private Network network;
 
-	public void setNetwork(String network) {
+	public void setNetwork(Network network) {
 		this.network = network;
 	}
 }
