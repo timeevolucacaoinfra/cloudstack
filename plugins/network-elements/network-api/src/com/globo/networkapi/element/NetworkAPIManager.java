@@ -38,6 +38,7 @@ import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Cluster;
 import com.cloud.resource.ResourceManager;
+import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.UserContext;
 import com.cloud.utils.component.PluggableService;
@@ -75,7 +76,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     @Inject
     NetworkManager _networkMgr;
     @Inject
-    ConfigurationDao _configDao;
+    ConfigurationServer _configServer;
     
     @Override
     public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId, Long networkOfferingId, Long physicalNetworkId) throws ResourceUnavailableException, ConfigurationException, ResourceAllocationException, ConcurrentOperationException, InsufficientCapacityException {
@@ -164,9 +165,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
     	Long zoneId = Long.valueOf(cfg.get("zoneId"));
 
-		String username = _configDao.getValue(Config.NetworkAPIUsername.name());
-		String password = _configDao.getValue(Config.NetworkAPIPassword.name());
-		String url = _configDao.getValue(Config.NetworkAPIUrl.name());
+		String username = _configServer.getConfigValue(Config.NetworkAPIUsername.name(), Config.ConfigurationParameterScope.global.name(), null);
+		String password = _configServer.getConfigValue(Config.NetworkAPIPassword.name(), Config.ConfigurationParameterScope.global.name(), null);
+		String url = _configServer.getConfigValue(Config.NetworkAPIUrl.name(), Config.ConfigurationParameterScope.global.name(), null);
 
         cfg.putIfAbsent("guid", "networkapi"); // FIXME
         cfg.putIfAbsent("url", url);

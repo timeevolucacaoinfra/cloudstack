@@ -304,7 +304,7 @@ public enum Config {
     MidoNetAPIServerAddress("Network", ManagementServer.class, String.class, "midonet.apiserver.address", "http://localhost:8081", "Specify the address at which the Midonet API server can be contacted (if using Midonet)", null),
     MidoNetProviderRouterId("Network", ManagementServer.class, String.class, "midonet.providerrouter.id", "d7c5e6a3-e2f4-426b-b728-b7ce6a0448e5", "Specifies the UUID of the Midonet provider router (if using Midonet)", null),
 
-    // Midonet
+    // NetworkAPI
     NetworkAPIUsername("Network", ManagementServer.class, String.class, "networkapi.username", "http://localhost:9000", "Specify the username used for networkapi (if using Networkapi)", null),
     NetworkAPIPassword("Network", ManagementServer.class, String.class, "networkapi.password", "", "Specify password for user for networkapi (if using Networkapi)", null),
     NetworkAPIUrl("Network", ManagementServer.class, String.class, "networkapi.url", "", "Specify base url of networkapi (if using Networkapi)", null),
