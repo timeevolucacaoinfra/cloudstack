@@ -165,9 +165,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
     	Long zoneId = Long.valueOf(cfg.get("zoneId"));
 
-		String username = _configServer.getConfigValue(Config.NetworkAPIUsername.name(), Config.ConfigurationParameterScope.global.name(), null);
-		String password = _configServer.getConfigValue(Config.NetworkAPIPassword.name(), Config.ConfigurationParameterScope.global.name(), null);
-		String url = _configServer.getConfigValue(Config.NetworkAPIUrl.name(), Config.ConfigurationParameterScope.global.name(), null);
+		String username = _configServer.getConfigValue(Config.NetworkAPIUsername.key(), Config.ConfigurationParameterScope.global.name(), null);
+		String password = _configServer.getConfigValue(Config.NetworkAPIPassword.key(), Config.ConfigurationParameterScope.global.name(), null);
+		String url = _configServer.getConfigValue(Config.NetworkAPIUrl.key(), Config.ConfigurationParameterScope.global.name(), null);
 
         cfg.putIfAbsent("guid", "networkapi"); // FIXME
         cfg.putIfAbsent("url", url);
