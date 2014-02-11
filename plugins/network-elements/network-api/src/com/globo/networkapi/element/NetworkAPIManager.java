@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
+import com.cloud.configuration.dao.ConfigurationDao;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
@@ -72,6 +73,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     NetworkOfferingDao _networkOfferingDao;
     @Inject
     NetworkManager _networkMgr;
+    @Inject
+    ConfigurationDao _configDao;
     
     @Override
     public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId, Long networkOfferingId, Long physicalNetworkId) throws ResourceUnavailableException, ConfigurationException, ResourceAllocationException, ConcurrentOperationException, InsufficientCapacityException {
@@ -104,6 +107,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setVlanId(vlanId);
 		
 		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
+		
 		cfg.put("name", "napivlan-" + vlanId);
 		cfg.put("zoneId", String.valueOf(zoneId));
 		cfg.put("podId", String.valueOf(1L /*FIXME*/));
@@ -158,12 +162,16 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     
     private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
     	Long zoneId = Long.valueOf(cfg.get("zoneId"));
-    	
+
+		String username = _configDao.getValueAndInitIfNotExist("networkapi.username", "Network", "");
+		String password = _configDao.getValue("networkapi.password");
+		String url = _configDao.getValue("networkapi.url");
+		
+
         cfg.putIfAbsent("guid", "networkapi"); // FIXME
-//        cfg.putIfAbsent("name", network.getDisplayText());
-        cfg.putIfAbsent("url", "https://networkapi.globoi.com");
-        cfg.putIfAbsent("username", "gcloud");
-        cfg.putIfAbsent("password", "gcloud");
+        cfg.putIfAbsent("url", url);
+        cfg.putIfAbsent("username", username);
+        cfg.putIfAbsent("password", password);
 
         NetworkAPIResource resource = new NetworkAPIResource();
         Map<String, Object> params = new HashMap<String, Object>();
