@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
+import com.cloud.configuration.Config;
 import com.cloud.configuration.dao.ConfigurationDao;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
@@ -163,10 +164,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
     	Long zoneId = Long.valueOf(cfg.get("zoneId"));
 
-		String username = _configDao.getValueAndInitIfNotExist("networkapi.username", "Network", "");
-		String password = _configDao.getValue("networkapi.password");
-		String url = _configDao.getValue("networkapi.url");
-		
+		String username = _configDao.getValue(Config.NetworkAPIUsername.name());
+		String password = _configDao.getValue(Config.NetworkAPIPassword.name());
+		String url = _configDao.getValue(Config.NetworkAPIUrl.name());
 
         cfg.putIfAbsent("guid", "networkapi"); // FIXME
         cfg.putIfAbsent("url", url);
