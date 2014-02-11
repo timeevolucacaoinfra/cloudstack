@@ -25,6 +25,7 @@ import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.NetworkOfferingResponse;
+import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.log4j.Logger;
@@ -88,14 +89,13 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
         try {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId);
         	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId);
-        	AddNetworkApiVlanCmdResponse response = new AddNetworkApiVlanCmdResponse();
-        	network.setNetworkACLId(null);
-        	network.setPhysicalNetworkId(null);
-        	network.setTrafficType(null);
-        	response.setNetwork(network);
-        	response.setObjectName("network");
-        	response.setResponseName(getCommandName());
-        	this.setResponseObject(response);
+        	if (network != null) {
+        		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
+        		response.setResponseName(getCommandName());
+        		this.setResponseObject(response);
+        	} else {
+        		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from NetworkAPI.");
+        	}
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (ConfigurationException e) {
