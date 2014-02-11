@@ -142,7 +142,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
         		gateway.ip4(),
         		cidr,
         		String.valueOf(response.getVlanNum()),
-        		(String) null, //networkDomain,
+        		null, //networkDomain,
         		owner,
         		1l, //sharedDomainId,
         		pNtwk,
