@@ -44,7 +44,7 @@ import com.globo.networkapi.element.NetworkAPIService;
 public class AddNetworkApiVlanCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddNetworkApiVlanCmd.class.getName());
-    private static final String s_name = "addnetworkapivlan";
+    private static final String s_name = "addnetworkapivlanresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
