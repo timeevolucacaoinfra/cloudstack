@@ -190,7 +190,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
      * @param network
      * @return
      */
-    private Integer getVlanId(Network network) {
+    private Integer getVlanNum(Network network) {
     	if (network == null || network.getBroadcastUri() == null) {
     		return null;
     	}
