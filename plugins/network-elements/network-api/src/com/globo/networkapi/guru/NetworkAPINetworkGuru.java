@@ -1,5 +1,7 @@
 package com.globo.networkapi.guru;
 
+import javax.inject.Inject;
+
 import org.apache.log4j.Logger;
 
 import com.cloud.dc.DataCenter.NetworkType;
@@ -18,12 +20,16 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.networkapi.element.NetworkAPIService;
 
 public class NetworkAPINetworkGuru extends GuestNetworkGuru {
     private static final Logger s_logger = Logger.getLogger(NetworkAPINetworkGuru.class);
     
     // by default traffic type is TrafficType.Guest
     
+    @Inject
+    NetworkAPIService _networkAPIService;
+
     protected NetworkType _networkType = NetworkType.Advanced;
     
     public NetworkAPINetworkGuru() {
@@ -82,6 +88,9 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 			InsufficientAddressCapacityException {
 		s_logger.debug("Asking GuestNetworkGuru to reserve nic " + nic.toString() +
 				" for network " + network.getName());
+		
+		_networkAPIService.validateNic(nic, vm, network, dest);
+
 		super.reserve(nic, network, vm, dest, context);
 	}
 
@@ -97,6 +106,7 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 	@Override
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
 		s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
+		s_logger.warn("**** Removing Vlan from equipment (NOT WORKING YET");
 		super.shutdown(profile, offering);
 	}
 
@@ -106,6 +116,7 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 		// TODO Release VLAN networks
 		s_logger.debug("### Here we should release VLAN networks from NetworkAPI ###");
 		s_logger.debug("VLAN networks released. Passing on to GuestNetworkGuru to trash network " + network.getName());
+		s_logger.warn("**** Removing Vlan from networkapi (NOT WORKING YET) (vlan.deallocate)");
 		return super.trash(network, offering, owner);
 	}
 	

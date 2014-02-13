@@ -1,6 +1,7 @@
 package com.globo.networkapi.resource;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import javax.naming.ConfigurationException;
@@ -21,9 +22,12 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
+import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.Ip4Address;
+import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
+import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.IPv4Network;
 import com.globo.networkapi.model.Vlan;
@@ -157,6 +161,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		s_logger.trace("executeRequest called with args " + cmd.getClass() + " - " + cmd);
 		if (cmd instanceof GetVlanInfoFromNetworkAPICommand) {
 			return execute((GetVlanInfoFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof ValidateNicInVlanCommand) {
+			return execute((ValidateNicInVlanCommand) cmd);
 		} else if (cmd instanceof ReadyCommand) {
 			return new ReadyAnswer((ReadyCommand) cmd);
 		} else if (cmd instanceof MaintainCommand) {
@@ -166,6 +172,39 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
 	
+	/**
+	 * Validate if Nic ip and vlan number belongs to NetworkAPI VlanId
+	 * @param cmd
+	 * @return
+	 * @throws IOException
+	 * @throws XmlPullParserException
+	 */
+	public Answer execute(ValidateNicInVlanCommand cmd) {
+		try {
+			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
+			List<IPv4Network> networks = vlan.getIpv4Networks();
+			if (networks.isEmpty()) {
+				return new Answer(cmd, false, "VlanId " + cmd.getVlanId() + " have no networks create yet");
+			}
+			
+			IPv4Network network = networks.get(0);
+			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
+			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
+			String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, network.getBroadcast());
+					NetUtils.getCidrNetmask(network.getBroadcast());
+			long cidrSize = NetUtils.getCidrSize(network.getBroadcast());
+			String ipRange[] = NetUtils.getIpRangeFromCidr(cidr, cidrSize);
+			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
+				return new Answer(cmd, false, "Nic ip " + cmd.getNicIp() + " not belongs to network " + networkAddress + " in vlanId " + cmd.getVlanId());
+			}
+			return new Answer(cmd); 
+		} catch (Exception e) {
+			// FIXME Não deveria ter estas exceptions aqui!
+			s_logger.error("Error in command " + cmd, e);
+			return new Answer(cmd, false, "Internal Error: " + e.getLocalizedMessage());
+		}
+	}
+
 	public Answer execute(GetVlanInfoFromNetworkAPICommand cmd) {
 		try {
 //			Vlan vlan = _napi.getVlanAPI().allocateWithoutNetwork(cmd.getEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());

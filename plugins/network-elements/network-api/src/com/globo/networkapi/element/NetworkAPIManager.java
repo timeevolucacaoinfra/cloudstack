@@ -1,5 +1,6 @@
 package com.globo.networkapi.element;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -21,8 +22,11 @@ import com.cloud.configuration.dao.ConfigurationDao;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
+import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
+import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
+import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
@@ -42,10 +46,15 @@ import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.UserContext;
 import com.cloud.utils.component.PluggableService;
+import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
+import com.cloud.vm.NicProfile;
+import com.cloud.vm.VirtualMachine;
+import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
+import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
@@ -185,21 +194,53 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		return answer;
     }
     
+    @Override
+    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile<? extends VirtualMachine> vm, Network network, DeployDestination dest) throws InsufficientVirtualNetworkCapcityException, InsufficientAddressCapacityException {
+    	
+    	Long networkAPIVlanId = null;
+    	ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
+    	cmd.setNicIp(nicProfile.getIp4Address());
+//    	cmd.setVlanId(network.get);
+    	cmd.setVlanNum(Long.valueOf(getVlanNum(nicProfile.getBroadCastUri())));
+
+		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
+		
+		cfg.put("name", "napivlan-" + networkAPIVlanId);
+		cfg.put("zoneId", String.valueOf(dest.getDataCenter().getId()));
+		cfg.put("podId", String.valueOf(1L /*FIXME*/));
+		cfg.put("clusterId", String.valueOf(1L /*FIXME*/));
+		cfg.put("environmentId", "120");
+		
+		String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
+		try {
+	    	Answer answer = this.callCommand(cmd, cfg);
+	    	if (answer == null || !answer.getResult()) {
+	    		msg = answer == null ? msg : answer.getDetails();
+	    		throw new CloudRuntimeException(msg);
+	    	}
+		} catch (ConfigurationException e) {
+			throw new CloudRuntimeException(msg, e);
+		}
+		// everything is ok
+    	return network;
+    }
+
     /**
      * Get the number of vlan associate with {@code network}.
      * @param network
      * @return
      */
-    private Integer getVlanNum(Network network) {
-    	if (network == null || network.getBroadcastUri() == null) {
+    private Integer getVlanNum(URI broadcastUri) {
+    	if (broadcastUri == null) {
     		return null;
     	}
     	try {
-    		Integer vlanNum = Integer.valueOf(network.getBroadcastUri().getHost());
+    		Integer vlanNum = Integer.valueOf(broadcastUri.getHost());
         	return vlanNum;
     	} catch (NumberFormatException nfe) {
-    		s_logger.error("Invalid Vlan number in network " + network.getId() + " " + network.getDisplayText());
-    		return null;
+    		String msg = "Invalid Vlan number in broadcast URI " + broadcastUri;
+    		s_logger.error(msg);
+    		throw new CloudRuntimeException(msg, nfe);
     	}
     }
 
