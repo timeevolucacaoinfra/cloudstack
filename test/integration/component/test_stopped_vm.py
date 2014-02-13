@@ -22,7 +22,6 @@ import marvin
 from nose.plugins.attrib import attr
 from marvin.cloudstackTestCase import *
 from marvin.cloudstackAPI import *
-from marvin.remoteSSHClient import remoteSSHClient
 from marvin.integration.lib.utils import *
 from marvin.integration.lib.base import *
 from marvin.integration.lib.common import *
@@ -84,9 +83,9 @@ class Services:
                     "mode": 'HTTP_DOWNLOAD',    # Downloading existing ISO
                 },
                 "template": {
-                    "url": "http://download.cloud.com/releases/2.0.0/UbuntuServer-10-04-64bit.vhd.bz2",
-                    "hypervisor": 'XenServer',
-                    "format": 'VHD',
+                    "url": "",
+                    "hypervisor": '',
+                    "format": '',
                     "isfeatured": True,
                     "ispublic": True,
                     "isextractable": True,
@@ -647,7 +646,7 @@ class TestDeployVM(cloudstackTestCase):
         self.debug("Successfully created ISO with ID: %s" % iso.id)
         try:
             iso.download(self.apiclient)
-            self.cleanup.append(iso)
+ 
         except Exception as e:
             self.fail("Exception while downloading ISO %s: %s"\
                       % (iso.id, e))
@@ -771,7 +770,7 @@ class TestDeployVM(cloudstackTestCase):
                               type='DATADISK',
                               account=self.account.name,
                               domainid=self.account.domainid,
-                              listall=True
+                              virtualmachineid=self.virtual_machine_2.id
                               )
         self.assertEqual(
                          isinstance(volumes, list),
@@ -809,6 +808,154 @@ class TestDeployVM(cloudstackTestCase):
                          )
         return
 
+    @attr(tags = ["advanced", "eip", "advancedns", "basic", "sg"])
+    def test_09_stop_vm_migrate_vol(self):
+        """Test Stopped Virtual Machine's ROOT volume migration
+        """
+
+        # Validate the following:
+        # 1. deploy Vm with startvm=true
+        # 2. Should not be able to login to the VM.
+        # 3. listVM command should return the deployed VM.State of this VM
+        #    should be "Running".
+        # 4. Stop the vm
+        # 5.list primary storages in the cluster , should be more than one
+        # 6.Migrate voluem to another available primary storage
+        clusters = Cluster.list(
+                                self.apiclient,
+                                zoneid = self.zone.id
+                                )
+        self.assertEqual(
+                            isinstance(clusters, list),
+                            True,
+                            "Check list response returns a valid list"
+                        )
+        i = 0
+        for cluster in clusters :
+            storage_pools = StoragePool.list(
+                                             self.apiclient,
+                                             clusterid = cluster.id
+                                             )
+            if len(storage_pools) > 1 :
+                self.cluster_id = cluster.id
+                i += 1
+                break
+        if i == 0 :
+            self.skipTest("No cluster with more than one primary storage pool to perform migrate volume test")
+
+        hosts = Host.list(
+                          self.apiclient,
+                          clusterid = self.cluster_id
+                          )
+        self.assertEqual(
+                            isinstance(hosts, list),
+                            True,
+                            "Check list response returns a valid list"
+                        )
+        host = hosts[0]
+        self.debug("Deploying instance on host: %s" % host.id)
+        self.debug("Deploying instance in the account: %s" %
+                                                self.account.name)
+        self.virtual_machine = VirtualMachine.create(
+                                    self.apiclient,
+                                    self.services["virtual_machine"],
+                                    accountid=self.account.name,
+                                    domainid=self.account.domainid,
+                                    serviceofferingid=self.service_offering.id,
+                                    diskofferingid=self.disk_offering.id,
+                                    hostid=host.id,
+                                    mode=self.zone.networktype
+                                )
+
+        self.debug("Deployed instance in account: %s" %
+                                                    self.account.name)
+        list_vm_response = list_virtual_machines(
+                                                 self.apiclient,
+                                                 id=self.virtual_machine.id
+                                                 )
+
+        self.debug(
+                "Verify listVirtualMachines response for virtual machine: %s" \
+                % self.virtual_machine.id
+            )
+
+        self.assertEqual(
+                            isinstance(list_vm_response, list),
+                            True,
+                            "Check list response returns a valid list"
+                        )
+        vm_response = list_vm_response[0]
+        self.assertEqual(
+                            vm_response.state,
+                            "Running",
+                            "VM should be in Running state after deployment"
+                        )
+        self.debug("Stopping instance: %s" % self.virtual_machine.name)
+        self.virtual_machine.stop(self.apiclient)
+        self.debug("Instance is stopped!")
+        self.debug(
+                "Verify listVirtualMachines response for virtual machine: %s" \
+                % self.virtual_machine.id
+            )
+        list_vm_response = list_virtual_machines(
+                                                 self.apiclient,
+                                                 id=self.virtual_machine.id
+                                                 )
+        self.assertEqual(
+                            isinstance(list_vm_response, list),
+                            True,
+                            "Check list response returns a valid list"
+                        )
+        vm_response = list_vm_response[0]
+        self.assertEqual(
+                            vm_response.state,
+                            "Stopped",
+                            "VM should be in Stopped state after stoping vm"
+                        )
+        volumes = Volume.list(
+                              self.apiclient,
+                              virtualmachineid=self.virtual_machine.id,
+                              type='ROOT',
+                              listall=True
+                              )
+        self.assertEqual(
+                            isinstance(volumes, list),
+                            True,
+                            "Check volume list response returns a valid list"
+                        )
+        vol_response = volumes[0]
+        #get the storage name in which volume is stored
+        storage_name = vol_response.storage
+        storage_pools = StoragePool.list(
+                                         self.apiclient,
+                                         clusterid = self.cluster_id
+                                         )
+        #Get storage pool to migrate volume
+        for spool in storage_pools:
+            if spool.name == storage_name:
+                continue
+            else:
+                self.storage_id = spool.id
+                self.storage_name = spool.name
+                break
+        self.debug("Migrating volume to storage pool: %s" % self.storage_name)
+        Volume.migrate(
+                       self.apiclient,
+                       storageid = self.storage_id,
+                       volumeid = vol_response.id
+                       )
+        volume = Volume.list(
+                              self.apiclient,
+                              virtualmachineid=self.virtual_machine.id,
+                              type='ROOT',
+                              listall=True
+                              )
+        self.assertEqual(
+                         volume[0].storage,
+                         self.storage_name,
+                         "Check volume migration response")
+        
+        return
 
 class TestDeployHaEnabledVM(cloudstackTestCase):
 
@@ -944,9 +1091,9 @@ class TestDeployHaEnabledVM(cloudstackTestCase):
                                 domainid=self.account.domainid
                                 )
         try:
-            # Dowanload the ISO
+            # Download the ISO
             self.iso.download(self.apiclient)
-            self.cleanup.append(self.iso)
+ 
         except Exception as e:
             raise Exception("Exception while downloading ISO %s: %s"\
                       % (self.iso.id, e))
@@ -1109,7 +1256,7 @@ class TestRouterStateAfterDeploy(cloudstackTestCase):
         except Exception as e:
             self.debug("Warning! Exception in tearDown: %s" % e)
 
-    @attr(tags = ["advanced", "eip", "advancedns", "basic", "sg"])
+    @attr(tags = ["advanced", "eip", "advancedns"])
     def test_01_deploy_vm_no_startvm(self):
         """Test Deploy Virtual Machine with no startVM parameter
         """
@@ -1374,6 +1521,13 @@ class TestDeployVMFromTemplate(cloudstackTestCase):
                             self.services["account"],
                             domainid=self.domain.id
                             )
+
+        builtin_info = get_builtin_template_info(self.apiclient, self.zone.id)
+        self.services["template"]["url"] = builtin_info[0] 
+        self.services["template"]["hypervisor"] = builtin_info[1]     
+        self.services["template"]["format"] = builtin_info[2]
+
+        # Register new template
         self.template = Template.register(
                                         self.apiclient,
                                         self.services["template"],
@@ -1381,6 +1535,11 @@ class TestDeployVMFromTemplate(cloudstackTestCase):
                                         account=self.account.name,
                                         domainid=self.account.domainid
                                         )
+        self.debug(
+                "Registered a template of format: %s with ID: %s" % (
+                                                                self.services["template"]["format"],
+                                                                self.template.id
+                                                                ))
         try:
             self.template.download(self.apiclient)
         except Exception as e:

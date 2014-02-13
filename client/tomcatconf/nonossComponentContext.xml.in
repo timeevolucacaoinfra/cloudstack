@@ -256,6 +256,7 @@
           <ref bean="XcpServerDiscoverer"/>
           <ref bean="SecondaryStorageDiscoverer"/>
           <ref bean="KvmServerDiscoverer"/>
+          <ref bean="LxcServerDiscoverer"/>
           <ref bean="BareMetalDiscoverer"/>
           <ref bean="OvmDiscoverer"/>
           <ref bean="vmwareServerDiscoverer"/>
@@ -284,6 +285,15 @@
           <ref bean="KVMFencer"/>
           <ref bean="OvmFencer"/>
           <ref bean="VmwareFencer"/>
+      </list>
+    </property>
+  </bean>
+
+  <!-- HA adapters -->
+  <bean id="haPlanners" class="com.cloud.utils.component.AdapterList">
+    <property name="Adapters">
+      <list>
+          <ref bean="SkipHeuresticsPlanner" />
       </list>
     </property>
   </bean>

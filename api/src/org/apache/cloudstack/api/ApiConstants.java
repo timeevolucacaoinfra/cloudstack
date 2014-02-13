@@ -201,6 +201,7 @@ public class ApiConstants {
     public static final String SENT_BYTES = "sentbytes";
     public static final String SERVICE_OFFERING_ID = "serviceofferingid";
     public static final String SHOW_CAPACITIES = "showcapacities";
+    public static final String SHOW_REMOVED = "showremoved";
     public static final String SIZE = "size";
     public static final String SNAPSHOT_ID = "snapshotid";
     public static final String SNAPSHOT_POLICY_ID = "snapshotpolicyid";
@@ -493,8 +494,11 @@ public class ApiConstants {
     public static final String RESERVED_IP_RANGE = "reservediprange";
     public static final String UCS_MANAGER_ID = "ucsmanagerid";
     public static final String UCS_PROFILE_DN = "profiledn";
+    public static final String UCS_TEMPLATE_DN = "templatedn";
     public static final String UCS_BLADE_DN = "bladedn";
     public static final String UCS_BLADE_ID = "bladeid";
+    public static final String UCS_PROFILE_NAME = "profilename";
+    public static final String UCS_DELETE_PROFILE = "deleteprofile";
     public static final String VM_GUEST_IP = "vmguestip";
     public static final String HEALTHCHECK_RESPONSE_TIMEOUT = "responsetimeout";
     public static final String HEALTHCHECK_INTERVAL_TIME = "intervaltime";
@@ -518,6 +522,7 @@ public class ApiConstants {
     public static final String ROUTING = "isrouting";
     public static final String SERVICE_STATE = "servicestate";
     public static final String MAX_CONNECTIONS = "maxconnections";
+    public static final String EXPUNGE = "expunge";
 
     public enum HostDetails {
         all, capacity, events, stats, min;

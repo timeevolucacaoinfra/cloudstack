@@ -25,7 +25,7 @@ from marvin.cloudstackAPI import *
 from marvin.integration.lib.utils import *
 from marvin.integration.lib.base import *
 from marvin.integration.lib.common import *
-from marvin.remoteSSHClient import remoteSSHClient
+from marvin.sshClient import SshClient
 import datetime
 
 
@@ -62,7 +62,7 @@ class Services:
                                     "protocol": 'TCP',
                                 },
                          "netscaler": {
-                   "ipaddress": '10.147.60.26',
+                                "ipaddress": '10.147.60.26',
                                 "username": 'nsroot',
                                 "password": 'nsroot',
                                 "networkdevicetype": 'NetscalerVPXLoadBalancer',
@@ -1745,7 +1745,7 @@ class TestGuestNetworkWithNetScaler(cloudstackTestCase):
         self.debug("SSH into netscaler: %s" %
                                     self.services["netscaler"]["ipaddress"])
         try:
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],
@@ -1891,7 +1891,7 @@ class TestGuestNetworkWithNetScaler(cloudstackTestCase):
                                     listall=True
                                     )
             nw = network_list[0]
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],
@@ -2051,7 +2051,7 @@ class TestGuestNetworkWithNetScaler(cloudstackTestCase):
         self.debug("SSH into netscaler: %s" %
                                     self.services["netscaler"]["ipaddress"])
         try:
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],
@@ -2095,6 +2095,7 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls._cleanup = []
         cls.api_client = super(
                                TestGuestNetworkShutDown,
                                cls
@@ -2108,30 +2109,32 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                             cls.zone.id,
                             cls.services["ostype"]
                             )
-
-        cls.network_offering = NetworkOffering.create(
+        try:
+           cls.netscaler = add_netscaler(cls.api_client, cls.zone.id, cls.services)
+           cls._cleanup.append(cls.netscaler)
+           cls.network_offering = NetworkOffering.create(
                                             cls.api_client,
                                             cls.services["network_offering"],
                                             conservemode=True
                                             )
-        # Enable Network offering
-        cls.network_offering.update(cls.api_client, state='Enabled')
-        cls.services["virtual_machine"]["zoneid"] = cls.zone.id
-        cls.services["virtual_machine"]["template"] = cls.template.id
+           # Enable Network offering
+           cls.network_offering.update(cls.api_client, state='Enabled')
+           cls.services["virtual_machine"]["zoneid"] = cls.zone.id
+           cls.services["virtual_machine"]["template"] = cls.template.id
 
-        cls.service_offering = ServiceOffering.create(
+           cls.service_offering = ServiceOffering.create(
                                             cls.api_client,
                                             cls.services["service_offering"]
                                             )
-        cls.account = Account.create(
+           cls.account = Account.create(
                                      cls.api_client,
                                      cls.services["account"],
                                      admin=True,
                                      domainid=cls.domain.id
                                      )
-
-        # Creating network using the network offering created
-        cls.network = Network.create(
+           cls._cleanup.insert(0,cls.account)
+           # Creating network using the network offering created
+           cls.network = Network.create(
                                     cls.api_client,
                                     cls.services["network"],
                                     accountid=cls.account.name,
@@ -2140,8 +2143,8 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                                     zoneid=cls.zone.id
                                     )
 
-        # Spawn few instances in that network
-        cls.vm_1 = VirtualMachine.create(
+           # Spawn few instances in that network
+           cls.vm_1 = VirtualMachine.create(
                                   cls.api_client,
                                   cls.services["virtual_machine"],
                                   accountid=cls.account.name,
@@ -2149,7 +2152,7 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                                   serviceofferingid=cls.service_offering.id,
                                   networkids=[str(cls.network.id)]
                                   )
-        cls.vm_2 = VirtualMachine.create(
+           cls.vm_2 = VirtualMachine.create(
                                   cls.api_client,
                                   cls.services["virtual_machine"],
                                   accountid=cls.account.name,
@@ -2157,25 +2160,25 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                                   serviceofferingid=cls.service_offering.id,
                                   networkids=[str(cls.network.id)]
                                   )
-        cls.public_ip = PublicIPAddress.create(
+           cls.public_ip = PublicIPAddress.create(
                                 cls.api_client,
                                 accountid=cls.account.name,
                                 zoneid=cls.zone.id,
                                 domainid=cls.account.domainid,
                                 networkid=cls.network.id
                                 )
-        cls.lb_rule = LoadBalancerRule.create(
+           cls.lb_rule = LoadBalancerRule.create(
                                     cls.api_client,
                                     cls.services["lbrule"],
                                     ipaddressid=cls.public_ip.ipaddress.id,
                                     accountid=cls.account.name,
                                     networkid=cls.network.id
                                 )
-        cls.lb_rule.assign(cls.api_client, [cls.vm_1, cls.vm_2])
-        cls._cleanup = [
-                        cls.service_offering,
-                        cls.account
-                        ]
+           cls.lb_rule.assign(cls.api_client, [cls.vm_1, cls.vm_2])
+        except Exception as e:
+           cls.tearDownClass()
+           raise Exception ("Warning: Exception in setUpClass: %s" % e)
+
         return
 
     @classmethod
@@ -2246,7 +2249,7 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
         self.debug("SSH into netscaler: %s" %
                                     self.services["netscaler"]["ipaddress"])
         try:
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],
@@ -2331,7 +2334,7 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                                     listall=True
                                     )
             nw = network_list[0]
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],
@@ -2393,7 +2396,7 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                                     listall=True
                                     )
             nw = network_list[0]
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],
@@ -2455,7 +2458,7 @@ class TestGuestNetworkShutDown(cloudstackTestCase):
                                     listall=True
                                     )
             nw = network_list[0]
-            ssh_client = remoteSSHClient(
+            ssh_client = SshClient(
                                     self.services["netscaler"]["ipaddress"],
                                     self.services["netscaler"]["port"],
                                     self.services["netscaler"]["username"],

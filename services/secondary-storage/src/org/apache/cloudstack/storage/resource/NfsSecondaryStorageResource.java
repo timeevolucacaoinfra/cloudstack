@@ -16,6 +16,7 @@
 // under the License.
 package org.apache.cloudstack.storage.resource;
 
+import static com.cloud.utils.S3Utils.mputFile;
 import static com.cloud.utils.S3Utils.putFile;
 import static com.cloud.utils.StringUtils.join;
 import static com.cloud.utils.db.GlobalLock.executeWithNoWaitLock;
@@ -23,7 +24,15 @@ import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang.StringUtils.substringAfterLast;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
@@ -38,10 +47,6 @@ import java.util.concurrent.Callable;
 
 import javax.naming.ConfigurationException;
 
-import com.cloud.agent.api.storage.*;
-import com.cloud.storage.VMTemplateStorageResourceAssoc;
-import com.cloud.storage.template.*;
-import com.cloud.utils.SwiftUtil;
 import org.apache.cloudstack.storage.command.CopyCmdAnswer;
 import org.apache.cloudstack.storage.command.CopyCommand;
 import org.apache.cloudstack.storage.command.DeleteCommand;
@@ -85,6 +90,14 @@ import com.cloud.agent.api.SecStorageSetupCommand.Certificates;
 import com.cloud.agent.api.SecStorageVMSetupCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.agent.api.StartupSecondaryStorageCommand;
+import com.cloud.agent.api.storage.CreateEntityDownloadURLCommand;
+import com.cloud.agent.api.storage.DeleteEntityDownloadURLCommand;
+import com.cloud.agent.api.storage.DownloadAnswer;
+import com.cloud.agent.api.storage.ListTemplateAnswer;
+import com.cloud.agent.api.storage.ListTemplateCommand;
+import com.cloud.agent.api.storage.ListVolumeAnswer;
+import com.cloud.agent.api.storage.ListVolumeCommand;
+import com.cloud.agent.api.storage.UploadCommand;
 import com.cloud.agent.api.to.DataObjectType;
 import com.cloud.agent.api.to.DataStoreTO;
 import com.cloud.agent.api.to.DataTO;
@@ -99,10 +112,19 @@ import com.cloud.resource.ServerResourceBase;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.Storage.ImageFormat;
 import com.cloud.storage.StorageLayer;
+import com.cloud.storage.VMTemplateStorageResourceAssoc;
+import com.cloud.storage.template.Processor;
 import com.cloud.storage.template.Processor.FormatInfo;
+import com.cloud.storage.template.QCOW2Processor;
+import com.cloud.storage.template.RawImageProcessor;
+import com.cloud.storage.template.TemplateLocation;
+import com.cloud.storage.template.TemplateProp;
+import com.cloud.storage.template.VhdProcessor;
+import com.cloud.storage.template.VmdkProcessor;
 import com.cloud.utils.NumbersUtil;
 import com.cloud.utils.S3Utils;
 import com.cloud.utils.S3Utils.FileNamingStrategy;
+import com.cloud.utils.SwiftUtil;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
 import com.cloud.utils.script.OutputInterpreter;
@@ -408,8 +430,14 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
         } else if (srcData.getHypervisorType() == HypervisorType.KVM) {
             File srcFile = getFile(srcData.getPath(), srcDataStore.getUrl());
             File destFile = getFile(destData.getPath(), destDataStore.getUrl());
-
-            ImageFormat srcFormat = srcData.getVolume().getFormat();
+            VolumeObjectTO volumeObjectTO = srcData.getVolume();
+            ImageFormat srcFormat = null;
+            //TODO: the image format should be stored in snapshot table, instead of getting from volume
+            if (volumeObjectTO != null) {
+                srcFormat = volumeObjectTO.getFormat();
+            } else {
+                srcFormat = ImageFormat.QCOW2;
+            }
 
             // get snapshot file name
             String templateName = srcFile.getName();
@@ -526,6 +554,14 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
                     SwiftUtil.putObject(swift, properties, containterName, _tmpltpp);
                 }
 
+                //clean up template data on staging area
+                try {
+                    DeleteCommand deleteCommand = new DeleteCommand(newTemplate);
+                    execute(deleteCommand);
+                } catch (Exception e) {
+                    s_logger.debug("Failed to clean up staging area:", e);
+                }  
+                
                 TemplateObjectTO template = new TemplateObjectTO();
                 template.setPath(swiftPath);
                 template.setSize(templateFile.length());
@@ -543,7 +579,15 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
                 TemplateObjectTO newTemplate = (TemplateObjectTO)answer.getNewData();
                 newTemplate.setDataStore(srcDataStore);
                 CopyCommand newCpyCmd = new CopyCommand(newTemplate, destData, cmd.getWait(), cmd.executeInSequence());
-                return copyFromNfsToS3(newCpyCmd);
+                Answer result = copyFromNfsToS3(newCpyCmd);
+                //clean up template data on staging area
+                try {
+                    DeleteCommand deleteCommand = new DeleteCommand(newTemplate);
+                    execute(deleteCommand);
+                } catch (Exception e) {
+                    s_logger.debug("Failed to clean up staging area:", e);
+                }  
+                return result;
             }
         }
         s_logger.debug("Failed to create templat from snapshot");
@@ -803,9 +847,15 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
                     }
                 }
             }
+
+            long srcSize = srcFile.length();
             ImageFormat format = this.getTemplateFormat(srcFile.getName());
             String key = destData.getPath() + S3Utils.SEPARATOR + srcFile.getName();
-            putFile(s3, srcFile, bucket, key);
+            if (!s3.getSingleUpload(srcSize)){
+                mputFile(s3, srcFile, bucket, key); 
+            } else{
+                putFile(s3, srcFile, bucket, key);
+            }
 
             DataTO retObj = null;
             if (destData.getObjectType() == DataObjectType.TEMPLATE) {
@@ -1775,7 +1825,15 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
                 parent += File.separator;
             }
             String absoluteVolumePath = parent + relativeVolumePath;
-            File tmpltParent = new File(absoluteVolumePath).getParentFile();
+            File volPath = new File(absoluteVolumePath);
+            File tmpltParent = null;
+            if (volPath.exists() && volPath.isDirectory()) {
+                // for vmware, absoluteVolumePath represents a directory where volume files are located.
+                tmpltParent = volPath;
+            } else{
+                // for other hypervisors, the volume .vhd or .qcow2 file path is passed
+                tmpltParent = new File(absoluteVolumePath).getParentFile();
+            }
             String details = null;
             if (!tmpltParent.exists()) {
                 details = "volume parent directory " + tmpltParent.getName() + " doesn't exist";
@@ -1806,7 +1864,7 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
 
                     if (!f.delete()) {
                         return new Answer(cmd, false, "Unable to delete file " + f.getName() + " under Volume path "
-                                + relativeVolumePath);
+                                + tmpltParent.getPath());
                     }
                 }
                 if (!found) {
@@ -1816,7 +1874,7 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
             }
             if (!tmpltParent.delete()) {
                 details = "Unable to delete directory " + tmpltParent.getName() + " under Volume path "
-                        + relativeVolumePath;
+                        + tmpltParent.getPath();
                 s_logger.debug(details);
                 return new Answer(cmd, false, details);
             }

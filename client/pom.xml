@@ -16,7 +16,7 @@
   <parent>
     <groupId>org.apache.cloudstack</groupId>
     <artifactId>cloudstack</artifactId>
-    <version>4.2.0</version>
+    <version>4.2.1</version>
   </parent>
   <dependencies>
     <dependency>
@@ -149,6 +149,11 @@
       <groupId>org.apache.cloudstack</groupId>
       <artifactId>cloud-plugin-planner-user-dispersing</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+       <groupId>org.apache.cloudstack</groupId>
+       <artifactId>cloud-plugin-planner-ha</artifactId>
+       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.cloudstack</groupId>

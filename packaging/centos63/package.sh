@@ -21,8 +21,8 @@ function usage() {
  echo "usage: ./package.sh [-p|--pack] [-h|--help] [ARGS]"
  echo ""
  echo "The commonly used Arguments are:"
- echo "oss|OSS         To package OSS specific"
- echo "nonoss|NONOSS   To package NONOSS specific"
+ echo "oss|OSS             To package with only redistributable libraries (default)"
+ echo "nonoss|NONOSS   To package with non-redistributable libraries"
  echo ""
  echo "Examples: ./package.sh -p|--pack oss|OSS"
  echo "          ./package.sh -p|--pack nonoss|NONOSS"
@@ -30,10 +30,15 @@ function usage() {
  exit 1
 }
 
-function defaultPackaging() {
+function packaging() {
+	 
 CWD=`pwd`
 RPMDIR=$CWD/../../dist/rpmbuild
 PACK_PROJECT=cloudstack
+if [ -n "$1" ] ; then
+  DEFOSSNOSS="-D_ossnoss nonoss"
+fi
+
 
 VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
 RELEASE=`date +%Y%m%d%H%M`
@@ -44,49 +49,13 @@ if echo $VERSION | grep SNAPSHOT ; then
   DEFPRE="-D_prerelease 1"
   DEFREL="-D_rel SNAPSHOT"
 else
-  REALVER=$VERSION
+  REALVER=`echo $VERSION`
   DEFVER="-D_ver $REALVER"
   DEFREL="-D_rel $RELEASE"
 fi
 
 mkdir -p $RPMDIR/SPECS
 mkdir -p $RPMDIR/BUILD
-mkdir -p $RPMDIR/SRPMS
-mkdir -p $RPMDIR/RPMS
-mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
-
-(cd ../../; tar -c --exclude .git --exclude dist  .  | tar -C $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION -x )
-(cd $RPMDIR/SOURCES/; tar -czf $PACK_PROJECT-$VERSION.tgz $PACK_PROJECT-$VERSION)
-
-cp cloud.spec $RPMDIR/SPECS
-
-(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+"${DEFPRE}"} -ba SPECS/cloud.spec)
-
-exit
-}
-
-function packaging() {
-	 
-CWD=`pwd`
-RPMDIR=$CWD/../../dist/rpmbuild
-PACK_PROJECT=cloudstack
-DEFOSSNOSS="-D_ossnoss $packageval"
-
-
-VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
-if echo $VERSION | grep SNAPSHOT ; then
-  REALVER=`echo $VERSION | cut -d '-' -f 1`
-  DEFVER="-D_ver $REALVER"
-  DEFPRE="-D_prerelease 1"
-  DEFREL="-D_rel SNAPSHOT"
-else
-  REALVER=`echo $VERSION`
-  DEFVER="-D_ver $REALVER"
-  DEFREL="-D_rel 1"
-fi
-
-mkdir -p $RPMDIR/SPECS
-mkdir -p $RPMDIR/BUILD
 mkdir -p $RPMDIR/RPMS
 mkdir -p $RPMDIR/SRPMS
 mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
@@ -97,7 +66,7 @@ mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
 
 cp cloud.spec $RPMDIR/SPECS
 
-(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+\"${DEFPRE}\"} "${DEFOSSNOSS}" -bb SPECS/cloud.spec)
+(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+"${DEFPRE}"} ${DEFOSSNOSS+"$DEFOSSNOSS"} -bb SPECS/cloud.spec)
 
 exit
 }
@@ -105,7 +74,7 @@ exit
 
 if [ $# -lt 1 ] ; then
 
-	defaultPackaging
+	packaging
 
 elif [ $# -gt 0 ] ; then
 
@@ -125,9 +94,9 @@ elif [ $# -gt 0 ] ; then
 		echo "Doing CloudStack Packaging ....."
 		packageval=$2
 		if [ "$packageval" == "oss" -o "$packageval" == "OSS" ] ; then
-			defaultPackaging
-		elif [ "$packageval" == "nonoss" -o "$packageval" == "NONOSS" ] ; then
 			packaging
+		elif [ "$packageval" == "nonoss" -o "$packageval" == "NONOSS" ] ; then
+			packaging nonoss
 		else
 			echo "Error: Incorrect value provided in package.sh script, Please see help ./package.sh --help|-h for more details."
 			exit 1
@@ -138,19 +107,8 @@ elif [ $# -gt 0 ] ; then
 		usage
 		exit 1
 		;;
-	--)
-		echo "Unrecognized option..."
-		usage
-		exit 1
-		;;
-	-*)
-		echo "Unrecognized option..."
-		usage
-		exit 1
-		;;
 	*)
 		shift
-		break
 		;;
 	esac
 	done

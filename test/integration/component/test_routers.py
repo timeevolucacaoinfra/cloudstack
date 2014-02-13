@@ -70,7 +70,7 @@ class Services:
                         "natrule":
                                 {
                                     "privateport": 22,
-                                    "publicport": 222,
+                                    "publicport": 22,
                                     "protocol": "TCP"
                                 },
                          "lbrule":
@@ -79,7 +79,7 @@ class Services:
                                     "alg": "roundrobin",
                                     # Algorithm used for load balancing
                                     "privateport": 22,
-                                    "publicport": 2222,
+                                    "publicport": 22,
                                     "protocol": 'TCP',
                                 },
                          "fw_rule": {
@@ -700,7 +700,7 @@ class TestRouterStopCreatePF(cloudstackTestCase):
         # 4. listPublicIpAddresses account=user, domainid=1 - pick ipaddressid
         # 5. createPortForwardingRule (ipaddressid from step 5.)
         #    a. for port 22 (ssh) for user VM deployed in step 1.
-        #    b. public port 222 , private port 22
+        #    b. public port 22 , private port 22
         # 6. startRouter stopped for this account
         # 7. wait for listRouters to show router as Running
 
@@ -759,6 +759,7 @@ class TestRouterStopCreatePF(cloudstackTestCase):
                         True,
                         "Check for list public IPs response return valid data"
                         )
+
         public_ip = public_ips[0]
 
         # Open up firewall port for SSH
@@ -823,12 +824,11 @@ class TestRouterStopCreatePF(cloudstackTestCase):
 
             self.debug("SSH into VM with ID: %s" % nat_rule.ipaddress)
 
-            self.vm_1.ssh_port = nat_rule.publicport
-            self.vm_1.get_ssh_client(nat_rule.ipaddress)
+            self.vm_1.get_ssh_client(ipaddress=nat_rule.ipaddress, port=self.services["natrule"]["publicport"])
         except Exception as e:
             self.fail(
                       "SSH Access failed for %s: %s" % \
-                      (self.vm_1.ipaddress, e)
+                      (nat_rule.ipaddress, e)
                       )
         return
 
@@ -905,10 +905,10 @@ class TestRouterStopCreateLB(cloudstackTestCase):
         """
         # validate the following
         # 1. listLoadBalancerRules (publicipid=ipaddressid of source NAT)
-        # 2. rule should be for port 2222 as applied and
+        # 2. rule should be for port 22 as applied and
         #    should be in state=Active
         # 3. ssh access should be allowed to the userVMs over the source NAT IP
-        #    and port 2222
+        #    and port 22
 
         # Get router details associated for that account
         routers = list_routers(
@@ -1249,25 +1249,39 @@ class TestRouterStopCreateFW(cloudstackTestCase):
                         "Check for list hosts response return valid data"
                         )
         host = hosts[0]
+        host.user, host.passwd = get_host_credentials(self.config, host.ipaddress)
+
         # For DNS and DHCP check 'dnsmasq' process status
-        try:
-            host.user, host.passwd = get_host_credentials(self.config, host.ipaddress)
-            result = get_process_status(
-                host.ipaddress,
-                22,
-                host.user,
-                host.passwd,
-                router.linklocalip,
-                'iptables -t nat -L'
+        if self.apiclient.hypervisor.lower() == 'vmware':
+               result = get_process_status(
+                               self.apiclient.connection.mgtSvr,
+                               22,
+                               self.apiclient.connection.user,
+                               self.apiclient.connection.passwd,
+                               router.linklocalip,
+                               'iptables -t nat -L',
+                                hypervisor=self.apiclient.hypervisor
+                               )
+        else:
+            try:
+                result = get_process_status(
+                    host.ipaddress,
+                    22,
+                    host.user,
+                    host.passwd,
+                    router.linklocalip,
+                    'iptables -t nat -L'
+                )
+            except KeyError:
+                self.skipTest("Provide a marvin config file with host credentials to run %s" % self._testMethodName)
+
+        self.debug("iptables -t nat -L: %s" % result)
+        self.debug("Public IP: %s" % public_ip.ipaddress)
+        res = str(result)
+        self.assertEqual(
+            res.count(str(public_ip.ipaddress)),
+            1,
+            "Check public IP address"
             )
-            self.debug("iptables -t nat -L: %s" % result)
-            self.debug("Public IP: %s" % public_ip.ipaddress)
-            res = str(result)
-            self.assertEqual(
-                res.count(str(public_ip.ipaddress)),
-                1,
-                "Check public IP address"
-            )
-        except KeyError:
-            self.skipTest("Provide a marvin config file with host credentials to run %s" % self._testMethodName)
+
         return

@@ -544,6 +544,8 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
             throws ResourceUnavailableException {
         boolean handled = false;
         switch (purpose){
+        /* StaticNatRule would be applied by Firewall provider, since the incompatible of two object */
+        case StaticNat:
         case Firewall:
             for (FirewallServiceProvider fwElement: _firewallElements) {
                 Network.Provider provider = fwElement.getProvider();
@@ -564,18 +566,6 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
                     continue;
                 }
                 handled = element.applyPFRules(network, (List<PortForwardingRule>) rules);
-                if (handled)
-                    break;
-            }
-            break;
-        case StaticNat:
-            for (StaticNatServiceProvider element: _staticNatElements) {
-                Network.Provider provider = element.getProvider();
-                boolean  isSnatProvider = _networkModel.isProviderSupportServiceInNetwork(network.getId(), Service.StaticNat, provider);
-                if (!isSnatProvider) {
-                    continue;
-                }
-                handled = element.applyStaticNats(network, (List<? extends StaticNat>) rules);
                 if (handled)
                     break;
             }
@@ -748,7 +738,8 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
         }
 
         if (generateUsageEvent && needUsageEvent) {
-            UsageEventUtils.publishUsageEvent(EventTypes.EVENT_NET_RULE_DELETE, rule.getAccountId(), 0, rule.getId(),
+            Network network = _networkModel.getNetwork(rule.getNetworkId());
+            UsageEventUtils.publishUsageEvent(EventTypes.EVENT_NET_RULE_DELETE, rule.getAccountId(), network.getDataCenterId(), rule.getId(),
                     null, rule.getClass().getName(), rule.getUuid());
         }
 

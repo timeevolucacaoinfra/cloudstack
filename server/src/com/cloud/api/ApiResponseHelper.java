@@ -795,7 +795,7 @@ public class ApiResponseHelper implements ResponseGenerator {
             for (SummedCapacity capacity : capacities) {
                 CapacityResponse capacityResponse = new CapacityResponse();
                 capacityResponse.setCapacityType(capacity.getCapacityType());
-                capacityResponse.setCapacityUsed(capacity.getUsedCapacity());
+                capacityResponse.setCapacityUsed(capacity.getUsedCapacity() + capacity.getReservedCapacity());
                 if (capacity.getCapacityType() == Capacity.CAPACITY_TYPE_STORAGE_ALLOCATED) {
                     List<SummedCapacity> c = ApiDBUtils.findNonSharedStorageForClusterPodZone(null, pod.getId(), null);
                     capacityResponse.setCapacityTotal(capacity.getTotalCapacity() - c.get(0).getTotalCapacity());
@@ -833,7 +833,7 @@ public class ApiResponseHelper implements ResponseGenerator {
         for (SummedCapacity capacity : capacities) {
             CapacityResponse capacityResponse = new CapacityResponse();
             capacityResponse.setCapacityType(capacity.getCapacityType());
-            capacityResponse.setCapacityUsed(capacity.getUsedCapacity());
+            capacityResponse.setCapacityUsed(capacity.getUsedCapacity() + capacity.getReservedCapacity());
             if (capacity.getCapacityType() == Capacity.CAPACITY_TYPE_STORAGE_ALLOCATED) {
                 List<SummedCapacity> c = ApiDBUtils.findNonSharedStorageForClusterPodZone(zoneId, null, null);
                 capacityResponse.setCapacityTotal(capacity.getTotalCapacity() - c.get(0).getTotalCapacity());
@@ -954,7 +954,7 @@ public class ApiResponseHelper implements ResponseGenerator {
             for (SummedCapacity capacity : capacities) {
                 CapacityResponse capacityResponse = new CapacityResponse();
                 capacityResponse.setCapacityType(capacity.getCapacityType());
-                capacityResponse.setCapacityUsed(capacity.getUsedCapacity());
+                capacityResponse.setCapacityUsed(capacity.getUsedCapacity() + capacity.getReservedCapacity());
 
                 if (capacity.getCapacityType() == Capacity.CAPACITY_TYPE_STORAGE_ALLOCATED) {
                     List<SummedCapacity> c = ApiDBUtils.findNonSharedStorageForClusterPodZone(null, null, cluster.getId());
@@ -1149,12 +1149,29 @@ public class ApiResponseHelper implements ResponseGenerator {
                         vmResponse.setLinkLocalIp(singleNicProfile.getIp4Address());
                         vmResponse.setLinkLocalMacAddress(singleNicProfile.getMacAddress());
                         vmResponse.setLinkLocalNetmask(singleNicProfile.getNetmask());
-                    } else if (network.getTrafficType() == TrafficType.Public || network.getTrafficType() == TrafficType.Guest) {
-                        /*In basic zone, public ip has TrafficType.Guest*/
+                    } else if (network.getTrafficType() == TrafficType.Public) {
                         vmResponse.setPublicIp(singleNicProfile.getIp4Address());
                         vmResponse.setPublicMacAddress(singleNicProfile.getMacAddress());
                         vmResponse.setPublicNetmask(singleNicProfile.getNetmask());
                         vmResponse.setGateway(singleNicProfile.getGateway());
+                    } else if (network.getTrafficType() == TrafficType.Guest) {
+                        /*
+                          * In basic zone, public ip has TrafficType.Guest in case EIP service is not enabled.
+                          * When EIP service is enabled in the basic zone, system VM by default get the public
+                          * IP allocated for EIP. So return the guest/public IP accordingly.
+                          * */
+                        NetworkOffering networkOffering = ApiDBUtils.findNetworkOfferingById(network.getNetworkOfferingId());
+                        if (networkOffering.getElasticIp()) {
+                            IpAddress ip = ApiDBUtils.findIpByAssociatedVmId(vm.getId());
+                            if (ip != null) {
+                                vmResponse.setPublicIp(ip.getAddress().addr());
+                            }
+                        } else {
+                            vmResponse.setPublicIp(singleNicProfile.getIp4Address());
+                            vmResponse.setPublicMacAddress(singleNicProfile.getMacAddress());
+                            vmResponse.setPublicNetmask(singleNicProfile.getNetmask());
+                            vmResponse.setGateway(singleNicProfile.getGateway());
+                        }
                     }
                 }
             }

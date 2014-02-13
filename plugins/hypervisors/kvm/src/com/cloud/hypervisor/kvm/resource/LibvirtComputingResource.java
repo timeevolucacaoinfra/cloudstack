@@ -197,6 +197,7 @@ import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.CpuModeDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.CpuTuneDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.DevicesDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.DiskDef;
+import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.DiskDef.deviceType;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.DiskDef.diskProtocol;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.FeaturesDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.FilesystemDef;
@@ -205,6 +206,7 @@ import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.GuestDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.GuestResourceDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.InputDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.InterfaceDef;
+import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.InterfaceDef.guestNetType;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.InterfaceDef.hostNicType;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.SerialDef;
 import com.cloud.hypervisor.kvm.resource.LibvirtVMDef.TermPolicy;
@@ -1367,7 +1369,7 @@ ServerResource {
                         secondaryStorageUrl
                         + volumeDestPath);
                 _storagePoolMgr.copyPhysicalDisk(volume,
-                        destVolumeName,secondaryStoragePool);
+                        destVolumeName,secondaryStoragePool, 0);
                 return new CopyVolumeAnswer(cmd, true, null, null, volumeName);
             } else {
                 volumePath = "/volumes/" + cmd.getVolumeId() + File.separator;
@@ -1377,7 +1379,7 @@ ServerResource {
                 KVMPhysicalDisk volume = secondaryStoragePool
                         .getPhysicalDisk(cmd.getVolumePath() + ".qcow2");
                 _storagePoolMgr.copyPhysicalDisk(volume, volumeName,
-                        primaryPool);
+                        primaryPool, 0);
                 return new CopyVolumeAnswer(cmd, true, null, null, volumeName);
             }
         } catch (CloudRuntimeException e) {
@@ -1463,7 +1465,7 @@ ServerResource {
                 } else {
                     BaseVol = primaryPool.getPhysicalDisk(cmd.getTemplateUrl());
                     vol = _storagePoolMgr.createDiskFromTemplate(BaseVol, UUID
-                            .randomUUID().toString(), primaryPool);
+                            .randomUUID().toString(), primaryPool, 0);
                 }
                 if (vol == null) {
                     return new Answer(cmd, false,
@@ -1524,7 +1526,7 @@ ServerResource {
 
             /* Copy volume to primary storage */
 
-            KVMPhysicalDisk primaryVol = _storagePoolMgr.copyPhysicalDisk(templateVol, UUID.randomUUID().toString(), primaryPool);
+            KVMPhysicalDisk primaryVol = _storagePoolMgr.copyPhysicalDisk(templateVol, UUID.randomUUID().toString(), primaryPool, 0);
             return primaryVol;
         } catch (CloudRuntimeException e) {
             s_logger.error("Failed to download template to primary storage",e);
@@ -2381,7 +2383,7 @@ ServerResource {
                             primaryUuid);
             String volUuid = UUID.randomUUID().toString();
             KVMPhysicalDisk disk = _storagePoolMgr.copyPhysicalDisk(snapshot,
-                    volUuid, primaryPool);
+                    volUuid, primaryPool, 0);
             return new CreateVolumeFromSnapshotAnswer(cmd, true, "",
                     disk.getName());
         } catch (CloudRuntimeException e) {
@@ -2532,7 +2534,7 @@ ServerResource {
                 QemuImgFile destFile = new QemuImgFile(tmpltPath + "/" + cmd.getUniqueName() + ".qcow2");
                 destFile.setFormat(PhysicalDiskFormat.QCOW2);
 
-                QemuImg q = new QemuImg();
+                QemuImg q = new QemuImg(0);
                 try {
                     q.convert(srcFile, destFile);
                 } catch (QemuImgException e) {
@@ -2635,7 +2637,7 @@ ServerResource {
                     cmd.getPoolUuid());
 
             KVMPhysicalDisk primaryVol = _storagePoolMgr.copyPhysicalDisk(
-                    tmplVol, UUID.randomUUID().toString(), primaryPool);
+                    tmplVol, UUID.randomUUID().toString(), primaryPool, 0);
 
             return new PrimaryStorageDownloadAnswer(primaryVol.getName(),
                     primaryVol.getSize());
@@ -2663,7 +2665,7 @@ ServerResource {
 
         Map<String, TemplateProp> tInfo = new HashMap<String, TemplateProp>();
         ModifyStoragePoolAnswer answer = new ModifyStoragePoolAnswer(cmd,
-                storagepool.getCapacity(), storagepool.getUsed(), tInfo);
+                storagepool.getCapacity(), storagepool.getAvailable(), tInfo);
 
         return answer;
     }
@@ -3275,7 +3277,7 @@ ServerResource {
             }
 
             state = State.Stopped;
-            return new StopAnswer(cmd, result, 0, true);
+            return new StopAnswer(cmd, result, true);
         } catch (LibvirtException e) {
             return new StopAnswer(cmd, e.getMessage(), false);
         } finally {
@@ -3567,7 +3569,7 @@ ServerResource {
 
             // pass cmdline info to system vms
             if (vmSpec.getType() != VirtualMachine.Type.User) {
-                if ((_kernelVersion < 2006034) && (conn.getVersion() < 1001000)) { // CLOUDSTACK-2823: try passCmdLine some times if kernel < 2.6.34 and qemu < 1.1.0 on hypervisor (for instance, CentOS 6.4)
+                if ((conn.getVersion() < 1001000)) { // CLOUDSTACK-2823: try passCmdLine some times if kernel < 2.6.34 and qemu < 1.1.0 on hypervisor (for instance, CentOS 6.4)
                     //wait for 5 minutes at most
                     String controlIp = null;
                     for (NicTO nic : nics) {
@@ -4385,6 +4387,21 @@ ServerResource {
         try {
             dm = conn.domainLookupByName(vmName);
             String vmDef = dm.getXMLDesc(0);
+            LibvirtDomainXMLParser parser = new LibvirtDomainXMLParser();
+            parser.parseDomainXML(vmDef);
+            for (InterfaceDef nic :parser.getInterfaces()) {
+                if ((nic.getNetType() == guestNetType.BRIDGE) && (nic.getBrName().startsWith("cloudVirBr"))) {
+                    try {
+                        int vnetId = Integer.parseInt(nic.getBrName().replaceFirst("cloudVirBr", ""));
+                        String pifName = getPif(_guestBridgeName);
+                        String newBrName = "br" + pifName + "-"+ vnetId;
+                        vmDef = vmDef.replaceAll("'" + nic.getBrName() + "'", "'" + newBrName + "'");
+                        s_logger.debug("VM bridge name is changed from " + nic.getBrName() + " to " + newBrName);
+                    } catch (NumberFormatException e) {
+                        continue;
+                    }
+                }
+            }
             s_logger.debug(vmDef);
             msg = stopVM(conn, vmName);
             msg = startVM(conn, vmName, vmDef);
@@ -4717,6 +4734,8 @@ ServerResource {
             List<DiskDef> disks = getDisks(conn, vmName);
 
             for (DiskDef disk : disks) {
+                if (disk.getDeviceType() != deviceType.DISK)
+                    break;
                 DomainBlockStats blockStats = dm.blockStats(disk.getDiskLabel());
                 String path = disk.getDiskPath(); // for example, path = /mnt/pool_uuid/disk_path/
                 String diskPath = null;

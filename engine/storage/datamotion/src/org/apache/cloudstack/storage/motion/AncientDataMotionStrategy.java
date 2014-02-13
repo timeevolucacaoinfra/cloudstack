@@ -22,22 +22,8 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
-import org.apache.cloudstack.engine.subsystem.api.storage.ClusterScope;
-import org.apache.cloudstack.engine.subsystem.api.storage.CopyCommandResult;
-import org.apache.cloudstack.engine.subsystem.api.storage.DataMotionStrategy;
-import org.apache.cloudstack.engine.subsystem.api.storage.DataObject;
-import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
-import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
-import org.apache.cloudstack.engine.subsystem.api.storage.EndPoint;
-import org.apache.cloudstack.engine.subsystem.api.storage.EndPointSelector;
-import org.apache.cloudstack.engine.subsystem.api.storage.HostScope;
+import org.apache.cloudstack.engine.subsystem.api.storage.*;
 import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine.Event;
-import org.apache.cloudstack.engine.subsystem.api.storage.Scope;
-import org.apache.cloudstack.engine.subsystem.api.storage.SnapshotInfo;
-import org.apache.cloudstack.engine.subsystem.api.storage.StorageCacheManager;
-import org.apache.cloudstack.engine.subsystem.api.storage.TemplateInfo;
-import org.apache.cloudstack.engine.subsystem.api.storage.VolumeInfo;
-import org.apache.cloudstack.engine.subsystem.api.storage.ZoneScope;
 import org.apache.cloudstack.framework.async.AsyncCompletionCallback;
 import org.apache.cloudstack.storage.command.CopyCommand;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
@@ -431,7 +417,9 @@ public class
         int _createprivatetemplatefromsnapshotwait = NumbersUtil.parseInt(value,
                 Integer.parseInt(Config.CreatePrivateTemplateFromSnapshotWait.getDefaultValue()));
 
+        boolean needCache = false;
         if (needCacheStorage(srcData, destData)) {
+            needCache = true;
             SnapshotInfo snapshot = (SnapshotInfo) srcData;
             srcData = cacheSnapshotChain(snapshot);
         }
@@ -439,6 +427,11 @@ public class
         CopyCommand cmd = new CopyCommand(srcData.getTO(), destData.getTO(), _createprivatetemplatefromsnapshotwait, _mgmtServer.getExecuteInSequence());
         EndPoint ep = selector.select(srcData, destData);
         Answer answer = ep.sendMessage(cmd);
+        
+        // clean up snapshot copied to staging 
+        if (needCache && srcData != null) {
+            cacheMgr.deleteCacheObject(srcData);
+        }
         return answer;
     }
 
@@ -456,11 +449,11 @@ public class
 
                 CopyCommand cmd = new CopyCommand(srcData.getTO(), destData.getTO(), _backupsnapshotwait, _mgmtServer.getExecuteInSequence());
                 cmd.setCacheTO(cacheData.getTO());
-                EndPoint ep = selector.select(srcData, destData);
+                EndPoint ep = selector.select(srcData, destData, StorageAction.BACKUPSNAPSHOT);
                 answer = ep.sendMessage(cmd);
             } else {
                 CopyCommand cmd = new CopyCommand(srcData.getTO(), destData.getTO(), _backupsnapshotwait, _mgmtServer.getExecuteInSequence());
-                EndPoint ep = selector.select(srcData, destData);
+                EndPoint ep = selector.select(srcData, destData, StorageAction.BACKUPSNAPSHOT);
                 answer = ep.sendMessage(cmd);
             }
 

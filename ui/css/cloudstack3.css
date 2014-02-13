@@ -1356,7 +1356,7 @@ div.list-view td.state.off span {
 
 .quick-view-tooltip .detail-view .main-groups {
   width: 456px;
-  height: 132px;
+  height: 152px;
   position: absolute;
   top: 55px;
   padding-top: 7px;
@@ -8133,6 +8133,7 @@ div.ui-dialog div.multi-edit-add-list div.view div.data-table table.body tbody t
 .recurring-snapshots .schedule .forms form select {
   float: left;
   margin: 3px 10px 3px 3px;
+  max-width: 100%;
 }
 
 .recurring-snapshots .schedule .forms form input {
@@ -8170,7 +8171,7 @@ div.ui-dialog div.multi-edit-add-list div.view div.data-table table.body tbody t
 }
 
 .recurring-snapshots .schedule .forms form .value {
-  width: 370px;
+  width: 470px;
   float: left;
   text-align: left;
 }
@@ -11844,6 +11845,7 @@ div.ui-dialog div.autoscaler div.field-group div.form-container form div.form-it
 }
 
 .destroy .icon,
+.expunge .icon,
 .remove .icon,
 .delete .icon,
 .decline .icon,
@@ -11893,13 +11895,15 @@ div.ui-dialog div.autoscaler div.field-group div.form-container form div.form-it
 
 .detach .icon,
 .detachISO .icon,
-.detachDisk .icon {
+.detachDisk .icon,
+.disassociateProfileFromBlade .icon {
   background-position: -101px -65px;
 }
 
 .detach:hover .icon,
 .detachISO:hover .icon,
-.detachDisk:hover .icon {
+.detachDisk:hover .icon,
+.disassociateProfileFromBlade:hover .icon {
   background-position: -101px -647px;
 }
 
@@ -12264,6 +12268,14 @@ div.ui-dialog div.autoscaler div.field-group div.form-container form div.form-it
 
 .addAccount:hover .icon {
   background-position: -230px -677px;
+}
+
+.assignVmToAnotherAccount .icon {
+  background-position: -270px -36px;
+}
+
+.assignVmToAnotherAccount:hover .icon {
+  background-position: -270px -615px;
 }
 
 .label-hovered {

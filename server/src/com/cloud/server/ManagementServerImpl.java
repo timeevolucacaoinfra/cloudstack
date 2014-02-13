@@ -2406,7 +2406,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         for (SummedCapacity summedCapacity : summedCapacities) {
             CapacityVO capacity = new CapacityVO(summedCapacity.getDataCenterId(), summedCapacity.getPodId(), summedCapacity.getClusterId(),
                     summedCapacity.getCapacityType(), summedCapacity.getPercentUsed());
-            capacity.setUsedCapacity(summedCapacity.getUsedCapacity());
+            capacity.setUsedCapacity(summedCapacity.getUsedCapacity() + summedCapacity.getReservedCapacity());
             capacity.setTotalCapacity(summedCapacity.getTotalCapacity());
             capacities.add(capacity);
         }
@@ -3478,7 +3478,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         // give us the same key
         if (_hashKey == null) {
             _hashKey = _configDao.getValueAndInitIfNotExist(Config.HashKey.key(), Config.HashKey.getCategory(),
-                    getBase64EncodedRandomKey(128));
+                    getBase64EncodedRandomKey(128), Config.HashKey.getDescription());
         }
         return _hashKey;
     }
@@ -3488,7 +3488,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         if (_encryptionKey == null) {
             _encryptionKey = _configDao.getValueAndInitIfNotExist(Config.EncryptionKey.key(),
                     Config.EncryptionKey.getCategory(),
-                    getBase64EncodedRandomKey(128));
+                    getBase64EncodedRandomKey(128), Config.EncryptionKey.getDescription());
         }
         return _encryptionKey;
     }
@@ -3498,7 +3498,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         if (_encryptionIV == null) {
             _encryptionIV = _configDao.getValueAndInitIfNotExist(Config.EncryptionIV.key(),
                     Config.EncryptionIV.getCategory(),
-                    getBase64EncodedRandomKey(128));
+                    getBase64EncodedRandomKey(128),  Config.EncryptionIV.getDescription());
         }
         return _encryptionIV;
     }

@@ -19,8 +19,10 @@ package com.cloud.api.query.dao;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.ejb.Local;
@@ -44,9 +46,9 @@ import com.cloud.uservm.UserVm;
 import com.cloud.utils.db.GenericDaoBase;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
-import com.cloud.vm.UserVmVO;
-import com.cloud.vm.VmStats;
 import com.cloud.vm.VirtualMachine.State;
+import com.cloud.vm.VmDetailConstants;
+import com.cloud.vm.VmStats;
 
 
 @Component
@@ -166,35 +168,25 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
         userVmResponse.setKeyPairName(userVm.getKeypairName());
 
         if (details.contains(VMDetails.all) || details.contains(VMDetails.stats)) {
-            DecimalFormat decimalFormat = new DecimalFormat("#.##");
             // stats calculation
-            String cpuUsed = null;
             VmStats vmStats = ApiDBUtils.getVmStatistics(userVm.getId());
             if (vmStats != null) {
-                float cpuUtil = (float) vmStats.getCPUUtilization();
-                cpuUsed = decimalFormat.format(cpuUtil) + "%";
-                userVmResponse.setCpuUsed(cpuUsed);
+                userVmResponse.setCpuUsed(new DecimalFormat("#.##").format(vmStats.getCPUUtilization()) + "%");
 
-                Double networkKbRead = Double.valueOf(vmStats.getNetworkReadKBs());
-                userVmResponse.setNetworkKbsRead(networkKbRead.longValue());
+                userVmResponse.setNetworkKbsRead((long) vmStats.getNetworkReadKBs());
 
-                Double networkKbWrite = Double.valueOf(vmStats.getNetworkWriteKBs());
-                userVmResponse.setNetworkKbsWrite(networkKbWrite.longValue());
+                userVmResponse.setNetworkKbsWrite((long) vmStats.getNetworkWriteKBs());
 
                 if ((userVm.getHypervisorType() != null) 
                         && (userVm.getHypervisorType().equals(HypervisorType.KVM)
                         || userVm.getHypervisorType().equals(HypervisorType.XenServer))) { // support KVM and XenServer only util 2013.06.25
-                    Double diskKbsRead = Double.valueOf(vmStats.getDiskReadKBs());
-                    userVmResponse.setDiskKbsRead(diskKbsRead.longValue());
+                    userVmResponse.setDiskKbsRead((long) vmStats.getDiskReadKBs());
 
-                    Double diskKbsWrite = Double.valueOf(vmStats.getDiskWriteKBs());
-                    userVmResponse.setDiskKbsWrite(diskKbsWrite.longValue());
+                    userVmResponse.setDiskKbsWrite((long) vmStats.getDiskWriteKBs());
 
-                    Double diskIORead = Double.valueOf(vmStats.getDiskReadIOs());
-                    userVmResponse.setDiskIORead(diskIORead.longValue());
+                    userVmResponse.setDiskIORead((long) vmStats.getDiskReadIOs());
 
-                    Double diskIOWrite = Double.valueOf(vmStats.getDiskWriteIOs());
-                    userVmResponse.setDiskIOWrite(diskIOWrite.longValue());
+                    userVmResponse.setDiskIOWrite((long) vmStats.getDiskWriteIOs());
                 }
             }
         }
@@ -269,6 +261,14 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
                 resp.setAccountName(userVm.getAccountName());
                 userVmResponse.addAffinityGroup(resp);
             }
+        }
+        
+        // set resource details map
+        // only hypervisortoolsversion can be returned to the end user       }
+        if (userVm.getDetailName() != null && userVm.getDetailName().equalsIgnoreCase(VmDetailConstants.HYPERVISOR_TOOLS_VERSION)){
+            Map<String, String> resourceDetails = new HashMap<String, String>();
+            resourceDetails.put(userVm.getDetailName(), userVm.getDetailValue());
+            userVmResponse.setDetails(resourceDetails);
         }
 
         userVmResponse.setObjectName(objectName);

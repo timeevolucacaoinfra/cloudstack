@@ -66,7 +66,7 @@
                         add: {
                             label: 'label.add.account',
                             preFilter: function(args) {
-                                if (isAdmin())
+                                if (isAdmin() || isDomainAdmin())
                                     return true;
                                 else
                                     return false;
@@ -493,6 +493,24 @@
                                         });
                                     }
 
+                                    if (args.data.networkLimit != null) {
+                                        var data = {
+                                            resourceType: 6,
+                                            max: args.data.networkLimit,
+                                            domainid: accountObj.domainid,
+                                            account: accountObj.name
+                                        };
+
+                                        $.ajax({
+                                            url: createURL('updateResourceLimit'),
+                                            data: data,
+                                            async: false,
+                                            success: function(json) {
+                                                accountObj["networkLimit"] = args.data.networkLimit;
+                                            }
+                                        });
+                                    }
+
                                     if (args.data.primaryStorageLimit != null) {
                                         var data = {
                                             resourceType: 10,
@@ -853,6 +871,15 @@
                                                 return false;
                                         }
                                     },
+                                    networkLimit: {
+                                        label: 'label.network.limits',
+                                        isEditable: function(context) {
+                                            if (context.accounts[0].accounttype == roleTypeUser || context.accounts[0].accounttype == roleTypeDomainAdmin) //updateResourceLimits is only allowed on account whose type is user or domain-admin
+                                                return true;
+                                            else
+                                                return false;
+                                        }
+                                    },
                                     primaryStorageLimit: {
                                         label: 'label.primary.storage.limits',
                                         isEditable: function(context) {
@@ -934,6 +961,9 @@
                                                                     break;
                                                                 case "4":
                                                                     accountObj["templateLimit"] = limit.max;
+                                                                    break;
+                                                                case "6":
+                                                                    accountObj["networkLimit"] = limit.max;
                                                                     break;
                                                                 case "7":
                                                                     accountObj["vpcLimit"] = limit.max;
@@ -1073,7 +1103,7 @@
                             label: 'label.add.user',
 
                             preFilter: function(args) {
-                                if (isAdmin())
+                                if (isAdmin() || isDomainAdmin())
                                     return true;
                                 else
                                     return false;
@@ -1572,6 +1602,16 @@
             }
             allowedActions.push("updateResourceCount");
         } else if (isDomainAdmin()) {
+            if (jsonObj.name != g_account) {
+                allowedActions.push("edit"); //updating networkdomain is allowed on any account, including system-generated default admin account
+                if (jsonObj.state == "enabled") {
+                    allowedActions.push("disable");
+                    allowedActions.push("lock");
+                } else if (jsonObj.state == "disabled" || jsonObj.state == "locked") {
+                    allowedActions.push("enable");
+                }
+                allowedActions.push("remove");
+            }
             allowedActions.push("updateResourceCount");
         }
         return allowedActions;
@@ -1597,6 +1637,14 @@
             }
         } else {
             if (isSelfOrChildDomainUser(jsonObj.username, jsonObj.accounttype, jsonObj.domainid, jsonObj.iscallerchilddomain)) {
+                if (isDomainAdmin() && jsonObj.username != g_username) {
+                    allowedActions.push("edit");
+                    if (jsonObj.state == "enabled")
+                        allowedActions.push("disable");
+                    if (jsonObj.state == "disabled")
+                        allowedActions.push("enable");
+                    allowedActions.push("remove");
+                }
                 allowedActions.push("changePassword");
                 allowedActions.push("generateKeys");
             }

@@ -147,18 +147,7 @@ public class BridgeVifDriver extends VifDriverBase {
     }
 
     private String setVnetBrName(String pifName, String vnetId) {
-        String brName = null;
-        if (bridgeNameSchema != null) {
-            if (bridgeNameSchema.equalsIgnoreCase("3.0")) {
-                brName = "cloudVirBr" + vnetId;
-            } else if (bridgeNameSchema.equalsIgnoreCase("4.0")) {
-                brName = "br" + pifName + "-"+ vnetId;
-            }
-        } else {
-            brName = "br" + pifName + "-"+ vnetId;
-        }
-
-        return brName;
+        return "br" + pifName + "-"+ vnetId;
     }
 
     private String createVlanBr(String vlanId, String nic)
@@ -187,7 +176,11 @@ public class BridgeVifDriver extends VifDriverBase {
     
     private void deleteVnetBr(String brName){
         synchronized (_vnetBridgeMonitor) {
-            String cmdout = Script.runSimpleBashScript("ls /sys/class/net/" + brName + "/brif | grep vnet");
+            String cmdout = Script.runSimpleBashScript("ls /sys/class/net/" + brName);
+            if (cmdout == null)
+                // Bridge does not exist
+                return;
+            cmdout = Script.runSimpleBashScript("ls /sys/class/net/" + brName + "/brif | grep vnet");
             if (cmdout != null && cmdout.contains("vnet")) {
                 // Active VM remains on that bridge
                 return;

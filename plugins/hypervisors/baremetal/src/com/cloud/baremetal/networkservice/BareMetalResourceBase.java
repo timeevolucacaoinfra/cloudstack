@@ -29,35 +29,14 @@ import java.util.Map;
 import javax.ejb.Local;
 import javax.naming.ConfigurationException;
 
+import com.cloud.agent.api.*;
+import com.cloud.configuration.Config;
+import com.cloud.configuration.dao.ConfigurationDao;
+import com.cloud.utils.Pair;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.IAgentControl;
-import com.cloud.agent.api.Answer;
-import com.cloud.agent.api.CheckNetworkAnswer;
-import com.cloud.agent.api.CheckNetworkCommand;
-import com.cloud.agent.api.CheckVirtualMachineAnswer;
-import com.cloud.agent.api.CheckVirtualMachineCommand;
-import com.cloud.agent.api.Command;
-import com.cloud.agent.api.MaintainAnswer;
-import com.cloud.agent.api.MaintainCommand;
-import com.cloud.agent.api.MigrateAnswer;
-import com.cloud.agent.api.MigrateCommand;
-import com.cloud.agent.api.PingCommand;
-import com.cloud.agent.api.PingRoutingCommand;
-import com.cloud.agent.api.PrepareForMigrationAnswer;
-import com.cloud.agent.api.PrepareForMigrationCommand;
-import com.cloud.agent.api.ReadyAnswer;
-import com.cloud.agent.api.ReadyCommand;
-import com.cloud.agent.api.RebootAnswer;
-import com.cloud.agent.api.RebootCommand;
-import com.cloud.agent.api.SecurityGroupRulesCmd;
-import com.cloud.agent.api.StartAnswer;
-import com.cloud.agent.api.StartCommand;
-import com.cloud.agent.api.StartupCommand;
-import com.cloud.agent.api.StartupRoutingCommand;
-import com.cloud.agent.api.StopAnswer;
-import com.cloud.agent.api.StopCommand;
 import com.cloud.agent.api.baremetal.IpmISetBootDevCommand;
 import com.cloud.agent.api.baremetal.IpmISetBootDevCommand.BootDev;
 import com.cloud.agent.api.baremetal.IpmiBootorResetCommand;
@@ -111,6 +90,8 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 	protected Script2 _bootOrRebootCommand;
 	protected String _vmName;
 	protected VMInstanceDao vmDao;
+    protected int ipmiRetryTimes = 5;
+
 
 	private void changeVmState(String vmName, VirtualMachine.State state) {
 		synchronized (_vms) {
@@ -178,6 +159,20 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		    _isEchoScAgent = Boolean.valueOf(echoScAgent);
 		}
 
+        ConfigurationDao configDao = ComponentContext.getComponent(ConfigurationDao.class);
+        String ipmiIface = "default";
+        try {
+            ipmiIface = configDao.getValue(Config.BaremetalIpmiLanInterface.key());
+        } catch (Exception e) {
+            s_logger.debug(e.getMessage(), e);
+        }
+
+        try {
+            ipmiRetryTimes = Integer.valueOf(configDao.getValue(Config.BaremetalIpmiRetryTimes.key()));
+        } catch (Exception e) {
+            s_logger.debug(e.getMessage(), e);
+        }
+
 		String injectScript = "scripts/util/ipmi.py";
 		String scriptPath = Script.findScript("", injectScript);
 		if (scriptPath == null) {
@@ -187,6 +182,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_pingCommand = new Script2(pythonPath, s_logger);
 		_pingCommand.add(scriptPath);
 		_pingCommand.add("ping");
+        _pingCommand.add("interface=" + ipmiIface);
 		_pingCommand.add("hostname=" + _ip);
 		_pingCommand.add("usrname=" + _username);
 		_pingCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -194,6 +190,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_setPxeBootCommand = new Script2(pythonPath, s_logger);
 		_setPxeBootCommand.add(scriptPath);
 		_setPxeBootCommand.add("boot_dev");
+        _setPxeBootCommand.add("interface=" + ipmiIface);
 		_setPxeBootCommand.add("hostname=" + _ip);
 		_setPxeBootCommand.add("usrname=" + _username);
 		_setPxeBootCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -202,6 +199,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_setDiskBootCommand = new Script2(pythonPath, s_logger);
 		_setDiskBootCommand.add(scriptPath);
 		_setDiskBootCommand.add("boot_dev");
+        _setDiskBootCommand.add("interface=" + ipmiIface);
 		_setDiskBootCommand.add("hostname=" + _ip);
 		_setDiskBootCommand.add("usrname=" + _username);
 		_setDiskBootCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -210,6 +208,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_rebootCommand = new Script2(pythonPath, s_logger);
 		_rebootCommand.add(scriptPath);
 		_rebootCommand.add("reboot");
+        _rebootCommand.add("interface=" + ipmiIface);
 		_rebootCommand.add("hostname=" + _ip);
 		_rebootCommand.add("usrname=" + _username);
 		_rebootCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -217,6 +216,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_getStatusCommand = new Script2(pythonPath, s_logger);
 		_getStatusCommand.add(scriptPath);
 		_getStatusCommand.add("ping");
+        _getStatusCommand.add("interface=" + ipmiIface);
 		_getStatusCommand.add("hostname=" + _ip);
 		_getStatusCommand.add("usrname=" + _username);
 		_getStatusCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -224,6 +224,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_powerOnCommand = new Script2(pythonPath, s_logger);
 		_powerOnCommand.add(scriptPath);
 		_powerOnCommand.add("power");
+        _powerOnCommand.add("interface=" + ipmiIface);
 		_powerOnCommand.add("hostname=" + _ip);
 		_powerOnCommand.add("usrname=" + _username);
 		_powerOnCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -232,6 +233,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_powerOffCommand = new Script2(pythonPath, s_logger);
 		_powerOffCommand.add(scriptPath);
 		_powerOffCommand.add("power");
+        _powerOffCommand.add("interface=" + ipmiIface);
 		_powerOffCommand.add("hostname=" + _ip);
 		_powerOffCommand.add("usrname=" + _username);
 		_powerOffCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -240,6 +242,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_forcePowerOffCommand = new Script2(pythonPath, s_logger);
 		_forcePowerOffCommand.add(scriptPath);
 		_forcePowerOffCommand.add("power");
+        _forcePowerOffCommand.add("interface=" + ipmiIface);
 		_forcePowerOffCommand.add("hostname=" + _ip);
 		_forcePowerOffCommand.add("usrname=" + _username);
 		_forcePowerOffCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -248,6 +251,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		_bootOrRebootCommand = new Script2(pythonPath, s_logger);
 		_bootOrRebootCommand.add(scriptPath);
 		_bootOrRebootCommand.add("boot_or_reboot");
+        _bootOrRebootCommand.add("interface=" + ipmiIface);
 		_bootOrRebootCommand.add("hostname=" + _ip);
 		_bootOrRebootCommand.add("usrname=" + _username);
 		_bootOrRebootCommand.add("password=" + _password, ParamType.PASSWORD);
@@ -259,8 +263,15 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 		return doScript(cmd, null);
 	}
 
-	protected boolean doScript(Script cmd, OutputInterpreter interpreter) {
-		int retry = 5;
+    protected boolean doScript(Script cmd, int retry) {
+        return doScript(cmd, null, retry);
+    }
+
+    protected boolean doScript(Script cmd, OutputInterpreter interpreter) {
+        return doScript(cmd, interpreter, ipmiRetryTimes);
+    }
+
+	protected boolean doScript(Script cmd, OutputInterpreter interpreter, int retry) {
 		String res = null;
 		while (retry-- > 0) {
 			if (interpreter == null) {
@@ -270,7 +281,11 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 			}
 			if (res != null && res.startsWith("Error: Unable to establish LAN")) {
 				s_logger.warn("IPMI script timeout(" + cmd.toString() + "), will retry " + retry + " times");
-				continue;
+                try {
+                    TimeUnit.SECONDS.sleep(1);
+                } catch (InterruptedException e) {
+                }
+                continue;
 			} else if (res == null) {
 				return true;
 			} else {
@@ -373,7 +388,21 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 			return null;
 		}
 
-		return new PingRoutingCommand(getType(), id, deltaSync());
+
+        if (hostId != null) {
+            vmDao = ComponentContext.getComponent(VMInstanceDao.class);
+            final List<? extends VMInstanceVO> vms = vmDao.listByHostId(hostId);
+            if (vms.isEmpty()) {
+                return new PingRoutingCommand(getType(), id, deltaSync());
+            } else {
+                VMInstanceVO vm = vms.get(0);
+                SecurityGroupHttpClient client = new SecurityGroupHttpClient();
+                HashMap<String, Pair<Long, Long>> nwGrpStates = client.sync(vm.getInstanceName(), vm.getId(), vm.getPrivateIpAddress());
+                return new PingRoutingWithNwGroupsCommand(getType(), id, null, nwGrpStates);
+            }
+        } else {
+            return new PingRoutingCommand(getType(), id, deltaSync());
+        }
 	}
 
 	protected Answer execute(IpmISetBootDevCommand cmd) {
@@ -479,8 +508,17 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 	}
 
 	protected RebootAnswer execute(final RebootCommand cmd) {
-		if (!doScript(_rebootCommand)) {
-			return new RebootAnswer(cmd, "IPMI reboot failed", false);
+        String infoStr = "Command not supported in present state";
+        OutputInterpreter.AllLinesParser interpreter = new OutputInterpreter.AllLinesParser();
+		if (!doScript(_rebootCommand, interpreter, 10)) {
+            if (interpreter.getLines().contains(infoStr)) {
+                // try again, this error should be temporary
+                if (!doScript(_rebootCommand, interpreter, 10)) {
+                    return new RebootAnswer(cmd, "IPMI reboot failed", false);
+                }
+            } else {
+			    return new RebootAnswer(cmd, "IPMI reboot failed", false);
+            }
 		}
 
 		return new RebootAnswer(cmd, "reboot succeeded", true);
@@ -504,7 +542,8 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 
 			OutputInterpreter.AllLinesParser interpreter = new OutputInterpreter.AllLinesParser();
 			if (!doScript(_getStatusCommand, interpreter)) {
-				s_logger.warn("Cannot get power status of " + _name + ", assume VM state was not changed");
+                success = true;
+				s_logger.warn("Cannot get power status of " + _name + ", assume VM state changed successfully");
 				break;
 			}
 
@@ -518,7 +557,7 @@ public class BareMetalResourceBase extends ManagerBase implements ServerResource
 			count++;
 		}
 
-		return success ? new StopAnswer(cmd, "Success", 0, true) : new StopAnswer(cmd, "IPMI power off failed", false);
+		return success ? new StopAnswer(cmd, "Success", true) : new StopAnswer(cmd, "IPMI power off failed", false);
 	}
 
 	protected StartAnswer execute(StartCommand cmd) {

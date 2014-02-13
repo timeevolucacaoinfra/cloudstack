@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.cloudstack</groupId>
     <artifactId>cloudstack</artifactId>
-    <version>4.2.0</version>
+    <version>4.2.1</version>
   </parent>
   <build>
     <defaultGoal>install</defaultGoal>
@@ -40,6 +40,7 @@
     <module>deployment-planners/user-concentrated-pod</module>
     <module>deployment-planners/user-dispersing</module>
     <module>deployment-planners/implicit-dedication</module>
+    <module>deployment-planners/ha</module>
     <module>host-allocators/random</module>
     <module>dedicated-resources</module>
     <module>hypervisors/ovm</module>

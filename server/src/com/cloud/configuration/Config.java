@@ -47,6 +47,9 @@ public enum Config {
 	AlertSMTPHost("Alert", ManagementServer.class, String.class, "alert.smtp.host", null, "SMTP hostname used for sending out email alerts.", null),
 	AlertSMTPPassword("Secure", ManagementServer.class, String.class, "alert.smtp.password", null, "Password for SMTP authentication (applies only if alert.smtp.useAuth is true).", null),
 	AlertSMTPPort("Alert", ManagementServer.class, Integer.class, "alert.smtp.port", "465", "Port the SMTP server is listening on.", null),
+    AlertSMTPConnectionTimeout("Alert", ManagementServer.class, Integer.class, "alert.smtp.connectiontimeout", "30000",
+            "Socket connection timeout value in milliseconds. -1 for infinite timeout.", null),
+    AlertSMTPTimeout("Alert", ManagementServer.class, Integer.class, "alert.smtp.timeout", "30000", "Socket I/O timeout value in milliseconds. -1 for infinite timeout.", null),
 	AlertSMTPUseAuth("Alert", ManagementServer.class, String.class, "alert.smtp.useAuth", null, "If true, use SMTP authentication when sending emails.", null),
 	AlertSMTPUsername("Alert", ManagementServer.class, String.class, "alert.smtp.username", null, "Username for SMTP authentication (applies only if alert.smtp.useAuth is true).", null),
 	AlertWait("Alert", AgentManager.class, Integer.class, "alert.wait", null, "Seconds to wait before alerting on a disconnected agent", null),
@@ -86,7 +89,8 @@ public enum Config {
 	CreatePrivateTemplateFromSnapshotWait("Storage", UserVmManager.class, Integer.class, "create.private.template.from.snapshot.wait", "10800", "In second, timeout for CreatePrivateTemplateFromSnapshotCommand", null),
 	BackupSnapshotWait(
             "Storage", StorageManager.class, Integer.class, "backup.snapshot.wait", "21600", "In second, timeout for BackupSnapshotCommand", null),
-
+    HAStorageMigration("Storage", ManagementServer.class, Boolean.class, "enable.ha.storage.migration", "true", "Enable/disable storage migration across primary storage during HA", null),
+            
 	// Network
 	NetworkLBHaproxyStatsVisbility("Network", ManagementServer.class, String.class, "network.loadbalancer.haproxy.stats.visibility", "global", "Load Balancer(haproxy) stats visibilty, the value can be one of the following six parameters : global,guest-network,link-local,disabled,all,default", null),
 	NetworkLBHaproxyStatsUri("Network", ManagementServer.class, String.class, "network.loadbalancer.haproxy.stats.uri","/admin?stats","Load Balancer(haproxy) uri.",null),
@@ -226,7 +230,6 @@ public enum Config {
                 "If true, when account has dedicated guest vlan range(s), once the vlans dedicated to the account have been" +
                 " consumed vlans will be allocated from the system pool",
                 null, ConfigurationParameterScope.account.toString()),
-
     // LB HealthCheck Interval.
     LBHealthCheck("Advanced", ManagementServer.class, String.class, "healthcheck.update.interval", "600",
             "Time Interval to fetch the LB health check states (in sec)", null),
@@ -283,6 +286,8 @@ public enum Config {
     XenHeartBeatInterval("Advanced", ManagementServer.class, Integer.class, "xen.heartbeat.interval", "60", "heartbeat to use when implementing XenServer Self Fencing", null),
     XenGuestNetwork("Hidden", ManagementServer.class, String.class, "xen.guest.network.device", null, "Specify for guest network name label", null),
     XenMaxNics("Advanced", AgentManager.class, Integer.class, "xen.nics.max", "7", "Maximum allowed nics for Vms created on Xen", null),
+    XenPVdriverVersion("Advanced", ManagementServer.class, String.class, "xen.pvdriver.version", "xenserver61", "default Xen PV driver version for registered template, valid value:xenserver56,xenserver61 ", "xenserver56,xenserver61"),
+
     // VMware
     VmwareUseNexusVSwitch("Network", ManagementServer.class, Boolean.class, "vmware.use.nexus.vswitch", "false", "Enable/Disable Cisco Nexus 1000v vSwitch in VMware environment", null),
     VmwareUseDVSwitch("Network", ManagementServer.class, Boolean.class, "vmware.use.dvswitch", "false", "Enable/Disable Nexus/Vmware dvSwitch in VMware environment", null),
@@ -293,11 +298,12 @@ public enum Config {
     VmwareAdditionalVncPortRangeStart("Advanced", ManagementServer.class, Integer.class, "vmware.additional.vnc.portrange.start", "50000", "Start port number of additional VNC port range", null),
     VmwareAdditionalVncPortRangeSize("Advanced", ManagementServer.class, Integer.class, "vmware.additional.vnc.portrange.size", "1000", "Start port number of additional VNC port range", null),
     //VmwareGuestNicDeviceType("Advanced", ManagementServer.class, String.class, "vmware.guest.nic.device.type", "E1000", "Ethernet card type used in guest VM, valid values are E1000, PCNet32, Vmxnet2, Vmxnet3", null),
-    VmwareReserveCpu("Advanced", ManagementServer.class, Boolean.class, "vmware.reserve.cpu", "false", "Specify whether or not to reserve CPU when not overprovisioning, In case of cpu overprovisioning we will always reserve cpu", null, ConfigurationParameterScope.cluster.toString()),
-    VmwareReserveMem("Advanced", ManagementServer.class, Boolean.class, "vmware.reserve.mem", "false", "Specify whether or not to reserve memory when not overprovisioning, In case of memory overprovisioning we will always reserve memory", null, ConfigurationParameterScope.cluster.toString()),
+    VmwareReserveCpu("Advanced", ManagementServer.class, Boolean.class, "vmware.reserve.cpu", "false", "Specify whether or not to reserve CPU based on CPU overprovisioning factor", null, ConfigurationParameterScope.cluster.toString()),
+    VmwareReserveMem("Advanced", ManagementServer.class, Boolean.class, "vmware.reserve.mem", "false", "Specify whether or not to reserve memory based on memory overprovisioning factor", null, ConfigurationParameterScope.cluster.toString()),
     VmwareRootDiskControllerType("Advanced", ManagementServer.class, String.class, "vmware.root.disk.controller", "ide", "Specify the default disk controller for root volumes, valid values are scsi, ide", null),
     VmwareSystemVmNicDeviceType("Advanced", ManagementServer.class, String.class, "vmware.systemvm.nic.device.type", "E1000", "Specify the default network device type for system VMs, valid values are E1000, PCNet32, Vmxnet2, Vmxnet3", null),
     VmwareRecycleHungWorker("Advanced", ManagementServer.class, Boolean.class, "vmware.recycle.hung.wokervm", "false", "Specify whether or not to recycle hung worker VMs", null),
+    VmwareHungWorkerTimeout("Advanced", ManagementServer.class, Long.class, "vmware.hung.wokervm.timeout", "7200", "Worker VM timeout in seconds", null),
     VmwareEnableNestedVirtualization("Advanced", ManagementServer.class, Boolean.class, "vmware.nested.virtualization", "false", "When set to true this will enable nested virtualization when this is supported by the hypervisor", null),
 
     // Midonet
@@ -421,6 +427,8 @@ public enum Config {
 	EnableBaremetalSecurityGroupAgentEcho("Advanced", ManagementServer.class, Boolean.class, "enable.baremetal.securitygroup.agent.echo", "false", "After starting provision process, periodcially echo security agent installed in the template. Treat provisioning as success only if echo successfully", null),
 	IntervalToEchoBaremetalSecurityGroupAgent("Advanced", ManagementServer.class, Integer.class, "interval.baremetal.securitygroup.agent.echo", "10", "Interval to echo baremetal security group agent, in seconds", null),
 	TimeoutToEchoBaremetalSecurityGroupAgent("Advanced", ManagementServer.class, Integer.class, "timeout.baremetal.securitygroup.agent.echo", "3600", "Timeout to echo baremetal security group agent, in seconds, the provisioning process will be treated as a failure", null),
+    BaremetalIpmiLanInterface("Advanced", ManagementServer.class, String.class, "baremetal.ipmi.lan.interface", "default", "option specified in -I option of impitool. candidates are: open/bmc/lipmi/lan/lanplus/free/imb, see ipmitool man page for details. default valule 'default' means using default option of ipmitool", null),
+    BaremetalIpmiRetryTimes("Advanced", ManagementServer.class, String.class, "baremetal.ipmi.fail.retry", "5", "ipmi interface will be temporary out of order after power opertions(e.g. cycle, on), it leads following commands fail immediately. The value specifies retry times before accounting it as real failure", null),
 
     ApiLimitEnabled("Advanced", ManagementServer.class, Boolean.class, "api.throttling.enabled", "false", "Enable/disable Api rate limit", null),
 	ApiLimitInterval("Advanced", ManagementServer.class, Integer.class, "api.throttling.interval", "1", "Time interval (in seconds) to reset API count", null),
@@ -429,6 +437,8 @@ public enum Config {
 
     // object store
     S3EnableRRS("Advanced", ManagementServer.class, Boolean.class, "s3.rrs.enabled", "false", "enable s3 reduced redundancy storage", null),
+    S3MaxSingleUploadSize("Advanced",  ManagementServer.class, Integer.class, "s3.singleupload.max.size", "5", "The maximum size limit for S3 single part upload API(in GB). If it is set to 0, then it means always use multi-part upload to upload object to S3. " +
+            "If it is set to -1, then it means always use single-part upload to upload object to S3. ", null),
 
 	// VMSnapshots
     VMSnapshotMax("Advanced", VMSnapshotManager.class, Integer.class, "vmsnapshot.max", "10", "Maximum vm snapshots for a vm", null),

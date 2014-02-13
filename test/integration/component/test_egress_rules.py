@@ -22,7 +22,7 @@ import marvin
 from nose.plugins.attrib import attr
 from marvin.cloudstackTestCase import *
 from marvin.cloudstackAPI import *
-from marvin.remoteSSHClient import remoteSSHClient
+from marvin.sshClient import SshClient
 from marvin.integration.lib.utils import *
 from marvin.integration.lib.base import *
 from marvin.integration.lib.common import *
@@ -523,7 +523,7 @@ class TestDefaultGroupEgress(cloudstackTestCase):
         #    CIDR: 0.0.0.0/0
         # 5. deployVirtualMachine into this security group (ssh)
         # 6. deployed VM should be Running, ssh should be allowed into the VM,
-        #    ping out to google.com from the VM should fail,
+        #    ping out to google.com from the VM should be successful,
         #    ssh from within VM to mgt server should pass
 
         security_group = SecurityGroup.create(
@@ -617,7 +617,7 @@ class TestDefaultGroupEgress(cloudstackTestCase):
 
         result = str(res)
         self.assertEqual(
-                         result.count("0 received"),
+                         result.count("1 received"),
                          1,
                          "Ping to outside world from VM should be successful"
                          )
@@ -625,8 +625,8 @@ class TestDefaultGroupEgress(cloudstackTestCase):
         try:
             self.debug("SSHing into management server from VM")
             res = ssh.execute("ssh %s@%s" % (
-                                    self.services["mgmt_server"]["username"],
-                                    self.services["mgmt_server"]["ipaddress"]
+                                   self.apiclient.connection.user,
+                                   self.apiclient.connection.mgtSvr
                                  ))
             self.debug("SSH result: %s" % str(res))
 
@@ -725,7 +725,7 @@ class TestDefaultGroupEgressAfterDeploy(cloudstackTestCase):
         # 5. authorizeSecurityGroupEgress to allow ssh access only out to
         #    CIDR: 0.0.0.0/0
         # 6. deployed VM should be Running, ssh should be allowed into the VM,
-        #    ping out to google.com from the VM should fail
+        #    ping out to google.com from the VM should be successful
 
         security_group = SecurityGroup.create(
                                               self.apiclient,
@@ -819,7 +819,7 @@ class TestDefaultGroupEgressAfterDeploy(cloudstackTestCase):
 
         result = str(res)
         self.assertEqual(
-                         result.count("0 received"),
+                         result.count("1 received"),
                          1,
                          "Ping to outside world from VM should be successful"
                          )
@@ -907,7 +907,7 @@ class TestRevokeEgressRule(cloudstackTestCase):
         #    CIDR: 0.0.0.0/0
         # 5. deployVirtualMachine into this security group (ssh)
         # 6. deployed VM should be Running, ssh should be allowed into the VM,
-        #    ping out to google.com from the VM should fail,
+        #    ping out to google.com from the VM should be successful,
         #    ssh from within VM to mgt server should pass
         # 7. Revoke egress rule. Verify ping and SSH access to management server
         #    is restored
@@ -1005,7 +1005,7 @@ class TestRevokeEgressRule(cloudstackTestCase):
 
         result = str(res)
         self.assertEqual(
-                         result.count("0 received"),
+                         result.count("1 received"),
                          1,
                          "Ping to outside world from VM should be successful"
                          )
@@ -1014,7 +1014,7 @@ class TestRevokeEgressRule(cloudstackTestCase):
             self.debug("SSHing into management server from VM")
             res = ssh.execute("ssh %s@%s" % (
                                     self.services["mgmt_server"]["username"],
-                                    self.services["mgmt_server"]["ipaddress"]
+                                    self.apiclient.connection.mgtSvr
                                  ))
             self.debug("SSH result: %s" % str(res))
 
@@ -1062,16 +1062,16 @@ class TestRevokeEgressRule(cloudstackTestCase):
 
         result = str(res)
         self.assertEqual(
-                         result.count("1 received"),
+                         result.count("0 received"),
                          1,
-                         "Ping to outside world from VM should be successful"
+                         "Ping to outside world from VM should fail"
                          )
 
         try:
             self.debug("SSHing into management server from VM")
             res = ssh.execute("ssh %s@%s" % (
                                     self.services["mgmt_server"]["username"],
-                                    self.services["mgmt_server"]["ipaddress"]
+                                    self.apiclient.connection.mgtSvr
                                  ))
             self.debug("SSH result: %s" % str(res))
 
@@ -1439,8 +1439,7 @@ class TestMultipleAccountsEgressRuleNeg(cloudstackTestCase):
         try:
             self.debug("SSHing into VM type B from VM A")
             self.debug("VM IP: %s" % self.virtual_machineB.ssh_ip)
-            res = ssh.execute("ssh %s@%s" % (
-                                self.services["virtual_machine"]["username"],
+            res = ssh.execute("ssh -o 'BatchMode=yes' %s" % (
                                 self.virtual_machineB.ssh_ip
                                 ))
             self.debug("SSH result: %s" % str(res))
@@ -1450,10 +1449,14 @@ class TestMultipleAccountsEgressRuleNeg(cloudstackTestCase):
                       (self.virtual_machineA.ipaddress, e)
                       )
         result = str(res)
-        self.assertEqual(
-                    result.count("Connection timed out"),
-                    1,
-                    "SSH into management server from VM should not be successful"
+
+        # SSH failure may result in one of the following three error messages
+        ssh_failure_result_set = ["ssh: connect to host %s port 22: No route to host" % self.virtual_machineB.ssh_ip,
+                                  "ssh: connect to host %s port 22: Connection timed out" % self.virtual_machineB.ssh_ip,
+                                  "Host key verification failed."]
+
+        self.assertFalse(set(res).isdisjoint(ssh_failure_result_set),
+                    "SSH into VM of other account should not be successful"
                     )
         return
 
@@ -2149,211 +2152,4 @@ class TestInvalidParametersForEgress(cloudstackTestCase):
         return
 
 
-class TestEgressAfterHostMaintainance(cloudstackTestCase):
 
-    def setUp(self):
-
-        self.apiclient = self.testClient.getApiClient()
-        self.dbclient = self.testClient.getDbConnection()
-        self.cleanup = []
-        return
-
-    def tearDown(self):
-        try:
-            #Clean up, terminate the created templates
-            cleanup_resources(self.apiclient, self.cleanup)
-
-        except Exception as e:
-            raise Exception("Warning: Exception during cleanup : %s" % e)
-        return
-
-    @classmethod
-    def setUpClass(cls):
-        cls.services = Services().services
-        cls.api_client = super(
-                               TestEgressAfterHostMaintainance,
-                               cls
-                               ).getClsTestClient().getApiClient()
-
-        # Get Zone, Domain and templates
-        cls.domain = get_domain(cls.api_client, cls.services)
-        cls.zone = get_zone(cls.api_client, cls.services)
-        cls.services['mode'] = cls.zone.networktype
-        cls.pod = get_pod(
-                          cls.api_client,
-                          zoneid=cls.zone.id
-                          )
-
-        template = get_template(
-                            cls.api_client,
-                            cls.zone.id,
-                            cls.services["ostype"]
-                            )
-        cls.services["domainid"] = cls.domain.id
-        cls.services["virtual_machine"]["zoneid"] = cls.zone.id
-        cls.services["virtual_machine"]["template"] = template.id
-
-        cls.service_offering = ServiceOffering.create(
-                                            cls.api_client,
-                                            cls.services["service_offering"]
-                                            )
-        cls.account = Account.create(
-                            cls.api_client,
-                            cls.services["account"],
-                            domainid=cls.domain.id
-                            )
-        cls.services["account"] = cls.account.name
-        cls._cleanup = [
-                        cls.account,
-                        cls.service_offering
-                        ]
-        return
-
-    @classmethod
-    def tearDownClass(cls):
-        try:
-            #Cleanup resources used
-            cleanup_resources(cls.api_client, cls._cleanup)
-
-        except Exception as e:
-            raise Exception("Warning: Exception during cleanup : %s" % e)
-
-        return
-
-    @attr(speed = "slow")
-    @attr(tags = ["sg", "eip", "maintenance"])
-    def test_egress_after_host_maintainance(self):
-        """Test maintenance case for egress
-        """
-
-        # Validate the following:
-        # 1. createaccount of type user
-        # 2. createsecuritygroup (ssh) for this account
-        # 3. authorizeSecurityGroupIngress to allow ssh access to the VM
-        # 4. authorizeSecurityGroupEgress to allow ssh access only out to
-        #    CIDR: 0.0.0.0/0
-        # 5. deployVirtualMachine into this security group (ssh)
-        # 6. deployed VM should be Running, ssh should be allowed into the VM
-        # 7. Enable maintainance mode for host, cance maintainance mode
-        # 8. User should be able to SSH into VM after maintainace
-
-        security_group = SecurityGroup.create(
-                                        self.apiclient,
-                                        self.services["security_group"],
-                                        account=self.account.name,
-                                        domainid=self.account.domainid
-                                      )
-        self.debug("Created security group with ID: %s" % security_group.id)
-
-        # Default Security group should not have any ingress rule
-        sercurity_groups = SecurityGroup.list(
-                                        self.apiclient,
-                                        account=self.account.name,
-                                        domainid=self.account.domainid
-                                      )
-        self.assertEqual(
-                         isinstance(sercurity_groups, list),
-                         True,
-                         "Check for list security groups response"
-                         )
-
-        self.assertEqual(
-                            len(sercurity_groups),
-                            2,
-                            "Check List Security groups response"
-                            )
-        # Authorize Security group to SSH to VM
-        self.debug(
-                "Authorizing ingress rule for sec group ID: %s for ssh access"
-                                                        % security_group.id)
-        ingress_rule = security_group.authorize(
-                                        self.apiclient,
-                                        self.services["security_group"],
-                                        account=self.account.name,
-                                        domainid=self.account.domainid
-                                        )
-
-        self.assertEqual(
-                          isinstance(ingress_rule, dict),
-                          True,
-                          "Check ingress rule created properly"
-                    )
-
-        ssh_rule = (ingress_rule["ingressrule"][0]).__dict__
-
-        # Authorize Security group to SSH to VM
-        self.debug(
-                "Authorizing egress rule for sec group ID: %s for ssh access"
-                                                        % security_group.id)
-        egress_rule = security_group.authorizeEgress(
-                                        self.apiclient,
-                                        self.services["security_group"],
-                                        account=self.account.name,
-                                        domainid=self.account.domainid
-                                        )
-
-        self.assertEqual(
-                          isinstance(egress_rule, dict),
-                          True,
-                          "Check egress rule created properly"
-                    )
-        ssh_egress_rule = (egress_rule["egressrule"][0]).__dict__
-
-        self.virtual_machine = VirtualMachine.create(
-                                    self.apiclient,
-                                    self.services["virtual_machine"],
-                                    accountid=self.account.name,
-                                    domainid=self.account.domainid,
-                                    serviceofferingid=self.service_offering.id,
-                                    securitygroupids=[security_group.id]
-                                )
-        self.debug("Deploying VM in account: %s" % self.account.name)
-
-        # Should be able to SSH VM
-        try:
-            self.debug("SSH into VM: %s" % self.virtual_machine.id)
-            ssh = self.virtual_machine.get_ssh_client()
-        except Exception as e:
-            self.fail("SSH Access failed for %s: %s" % \
-                      (self.virtual_machine.ipaddress, e)
-                      )
-        vms = VirtualMachine.list(
-                                    self.apiclient,
-                                    id=self.virtual_machine.id,
-                                    listall=True
-                          )
-        self.assertEqual(
-                          isinstance(vms, list),
-                          True,
-                          "Check list VMs response for valid host"
-                    )
-        vm = vms[0]
-
-        self.debug("Enabling host maintainance for ID: %s" % vm.hostid)
-        cmd = prepareHostForMaintenance.prepareHostForMaintenanceCmd()
-        cmd.id = vm.hostid
-        self.apiclient.prepareHostForMaintenance(cmd)
-
-        self.debug("Canceling host maintainance for ID: %s" % vm.hostid)
-        cmd = cancelHostMaintenance.cancelHostMaintenanceCmd()
-        cmd.id = vm.hostid
-        self.apiclient.cancelHostMaintenance(cmd)
-
-        self.debug("Waiting for SSVMs to come up")
-        wait_for_ssvms(
-                       self.apiclient,
-                       zoneid=self.zone.id,
-                       podid=self.pod.id,
-                      )
-        self.debug("Starting VM: %s" % self.virtual_machine.id)
-
-        self.virtual_machine.start(self.apiclient)
-        # Should be able to SSH VM
-        try:
-            self.debug("SSH into VM: %s" % self.virtual_machine.id)
-            ssh = self.virtual_machine.get_ssh_client(reconnect=True)
-        except Exception as e:
-            self.fail("SSH Access failed for %s: %s" % \
-                      (self.virtual_machine.ipaddress, e)
-                      )
-        return

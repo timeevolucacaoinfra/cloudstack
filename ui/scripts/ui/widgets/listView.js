@@ -212,7 +212,7 @@
                                             if ($instanceRow.is(':visible')) {
                                                 if (args.data) {
                                                     $newRow = replaceItem($instanceRow,
-                                                        $.extend($instanceRow.data('json-obj'), args.data),
+                                                    	args.data, //$.extend($instanceRow.data('json-obj'), args.data), /* $.extend($instanceRow.data('json-obj'), args.data) causes CLOUDSTACK-4687 */
                                                         actionFilter);
                                                 } else {
                                                     // Nothing new, so just put in existing data
@@ -1580,7 +1580,10 @@
                 detailView: listViewData.detailView
             });
         createFilters($toolbar, listViewData.filters);
-        createSearchBar($toolbar, listViewData);
+                
+        if (listViewData.hideSearchBar != true) {
+            createSearchBar($toolbar, listViewData);
+        }
 
         loadBody(
             $table,

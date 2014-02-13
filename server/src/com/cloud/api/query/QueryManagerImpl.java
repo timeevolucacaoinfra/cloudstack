@@ -336,8 +336,8 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
     public ListResponse<UserResponse> searchForUsers(ListUsersCmd cmd) throws PermissionDeniedException {
         Pair<List<UserAccountJoinVO>, Integer> result = searchForUsersInternal(cmd);
         ListResponse<UserResponse> response = new ListResponse<UserResponse>();
-        List<UserResponse> userResponses = ViewResponseHelper.createUserResponse(result.first().toArray(
-                new UserAccountJoinVO[result.first().size()]));
+        List<UserResponse> userResponses = ViewResponseHelper.createUserResponse(UserContext.current().getCaller().getDomainId(), 
+                result.first().toArray(new UserAccountJoinVO[result.first().size()]));
         response.setResponses(userResponses, result.second());
         return response;
     }
@@ -1144,6 +1144,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             ssc.addOr("name", SearchCriteria.Op.LIKE, "%" + keyword + "%");
             ssc.addOr("instanceName", SearchCriteria.Op.LIKE, "%" + keyword + "%");
             ssc.addOr("state", SearchCriteria.Op.LIKE, "%" + keyword + "%");
+            ssc.addOr("networkName", SearchCriteria.Op.LIKE, "%" + keyword + "%");
 
             sc.addAnd("instanceName", SearchCriteria.Op.SC, ssc);
         }
@@ -1571,7 +1572,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         }
 
         if (haHosts != null && haTag != null && !haTag.isEmpty()) {
-            sc.setJoinParameters("hostTagSearch", "tag", haTag);
+            sc.setParameters("tag", haTag);
         }
 
         // search host details by ids
@@ -2369,6 +2370,27 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             }
         }
 
+        if (vmId != null) {
+            UserVmVO vmInstance = _userVmDao.findById(vmId);
+            if ((vmInstance == null) || (vmInstance.getRemoved() != null)) {
+                InvalidParameterValueException ex = new InvalidParameterValueException(
+                        "unable to find a virtual machine with specified id");
+                ex.addProxyObject(vmId.toString(), "vmId");
+                throw ex;
+            }
+
+            _accountMgr.checkAccess(caller, null, true, vmInstance);
+
+            ServiceOfferingVO offering = _srvOfferingDao.findByIdIncludingRemoved(vmInstance.getServiceOfferingId());
+            sc.addAnd("id", SearchCriteria.Op.NEQ, offering.getId());
+
+            // Only return offerings with the same Guest IP type and storage
+            // pool preference
+            // sc.addAnd("guestIpType", SearchCriteria.Op.EQ,
+            // offering.getGuestIpType());
+            sc.addAnd("useLocalStorage", SearchCriteria.Op.EQ, offering.getUseLocalStorage());
+        }
+
         // boolean includePublicOfferings = false;
         if ((caller.getType() == Account.ACCOUNT_TYPE_NORMAL || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN)
                 || caller.getType() == Account.ACCOUNT_TYPE_RESOURCE_DOMAIN_ADMIN) {
@@ -2378,11 +2400,20 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             }
             // find all domain Id up to root domain for this account
             List<Long> domainIds = new ArrayList<Long>();
-            DomainVO domainRecord = _domainDao.findById(caller.getDomainId());
-            if (domainRecord == null) {
-                s_logger.error("Could not find the domainId for account:" + caller.getAccountName());
-                throw new CloudAuthenticationException("Could not find the domainId for account:"
-                        + caller.getAccountName());
+            DomainVO domainRecord;
+            if (vmId != null) {
+                 UserVmVO vmInstance = _userVmDao.findById(vmId);
+                 domainRecord = _domainDao.findById(vmInstance.getDomainId());
+                 if ( domainRecord == null ){
+                     s_logger.error("Could not find the domainId for vmId:" + vmId);
+                     throw new CloudAuthenticationException("Could not find the domainId for vmId:" + vmId);
+                 }
+            } else {
+                 domainRecord = _domainDao.findById(caller.getDomainId());
+                 if ( domainRecord == null ){
+                     s_logger.error("Could not find the domainId for account:" + caller.getAccountName());
+                     throw new CloudAuthenticationException("Could not find the domainId for account:" + caller.getAccountName());
+                 }
             }
             domainIds.add(domainRecord.getId());
             while (domainRecord.getParent() != null) {
@@ -2412,25 +2443,6 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             ssc.addOr("name", SearchCriteria.Op.LIKE, "%" + keyword + "%");
 
             sc.addAnd("name", SearchCriteria.Op.SC, ssc);
-        } else if (vmId != null) {
-            UserVmVO vmInstance = _userVmDao.findById(vmId);
-            if ((vmInstance == null) || (vmInstance.getRemoved() != null)) {
-                InvalidParameterValueException ex = new InvalidParameterValueException(
-                        "unable to find a virtual machine with specified id");
-                ex.addProxyObject(vmId.toString(), "vmId");
-                throw ex;
-            }
-
-            _accountMgr.checkAccess(caller, null, true, vmInstance);
-
-            ServiceOfferingVO offering = _srvOfferingDao.findByIdIncludingRemoved(vmInstance.getServiceOfferingId());
-            sc.addAnd("id", SearchCriteria.Op.NEQ, offering.getId());
-
-            // Only return offerings with the same Guest IP type and storage
-            // pool preference
-            // sc.addAnd("guestIpType", SearchCriteria.Op.EQ,
-            // offering.getGuestIpType());
-            sc.addAnd("useLocalStorage", SearchCriteria.Op.EQ, offering.getUseLocalStorage());
         }
 
         if (id != null) {
@@ -2508,7 +2520,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
                     sdc.addOr("accountId", SearchCriteria.Op.EQ, account.getId());
                     sdc.addOr("accountId", SearchCriteria.Op.NULL);
 
-                    sc.addAnd("account", SearchCriteria.Op.SC, sdc);
+                    sc.addAnd("accountId", SearchCriteria.Op.SC, sdc);
                 }
 
             } else if (account.getType() == Account.ACCOUNT_TYPE_NORMAL) {
@@ -2537,7 +2549,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
                 SearchCriteria<DataCenterJoinVO> sdc = _dcJoinDao.createSearchCriteria();
                 sdc.addOr("domainId", SearchCriteria.Op.IN, domainIds.toArray());
                 sdc.addOr("domainId", SearchCriteria.Op.NULL);
-                sc.addAnd("domain", SearchCriteria.Op.SC, sdc);
+                sc.addAnd("domainId", SearchCriteria.Op.SC, sdc);
 
                 // remove disabled zones
                 sc.addAnd("allocationState", SearchCriteria.Op.NEQ, Grouping.AllocationState.Disabled);
@@ -2548,7 +2560,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
                 sdc2.addOr("accountId", SearchCriteria.Op.EQ, account.getId());
                 sdc2.addOr("accountId", SearchCriteria.Op.NULL);
 
-                sc.addAnd("account", SearchCriteria.Op.SC, sdc2);
+                sc.addAnd("accountId", SearchCriteria.Op.SC, sdc2);
 
                 // remove Dedicated zones not dedicated to this domainId or
                 // subdomainId
@@ -2588,7 +2600,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
                 SearchCriteria<DataCenterJoinVO> sdc = _dcJoinDao.createSearchCriteria();
                 sdc.addOr("domainId", SearchCriteria.Op.IN, domainIds.toArray());
                 sdc.addOr("domainId", SearchCriteria.Op.NULL);
-                sc.addAnd("domain", SearchCriteria.Op.SC, sdc);
+                sc.addAnd("domainId", SearchCriteria.Op.SC, sdc);
 
                 // remove disabled zones
                 sc.addAnd("allocationState", SearchCriteria.Op.NEQ, Grouping.AllocationState.Disabled);
@@ -2617,7 +2629,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
                     if (dcIds.size() == 0) {
                         return new Pair<List<DataCenterJoinVO>, Integer>(new ArrayList<DataCenterJoinVO>(), 0);
                     } else {
-                        sc.addAnd("idIn", SearchCriteria.Op.IN, dcIds.toArray());
+                        sc.addAnd("id", SearchCriteria.Op.IN, dcIds.toArray());
                     }
 
                 }
@@ -2682,6 +2694,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         TemplateFilter templateFilter = TemplateFilter.valueOf(cmd.getTemplateFilter());
         Long id = cmd.getId();
         Map<String, String> tags = cmd.getTags();
+        boolean showRemovedTmpl = cmd.getShowRemoved();
         Account caller = UserContext.current().getCaller();
 
         boolean listAll = false;
@@ -2709,14 +2722,14 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
         return searchForTemplatesInternal(id, cmd.getTemplateName(), cmd.getKeyword(), templateFilter, false, null,
                 cmd.getPageSizeVal(), cmd.getStartIndex(), cmd.getZoneId(), hypervisorType, showDomr,
-                cmd.listInReadyState(), permittedAccounts, caller, listProjectResourcesCriteria, tags);
+                cmd.listInReadyState(), permittedAccounts, caller, listProjectResourcesCriteria, tags, showRemovedTmpl);
     }
 
     private Pair<List<TemplateJoinVO>, Integer> searchForTemplatesInternal(Long templateId, String name,
             String keyword, TemplateFilter templateFilter, boolean isIso, Boolean bootable, Long pageSize,
             Long startIndex, Long zoneId, HypervisorType hyperType, boolean showDomr, boolean onlyReady,
             List<Account> permittedAccounts, Account caller, ListProjectResourcesCriteria listProjectResourcesCriteria,
-            Map<String, String> tags) {
+            Map<String, String> tags, boolean showRemovedTmpl) {
 
         // check if zone is configured, if not, just return empty list
         List<HypervisorType> hypers = null;
@@ -2739,7 +2752,11 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
         // verify templateId parameter and specially handle it
         if (templateId != null) {
-            template = _templateDao.findById(templateId);
+            if(showRemovedTmpl){
+                template = _templateDao.findByIdIncludingRemoved(templateId);
+            }else{
+                template = _templateDao.findById(templateId);
+            }
             if (template == null) {
                 throw new InvalidParameterValueException("Please specify a valid template ID.");
             }// If ISO requested then it should be ISO.
@@ -2810,7 +2827,8 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
                     }
 
                     // get all child domain ID's
-                    if (_accountMgr.isAdmin(account.getType())) {
+                    if (_accountMgr.isAdmin(account.getType())
+                            || (templateFilter == TemplateFilter.featured || templateFilter == TemplateFilter.community)) {
                         List<DomainVO> allChildDomains = _domainDao.findAllChildren(accountDomain.getPath(),
                                 accountDomain.getId());
                         for (DomainVO childDomain : allChildDomains) {
@@ -2939,6 +2957,9 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         // don't return removed template, this should not be needed since we
         // changed annotation for removed field in TemplateJoinVO.
         // sc.addAnd("removed", SearchCriteria.Op.NULL);
+        if(!showRemovedTmpl){
+            sc.addAnd("removed", SearchCriteria.Op.NULL);
+        }
 
         // search unique templates and find details by Ids
         Pair<List<TemplateJoinVO>, Integer> uniqueTmplPair = _templateJoinDao.searchAndCount(sc, searchFilter);
@@ -2978,6 +2999,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         TemplateFilter isoFilter = TemplateFilter.valueOf(cmd.getIsoFilter());
         Long id = cmd.getId();
         Map<String, String> tags = cmd.getTags();
+        boolean showRemovedIso = cmd.getShowRemoved();
         Account caller = UserContext.current().getCaller();
 
         boolean listAll = false;
@@ -3004,7 +3026,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
         return searchForTemplatesInternal(cmd.getId(), cmd.getIsoName(), cmd.getKeyword(), isoFilter, true,
                 cmd.isBootable(), cmd.getPageSizeVal(), cmd.getStartIndex(), cmd.getZoneId(), hypervisorType, true,
-                cmd.listInReadyState(), permittedAccounts, caller, listProjectResourcesCriteria, tags);
+                cmd.listInReadyState(), permittedAccounts, caller, listProjectResourcesCriteria, tags, showRemovedIso);
     }
 
     @Override

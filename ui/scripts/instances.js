@@ -458,6 +458,12 @@
                             },
                             notification: function(args) {
                                 return 'label.action.reboot.instance';
+                            },
+                            complete: function(args) {
+                            	if (args.password != null && args.password.length > 0)
+                                    return 'Password has been reset to ' + args.password;
+                            	else
+                            		return null;
                             }
                         },
                         notification: {
@@ -529,26 +535,51 @@
                     destroy: {
                         label: 'label.action.destroy.instance',
                         compactLabel: 'label.destroy',
-                        messages: {
-                            confirm: function(args) {
-                                return 'message.action.destroy.instance';
+                        createForm: {
+                            title: 'label.action.destroy.instance', 
+                            desc: 'Please confirm that you want to destroy this instance',
+                            preFilter: function(args) {
+                            	if (isAdmin() || isDomainAdmin()) {
+                            		args.$form.find('.form-item[rel=expunge]').css('display', 'inline-block');
+                            	} else {
+                            		args.$form.find('.form-item[rel=expunge]').hide();
+                            	}
                             },
+                            fields: {
+                            	expunge: {
+                                    label: 'Expunge',
+                                    isBoolean: true,
+                                    isChecked: false
+                                }
+                            }
+                        },                        
+                        messages: {                            
                             notification: function(args) {
                                 return 'label.action.destroy.instance';
                             }
                         },
                         action: function(args) {
+                        	var data = {
+                        		id: args.context.instances[0].id		
+                        	};                        	
+                        	if (args.data.expunge == 'on') {
+                        		$.extend(data, {
+                        			expunge: true
+                        		});
+                        	}                        	
                             $.ajax({
-                                url: createURL("destroyVirtualMachine&id=" + args.context.instances[0].id),
-                                dataType: "json",
-                                async: true,
+                                url: createURL('destroyVirtualMachine'),
+                                data: data,                                
                                 success: function(json) {
                                     var jid = json.destroyvirtualmachineresponse.jobid;
                                     args.response.success({
                                         _custom: {
                                             jobId: jid,
                                             getUpdatedItem: function(json) {
+                                            	if ('virtualmachine' in json.queryasyncjobresultresponse.jobresult) //destroy without expunge                                            	
                                                 return json.queryasyncjobresultresponse.jobresult.virtualmachine;
+                                            	else //destroy with expunge
+                                            		return { 'toRemove': true };
                                             },
                                             getActionFilter: function() {
                                                 return vmActionfilter;
@@ -562,6 +593,43 @@
                             poll: pollAsyncJobResult
                         }
                     },
+                    
+                    expunge: {
+                        label: 'Expunge Instance',
+                        compactLabel: 'Expunge',
+                        messages: {
+                            confirm: function(args) {
+                                return 'Please confirm you want to expunge this instance.';
+                            },
+                            notification: function(args) {
+                                return 'Expunge Instance';
+                            }
+                        },
+                        action: function(args) {
+                            $.ajax({
+                                url: createURL('destroyVirtualMachine'),
+                                data: {
+                                	id: args.context.instances[0].id,
+                                	expunge: true
+                                },
+                                success: function(json) {
+                                	var jid = json.destroyvirtualmachineresponse.jobid;
+                                    args.response.success({
+                                        _custom: {
+                                            jobId: jid,
+                                            getActionFilter: function() {
+                                                return vmActionfilter;
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        },
+                        notification: {
+                            poll: pollAsyncJobResult
+                        }
+                    },
+                                        
                     restore: {
                         label: 'label.action.restore.instance',
                         compactLabel: 'label.restore',
@@ -605,6 +673,12 @@
                             },
                             notification: function(args) {
                                 return 'Reset VM';
+                            },
+                            complete: function(args) {
+                            	if (args.password != null && args.password.length > 0)
+                                    return 'Password has been reset to ' + args.password;
+                            	else
+                            		return null;
                             }
                         },
 
@@ -613,24 +687,26 @@
                                 url: createURL("restoreVirtualMachine&virtualmachineid=" + args.context.instances[0].id),
                                 dataType: "json",
                                 async: true,
-                                success: function(json) {
-                                    var item = json.restorevmresponse;
-                                    args.response.success({
-                                        data: item
-                                    });
+                                success: function(json) {                                    
+                                	var jid = json.restorevmresponse.jobid;                                    	
+                                	args.response.success({
+                                        _custom: {
+                                            jobId: jid,
+                                            getUpdatedItem: function(json) {                                         
+                                                return json.queryasyncjobresultresponse.jobresult.virtualmachine;
+                                            },
+                                            getActionFilter: function() {
+                                                return vmActionfilter;
+                                            }
+                                        }
+                                    });                          	
                                 }
                             });
 
                         },
 
                         notification: {
-                            poll: function(args) {
-                                args.complete({
-                                    data: {
-                                        state: 'Stopped'
-                                    }
-                                });
-                            }
+                            poll: pollAsyncJobResult
                         }
 
                     },
@@ -782,13 +858,11 @@
                                 isdynamicallyscalable: (args.data.isdynamicallyscalable == "on"),
                                 ostypeid: args.data.guestosid
                             };
-
                             if (args.data.displayname != args.context.instances[0].displayname) {
                                 $.extend(data, {
                                     displayName: args.data.displayname
                                 });
                             }
-
                             $.ajax({
                                 url: createURL('updateVirtualMachine'),
                                 data: data,
@@ -799,6 +873,54 @@
                                     });
                                 }
                             });
+                            
+                            
+                            //***** addResourceDetail *****
+                            //XenServer only (starts here)                               
+			                if(args.$detailView.find('form').find('div .detail-group').find('.xenserverToolsVersion61plus').length > 0) {	  					                	
+			                	$.ajax({
+			                		url: createURL('addResourceDetail'),
+			                		data: {
+			                			resourceType: 'uservm',
+			                			resourceId: args.context.instances[0].id,
+			                			'details[0].key': 'hypervisortoolsversion',
+			                			'details[0].value': (args.data.xenserverToolsVersion61plus == "on") ? 'xenserver61' : 'xenserver56'
+			                		},
+			                		success: function(json) {			                			
+			                			 var jobId = json.addResourceDetailresponse.jobid;
+                                         var addResourceDetailIntervalID = setInterval(function() {
+                                             $.ajax({
+                                                 url: createURL("queryAsyncJobResult&jobid=" + jobId),
+                                                 dataType: "json",
+                                                 success: function(json) {
+                                                     var result = json.queryasyncjobresultresponse;
+                                                     
+                                                     if (result.jobstatus == 0) {
+                                                         return; //Job has not completed
+                                                     } else {
+                                                         clearInterval(addResourceDetailIntervalID);
+
+                                                         if (result.jobstatus == 1) {                                                        	 
+                                                        	 //do nothing                                                        	 
+                                                         } else if (result.jobstatus == 2) {
+                                                        	 cloudStack.dialog.notice({
+                                                                 message: "Failed to update XenServer Tools Version 6.1+ field. Error: " + _s(result.jobresult.errortext)
+                                                             });                                                             
+                                                         }
+                                                     }
+                                                 },
+                                                 error: function(XMLHttpResponse) {                                                    
+                                                     cloudStack.dialog.notice({
+                                                         message: "Failed to update XenServer Tools Version 6.1+ field. Error: " + parseXMLHttpResponse(XMLHttpResponse)
+                                                     });                                                          
+                                                 }
+                                             });
+                                         }, g_queryAsyncJobResultInterval);			                			   
+			                		}
+			                	});  					                					                	               
+						    }				      
+					        //XenServer only (ends here)  	
+                            
                         }
                     },
 
@@ -811,10 +933,14 @@
                                     label: 'ISO',
                                     select: function(args) {
                                         var items = [];
-                                        var map = {};
+                                        var map = {};                                        
                                         $.ajax({
-                                            url: createURL("listIsos&isReady=true&isofilter=featured"),
-                                            dataType: "json",
+                                            url: createURL("listIsos"),
+                                            data: {
+                                            	isofilter: 'featured',
+                                            	isReady: true,
+                                            	zoneid: args.context.instances[0].zoneid
+                                            },
                                             async: false,
                                             success: function(json) {
                                                 var isos = json.listisosresponse.iso;
@@ -828,8 +954,12 @@
                                             }
                                         });
                                         $.ajax({
-                                            url: createURL("listIsos&isReady=true&isofilter=community"),
-                                            dataType: "json",
+                                            url: createURL("listIsos"),
+                                            data: {
+                                            	isofilter: 'community',
+                                            	isReady: true,
+                                            	zoneid: args.context.instances[0].zoneid
+                                            },
                                             async: false,
                                             success: function(json) {
                                                 var isos = json.listisosresponse.iso;
@@ -845,8 +975,12 @@
                                             }
                                         });
                                         $.ajax({
-                                            url: createURL("listIsos&isReady=true&isofilter=selfexecutable"),
-                                            dataType: "json",
+                                            url: createURL("listIsos"),
+                                            data: {
+                                            	isofilter: 'selfexecutable',
+                                            	isReady: true,
+                                            	zoneid: args.context.instances[0].zoneid
+                                            },
                                             async: false,
                                             success: function(json) {
                                                 var isos = json.listisosresponse.iso;
@@ -1300,7 +1434,7 @@
                                                 $(serviceofferings).each(function() {
                                                     items.push({
                                                         id: this.id,
-                                                        description: this.displaytext
+                                                        description: this.name
                                                     });
                                                 });
                                                 args.response.success({
@@ -1310,8 +1444,6 @@
                                         });
                                     }
                                 }
-
-
                             }
                         },
 
@@ -1352,9 +1484,79 @@
                         notification: {
                             poll: pollAsyncJobResult
                         }
-
                     },
-
+                   
+                    assignVmToAnotherAccount: {
+                        label: 'Assign Instance to Another Account',
+                        createForm: {
+                            title: 'Assign Instance to Another Account',
+                            fields: {                                
+                            	domainid: {
+                				    label: 'label.domain',
+                				    validation: {
+                                        required: true
+                                    },
+                				    select: function(args) {	
+                				    	$.ajax({
+            				                url: createURL('listDomains'),
+            				                data: {
+            				                    listAll: true,
+            				                    details: 'min'
+            				                },
+            				                success: function(json) {
+            				                    var array1 = [];
+            				                    var domains = json.listdomainsresponse.domain;
+            				                    if (domains != null && domains.length > 0) {
+            				                        for (var i = 0; i < domains.length; i++) {
+            				                            array1.push({
+            				                                id: domains[i].id,
+            				                                description: domains[i].path
+            				                            });
+            				                        }
+            				                    }
+            				                    args.response.success({
+            				                        data: array1
+            				                    });
+            				                }
+            				            });				                   				                 
+                				    }
+                				},
+                				account: {
+                				    label: 'label.account',
+                				    validation: {
+                                        required: true
+                                    }
+                				}		
+                            }
+                        },
+                        action: function(args) {                            
+                            $.ajax({
+                                url: createURL('assignVirtualMachine&virtualmachine'),
+                                data: {
+                                    virtualmachineid: args.context.instances[0].id,
+                                    domainid: args.data.domainid,
+                                    account: args.data.account
+                                },                                
+                                success: function(json) {   
+                                    var item = json.virtualmachine.virtualmachine;                                     
+                                    args.response.success({
+                                        data: item
+                                    });                                    
+                                }
+                            });
+                        },
+                        messages: {
+                            notification: function(args) {
+                                return 'Assign Instance to Another Account';
+                            }
+                        },
+                        notification: {
+                            poll: function(args) {
+                                args.complete();
+                            }
+                        }
+                    },                    
+                    
                     viewConsole: {
                         label: 'label.view.console',
                         action: {
@@ -1381,9 +1583,13 @@
                             if (isAdmin()) {
                                 hiddenFields = [];
                             } else {
-                                hiddenFields = ["hypervisor"];
+                                hiddenFields = ["hypervisor", 'xenserverToolsVersion61plus'];
                             }
-
+                            
+                            if ('instances' in args.context && args.context.instances[0].hypervisor != 'XenServer') {
+                          	  hiddenFields.push('xenserverToolsVersion61plus');
+                            }
+                            
                             if (!args.context.instances[0].publicip) {
                                 hiddenFields.push('publicip');
                             }
@@ -1465,6 +1671,18 @@
                                 label: 'label.hypervisor'
                             },
 
+                            xenserverToolsVersion61plus: {
+                                label: 'XenServer Tools Version 6.1+',
+                                isBoolean: true,
+                                isEditable: function () {
+                                    if (isAdmin())
+                                        return true;
+                                    else
+                                        return false;
+                                },
+                                converter: cloudStack.converters.toBooleanText
+                            },
+                            
                             /*
 								isoid: {
                   label: 'label.attached.iso',
@@ -1540,6 +1758,13 @@
                                             state: "Destroyed"
                                         }); //after a regular user destroys a VM, listVirtualMachines API will no longer returns this destroyed VM to the regular user.
 
+                                    if ('details' in jsonObj && 'hypervisortoolsversion' in jsonObj.details) {
+                                        if (jsonObj.details.hypervisortoolsversion == 'xenserver61')
+                                            jsonObj.xenserverToolsVersion61plus = true;
+                                        else
+                                            jsonObj.xenserverToolsVersion61plus = false;
+                                    }
+                                    
                                     args.response.success({
                                         actionFilter: vmActionfilter,
                                         data: jsonObj
@@ -1576,8 +1801,9 @@
                                                 $.ajax({
                                                     url: createURL('listNetworks'),
                                                     data: {
-                                                        listAll: true,
-                                                        zoneid: args.context.instances[0].zoneid
+                                                        zoneid: args.context.instances[0].zoneid,
+                                                        account: args.context.instances[0].account,
+                                                        domainid: args.context.instances[0].domainid
                                                     },
                                                     success: function(json) {
                                                         args.response.success({
@@ -1861,11 +2087,13 @@
         if (jsonObj.state == 'Destroyed') {
             if (isAdmin() || isDomainAdmin()) {
                 allowedActions.push("restore");
+                allowedActions.push("expunge");
             }
         } else if (jsonObj.state == 'Running') {
             allowedActions.push("stop");
             allowedActions.push("restart");
-            allowedActions.push("snapshot");
+            if (jsonObj.hypervisor != 'KVM' || g_KVMsnapshotenabled == true)
+                allowedActions.push("snapshot");
             allowedActions.push("destroy");            
             allowedActions.push("reset");
              
@@ -1894,7 +2122,8 @@
             allowedActions.push("start");
             allowedActions.push("destroy");
             allowedActions.push("reset");
-            allowedActions.push("snapshot");
+            if (jsonObj.hypervisor != 'KVM' || g_KVMsnapshotenabled == true)
+                allowedActions.push("snapshot");
             allowedActions.push("scaleUp");  //when vm is stopped, scaleUp is supported for all hypervisors 
             allowedActions.push("changeAffinity");
 
@@ -1910,6 +2139,11 @@
             if (jsonObj.hypervisor == "BareMetal") {
                 allowedActions.push("createTemplate");
             }
+            
+            if (isAdmin() || isDomainAdmin()) {
+                allowedActions.push("assignVmToAnotherAccount");
+            }
+            
         } else if (jsonObj.state == 'Starting') {
             //  allowedActions.push("stop");
         } else if (jsonObj.state == 'Error') {
