@@ -93,8 +93,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	public Network createNetwork(String name, String displayText, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, boolean subdomainAccess,
-			boolean displayNetwork, Long aclId)
+			Long projectId, Long domainId, Boolean subdomainAccess,
+			Boolean displayNetwork, Long aclId)
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException {
 
@@ -114,8 +114,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, boolean subdomainAccess,
-			boolean displayNetwork, Long aclId)
+			Long projectId, Long domainId, Boolean subdomainAccess,
+			Boolean displayNetwork, Long aclId)
 			throws ResourceUnavailableException, 
 			ResourceAllocationException, ConcurrentOperationException,
 			InsufficientCapacityException {
@@ -222,10 +222,11 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     }
     
     private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
-    	Long zoneId = Long.valueOf(cfg.get("zoneId"));
+//    	Long zoneId = Long.valueOf(cfg.get("zoneId"));
+    	Long zoneId = 1L;
 
 		cfg.put("name", "napivlan");
-		cfg.put("zoneId", String.valueOf(zoneId));
+		cfg.put("zoneId", String.valueOf(1L));
 		cfg.put("podId", String.valueOf(1L /*FIXME*/));
 		cfg.put("clusterId", String.valueOf(1L /*FIXME*/));
 		cfg.put("environmentId", "120");

@@ -35,8 +35,8 @@ public interface NetworkAPIService {
 	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, boolean subdomainAccess,
-			boolean displayNetwork, Long aclId)
+			Long projectId, Long domainId, Boolean subdomainAccess,
+			Boolean displayNetwork, Long aclId)
 			throws ResourceUnavailableException, ConfigurationException,
 			ResourceAllocationException, ConcurrentOperationException,
 			InsufficientCapacityException;
@@ -60,8 +60,8 @@ public interface NetworkAPIService {
 	public Network createNetwork(String name, String displayText, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, boolean subdomainAccess,
-			boolean displayNetwork, Long aclId)
+			Long projectId, Long domainId, Boolean subdomainAccess,
+			Boolean displayNetwork, Long aclId)
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException;
 
