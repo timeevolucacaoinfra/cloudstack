@@ -45,19 +45,21 @@ import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.element.NetworkAPIService;
 
-@APICommand(name = "addNetworkApiVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from Network API")
-public class AddNetworkApiVlanCmd extends BaseCmd {
+@APICommand(name = "addNetworkViaNetworkapiCmd", responseObject=NetworkResponse.class, description="Adds a vlan/network in cloudstack and Network API")
+public class AddNetworkViaNetworkapiCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(AddNetworkApiVlanCmd.class.getName());
+    public static final Logger s_logger = Logger.getLogger(AddNetworkViaNetworkapiCmd.class.getName());
     private static final String s_name = "addnetworkapivlanresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
 
-    /* Parameters */
-    @Parameter(name=ApiConstants.VLAN_ID, type=CommandType.LONG, required = true, description="VLAN ID.")
-    private Long vlanId;
-    
+    @Parameter(name=ApiConstants.NAME, type=CommandType.STRING, required=true, description="the name of the network")
+    private String name;
+
+    @Parameter(name=ApiConstants.DISPLAY_TEXT, type=CommandType.STRING, required=true, description="the display text of the network")
+    private String displayText;
+
     @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
             required=true, description="the Zone ID for the network")
     private Long zoneId;
@@ -100,11 +102,6 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
             description="Network ACL Id associated for the network")
     private Long aclId;
 
-    /* Accessors */
-    public Long getVlanId() {
-        return vlanId;
-    }
-
     public Long getZoneId() {
     	return zoneId;
     }
@@ -116,7 +113,7 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     public Long getPhysicalNetworkId() {
     	return physicalNetworkId;
     }
-
+    
     public ACLType getACLType() {
     	if (aclType == null) {
     		return null;
@@ -128,10 +125,10 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
+        	s_logger.debug("addNetworkViaNetworkapiCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
         			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        	Network network = _ntwkAPIService.createNetwork(name, displayText, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
@@ -142,8 +139,6 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
         	}
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
-        } catch (ConfigurationException e) {
-        	throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }

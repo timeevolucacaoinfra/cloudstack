@@ -18,11 +18,11 @@ import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.configuration.Config;
-import com.cloud.configuration.dao.ConfigurationDao;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.deploy.DeployDestination;
+import com.cloud.domain.Domain;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -53,6 +53,8 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
+import com.globo.networkapi.commands.AddNetworkViaNetworkapiCmd;
+import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.resource.NetworkAPIResource;
@@ -86,9 +88,37 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     NetworkManager _networkMgr;
     @Inject
     ConfigurationServer _configServer;
-    
-    @Override
-    public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId, Long networkOfferingId, Long physicalNetworkId) throws ResourceUnavailableException, ConfigurationException, ResourceAllocationException, ConcurrentOperationException, InsufficientCapacityException {
+
+	@Override
+	public Network createNetwork(String name, String displayText, Long zoneId,
+			Long networkOfferingId, Long physicalNetworkId,
+			String networkDomain, ACLType aclType, String accountName,
+			Long projectId, Long domainId, boolean subdomainAccess,
+			boolean displayNetwork, Long aclId)
+			throws ResourceAllocationException, ResourceUnavailableException,
+			ConcurrentOperationException, InsufficientCapacityException {
+
+		Long napiEnvironmentId = getEnvironmentIdFromPod(null);
+		NetworkAPIVlanResponse response = createNewVlan(name, displayText,
+				napiEnvironmentId);
+		Long napiVlanId = response.getVlanId();
+
+		return createNetworkFromNetworkAPIVlan(napiVlanId, zoneId,
+				networkOfferingId, physicalNetworkId, networkDomain, aclType,
+				accountName, projectId, domainId, subdomainAccess,
+				displayNetwork, aclId);
+	}
+
+
+	@Override
+	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
+			Long networkOfferingId, Long physicalNetworkId,
+			String networkDomain, ACLType aclType, String accountName,
+			Long projectId, Long domainId, boolean subdomainAccess,
+			boolean displayNetwork, Long aclId)
+			throws ResourceUnavailableException, 
+			ResourceAllocationException, ConcurrentOperationException,
+			InsufficientCapacityException {
     	
         // Validate network offering
         NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
@@ -119,13 +149,13 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
 		
-		cfg.put("name", "napivlan-" + vlanId);
-		cfg.put("zoneId", String.valueOf(zoneId));
-		cfg.put("podId", String.valueOf(1L /*FIXME*/));
-		cfg.put("clusterId", String.valueOf(1L /*FIXME*/));
-		cfg.put("environmentId", "120");
-
-		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, cfg);
+		NetworkAPIVlanResponse response;
+		try {
+			response = (NetworkAPIVlanResponse) callCommand(cmd, cfg);
+		} catch (ConfigurationException e) {
+			// FIXME
+			throw new CloudRuntimeException(e);
+		}
 		
 		if (response == null || !response.getResult()) {
 			String msg = "Unable to execute command " + cmd.getClass().getSimpleName();
@@ -153,17 +183,17 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
         		gateway.ip4(),
         		cidr,
         		String.valueOf(response.getVlanNum()),
-        		null, //networkDomain,
+        		networkDomain,
         		owner,
-        		1l, //sharedDomainId,
+        		Domain.ROOT_DOMAIN, //sharedDomainId ????,
         		pNtwk,
         		zoneId,
-        		ACLType.Domain,
-        		true, //subdomainAccess,
+        		aclType,
+        		subdomainAccess,
         		null, //vpcId,
         		null, //ip6Gateway,
         		null, //ip6Cidr,
-        		true, //displayNetwork,
+        		displayNetwork, //displayNetwork,
         		null //isolatedPvlan
         		);
 
@@ -171,8 +201,35 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
         return network;
     }
     
+    protected NetworkAPIVlanResponse createNewVlan(String name, String description, Long networkAPIEnvironmentId) {
+    	
+    	CreateNewVlanInNetworkAPICommand cmd = new CreateNewVlanInNetworkAPICommand();
+    	cmd.setVlanName(name);
+    	cmd.setVlanDescription(description);
+    	cmd.setNetworkAPIEnvironmentId(networkAPIEnvironmentId);
+
+		Answer answer = null;
+    	try {
+    		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
+	    	answer = callCommand(cmd, cfg);
+	    	if (answer == null || !answer.getResult()) {
+	    		throw new CloudRuntimeException("Error creating VLAN in networkAPI");
+	    	}
+    	} catch (ConfigurationException e) {
+    		throw new CloudRuntimeException("Error creating VLAN in networkAPI", e);
+    	}
+    	return (NetworkAPIVlanResponse) answer;
+    }
+    
     private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg) throws ConfigurationException {
     	Long zoneId = Long.valueOf(cfg.get("zoneId"));
+
+		cfg.put("name", "napivlan");
+		cfg.put("zoneId", String.valueOf(zoneId));
+		cfg.put("podId", String.valueOf(1L /*FIXME*/));
+		cfg.put("clusterId", String.valueOf(1L /*FIXME*/));
+		cfg.put("environmentId", "120");
+
 
 		String username = _configServer.getConfigValue(Config.NetworkAPIUsername.key(), Config.ConfigurationParameterScope.global.name(), null);
 		String password = _configServer.getConfigValue(Config.NetworkAPIPassword.key(), Config.ConfigurationParameterScope.global.name(), null);
@@ -209,7 +266,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cfg.put("zoneId", String.valueOf(dest.getDataCenter().getId()));
 		cfg.put("podId", String.valueOf(1L /*FIXME*/));
 		cfg.put("clusterId", String.valueOf(1L /*FIXME*/));
-		cfg.put("environmentId", "120");
+		cfg.put("environmentId", String.valueOf(this.getEnvironmentIdFromPod(null)));
 		
 		String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
 		try {
@@ -253,6 +310,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	public List<Class<?>> getCommands() {
 		List<Class<?>> cmdList = new ArrayList<Class<?>>();
 		cmdList.add(AddNetworkApiVlanCmd.class);
+		cmdList.add(AddNetworkViaNetworkapiCmd.class);
 		return cmdList;
 	}
 

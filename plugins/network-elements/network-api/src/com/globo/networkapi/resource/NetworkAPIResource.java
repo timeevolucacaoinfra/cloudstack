@@ -22,14 +22,15 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
-import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.RequestProcessor;
+import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.IPv4Network;
+import com.globo.networkapi.model.Network;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
@@ -53,6 +54,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private RequestProcessor _napi;
 	
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
+	
+	private static final long NETWORK_TYPE = 6; // Rede invalida de equipamentos
 
 	@Override
 	public boolean configure(String name, Map<String, Object> params)
@@ -159,16 +162,17 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	@Override
 	public Answer executeRequest(Command cmd) {
 		s_logger.trace("executeRequest called with args " + cmd.getClass() + " - " + cmd);
-		if (cmd instanceof GetVlanInfoFromNetworkAPICommand) {
-			return execute((GetVlanInfoFromNetworkAPICommand) cmd);
-		} else if (cmd instanceof ValidateNicInVlanCommand) {
-			return execute((ValidateNicInVlanCommand) cmd);
-		} else if (cmd instanceof ReadyCommand) {
+		if (cmd instanceof ReadyCommand) {
 			return new ReadyAnswer((ReadyCommand) cmd);
 		} else if (cmd instanceof MaintainCommand) {
 			return new MaintainAnswer((MaintainCommand) cmd);
+		} else if (cmd instanceof GetVlanInfoFromNetworkAPICommand) {
+			return execute((GetVlanInfoFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof ValidateNicInVlanCommand) {
+			return execute((ValidateNicInVlanCommand) cmd);
+		} else if (cmd instanceof CreateNewVlanInNetworkAPICommand) {
+			return execute((CreateNewVlanInNetworkAPICommand) cmd);
 		}
-		s_logger.error("*** \n\nError executando command " + cmd.getClass());
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
 	
@@ -235,7 +239,30 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		} catch (XmlPullParserException e) {
 			return new Answer(cmd, e);
 		}
-		
+	}
+
+	public Answer execute(CreateNewVlanInNetworkAPICommand cmd) {
+		try {
+			Vlan vlan = _napi.getVlanAPI().allocateWithoutNetwork(cmd.getNetworkAPIEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
+			
+			/*Network network = */_napi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(NETWORK_TYPE), null);
+			
+			// Bug in networkapi: I need to have a second call to get networkid
+			vlan = _napi.getVlanAPI().getById(vlan.getId());
+			IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
+			
+			String vlanName = vlan.getName();
+			String vlanDescription = vlan.getDescription();
+			Long vlanId = vlan.getId();
+			Long vlanNum = vlan.getVlanNum();
+			Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
+			Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
+			return new NetworkAPIVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask);
+		} catch (IOException e) {
+			return new Answer(cmd, e);
+		} catch (XmlPullParserException e) {
+			return new Answer(cmd, e);
+		}
 	}
 	
 }
