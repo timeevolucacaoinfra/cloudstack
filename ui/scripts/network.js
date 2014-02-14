@@ -581,7 +581,11 @@
                             }
                         },
 
-                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                        // rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                        //     isHeader: true
+                        // })
+
+                        rootAdminAddNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
                             isHeader: true
                         })
 
