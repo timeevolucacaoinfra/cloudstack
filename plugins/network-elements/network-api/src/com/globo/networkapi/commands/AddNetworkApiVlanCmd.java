@@ -73,11 +73,6 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     @Parameter(name=ApiConstants.NETWORK_DOMAIN, type=CommandType.STRING, description="network domain")
     private String networkDomain;
 
-    @Parameter(name=ApiConstants.ACL_TYPE, type=CommandType.STRING, description="Access control type; supported values" +
-            " are account and domain. In 3.0 all shared networks should have aclType=Domain, and all Isolated networks" +
-            " - Account. Account means that only the account owner can use the network, domain - all accouns in the domain can use the network")
-    private String aclType;
-
     @Parameter(name=ApiConstants.ACCOUNT, type=CommandType.STRING, description="account who will own the network")
     private String accountName;
 
@@ -117,21 +112,14 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     	return physicalNetworkId;
     }
 
-    public ACLType getACLType() {
-    	if (aclType == null) {
-    		return null;
-    	}
-    	return ACLType.valueOf(aclType);
-    }
-
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
-        			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
+        			" networkDomain=" +  networkDomain + " accountName=" + accountName + " projectId=" + projectId +
         			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
@@ -142,8 +130,6 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
         	}
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
-        } catch (ConfigurationException e) {
-        	throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }

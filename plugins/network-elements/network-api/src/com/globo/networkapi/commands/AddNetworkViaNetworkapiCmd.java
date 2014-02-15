@@ -118,7 +118,13 @@ public class AddNetworkViaNetworkapiCmd extends BaseCmd {
     	if (aclType == null) {
     		return null;
     	}
-    	return ACLType.valueOf(aclType);
+    	for (ACLType aclTypeEnum : ACLType.values()) {
+    		if (aclType.equalsIgnoreCase(aclTypeEnum.name())) {
+    			return aclTypeEnum;
+    		}
+    	}
+    	s_logger.warn("Invalid value for ACLType: " + aclType);
+    	return null;
     }
 
     /* Implementation */

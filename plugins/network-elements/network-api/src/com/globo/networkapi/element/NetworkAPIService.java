@@ -18,31 +18,9 @@ import com.cloud.vm.VirtualMachineProfile;
 
 public interface NetworkAPIService {
 
-	/**
-	 * Create a new network based on vlanId from NetworkAPI.
-	 * 
-	 * @param vlanId
-	 * @param zoneId
-	 * @param networkOfferingId
-	 * @param physicalNetworkId
-	 * @return
-	 * @throws ResourceUnavailableException
-	 * @throws ConfigurationException
-	 * @throws ResourceAllocationException
-	 * @throws ConcurrentOperationException
-	 * @throws InsufficientCapacityException
-	 */
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId,
-			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, Boolean subdomainAccess,
-			Boolean displayNetwork, Long aclId)
-			throws ResourceUnavailableException, ConfigurationException,
-			ResourceAllocationException, ConcurrentOperationException,
-			InsufficientCapacityException;
 
 	/**
-	 * Create a new network using NetworkAPI.
+	 * Create a new network in sync with NetworkAPI.
 	 * 
 	 * @param zoneId
 	 * @param networkOfferingId
@@ -65,6 +43,28 @@ public interface NetworkAPIService {
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException;
 
+	/**
+	 * Create a new network based on existed vlanId from NetworkAPI.
+	 * 
+	 * @param vlanId Id (to the vlan number) of vlan.
+	 * @param zoneId
+	 * @param networkOfferingId
+	 * @param physicalNetworkId
+	 * @return
+	 * @throws ResourceUnavailableException
+	 * @throws ConfigurationException
+	 * @throws ResourceAllocationException
+	 * @throws ConcurrentOperationException
+	 * @throws InsufficientCapacityException
+	 */
+	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
+			Long networkOfferingId, Long physicalNetworkId,
+			String networkDomain, String accountName,
+			Long projectId, Long domainId, Boolean subdomainAccess,
+			Boolean displayNetwork, Long aclId)
+			throws ResourceUnavailableException, 
+			ResourceAllocationException, ConcurrentOperationException,
+			InsufficientCapacityException;
 	/**
 	 * Validate if nicProfile in compatible with Network and destination dest.
 	 * 
