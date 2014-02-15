@@ -82,6 +82,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIManager.class);
+	
+	static final int NUMBER_OF_RESERVED_IPS_FROM_START = 5;
+	static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 5;
 
 	// DAOs
     @Inject
@@ -118,7 +121,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     AccountManager _accountMgr;
     @Inject
     ConfigurationServer _configServer;
-
+    
 	@Override
 	public Network createNetwork(String name, String displayText, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
@@ -127,6 +130,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			Boolean displayNetwork, Long aclId)
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException {
+		
+		
+		// FIXME Very important: Include permission checks before create network in networkapi
 
 		Long napiEnvironmentId = getEnvironmentIdFromPod(null);
 		Answer answer = createNewVlan(name, displayText,
@@ -168,7 +174,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
                 ex.addProxyObject(ntwkOff.getUuid(), "networkOfferingId");
             }
             throw ex;
-        } else if (GuestType.Shared == ntwkOff.getGuestType()) {
+        } else if (GuestType.Shared != ntwkOff.getGuestType()) {
             InvalidParameterValueException ex = new InvalidParameterValueException("NetworkAPI can handle only network offering with guest type shared");
             if (ntwkOff != null) {
                 ex.addProxyObject(ntwkOff.getUuid(), "networkOfferingId");
@@ -256,25 +262,22 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		long networkAddresLong = response.getNetworkAddress().toLong();
 		String networkAddress = NetUtils.long2Ip(networkAddresLong);
-		String gateway = NetUtils.long2Ip(networkAddresLong+1);
-		String cidr = NetUtils.getCidrFromGatewayAndNetmask(gateway, response.getMask().ip4());
+		String netmask = response.getMask().ip4();
+		String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, netmask);
+		
+		String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
+		String gateway = ranges[0];
+		String startIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[0])+NUMBER_OF_RESERVED_IPS_FROM_START);
+		String endIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[1])-NUMBER_OF_RESERVED_IPS_BEFORE_END);
 		Long vlanNum = response.getVlanNum();
+	     // NO IPv6 support yet
+        String startIPv6 = null, endIPv6 = null, ip6Gateway = null, ip6Cidr = null;
 
 		s_logger.info("Creating network with name " + response.getVlanName() +
 				" (" + response.getVlanId() +
 				"), network " + networkAddress +
-				" and gateway " + gateway
+				" gateway " + gateway + " startIp " + startIP + " endIp " + endIP + " cidr " + cidr
 				);
-		
-		// Parei aqui. Tem que determinar o range de ip da networkapi
-        String startIP = NetUtils.long2Ip(networkAddresLong+5);
-        String endIP = NetUtils.long2Ip(networkAddresLong-5);
-        String netmask = response.getMask().ip4();
-//        String networkDomain = cmd.getNetworkDomain();
-//        Long vlanId = cmd.
-     // NO IPv6 support yet
-        String startIPv6 = null, endIPv6 = null, ip6Gateway = null, ip6Cidr = null;
-
         ///////// End of NetworkAPI specific code ///////
 
 		Transaction txn = Transaction.currentTxn();
