@@ -1,6 +1,7 @@
 package com.globo.networkapi.guru;
 
 import javax.inject.Inject;
+import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
 
@@ -10,12 +11,16 @@ import com.cloud.deploy.DeploymentPlan;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.network.Network;
+import com.cloud.network.Network.Provider;
+import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkProfile;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetwork.IsolationMethod;
+import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.guru.GuestNetworkGuru;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.user.Account;
+import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
@@ -29,6 +34,8 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
     
     @Inject
     NetworkAPIService _networkAPIService;
+    @Inject 
+    NetworkModel _networkModel;
 
     protected NetworkType _networkType = NetworkType.Advanced;
     
@@ -51,11 +58,17 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
         if (isMyNetworkType(networkType)
                 && isMyTrafficType(offering.getTrafficType()) 
                 && isMyIsolationMethod(physicalNetwork)) {
-    		s_logger.debug("NetworkAPI can handle this network"
-    				+ " with traffic type " + offering.getTrafficType()
-    				+ " network type " + networkType 
-    				+ " and physical network " + physicalNetwork);
-            return true;
+
+        	if (_networkModel.isProviderEnabledInZone(physicalNetwork.getDataCenterId(), Provider.NetworkAPI.getName())) {
+        		s_logger.debug("NetworkAPI can handle this network"
+        				+ " with traffic type " + offering.getTrafficType()
+        				+ " network type " + networkType 
+        				+ " and physical network " + physicalNetwork);
+        		return true;
+        	} else {
+        		s_logger.debug("NetworkAPI is not enabled for zone" + physicalNetwork.getDataCenterId());
+                return false;
+        	}
         } else {
             s_logger.debug("We only take care of "
             		+ getSupportedTrafficType() + " networks"
@@ -69,14 +82,23 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 	public Network design(NetworkOffering offering, DeploymentPlan plan,
 			Network userSpecified, Account owner) {
 		s_logger.debug("Asking GuestNetworkGuru to design network " + userSpecified.getName());
-		return super.design(offering, plan, userSpecified, owner);
+		NetworkVO network = (NetworkVO) super.design(offering, plan, userSpecified, owner);
+		// we want implement method be called.
+		network.setState(Network.State.Allocated);
+		return network;
 	}
 
 	@Override
 	public Network implement(Network network, NetworkOffering offering,
 			DeployDestination dest, ReservationContext context)
 			throws InsufficientVirtualNetworkCapcityException {
-		s_logger.debug("Asking GuestNetworkGuru to implement network " + network.getName());
+		s_logger.debug("Creating network " + network.getName() + " in equipment using NetworkAPI");
+		
+		try {
+			_networkAPIService.implementNetwork(network);
+		} catch (ConfigurationException e) {
+			throw new CloudRuntimeException("Unable to activate network " + network, e);
+		}
 		return super.implement(network, offering, dest, context);
 	}
 

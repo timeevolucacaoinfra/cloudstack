@@ -81,4 +81,11 @@ public interface NetworkAPIService {
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException;
 
+	/**
+	 * Ensure network is created and active in NetworkAPI. If network is not created, create it.
+	 * @param network
+	 * @throws ConfigurationException
+	 */
+	public void implementNetwork(Network network) throws ConfigurationException;
+
 }

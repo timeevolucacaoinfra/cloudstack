@@ -18,7 +18,11 @@ public class NetworkAPIVlanResponse extends Answer {
 
     private Ip4Address networkAddress;
     
-    public NetworkAPIVlanResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, Ip4Address networkAddress, Ip4Address mask) {
+    private Long networkId;
+    
+    private boolean isActive;
+    
+    public NetworkAPIVlanResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, Ip4Address networkAddress, Ip4Address mask, Long networkId, Boolean isActive) {
     	super(command, true, null);
     	this.vlanId = vlanId;
     	this.vlanName = vlanName;
@@ -26,6 +30,8 @@ public class NetworkAPIVlanResponse extends Answer {
     	this.vlanNum = vlanNum;
     	this.mask = mask;
     	this.networkAddress = networkAddress;
+    	this.setNetworkId(networkId);
+    	this.setIsActive(isActive == null ? false : isActive);
     }
     
 	public Long getVlanNum() {
@@ -74,6 +80,22 @@ public class NetworkAPIVlanResponse extends Answer {
 
 	public void setNetworkAddress(Ip4Address networkAddress) {
 		this.networkAddress = networkAddress;
+	}
+
+	public Boolean isActive() {
+		return isActive;
+	}
+
+	public void setIsActive(Boolean isActive) {
+		this.isActive = isActive;
+	}
+
+	public Long getNetworkId() {
+		return networkId;
+	}
+
+	public void setNetworkId(Long networkId) {
+		this.networkId = networkId;
 	}
 
 }

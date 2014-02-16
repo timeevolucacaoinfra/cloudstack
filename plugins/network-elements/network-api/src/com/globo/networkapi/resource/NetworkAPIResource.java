@@ -25,6 +25,7 @@ import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.RequestProcessor;
+import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
@@ -172,6 +173,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((ValidateNicInVlanCommand) cmd);
 		} else if (cmd instanceof CreateNewVlanInNetworkAPICommand) {
 			return execute((CreateNewVlanInNetworkAPICommand) cmd);
+		} else if (cmd instanceof ActivateNetworkCmd) {
+			return execute((ActivateNetworkCmd) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -185,22 +188,21 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	 */
 	public Answer execute(ValidateNicInVlanCommand cmd) {
 		try {
-			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
-			List<IPv4Network> networks = vlan.getIpv4Networks();
-			if (networks.isEmpty()) {
-				return new Answer(cmd, false, "VlanId " + cmd.getVlanId() + " have no networks create yet");
-			}
-			
-			IPv4Network network = networks.get(0);
-			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
-			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
-			String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, network.getBroadcast());
-					NetUtils.getCidrNetmask(network.getBroadcast());
-			long cidrSize = NetUtils.getCidrSize(network.getBroadcast());
-			String ipRange[] = NetUtils.getIpRangeFromCidr(cidr, cidrSize);
-			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
-				return new Answer(cmd, false, "Nic ip " + cmd.getNicIp() + " not belongs to network " + networkAddress + " in vlanId " + cmd.getVlanId());
-			}
+//			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
+//			List<IPv4Network> networks = vlan.getIpv4Networks();
+//			if (networks.isEmpty() || !networks.get(0).getActive()) {
+//				return new Answer(cmd, false, "VlanId " + cmd.getVlanId() + " have no networks create yet or not activated");
+//			}
+//			
+//			IPv4Network network = networks.get(0);
+//			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
+//			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
+//			String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, network.getBroadcast());
+//			long cidrSize = NetUtils.getCidrSize(network.getBroadcast());
+//			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
+//			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
+//				return new Answer(cmd, false, "Nic ip " + cmd.getNicIp() + " not belongs to network " + networkAddress + " in vlanId " + cmd.getVlanId());
+//			}
 			return new Answer(cmd); 
 		} catch (Exception e) {
 			// FIXME Não deveria ter estas exceptions aqui!
@@ -211,29 +213,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 
 	public Answer execute(GetVlanInfoFromNetworkAPICommand cmd) {
 		try {
-//			Vlan vlan = _napi.getVlanAPI().allocateWithoutNetwork(cmd.getEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
-			
-//			Network network = _napi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(6), null);
-			
-			// Tosco, o objeto de criar rede nao esta retornando o ID rede
 			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
-			IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
-			
-			// create network in switches
-//			_napi.getNetworkAPI().createNetworks(ipv4Network.getId(), vlan.getId());
-
-			String vlanName = vlan.getName();
-			String vlanDescription = vlan.getDescription();
-			Long vlanId = vlan.getId();
-			Long vlanNum = vlan.getVlanNum();
-			Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
-			Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
-//			Ip4Address gateway = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
-			
-//		    public NetworkAPIVlanResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, Ip4Address networkAddress, Ip4Address mask) {
-			
-			
-			return new NetworkAPIVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask);
+			return createResponse(vlan, cmd);
 		} catch (IOException e) {
 			return new Answer(cmd, e);
 		} catch (XmlPullParserException e) {
@@ -249,20 +230,35 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			
 			// Bug in networkapi: I need to have a second call to get networkid
 			vlan = _napi.getVlanAPI().getById(vlan.getId());
-			IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
-			
-			String vlanName = vlan.getName();
-			String vlanDescription = vlan.getDescription();
-			Long vlanId = vlan.getId();
-			Long vlanNum = vlan.getVlanNum();
-			Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
-			Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
-			return new NetworkAPIVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask);
+			return createResponse(vlan, cmd);
 		} catch (IOException e) {
 			return new Answer(cmd, e);
 		} catch (XmlPullParserException e) {
 			return new Answer(cmd, e);
 		}
+	}
+	
+	public Answer execute(ActivateNetworkCmd cmd) {
+		try {
+			_napi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
+			return new Answer(cmd, true, "Network created");
+		} catch (IOException e) {
+			return new Answer(cmd, e);
+		} catch (XmlPullParserException e) {
+			return new Answer(cmd, e);
+		}
+	}
+	
+	private NetworkAPIVlanResponse createResponse(Vlan vlan, Command cmd) {
+		IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
+		
+		String vlanName = vlan.getName();
+		String vlanDescription = vlan.getDescription();
+		Long vlanId = vlan.getId();
+		Long vlanNum = vlan.getVlanNum();
+		Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
+		Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
+		return new NetworkAPIVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask, ipv4Network.getId(), ipv4Network.getActive());
 	}
 	
 }
