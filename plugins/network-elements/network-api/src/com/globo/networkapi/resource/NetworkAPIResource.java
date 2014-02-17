@@ -23,16 +23,17 @@ import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
-import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
+import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
+import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
-import com.globo.networkapi.model.Network;
 import com.globo.networkapi.model.Vlan;
+import com.globo.networkapi.response.NetworkAPIEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
@@ -43,15 +44,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private String _url;
 	
 	private String _password;
-	
-	private Long _environmentId;
-	
-	private String _zoneId;
-
-	private String _podId;
-	
-	private String _clusterId;
-	
+		
 	private RequestProcessor _napi;
 	
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
@@ -81,26 +74,6 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		if (_password == null) {
 			throw new ConfigurationException("Unable to find password");
 		}
-
-		_environmentId = Long.valueOf((String) params.get("environmentId"));
-		if (_environmentId == null) {
-			throw new ConfigurationException("Unable to find environmentId");
-		}
-		
-		_zoneId = (String) params.get("zoneId");
-		if (_zoneId == null) {
-			throw new ConfigurationException("Unable to find zone Id in the configuration parameters");
-		}
-		
-		_podId = (String) params.get("podId");
-		if (_podId == null) {
-			throw new ConfigurationException("Unable to find pod in the configuration parameters");
-		}
-
-		_clusterId = (String) params.get("clusterId");
-		if (_clusterId == null) {
-			throw new ConfigurationException("Unable to find cluster in the configuration parameters");
-		}
 		
 		_napi = new HttpXMLRequestProcessor(_url, _username, _password);
 		return false;
@@ -129,9 +102,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		StartupCommand cmd = new StartupCommand(getType());
 		cmd.setName(_name);
 		cmd.setGuid("networkapi");
-		cmd.setDataCenter(_zoneId);
-		cmd.setPod(_podId);
-		cmd.setCluster(_clusterId);
+		/* FIXME */
+		cmd.setDataCenter("1");
+		cmd.setPod("1");
+		cmd.setCluster("1");
 		cmd.setPrivateIpAddress("10.70.129.47"); // resolver ip da networkapi
 		cmd.setStorageIpAddress("");
 		cmd.setVersion(NetworkAPIResource.class.getPackage().getImplementationVersion());
@@ -175,6 +149,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((CreateNewVlanInNetworkAPICommand) cmd);
 		} else if (cmd instanceof ActivateNetworkCmd) {
 			return execute((ActivateNetworkCmd) cmd);
+		} else if (cmd instanceof ListAllEnvironmentsFromNetworkAPICommand) {
+			return execute((ListAllEnvironmentsFromNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -242,6 +218,18 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			_napi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
 			return new Answer(cmd, true, "Network created");
+		} catch (IOException e) {
+			return new Answer(cmd, e);
+		} catch (XmlPullParserException e) {
+			return new Answer(cmd, e);
+		}
+	}
+	
+	public Answer execute(ListAllEnvironmentsFromNetworkAPICommand cmd) {
+		try {
+			List<Environment> environmentList = _napi.getEnvironmentAPI().listAll();
+			
+			return new NetworkAPIEnvironmentResponse(cmd, environmentList);
 		} catch (IOException e) {
 			return new Answer(cmd, e);
 		} catch (XmlPullParserException e) {

@@ -50,7 +50,6 @@ import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
-import com.cloud.org.Cluster;
 import com.cloud.org.Grouping;
 import com.cloud.resource.ResourceManager;
 import com.cloud.server.ConfigurationServer;
@@ -77,9 +76,12 @@ import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.AddNetworkViaNetworkapiCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
+import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
+import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.resource.NetworkAPIResource;
+import com.globo.networkapi.response.NetworkAPIEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
@@ -144,7 +146,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		// FIXME Very important: Include permission checks before create network
 		// in networkapi
 
-		Long napiEnvironmentId = getEnvironmentIdFromPod(null);
+		DataCenter zone = _dcDao.findById(zoneId);
+		if (zone == null) {
+			throw new InvalidParameterValueException(
+					"Specified zone id was not found");
+		}
+		Long napiEnvironmentId = getEnvironmentIdFromDataCenter(zone);
 		Answer answer = createNewVlan(name, displayText, napiEnvironmentId);
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
@@ -432,14 +439,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg)
 			throws ConfigurationException {
+		
+		if (cfg == null) {
+			cfg = new ConcurrentHashMap<String, String>();
+		}
+		
 		// Long zoneId = Long.valueOf(cfg.get("zoneId"));
 		Long zoneId = 1L;
 
 		cfg.put("name", "napivlan");
-		cfg.put("zoneId", String.valueOf(1L));
+		cfg.put("zoneId", String.valueOf(zoneId));
 		cfg.put("podId", String.valueOf(1L /* FIXME */));
 		cfg.put("clusterId", String.valueOf(1L /* FIXME */));
-		cfg.put("environmentId", "120");
 
 		String username = _configServer.getConfigValue(
 				Config.NetworkAPIUsername.key(),
@@ -474,24 +485,14 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
 
-		Long networkAPIVlanId = null;
 		ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
 		cmd.setNicIp(nicProfile.getIp4Address());
 		cmd.setVlanId(getNapiVlanId(network.getId()));
 		cmd.setVlanNum(Long.valueOf(getVlanNum(nicProfile.getBroadCastUri())));
 
-		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
-
-		cfg.put("name", "napivlan-" + networkAPIVlanId);
-		cfg.put("zoneId", String.valueOf(dest.getDataCenter().getId()));
-		cfg.put("podId", String.valueOf(1L /* FIXME */));
-		cfg.put("clusterId", String.valueOf(1L /* FIXME */));
-		cfg.put("environmentId",
-				String.valueOf(this.getEnvironmentIdFromPod(null)));
-
 		String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
 		try {
-			Answer answer = this.callCommand(cmd, cfg);
+			Answer answer = this.callCommand(cmd, null);
 			if (answer == null || !answer.getResult()) {
 				msg = answer == null ? msg : answer.getDetails();
 				throw new CloudRuntimeException(msg);
@@ -579,9 +580,48 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 	}
 
-	protected Long getEnvironmentIdFromPod(Cluster cluster) {
-		// FIXME Search for networkapiID from pod or cluster
-		return 120L;
+	protected Long getEnvironmentIdFromDataCenter(DataCenter dc) {
+		if (dc == null) {
+			throw new InvalidParameterValueException(
+					"Invalid zone");
+		}
+		
+		// List all environments from NetworkAPI
+		ListAllEnvironmentsFromNetworkAPICommand cmd = new ListAllEnvironmentsFromNetworkAPICommand();
+		Answer answer;
+		try {
+			answer = callCommand(cmd, null);
+		} catch (ConfigurationException ex) {
+			throw new CloudRuntimeException("Error listing all environments in NetworkAPI.");
+		}
+		
+		if (answer == null || !answer.getResult()) {
+			String errorDescription = answer == null ? "No description"
+		 			: answer.getDetails();
+		 	throw new CloudRuntimeException("Error listing all environments in NetworkAPI: " + errorDescription);
+		}
+
+		NetworkAPIEnvironmentResponse environmentResponse = (NetworkAPIEnvironmentResponse) answer;
+		List<Environment> environmentList = environmentResponse.getEnvironmentList();
+
+		// Iterate to find out which one it is we're using
+		String fullEnvironmentName;
+		Long environmentId = null;
+		for (Environment environment : environmentList) {
+			fullEnvironmentName = environment.getDcDivisionName() + " - " + environment.getLogicalEnvironmentName() + " - " + environment.getL3GroupName();
+			if (dc.getName().equals(fullEnvironmentName)) {
+				s_logger.debug("Found a match for environment: " + fullEnvironmentName);
+				environmentId = environment.getId();
+			} else {
+				continue;
+			}
+		}
+		
+		if (environmentId == null) {
+			throw new CloudRuntimeException("Could not find an environment with name " + dc.getName());
+		} else {
+			return environmentId;	
+		}
 	}
 
 	@Override
