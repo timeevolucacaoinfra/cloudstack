@@ -612,6 +612,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			if (dc.getName().equals(fullEnvironmentName)) {
 				s_logger.debug("Found a match for environment: " + fullEnvironmentName);
 				environmentId = environment.getId();
+				break;
 			} else {
 				continue;
 			}
