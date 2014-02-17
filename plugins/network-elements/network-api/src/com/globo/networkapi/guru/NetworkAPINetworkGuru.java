@@ -81,8 +81,12 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 	@Override
 	public Network design(NetworkOffering offering, DeploymentPlan plan,
 			Network userSpecified, Account owner) {
+		
 		s_logger.debug("Asking GuestNetworkGuru to design network " + userSpecified.getName());
 		NetworkVO network = (NetworkVO) super.design(offering, plan, userSpecified, owner);
+		if (network == null) {
+			return null;
+		}
 		// we want implement method be called.
 		network.setState(Network.State.Allocated);
 		return network;
