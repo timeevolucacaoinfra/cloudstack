@@ -311,9 +311,9 @@ public enum Config {
     MidoNetProviderRouterId("Network", ManagementServer.class, String.class, "midonet.providerrouter.id", "d7c5e6a3-e2f4-426b-b728-b7ce6a0448e5", "Specifies the UUID of the Midonet provider router (if using Midonet)", null),
 
     // NetworkAPI
-    NetworkAPIUsername("Network", ManagementServer.class, String.class, "networkapi.username", "http://localhost:9000", "Specify the username used for networkapi (if using Networkapi)", null),
+    NetworkAPIUsername("Network", ManagementServer.class, String.class, "networkapi.username", "", "Specify the username used for networkapi (if using Networkapi)", null),
     NetworkAPIPassword("Network", ManagementServer.class, String.class, "networkapi.password", "", "Specify password for user for networkapi (if using Networkapi)", null),
-    NetworkAPIUrl("Network", ManagementServer.class, String.class, "networkapi.url", "", "Specify base url of networkapi (if using Networkapi)", null),
+    NetworkAPIUrl("Network", ManagementServer.class, String.class, "networkapi.url", "http://localhost:9000", "Specify base url of networkapi (if using Networkapi)", null),
     
     // KVM
     KvmPublicNetwork("Hidden", ManagementServer.class, String.class, "kvm.public.network.device", null, "Specify the public bridge on host for public network", null),

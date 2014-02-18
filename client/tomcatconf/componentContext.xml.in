@@ -57,6 +57,10 @@
   <bean id="NetworkAPIElement" class="com.globo.networkapi.element.NetworkAPIElement">
     <property name="name" value="NetworkAPI"/>
   </bean>
+  <bean id="NetworkAPIGuru" class="com.globo.networkapi.guru.NetworkAPINetworkGuru">
+    <property name="name" value="NetworkAPIGuru"/>
+  </bean>
+  <bean id="networkAPIDao" class="com.globo.networkapi.dao.NetworkAPINetworkDaoImpl" />
 
   <!--
     Nicira support components
@@ -284,6 +288,7 @@
           <ref bean="NiciraNvpGuestNetworkGuru"/>
           <ref bean="MidoNetGuestNetworkGuru"/>
           <ref bean="SspGuestNetworkGuru"/>
+          <ref bean="NetworkAPIGuru"/>
       </list>
     </property>
   </bean>
