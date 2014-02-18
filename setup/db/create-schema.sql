@@ -196,6 +196,7 @@ DROP TABLE IF EXISTS `cloud`.`vm_network_map`;
 DROP TABLE IF EXISTS `cloud`.`netapp_volume`;
 DROP TABLE IF EXISTS `cloud`.`netapp_pool`;
 DROP TABLE IF EXISTS `cloud`.`netapp_lun`;
+DROP TABLE IF EXISTS `cloud`.`networkapi_network_ref`;
 
 CREATE TABLE `cloud`.`version` (
   `id` bigint unsigned NOT NULL UNIQUE AUTO_INCREMENT COMMENT 'id',
@@ -2472,6 +2473,16 @@ CREATE TABLE `cloud`.`nicira_nvp_nic_map` (
   `nic` varchar(255) UNIQUE COMMENT 'cloudstack uuid of the nic connected to this logical switch port',
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_nicira_nvp_nic_map__nic` FOREIGN KEY(`nic`) REFERENCES `nics`(`uuid`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `cloud`.`networkapi_network_ref` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `napi_vlan_id` bigint unsigned NOT NULL COMMENT 'id of vlan in network api',
+  `network_id` bigint unsigned NOT NULL COMMENT 'network id',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_napi_network_ref__network_id` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX `fk_napi_network_ref__network_id` (`network_id`),
+  INDEX `fk_napi_network_ref__napi_vlan_id` (`napi_vlan_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 SET foreign_key_checks = 1;
