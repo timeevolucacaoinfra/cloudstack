@@ -23,6 +23,7 @@ import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
+import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
@@ -45,7 +46,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	private String _password;
 		
-	private RequestProcessor _napi;
+	protected RequestProcessor _napi;
 	
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
 	
@@ -164,26 +165,28 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	 */
 	public Answer execute(ValidateNicInVlanCommand cmd) {
 		try {
-//			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
-//			List<IPv4Network> networks = vlan.getIpv4Networks();
-//			if (networks.isEmpty() || !networks.get(0).getActive()) {
-//				return new Answer(cmd, false, "VlanId " + cmd.getVlanId() + " have no networks create yet or not activated");
-//			}
-//			
-//			IPv4Network network = networks.get(0);
-//			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
-//			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
-//			String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, network.getBroadcast());
-//			long cidrSize = NetUtils.getCidrSize(network.getBroadcast());
-//			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
-//			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
-//				return new Answer(cmd, false, "Nic ip " + cmd.getNicIp() + " not belongs to network " + networkAddress + " in vlanId " + cmd.getVlanId());
-//			}
-			return new Answer(cmd); 
-		} catch (Exception e) {
-			// FIXME Não deveria ter estas exceptions aqui!
-			s_logger.error("Error in command " + cmd, e);
-			return new Answer(cmd, false, "Internal Error: " + e.getLocalizedMessage());
+			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
+			List<IPv4Network> networks = vlan.getIpv4Networks();
+			if (networks.isEmpty() || !networks.get(0).getActive()) {
+				return new Answer(cmd, false, "No active networks found in VlanId " + cmd.getVlanId());
+			}
+			
+			IPv4Network network = networks.get(0);
+			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
+			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
+			String netmask = network.getMaskOct1() + "." + network.getMaskOct2() + "." + network.getMaskOct3() + "." + network.getMaskOct4();
+			long cidrSize = NetUtils.getCidrSize(netmask);
+			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
+			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
+				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
+			}
+			return new Answer(cmd);
+		} catch (IOException e) {
+			// FIXME This exception shouldn't be here
+			return new Answer(cmd, e);
+		} catch (XmlPullParserException e) {
+			// FIXME This exception shouldn't be here
+			return new Answer(cmd, e);
 		}
 	}
 
