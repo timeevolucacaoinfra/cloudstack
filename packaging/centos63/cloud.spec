@@ -82,8 +82,8 @@ Requires: mkisofs
 Requires: MySQL-python
 Requires: python-paramiko
 Requires: ipmitool
-Requires: %{name}-common = %{_ver}
-Requires: %{name}-awsapi = %{_ver} 
+Requires: %{name}-common = %{_ver}-%{_rel}
+Requires: %{name}-awsapi = %{_ver}-%{_rel}
 Obsoletes: cloud-client < 4.1.0
 Obsoletes: cloud-client-ui < 4.1.0
 Obsoletes: cloud-server < 4.1.0
@@ -114,7 +114,7 @@ The Apache CloudStack files shared between agent and management server
 Summary: CloudStack Agent for KVM hypervisors
 Requires: java >= 1.6.0
 Requires: jna >= 3.2.4
-Requires: %{name}-common = %{_ver}
+Requires: %{name}-common = %{_ver}-%{_rel}
 Requires: libvirt
 Requires: bridge-utils
 Requires: ebtables
@@ -156,7 +156,7 @@ Apache CloudStack command line interface
 
 %package awsapi
 Summary: Apache CloudStack AWS API compatibility wrapper
-Requires: %{name}-management = %{_ver}
+Requires: %{name}-management = %{_ver}-%{_rel}
 Obsoletes: cloud-aws-api < 4.1.0
 Provides: cloud-aws-api
 Group: System Environment/Libraries
