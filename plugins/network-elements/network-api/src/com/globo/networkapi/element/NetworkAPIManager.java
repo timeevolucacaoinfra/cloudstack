@@ -79,6 +79,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.removeNetworkInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.resource.NetworkAPIResource;
@@ -636,8 +637,24 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
 	public void removeNetworkFromNetworkAPI(Network network) {
-		// Create command
-		// Call command
+		
+		removeNetworkInNetworkAPICommand cmd = new removeNetworkInNetworkAPICommand();
+		Long vlanId = getNapiVlanId(network.getId());
+		cmd.setVlanId(vlanId);
+		
+		Answer answer;
+		try {
+			answer = callCommand(cmd, null);
+		} catch (ConfigurationException ex) {
+			throw new CloudRuntimeException("Error removing network from NetworkAPI.");
+		}
+		
+		if (answer == null || !answer.getResult()) {
+			String errorDescription = answer == null ? "no description"
+					: answer.getDetails();
+			throw new CloudRuntimeException(
+					"Error removing network from NetworkAPI: " + errorDescription);
+		}
 	}
 
 }

@@ -31,6 +31,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.removeNetworkInNetworkAPICommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
@@ -224,6 +225,16 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			List<Environment> environmentList = _napi.getEnvironmentAPI().listAll();
 			
 			return new NetworkAPIEnvironmentResponse(cmd, environmentList);
+		} catch (NetworkAPIException e) {
+			return new Answer(cmd, e);
+		}
+	}
+	
+	public Answer execute(removeNetworkInNetworkAPICommand cmd) {
+		try {
+			_napi.getVlanAPI().remove(cmd.getVlanId());
+			
+			return new Answer(cmd, true, "Network removed");
 		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
