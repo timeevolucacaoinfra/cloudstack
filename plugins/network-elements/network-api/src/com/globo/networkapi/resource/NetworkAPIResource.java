@@ -24,6 +24,7 @@ import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
+import com.globo.networkapi.NetworkAPIException;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
@@ -181,11 +182,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
 			}
 			return new Answer(cmd);
-		} catch (IOException e) {
-			// FIXME This exception shouldn't be here
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
-			// FIXME This exception shouldn't be here
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -194,9 +191,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
 			return createResponse(vlan, cmd);
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -210,9 +205,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			// Bug in networkapi: I need to have a second call to get networkid
 			vlan = _napi.getVlanAPI().getById(vlan.getId());
 			return createResponse(vlan, cmd);
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -221,9 +214,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			_napi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
 			return new Answer(cmd, true, "Network created");
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -233,9 +224,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			List<Environment> environmentList = _napi.getEnvironmentAPI().listAll();
 			
 			return new NetworkAPIEnvironmentResponse(cmd, environmentList);
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}

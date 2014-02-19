@@ -133,6 +133,7 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
 		s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
 		s_logger.warn("**** Removing Vlan from equipment (NOT WORKING YET");
+		_networkAPIService.removeNetworkFromNetworkAPI(profile);
 		super.shutdown(profile, offering);
 	}
 

@@ -87,5 +87,10 @@ public interface NetworkAPIService {
 	 * @throws ConfigurationException
 	 */
 	public void implementNetwork(Network network) throws ConfigurationException;
-
+	
+	/**
+	 * Remove network from NetworkAPI and inactive the vlan
+	 * @param network
+	 */
+	public void removeNetworkFromNetworkAPI(Network network);
 }

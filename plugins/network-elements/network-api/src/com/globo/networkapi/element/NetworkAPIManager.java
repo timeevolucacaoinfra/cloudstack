@@ -65,6 +65,7 @@ import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.Transaction;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
+import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
@@ -495,7 +496,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			Answer answer = this.callCommand(cmd, null);
 			if (answer == null || !answer.getResult()) {
 				msg = answer == null ? msg : answer.getDetails();
-				throw new CloudRuntimeException(msg);
+				throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
 			}
 		} catch (ConfigurationException e) {
 			throw new CloudRuntimeException(msg, e);
@@ -631,6 +632,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkApiVlanCmd.class);
 		cmdList.add(AddNetworkViaNetworkapiCmd.class);
 		return cmdList;
+	}
+
+	@Override
+	public void removeNetworkFromNetworkAPI(Network network) {
+		// Create command
+		// Call command
 	}
 
 }
