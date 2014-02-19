@@ -60,7 +60,8 @@
   <bean id="NetworkAPIGuru" class="com.globo.networkapi.guru.NetworkAPINetworkGuru">
     <property name="name" value="NetworkAPIGuru"/>
   </bean>
-  <bean id="networkAPIDao" class="com.globo.networkapi.dao.NetworkAPINetworkDaoImpl" />
+  <bean id="NetworkAPINetworkDao" class="com.globo.networkapi.dao.NetworkAPINetworkDaoImpl" />
+  <bean id="NetworkAPIEnvironmentDao" class="com.globo.networkapi.dao.NetworkAPIEnvironmentDaoImpl" />
 
   <!--
     Nicira support components

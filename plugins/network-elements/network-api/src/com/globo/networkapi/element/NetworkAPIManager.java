@@ -70,18 +70,18 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
+import com.globo.networkapi.commands.AddNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.AddNetworkViaNetworkapiCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
-import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
-import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.resource.NetworkAPIResource;
-import com.globo.networkapi.response.NetworkAPIEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
@@ -113,7 +113,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	NetworkServiceMapDao _ntwkSrvcDao;
 	@Inject
 	NetworkAPINetworkDao _napiNetworkDao;
-
+	@Inject
+	NetworkAPIEnvironmentDao _napiIntegrationDao;
+	
 	// Managers
 	@Inject
 	NetworkModel _networkManager;
@@ -579,13 +581,67 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg, nfe);
 		}
 	}
+	
+	@Override
+	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long zoneId, String name, Long napiEnvironmentId) {
+		
+		if (zoneId == null) {
+			throw new InvalidParameterValueException("Invalid zoneId: " + zoneId);
+		}
+		
+		if (name == null || name.trim().isEmpty()) {
+			throw new InvalidParameterValueException("Invalid name: " + name);
+		}
+		
+		if (napiEnvironmentId == null) {
+			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
+		}
+
+		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiIntegrationDao.findByZoneId(zoneId);
+		for (NetworkAPIEnvironmentVO napiIntegration: napiIntegrations) {
+			if (napiIntegration.getName().equalsIgnoreCase(name)) {
+				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in zone " + zoneId);
+			}
+			if (napiIntegration.getNapiEnvironmentId() == napiEnvironmentId) {
+				throw new InvalidParameterValueException("NetworkAPI environment with environmentId " + napiEnvironmentId + " already exists in zone " + zoneId);
+			}
+		}
+		
+		
+        Transaction txn = Transaction.currentTxn();
+        try {
+        	// FIXME Before insert, validate if this environment exists in networkapi
+            txn.start();
+            
+            NetworkAPIEnvironmentVO napiIntegrationVo = new NetworkAPIEnvironmentVO(zoneId, name, napiEnvironmentId);
+            _napiIntegrationDao.persist(napiIntegrationVo);
+
+            // TODO? Cloudstack do rollback if my method raises an exception???
+            txn.commit();
+            return napiIntegrationVo;
+
+        } catch (Exception e) {
+            txn.rollback();
+            throw new CloudRuntimeException(e.getMessage(), e);
+        }
+	}
 
 	protected Long getEnvironmentIdFromDataCenter(DataCenter dc) {
+		// FIXME This method no more make sense because I can have more than 1 environment to the same datacenter.
 		if (dc == null) {
 			throw new InvalidParameterValueException(
 					"Invalid zone");
 		}
 		
+		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiIntegrationDao.findByZoneId(dc.getId());
+		if (napiIntegrations.size() > 1) {
+			throw new CloudRuntimeException("Many integrations with networkAPI");
+		} else if (napiIntegrations.size() == 0) {
+			throw new CloudRuntimeException("There is not NetworkAPI associated with zone " + dc.getName());
+		}
+		long environmentId = napiIntegrations.get(0).getNapiEnvironmentId();
+		
+		/*
 		// List all environments from NetworkAPI
 		ListAllEnvironmentsFromNetworkAPICommand cmd = new ListAllEnvironmentsFromNetworkAPICommand();
 		Answer answer;
@@ -617,12 +673,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				continue;
 			}
 		}
-		
-		if (environmentId == null) {
-			throw new CloudRuntimeException("Could not find an environment with name " + dc.getName());
-		} else {
-			return environmentId;	
-		}
+		*/
+		return environmentId;
 	}
 
 	@Override
@@ -630,6 +682,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		List<Class<?>> cmdList = new ArrayList<Class<?>>();
 		cmdList.add(AddNetworkApiVlanCmd.class);
 		cmdList.add(AddNetworkViaNetworkapiCmd.class);
+		cmdList.add(AddNetworkAPIEnvironmentCmd.class);
 		return cmdList;
 	}
 

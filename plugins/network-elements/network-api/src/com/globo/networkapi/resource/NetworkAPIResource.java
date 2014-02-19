@@ -34,7 +34,7 @@ import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
 import com.globo.networkapi.model.Vlan;
-import com.globo.networkapi.response.NetworkAPIEnvironmentResponse;
+import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
@@ -232,7 +232,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			List<Environment> environmentList = _napi.getEnvironmentAPI().listAll();
 			
-			return new NetworkAPIEnvironmentResponse(cmd, environmentList);
+			return new NetworkAPIAllEnvironmentResponse(cmd, environmentList);
 		} catch (IOException e) {
 			return new Answer(cmd, e);
 		} catch (XmlPullParserException e) {

@@ -15,9 +15,19 @@ import com.cloud.network.Network;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.networkapi.NetworkAPIEnvironmentVO;
 
 public interface NetworkAPIService {
 
+
+	/**
+	 * Add a NetworkAPI Environment to an specific zone.
+	 * @param zoneId
+	 * @param name Name of the relationship, for example, BACKEND, FRONTEND
+	 * @param napiEnvironmentId
+	 * @return
+	 */
+	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long zoneId, String name, Long napiEnvironmentId);
 
 	/**
 	 * Create a new network in sync with NetworkAPI.
