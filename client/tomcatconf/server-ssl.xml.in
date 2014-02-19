@@ -79,15 +79,14 @@
          This connector uses the JSSE configuration, when using APR, the 
          connector should be using the OpenSSL style configuration
          described in the APR documentation -->
-    <!--
+
     <Connector port="8443" protocol="HTTP/1.1" SSLEnabled="true"
                maxThreads="150" scheme="https" secure="true"
                clientAuth="false" sslProtocol="TLS" 
                keystoreType="PKCS12"
-	       keystoreFile="conf\cloud-localhost.pk12" 
+	       keystoreFile="/etc/cloudstack/management/cloud-localhost.pk12"
 	       keystorePass="password"
                />
-    -->
 
     <!-- Listen on 6443 instead of 8443 because tomcat6 will change 8443 to a random one when CATALINA_HOME is not /usr/share/tomcat6 -->
     <Connector port="6443" protocol="org.apache.coyote.http11.Http11NioProtocol" SSLEnabled="true"

@@ -65,6 +65,7 @@ import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.Transaction;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
+import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
@@ -80,6 +81,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
+import com.globo.networkapi.commands.removeNetworkInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -497,7 +499,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			Answer answer = this.callCommand(cmd, null);
 			if (answer == null || !answer.getResult()) {
 				msg = answer == null ? msg : answer.getDetails();
-				throw new CloudRuntimeException(msg);
+				throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
 			}
 		} catch (ConfigurationException e) {
 			throw new CloudRuntimeException(msg, e);
@@ -684,6 +686,28 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkViaNetworkapiCmd.class);
 		cmdList.add(AddNetworkAPIEnvironmentCmd.class);
 		return cmdList;
+	}
+
+	@Override
+	public void removeNetworkFromNetworkAPI(Network network) {
+		
+		removeNetworkInNetworkAPICommand cmd = new removeNetworkInNetworkAPICommand();
+		Long vlanId = getNapiVlanId(network.getId());
+		cmd.setVlanId(vlanId);
+		
+		Answer answer;
+		try {
+			answer = callCommand(cmd, null);
+		} catch (ConfigurationException ex) {
+			throw new CloudRuntimeException("Error removing network from NetworkAPI.");
+		}
+		
+		if (answer == null || !answer.getResult()) {
+			String errorDescription = answer == null ? "no description"
+					: answer.getDetails();
+			throw new CloudRuntimeException(
+					"Error removing network from NetworkAPI: " + errorDescription);
+		}
 	}
 
 }
