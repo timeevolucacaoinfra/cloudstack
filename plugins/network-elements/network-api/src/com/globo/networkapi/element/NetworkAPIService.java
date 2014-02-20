@@ -1,5 +1,7 @@
 package com.globo.networkapi.element;
 
+import java.util.List;
+
 import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
@@ -110,6 +112,12 @@ public interface NetworkAPIService {
 	 * @param network
 	 */
 	public void deallocateVlanFromNetworkAPI(Network network);
+	
+	/**
+	 * List environments from NetworkAPI with optional parameter physicalNetworkId
+	 * @param physicalNetworkId
+	 */
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId);
 
 	boolean canEnable(Long physicalNetworkId);
 }

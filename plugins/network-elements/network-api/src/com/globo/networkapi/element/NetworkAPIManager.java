@@ -81,6 +81,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
@@ -117,7 +118,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Inject
 	NetworkAPINetworkDao _napiNetworkDao;
 	@Inject
-	NetworkAPIEnvironmentDao _napiIntegrationDao;
+	NetworkAPIEnvironmentDao _napiEnvironmentDao;
 	
 	// Managers
 	@Inject
@@ -144,7 +145,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (physicalNetworkId == null) {
 			return false;
 		}
-		List<NetworkAPIEnvironmentVO> list = _napiIntegrationDao.findByPhysicalNetworkId(physicalNetworkId);
+		List<NetworkAPIEnvironmentVO> list = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
 		if (list.isEmpty()) {
 			throw new CloudRuntimeException("Before enable NetworkAPI you must add NetworkAPI Environment to your physical interface");
 		}
@@ -612,7 +613,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
 		}
 
-		List<NetworkAPIEnvironmentVO> napiEnvironments = _napiIntegrationDao.findByPhysicalNetworkId(physicalNetworkId);
+		List<NetworkAPIEnvironmentVO> napiEnvironments = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
 		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
 			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
 				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in physicalNetworkId " + physicalNetworkId);
@@ -629,7 +630,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
             txn.start();
             
             NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
-            _napiIntegrationDao.persist(napiEnvironmentVO);
+            _napiEnvironmentDao.persist(napiEnvironmentVO);
 
             // TODO? Cloudstack do rollback if my method raises an exception???
             txn.commit();
@@ -648,7 +649,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 					"Invalid zone");
 		}
 		
-		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiIntegrationDao.findByPhysicalNetworkId(physicalNetworkId);
+		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
 		if (napiIntegrations.size() > 1) {
 			throw new CloudRuntimeException("Many integrations with networkAPI");
 		} else if (napiIntegrations.size() == 0) {
@@ -698,6 +699,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkApiVlanCmd.class);
 		cmdList.add(AddNetworkViaNetworkapiCmd.class);
 		cmdList.add(AddNetworkAPIEnvironmentCmd.class);
+		cmdList.add(ListNetworkApiEnvironmentsCmd.class);
 		return cmdList;
 	}
 
@@ -753,6 +755,19 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		txn.commit();
+	}
+	
+	@Override
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId) {
+		List<NetworkAPIEnvironmentVO> napiEnvironmentsVOList;
+		
+		if (physicalNetworkId == null) {
+			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
+		} else {
+			napiEnvironmentsVOList = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
+		}
+		
+		return napiEnvironmentsVOList;
 	}
 
 }

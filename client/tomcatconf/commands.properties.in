@@ -678,3 +678,4 @@ listDedicatedHosts=1
 addNetworkApiVlan=1
 addNetworkViaNetworkapiCmd=1
 addNetworkAPIEnvironment=1
+listNetworkApiEnvironments=1
