@@ -735,8 +735,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
-		Long vlanId = getNapiVlanId(network.getId());
-		cmd.setVlanId(vlanId);
+		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
 		
 		Answer answer;
 		try {
