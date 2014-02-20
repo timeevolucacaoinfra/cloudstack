@@ -29,13 +29,13 @@ import org.apache.cloudstack.api.InternalIdentity;
 @Table(name = "networkapi_network_ref")
 public class NetworkAPINetworkVO implements InternalIdentity {
 
-	@Column(name = "napi_vlan_id")
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-	private long napiVlanId;
-
 	@Id
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name = "id")
 	private long id;
+
+	@Column(name = "napi_vlan_id")
+	private long napiVlanId;
 
 	@Column(name = "network_id")
 	private long networkId;
