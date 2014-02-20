@@ -110,7 +110,7 @@ var pollAsyncJobResult = function(args) {
             args.error();
         }
     });
-}
+};
 
 //API calls
 
@@ -611,7 +611,7 @@ var addGuestNetworkDialog = {
             if (addGuestNetworkDialog.networkOfferingObjs != null) {
                 for (var i = 0; i < addGuestNetworkDialog.networkOfferingObjs.length; i++) {
                     if (addGuestNetworkDialog.networkOfferingObjs[i].id == args.data.networkOfferingId) {
-                        selectedNetworkOfferingObj = addGuestNetworkDialog.networkOfferingObjs[i]
+                        selectedNetworkOfferingObj = addGuestNetworkDialog.networkOfferingObjs[i];
                         break;
                     }
                 }
@@ -703,12 +703,13 @@ var addNetworkAPINetworkDialog = {
     zoneObjs: [],
     physicalNetworkObjs: [],
     networkOfferingObjs: [],
+    networkApiEnvironmentsObjs: [],
     def: {
-        label: 'Add NetworkAPI Network', // label.add.networkapi.network
+        label: 'Add NetworkAPI Network', // Add NetworkAPI Network
 
         messages: {
             notification: function(args) {
-                return 'Add NetworkAPI Network'; // label.add.networkapi.network
+                return 'Add NetworkAPI Network';
             }
         },
 
@@ -720,7 +721,7 @@ var addNetworkAPINetworkDialog = {
         },
 
         createForm: {
-            title: 'Add NetworkAPI Network', // label.add.networkapi.network
+            title: 'Add NetworkAPI Network',
 
             preFilter: function(args) {
                 if ('zones' in args.context) {
@@ -761,7 +762,7 @@ var addNetworkAPINetworkDialog = {
                                 success: function(json) {
                                     addNetworkAPINetworkDialog.zoneObjs = []; //reset
                                     var items = json.listzonesresponse.zone;
-                                    if (items != null) {
+                                    if (items !== null) {
                                         for (var i = 0; i < items.length; i++) {
                                             if (items[i].networktype == 'Advanced') {
                                                 addNetworkAPINetworkDialog.zoneObjs.push(items[i]);
@@ -816,6 +817,43 @@ var addNetworkAPINetworkDialog = {
                         });
                     },
                     isHidden: true
+                },
+
+                napiEnvironmentId: {
+                    label: 'environment',
+                    dependsOn: 'physicalNetworkId',
+                    select: function(args) {
+                        if ('networkApiEnvironmentsObjs' in args.context) {
+                            // FIXME
+                            addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = args.context.networkApiEnvironmentsObjs;
+                        } else {
+                            var selectedPhysicalNetworkId = args.$form.find('.form-item[rel=physicalNetworkId]').find('select').val();
+                            $.ajax({
+                                url: createURL('listNetworkApiEnvironments'),
+                                data: {
+                                    physicalnetworkid: selectedPhysicalNetworkId
+                                },
+                                async: false,
+                                success: function(json) {
+                                    addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = json.listnetworkapienvironmentsresponse.networkapienvironment;
+                                }
+                            });
+                            // addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = [{'id': '232', 'name': 'BE'}, {'id': '1222', 'name': 'FE'}];
+                        }
+                        var items = [];
+                        if (addNetworkAPINetworkDialog.networkApiEnvironmentsObjs != null) {
+                            for (var i = 0; i < addNetworkAPINetworkDialog.networkApiEnvironmentsObjs.length; i++) {
+                                items.push({
+                                    id: addNetworkAPINetworkDialog.networkApiEnvironmentsObjs[i].napienvironmentid,
+                                    description: addNetworkAPINetworkDialog.networkApiEnvironmentsObjs[i].name
+                                });
+                            }
+                        }
+                        args.response.success({
+                            data: items
+                        });
+                    },
+                    isHidden: false
                 },
 
                 scope: {
@@ -1116,6 +1154,8 @@ var addNetworkAPINetworkDialog = {
 
             if (selectedNetworkOfferingObj.guestiptype == "Shared")
                 array1.push("&physicalnetworkid=" + args.data.physicalNetworkId);
+                array1.push("&napienvironmentid=" + args.data.napiEnvironmentId);
+
 
             array1.push("&name=" + todb(args.data.name));
             array1.push("&displayText=" + todb(args.data.description));
@@ -1663,9 +1703,9 @@ var addExtraPropertiesToGuestNetworkObject = function(jsonObj) {
         var url;
 
         /*
-	Replace the + and / symbols by - and _ to have URL-safe base64 going to the API
-	It's hacky, but otherwise we'll confuse java.net.URI which splits the incoming URI
-	*/
+    Replace the + and / symbols by - and _ to have URL-safe base64 going to the API
+    It's hacky, but otherwise we'll confuse java.net.URI which splits the incoming URI
+    */
         secret = secret.replace("+", "-");
         secret = secret.replace("/", "_");
 
