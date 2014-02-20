@@ -5560,6 +5560,23 @@
                                         actionFilter: networkProviderActionFilter('NetworkAPI')
                                     });
                                 }
+                            },
+                            instances: {
+                                title: 'Environments',
+                                listView: {
+                                    label: 'Environments',
+                                    id: 'napienvironments',
+                                    fields: {
+                                        name: {
+                                            label: 'label.name'
+                                        },
+                                        environmentid: {
+                                            label: 'environmentid'
+                                        }
+                                    },
+                                    dataProvider: function(args) {
+                                    }
+                                }
                             }
                         },
                         actions: {
@@ -15660,8 +15677,8 @@
 
     function addNetworkApiEnvironment(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
         var array1 = [];
-        array1.push("&zoneid=" + physicalNetworkObj.zoneid);
-        array1.push("&napi_environment_id=" + todb(args.data.napiEnvironmentId));
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&napienvironmentid=" + todb(args.data.napiEnvironmentId));
         array1.push("&name=" + todb(args.data.name));
 
         $.ajax({

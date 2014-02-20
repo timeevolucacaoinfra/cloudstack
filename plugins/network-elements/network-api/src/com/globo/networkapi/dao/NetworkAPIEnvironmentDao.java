@@ -7,6 +7,6 @@ import com.globo.networkapi.NetworkAPIEnvironmentVO;
 
 public interface NetworkAPIEnvironmentDao extends GenericDao<NetworkAPIEnvironmentVO, Long> {
 
-	List<NetworkAPIEnvironmentVO> findByZoneId(long zoneId);
+	List<NetworkAPIEnvironmentVO> findByPhysicalNetworkId(long physicalNetworkId);
 
 }

@@ -137,6 +137,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	ConfigurationServer _configServer;
 	@Inject
 	NetworkService _ntwSvc;
+	
+	@Override
+	public boolean canEnable(Long physicalNetworkId) {
+		if (physicalNetworkId == null) {
+			return false;
+		}
+		List<NetworkAPIEnvironmentVO> list = _napiIntegrationDao.findByPhysicalNetworkId(physicalNetworkId);
+		if (list.isEmpty()) {
+			throw new CloudRuntimeException("Before enable NetworkAPI you must add NetworkAPI Environment to your physical interface");
+		}
+		return true;
+	}
 
 	@Override
 	public Network createNetwork(String name, String displayText, Long zoneId,
@@ -155,7 +167,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException(
 					"Specified zone id was not found");
 		}
-		Long napiEnvironmentId = getEnvironmentIdFromDataCenter(zone);
+		Long napiEnvironmentId = getEnvironmentIdFromPhysicalNetwork(physicalNetworkId);
 		Answer answer = createNewVlan(name, displayText, napiEnvironmentId);
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
@@ -585,10 +597,10 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long zoneId, String name, Long napiEnvironmentId) {
+	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId) {
 		
-		if (zoneId == null) {
-			throw new InvalidParameterValueException("Invalid zoneId: " + zoneId);
+		if (physicalNetworkId == null) {
+			throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
 		}
 		
 		if (name == null || name.trim().isEmpty()) {
@@ -599,13 +611,13 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
 		}
 
-		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiIntegrationDao.findByZoneId(zoneId);
-		for (NetworkAPIEnvironmentVO napiIntegration: napiIntegrations) {
-			if (napiIntegration.getName().equalsIgnoreCase(name)) {
-				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in zone " + zoneId);
+		List<NetworkAPIEnvironmentVO> napiEnvironments = _napiIntegrationDao.findByPhysicalNetworkId(physicalNetworkId);
+		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
+			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
+				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in physicalNetworkId " + physicalNetworkId);
 			}
-			if (napiIntegration.getNapiEnvironmentId() == napiEnvironmentId) {
-				throw new InvalidParameterValueException("NetworkAPI environment with environmentId " + napiEnvironmentId + " already exists in zone " + zoneId);
+			if (napiEnvironment.getNapiEnvironmentId() == napiEnvironmentId) {
+				throw new InvalidParameterValueException("NetworkAPI environment with environmentId " + napiEnvironmentId + " already exists in physicalNetworkId " + physicalNetworkId);
 			}
 		}
 		
@@ -615,12 +627,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
         	// FIXME Before insert, validate if this environment exists in networkapi
             txn.start();
             
-            NetworkAPIEnvironmentVO napiIntegrationVo = new NetworkAPIEnvironmentVO(zoneId, name, napiEnvironmentId);
-            _napiIntegrationDao.persist(napiIntegrationVo);
+            NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
+            _napiIntegrationDao.persist(napiEnvironmentVO);
 
             // TODO? Cloudstack do rollback if my method raises an exception???
             txn.commit();
-            return napiIntegrationVo;
+            return napiEnvironmentVO;
 
         } catch (Exception e) {
             txn.rollback();
@@ -628,18 +640,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
         }
 	}
 
-	protected Long getEnvironmentIdFromDataCenter(DataCenter dc) {
+	protected Long getEnvironmentIdFromPhysicalNetwork(Long physicalNetworkId) {
 		// FIXME This method no more make sense because I can have more than 1 environment to the same datacenter.
-		if (dc == null) {
+		if (physicalNetworkId == null) {
 			throw new InvalidParameterValueException(
 					"Invalid zone");
 		}
 		
-		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiIntegrationDao.findByZoneId(dc.getId());
+		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiIntegrationDao.findByPhysicalNetworkId(physicalNetworkId);
 		if (napiIntegrations.size() > 1) {
 			throw new CloudRuntimeException("Many integrations with networkAPI");
 		} else if (napiIntegrations.size() == 0) {
-			throw new CloudRuntimeException("There is not NetworkAPI associated with zone " + dc.getName());
+			throw new CloudRuntimeException("There is not NetworkAPI associated with physicalNetworkId " + physicalNetworkId);
 		}
 		long environmentId = napiIntegrations.get(0).getNapiEnvironmentId();
 		

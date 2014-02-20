@@ -34,8 +34,8 @@ public class NetworkAPIEnvironmentVO implements InternalIdentity {
 	@Column(name = "id")
 	private long id;
 
-	@Column(name = "zone_id")
-	private long zoneId;
+	@Column(name = "physical_network_id")
+	private long physicalNetworkId;
 
 	@Column(name = "name")
 	private String name;
@@ -46,8 +46,8 @@ public class NetworkAPIEnvironmentVO implements InternalIdentity {
 	public NetworkAPIEnvironmentVO() {
 	}
 
-	public NetworkAPIEnvironmentVO(long zoneId, String name, long napiEnvironmentId) {
-		this.zoneId = zoneId;
+	public NetworkAPIEnvironmentVO(long physicalNetworkId, String name, long napiEnvironmentId) {
+		this.physicalNetworkId = physicalNetworkId;
 		this.name = name;
 		this.napiEnvironmentId = napiEnvironmentId;
 	}
@@ -60,8 +60,8 @@ public class NetworkAPIEnvironmentVO implements InternalIdentity {
 		return napiEnvironmentId;
 	}
 
-	public long getZoneId() {
-		return zoneId;
+	public long getPhysicalNetworkId() {
+		return physicalNetworkId;
 	}
 	
 	public String getName() {

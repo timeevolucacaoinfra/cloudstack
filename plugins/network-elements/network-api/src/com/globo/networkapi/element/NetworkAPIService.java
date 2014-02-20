@@ -22,12 +22,12 @@ public interface NetworkAPIService {
 
 	/**
 	 * Add a NetworkAPI Environment to an specific zone.
-	 * @param zoneId
+	 * @param physicalNetworkId
 	 * @param name Name of the relationship, for example, BACKEND, FRONTEND
 	 * @param napiEnvironmentId
 	 * @return
 	 */
-	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long zoneId, String name, Long napiEnvironmentId);
+	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
 
 	/**
 	 * Create a new network in sync with NetworkAPI.
@@ -103,4 +103,6 @@ public interface NetworkAPIService {
 	 * @param network
 	 */
 	public void removeNetworkFromNetworkAPI(Network network);
+
+	boolean canEnable(Long physicalNetworkId);
 }

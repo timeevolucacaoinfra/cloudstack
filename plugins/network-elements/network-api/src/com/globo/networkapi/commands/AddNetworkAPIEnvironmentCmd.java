@@ -24,10 +24,9 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.response.ZoneResponse;
+import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 
 import com.cloud.api.ApiDBUtils;
-import com.cloud.dc.DataCenter;
 import com.cloud.event.EventTypes;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -51,21 +50,21 @@ public class AddNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
 	// ////////////// API parameters /////////////////////
 	// ///////////////////////////////////////////////////
 
-	@Parameter(name = ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, required = true, description = "the Zone ID")
-	private Long zoneId;
+	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
+	private Long physicalNetworkId;
 
 	@Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between zone and networkapi environment (like BACKEND, FRONTEND)")
 	private String name;
 
-	@Parameter(name = "napi_environment_id", type = CommandType.LONG, required = true, description = "the Id of environment in NetworkAPI")
+	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in NetworkAPI")
 	private Long napiEnvironmentId;
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
 	// ///////////////////////////////////////////////////
 
-	public Long getZoneId() {
-		return zoneId;
+	public Long getPhysicalNetworkId() {
+		return physicalNetworkId;
 	}
 
 	public String getName() {
@@ -85,11 +84,11 @@ public class AddNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			NetworkAPIEnvironmentVO napiEnvironmentVO = _napiManager.addNetworkAPIEnvironment(zoneId, name, napiEnvironmentId);
+			NetworkAPIEnvironmentVO napiEnvironmentVO = _napiManager.addNetworkAPIEnvironment(physicalNetworkId, name, napiEnvironmentId);
 			NetworkAPIEnvironmentResponse response = new NetworkAPIEnvironmentResponse();
 			response.setId(napiEnvironmentVO.getId());
 			response.setName(napiEnvironmentVO.getName());
-			response.setZoneId(ApiDBUtils.findZoneById(napiEnvironmentVO.getZoneId()).getUuid());
+			response.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(napiEnvironmentVO.getPhysicalNetworkId()).getUuid());
 			response.setNapiEnvironmentId(napiEnvironmentVO.getNapiEnvironmentId());
 			response.setObjectName("networkapienvironment");
 			response.setResponseName(getCommandName());

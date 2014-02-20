@@ -20,20 +20,20 @@ public class NetworkAPIEnvironmentDaoImpl extends
 		GenericDaoBase<NetworkAPIEnvironmentVO, Long> implements
 		NetworkAPIEnvironmentDao {
 
-	final SearchBuilder<NetworkAPIEnvironmentVO> zoneIdSearch;
+	final SearchBuilder<NetworkAPIEnvironmentVO> physicalNetworkIdSearch;
 
 	protected NetworkAPIEnvironmentDaoImpl() {
 		super();
 
-		zoneIdSearch = createSearchBuilder();
-		zoneIdSearch.and("zone_id", zoneIdSearch.entity().getZoneId(), Op.EQ);
-		zoneIdSearch.done();
+		physicalNetworkIdSearch = createSearchBuilder();
+		physicalNetworkIdSearch.and("physical_network_id", physicalNetworkIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
+		physicalNetworkIdSearch.done();
 	}
 
 	@Override
-	public List<NetworkAPIEnvironmentVO> findByZoneId(long zoneId) {
-		SearchCriteria<NetworkAPIEnvironmentVO> sc = zoneIdSearch.create();
-		sc.setParameters("zone_id", zoneId);
+	public List<NetworkAPIEnvironmentVO> findByPhysicalNetworkId(long physicalNetworkId) {
+		SearchCriteria<NetworkAPIEnvironmentVO> sc = physicalNetworkIdSearch.create();
+		sc.setParameters("physical_network_id", physicalNetworkId);
 		return listBy(sc);
 	}
 

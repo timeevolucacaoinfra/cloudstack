@@ -31,8 +31,8 @@ public class NetworkAPIEnvironmentResponse extends BaseResponse {
 	@SerializedName("id") @Param(description = "id of the NetworkAPI Environment ref")
 	private Long id;
 
-	@SerializedName(ApiConstants.ZONE_ID) @Param(description = "the zone of networkapi environment belongs to")
-	private String zoneId;
+	@SerializedName(ApiConstants.PHYSICAL_NETWORK_ID) @Param(description = "the physicalNetworkId of networkapi environment belongs to")
+	private String physicalNetworkId;
 
 	@SerializedName(ApiConstants.NAME) @Param(description = "name of the provider")
 	private String name;
@@ -48,8 +48,8 @@ public class NetworkAPIEnvironmentResponse extends BaseResponse {
 		this.name = name;
 	}
 
-	public void setZoneId(String zoneId) {
-		this.zoneId = zoneId;
+	public void setPhysicalNetworkId(String physicalNetworkId) {
+		this.physicalNetworkId = physicalNetworkId;
 	}
 
 	public void setNapiEnvironmentId(Long napiEnvironmentId) {
