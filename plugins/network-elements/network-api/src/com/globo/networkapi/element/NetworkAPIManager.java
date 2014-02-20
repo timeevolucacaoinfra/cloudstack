@@ -725,6 +725,15 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	
 	@Override
 	public void deallocateVlanFromNetworkAPI(Network network) {
+		
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+		if (napiNetworkVO != null) {
+			_napiNetworkDao.remove(napiNetworkVO.getId());
+		}
+		
 		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
 		Long vlanId = getNapiVlanId(network.getId());
 		cmd.setVlanId(vlanId);
@@ -743,8 +752,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 					"Error deallocating vlan from NetworkAPI: " + errorDescription);
 		}
 		
-		// FIXME Remove association between vlan in NetworkAPI and network in Cloudstack
-		// from database reference table
+		txn.commit();
 	}
 
 }
