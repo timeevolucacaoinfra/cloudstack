@@ -48,7 +48,7 @@ public interface NetworkAPIService {
 	 * @return
 	 */
 	public Network createNetwork(String name, String displayText, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId,
+			Long networkOfferingId, Long physicalNetworkId, Long napiEnvironmentId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)

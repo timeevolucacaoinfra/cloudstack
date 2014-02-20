@@ -21,6 +21,7 @@ public class NetworkAPIEnvironmentDaoImpl extends
 		NetworkAPIEnvironmentDao {
 
 	final SearchBuilder<NetworkAPIEnvironmentVO> physicalNetworkIdSearch;
+	final SearchBuilder<NetworkAPIEnvironmentVO> physicalNetworkIdAndEnvironmentIdSearch;
 
 	protected NetworkAPIEnvironmentDaoImpl() {
 		super();
@@ -28,13 +29,28 @@ public class NetworkAPIEnvironmentDaoImpl extends
 		physicalNetworkIdSearch = createSearchBuilder();
 		physicalNetworkIdSearch.and("physical_network_id", physicalNetworkIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
 		physicalNetworkIdSearch.done();
+
+		physicalNetworkIdAndEnvironmentIdSearch = createSearchBuilder();
+		physicalNetworkIdAndEnvironmentIdSearch.and("physical_network_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
+		physicalNetworkIdAndEnvironmentIdSearch.and("napi_environment_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getNapiEnvironmentId(), Op.EQ);
+		physicalNetworkIdAndEnvironmentIdSearch.done();
+
 	}
 
 	@Override
-	public List<NetworkAPIEnvironmentVO> findByPhysicalNetworkId(long physicalNetworkId) {
+	public List<NetworkAPIEnvironmentVO> listByPhysicalNetworkId(long physicalNetworkId) {
 		SearchCriteria<NetworkAPIEnvironmentVO> sc = physicalNetworkIdSearch.create();
 		sc.setParameters("physical_network_id", physicalNetworkId);
 		return listBy(sc);
+	}
+
+	@Override
+	public NetworkAPIEnvironmentVO findByPhysicalNetworkIdAndEnvironmentId(
+			long physicalNetworkId, long environmentId) {
+		SearchCriteria<NetworkAPIEnvironmentVO> sc = physicalNetworkIdAndEnvironmentIdSearch.create();
+		sc.setParameters("physical_network_id", physicalNetworkId);
+		sc.setParameters("napi_environment_id", environmentId);
+		return findOneBy(sc);
 	}
 
 }

@@ -145,7 +145,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (physicalNetworkId == null) {
 			return false;
 		}
-		List<NetworkAPIEnvironmentVO> list = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
+		List<NetworkAPIEnvironmentVO> list = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 		if (list.isEmpty()) {
 			throw new CloudRuntimeException("Before enable NetworkAPI you must add NetworkAPI Environment to your physical interface");
 		}
@@ -154,7 +154,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
 	public Network createNetwork(String name, String displayText, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId,
+			Long networkOfferingId, Long physicalNetworkId, Long napiEnvironmentId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)
@@ -169,7 +169,16 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException(
 					"Specified zone id was not found");
 		}
-		Long napiEnvironmentId = getEnvironmentIdFromPhysicalNetwork(physicalNetworkId);
+		
+		NetworkAPIEnvironmentVO napiEnvironmentVO = null;
+		if (napiEnvironmentId != null) {
+			napiEnvironmentVO = _napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId);
+		}
+		
+		if (napiEnvironmentVO == null) {
+			throw new InvalidParameterValueException("Unable to find a relationship between NetworkApi environment and physical network");
+		}
+		
 		Answer answer = createNewVlan(name, displayText, napiEnvironmentId);
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
@@ -613,7 +622,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
 		}
 
-		List<NetworkAPIEnvironmentVO> napiEnvironments = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
+		List<NetworkAPIEnvironmentVO> napiEnvironments = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
 			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
 				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in physicalNetworkId " + physicalNetworkId);
@@ -640,57 +649,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
             txn.rollback();
             throw new CloudRuntimeException(e.getMessage(), e);
         }
-	}
-
-	protected Long getEnvironmentIdFromPhysicalNetwork(Long physicalNetworkId) {
-		// FIXME This method no more make sense because I can have more than 1 environment to the same datacenter.
-		if (physicalNetworkId == null) {
-			throw new InvalidParameterValueException(
-					"Invalid zone");
-		}
-		
-		List<NetworkAPIEnvironmentVO> napiIntegrations = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
-		if (napiIntegrations.size() > 1) {
-			throw new CloudRuntimeException("Many integrations with networkAPI");
-		} else if (napiIntegrations.size() == 0) {
-			throw new CloudRuntimeException("There is not NetworkAPI associated with physicalNetworkId " + physicalNetworkId);
-		}
-		long environmentId = napiIntegrations.get(0).getNapiEnvironmentId();
-		
-		/*
-		// List all environments from NetworkAPI
-		ListAllEnvironmentsFromNetworkAPICommand cmd = new ListAllEnvironmentsFromNetworkAPICommand();
-		Answer answer;
-		try {
-			answer = callCommand(cmd, null);
-		} catch (ConfigurationException ex) {
-			throw new CloudRuntimeException("Error listing all environments in NetworkAPI.");
-		}
-		
-		if (answer == null || !answer.getResult()) {
-			String errorDescription = answer == null ? "No description"
-		 			: answer.getDetails();
-		 	throw new CloudRuntimeException("Error listing all environments in NetworkAPI: " + errorDescription);
-		}
-
-		NetworkAPIEnvironmentResponse environmentResponse = (NetworkAPIEnvironmentResponse) answer;
-		List<Environment> environmentList = environmentResponse.getEnvironmentList();
-
-		// Iterate to find out which one it is we're using
-		String fullEnvironmentName;
-		Long environmentId = null;
-		for (Environment environment : environmentList) {
-			fullEnvironmentName = environment.getDcDivisionName() + " - " + environment.getLogicalEnvironmentName() + " - " + environment.getL3GroupName();
-			if (dc.getName().equals(fullEnvironmentName)) {
-				s_logger.debug("Found a match for environment: " + fullEnvironmentName);
-				environmentId = environment.getId();
-				break;
-			} else {
-				continue;
-			}
-		}
-		*/
-		return environmentId;
 	}
 
 	@Override
@@ -763,7 +721,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (physicalNetworkId == null) {
 			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
 		} else {
-			napiEnvironmentsVOList = _napiEnvironmentDao.findByPhysicalNetworkId(physicalNetworkId);
+			napiEnvironmentsVOList = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 		}
 		
 		return napiEnvironmentsVOList;

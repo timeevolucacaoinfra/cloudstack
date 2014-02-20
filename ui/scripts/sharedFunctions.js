@@ -838,7 +838,6 @@ var addNetworkAPINetworkDialog = {
                                     addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = json.listnetworkapienvironmentsresponse.networkapienvironment;
                                 }
                             });
-                            // addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = [{'id': '232', 'name': 'BE'}, {'id': '1222', 'name': 'FE'}];
                         }
                         var items = [];
                         if (addNetworkAPINetworkDialog.networkApiEnvironmentsObjs != null) {
