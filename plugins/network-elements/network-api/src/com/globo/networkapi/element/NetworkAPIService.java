@@ -103,6 +103,13 @@ public interface NetworkAPIService {
 	 * @param network
 	 */
 	public void removeNetworkFromNetworkAPI(Network network);
+	
+	/**
+	 * Deallocate Vlan from NetworkAPI. 
+	 * The vlan must have been previously inactivated with the 'removeNetworkFromNetworkAPI' method.
+	 * @param network
+	 */
+	public void deallocateVlanFromNetworkAPI(Network network);
 
 	boolean canEnable(Long physicalNetworkId);
 }

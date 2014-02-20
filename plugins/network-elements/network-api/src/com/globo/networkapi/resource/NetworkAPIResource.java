@@ -28,10 +28,11 @@ import com.globo.networkapi.NetworkAPIException;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
+import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
-import com.globo.networkapi.commands.removeNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
@@ -154,6 +155,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((ActivateNetworkCmd) cmd);
 		} else if (cmd instanceof ListAllEnvironmentsFromNetworkAPICommand) {
 			return execute((ListAllEnvironmentsFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof RemoveNetworkInNetworkAPICommand) {
+			return execute((RemoveNetworkInNetworkAPICommand) cmd);
+		} else if (cmd instanceof DeallocateVlanFromNetworkAPICommand) {
+			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -230,11 +235,20 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	public Answer execute(removeNetworkInNetworkAPICommand cmd) {
+	public Answer execute(RemoveNetworkInNetworkAPICommand cmd) {
 		try {
 			_napi.getVlanAPI().remove(cmd.getVlanId());
 			
 			return new Answer(cmd, true, "Network removed");
+		} catch (NetworkAPIException e) {
+			return new Answer(cmd, e);
+		}
+	}
+	
+	public Answer execute(DeallocateVlanFromNetworkAPICommand cmd) {
+		try {
+			_napi.getVlanAPI().deallocate(cmd.getVlanId());
+			return new Answer(cmd, true, "Vlan deallocated");
 		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}

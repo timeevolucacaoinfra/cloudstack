@@ -3,11 +3,11 @@ package com.globo.networkapi.commands;
 import com.cloud.agent.api.Command;
 
 /**
- * Removes network from a specific VLAN in NetworkAPI
+ * Deallocates an inactive VLAN in NetworkAPI
  * @author Daniel Vega
  *
  */
-public class removeNetworkInNetworkAPICommand extends Command {
+public class DeallocateVlanFromNetworkAPICommand extends Command {
 	
 	private Long vlanId;
 	

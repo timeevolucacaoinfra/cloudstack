@@ -78,10 +78,11 @@ import com.globo.networkapi.commands.AddNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
 import com.globo.networkapi.commands.AddNetworkViaNetworkapiCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
+import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
-import com.globo.networkapi.commands.removeNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -703,7 +704,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public void removeNetworkFromNetworkAPI(Network network) {
 		
-		removeNetworkInNetworkAPICommand cmd = new removeNetworkInNetworkAPICommand();
+		RemoveNetworkInNetworkAPICommand cmd = new RemoveNetworkInNetworkAPICommand();
 		Long vlanId = getNapiVlanId(network.getId());
 		cmd.setVlanId(vlanId);
 		
@@ -720,6 +721,30 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(
 					"Error removing network from NetworkAPI: " + errorDescription);
 		}
+	}
+	
+	@Override
+	public void deallocateVlanFromNetworkAPI(Network network) {
+		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
+		Long vlanId = getNapiVlanId(network.getId());
+		cmd.setVlanId(vlanId);
+		
+		Answer answer;
+		try {
+			answer = callCommand(cmd, null);
+		} catch (ConfigurationException ex) {
+			throw new CloudRuntimeException("Error deallocating vlan from NetworkAPI.");
+		}
+		
+		if (answer == null || !answer.getResult()) {
+			String errorDescription = answer == null ? "no description"
+					: answer.getDetails();
+			throw new CloudRuntimeException(
+					"Error deallocating vlan from NetworkAPI: " + errorDescription);
+		}
+		
+		// FIXME Remove association between vlan in NetworkAPI and network in Cloudstack
+		// from database reference table
 	}
 
 }
