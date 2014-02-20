@@ -2485,5 +2485,16 @@ CREATE TABLE `cloud`.`networkapi_network_ref` (
   INDEX `fk_napi_network_ref__napi_vlan_id` (`napi_vlan_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+CREATE TABLE `cloud`.`networkapi_environment_ref` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `napi_environment_id` bigint unsigned NOT NULL COMMENT 'id of network api environment',
+  `physical_network_id` bigint unsigned NOT NULL COMMENT 'physical network id',
+  `name` varchar(255) NOT NULL COMMENT 'name',
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_napi_environment_ref__physical_network_id` FOREIGN KEY (`physical_network_id`) REFERENCES `physical_network` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX `fk_napi_network_ref__physical_network_id` (`physical_network_id`),
+  INDEX `fk_napi_network_ref__napi_environment_id` (`napi_environment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 SET foreign_key_checks = 1;
 
