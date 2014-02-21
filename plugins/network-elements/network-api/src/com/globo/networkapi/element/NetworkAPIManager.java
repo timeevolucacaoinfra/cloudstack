@@ -62,6 +62,7 @@ import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
 import com.cloud.utils.Pair;
 import com.cloud.utils.component.PluggableService;
+import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
@@ -153,6 +154,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
+    @DB
 	public Network createNetwork(String name, String displayText, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId, Long napiEnvironmentId,
 			String networkDomain, ACLType aclType, String accountName,
@@ -196,6 +198,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
+    @DB
 	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, String accountName, Long projectId,
