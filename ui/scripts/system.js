@@ -14217,7 +14217,6 @@
                                                                 	var ucstemplates = json.listucstemplatesresponse.ucstemplate;
                                                                     if (ucstemplates != null) {
                                                                         for (var i = 0; i < ucstemplates.length; i++) {
->>>>>>> 7ba91f1c0f8d3e0fc876cc11dbd3c02b20752e44
                                                                             items.push({
                                                                                 id: ucstemplates[i].ucsdn,
                                                                                 description: ucstemplates[i].ucsdn
