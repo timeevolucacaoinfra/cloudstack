@@ -19,7 +19,7 @@ case "$1" in
     mvn -P developer -pl developer,tools/devcloud -Ddeploydb
     ;;
   populatedb)
-    python tools/marvin/marvin/deployDataCenter.py -i ~/cloudstack-local.cfg
+    python tools/marvin/marvin/deployDataCenter.py -i tools/marvin/marvin/cloudstack-local.cfg
     ;;
   *)
     echo "Usage: $0 {run|run-debug|compile|compile-quick|deploydb|populatedb}"
