@@ -70,6 +70,7 @@ Requires: /sbin/mount.nfs
 Requires: openssh-clients
 Requires: nfs-utils
 Requires: wget
+Requires: mysql
 Requires: mysql-connector-java
 Requires: ws-commons-util
 Requires: jpackage-utils
@@ -81,8 +82,8 @@ Requires: mkisofs
 Requires: MySQL-python
 Requires: python-paramiko
 Requires: ipmitool
-Requires: %{name}-common = %{_ver}
-Requires: %{name}-awsapi = %{_ver} 
+Requires: %{name}-common = %{_ver}-%{_rel}.el6
+Requires: %{name}-awsapi = %{_ver}-%{_rel}.el6
 Obsoletes: cloud-client < 4.1.0
 Obsoletes: cloud-client-ui < 4.1.0
 Obsoletes: cloud-server < 4.1.0
@@ -113,7 +114,7 @@ The Apache CloudStack files shared between agent and management server
 Summary: CloudStack Agent for KVM hypervisors
 Requires: java >= 1.6.0
 Requires: jna >= 3.2.4
-Requires: %{name}-common = %{_ver}
+Requires: %{name}-common = %{_ver}-%{_rel}.el6
 Requires: libvirt
 Requires: bridge-utils
 Requires: ebtables
@@ -155,7 +156,7 @@ Apache CloudStack command line interface
 
 %package awsapi
 Summary: Apache CloudStack AWS API compatibility wrapper
-Requires: %{name}-management = %{_ver}
+Requires: %{name}-management = %{_ver}-%{_rel}.el6
 Obsoletes: cloud-aws-api < 4.1.0
 Provides: cloud-aws-api
 Group: System Environment/Libraries
@@ -190,10 +191,10 @@ echo $(git rev-parse HEAD) > build/gitrev.txt
 
 if [ "%{_ossnoss}" == "NONOSS" -o "%{_ossnoss}" == "nonoss" ] ; then
    echo "Executing mvn packaging for NONOSS ..."
-   mvn -Pawsapi,systemvm -Dnonoss package clean install
+   mvn -Pawsapi,systemvm -Dnonoss package clean install -DskipTests
 else
    echo "Executing mvn packaging for OSS ..."
-   mvn -Pawsapi package -Dsystemvm clean install
+   mvn -Pawsapi package -Dsystemvm clean install -DskipTests
 fi
 
 %install

@@ -681,3 +681,5 @@ listDedicatedHosts=1
 ### Network API commands
 addNetworkApiVlan=1
 addNetworkViaNetworkapiCmd=1
+addNetworkAPIEnvironment=1
+listNetworkApiEnvironments=1

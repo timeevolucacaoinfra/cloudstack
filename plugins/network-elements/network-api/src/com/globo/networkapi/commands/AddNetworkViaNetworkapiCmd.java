@@ -102,6 +102,9 @@ public class AddNetworkViaNetworkapiCmd extends BaseCmd {
             description="Network ACL Id associated for the network")
     private Long aclId;
 
+    @Parameter(name="napienvironmentid", type=CommandType.LONG, required = true, description="NetworkAPI environment ID.")
+    private Long napiEnvironmentId;
+
     public Long getZoneId() {
     	return zoneId;
     }
@@ -133,8 +136,8 @@ public class AddNetworkViaNetworkapiCmd extends BaseCmd {
         try {
         	s_logger.debug("addNetworkViaNetworkapiCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
-        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetwork(name, displayText, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid=" + napiEnvironmentId);
+        	Network network = _ntwkAPIService.createNetwork(name, displayText, zoneId, networkOfferingId, physicalNetworkId, napiEnvironmentId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);

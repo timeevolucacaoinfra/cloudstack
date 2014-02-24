@@ -238,8 +238,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 	@Override
 	public boolean isReady(PhysicalNetworkServiceProvider provider) {
-		s_logger.debug("isReady method");
-		return true;
+		return _networkAPIService.canEnable(provider.getPhysicalNetworkId());
 	}
 
 	@Override
@@ -247,6 +246,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 			PhysicalNetworkServiceProvider provider, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
 		// Nothing to do here.
+		// FIXME Remove all NetworkAPIEnvironmentVO for this physical interface
 		s_logger.debug("shutdownProviderInstances method");
 		return true;
 	}

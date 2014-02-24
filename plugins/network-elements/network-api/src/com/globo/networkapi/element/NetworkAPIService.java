@@ -1,5 +1,7 @@
 package com.globo.networkapi.element;
 
+import java.util.List;
+
 import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
@@ -15,9 +17,19 @@ import com.cloud.network.Network;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.networkapi.NetworkAPIEnvironmentVO;
 
 public interface NetworkAPIService {
 
+
+	/**
+	 * Add a NetworkAPI Environment to an specific zone.
+	 * @param physicalNetworkId
+	 * @param name Name of the relationship, for example, BACKEND, FRONTEND
+	 * @param napiEnvironmentId
+	 * @return
+	 */
+	public NetworkAPIEnvironmentVO addNetworkAPIEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
 
 	/**
 	 * Create a new network in sync with NetworkAPI.
@@ -36,7 +48,7 @@ public interface NetworkAPIService {
 	 * @return
 	 */
 	public Network createNetwork(String name, String displayText, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId,
+			Long networkOfferingId, Long physicalNetworkId, Long napiEnvironmentId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)
@@ -87,5 +99,25 @@ public interface NetworkAPIService {
 	 * @throws ConfigurationException
 	 */
 	public void implementNetwork(Network network) throws ConfigurationException;
+	
+	/**
+	 * Remove network from NetworkAPI and inactive the vlan
+	 * @param network
+	 */
+	public void removeNetworkFromNetworkAPI(Network network);
+	
+	/**
+	 * Deallocate Vlan from NetworkAPI. 
+	 * The vlan must have been previously inactivated with the 'removeNetworkFromNetworkAPI' method.
+	 * @param network
+	 */
+	public void deallocateVlanFromNetworkAPI(Network network);
+	
+	/**
+	 * List environments from NetworkAPI with optional parameter physicalNetworkId
+	 * @param physicalNetworkId
+	 */
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId);
 
+	boolean canEnable(Long physicalNetworkId);
 }

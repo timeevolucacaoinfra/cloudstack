@@ -23,17 +23,21 @@ import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
+import com.cloud.utils.net.NetUtils;
+import com.globo.networkapi.NetworkAPIException;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
+import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
 import com.globo.networkapi.model.Vlan;
-import com.globo.networkapi.response.NetworkAPIEnvironmentResponse;
+import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
@@ -45,7 +49,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	private String _password;
 		
-	private RequestProcessor _napi;
+	protected RequestProcessor _napi;
 	
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
 	
@@ -151,6 +155,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((ActivateNetworkCmd) cmd);
 		} else if (cmd instanceof ListAllEnvironmentsFromNetworkAPICommand) {
 			return execute((ListAllEnvironmentsFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof RemoveNetworkInNetworkAPICommand) {
+			return execute((RemoveNetworkInNetworkAPICommand) cmd);
+		} else if (cmd instanceof DeallocateVlanFromNetworkAPICommand) {
+			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -164,26 +172,24 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	 */
 	public Answer execute(ValidateNicInVlanCommand cmd) {
 		try {
-//			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
-//			List<IPv4Network> networks = vlan.getIpv4Networks();
-//			if (networks.isEmpty() || !networks.get(0).getActive()) {
-//				return new Answer(cmd, false, "VlanId " + cmd.getVlanId() + " have no networks create yet or not activated");
-//			}
-//			
-//			IPv4Network network = networks.get(0);
-//			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
-//			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
-//			String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, network.getBroadcast());
-//			long cidrSize = NetUtils.getCidrSize(network.getBroadcast());
-//			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
-//			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
-//				return new Answer(cmd, false, "Nic ip " + cmd.getNicIp() + " not belongs to network " + networkAddress + " in vlanId " + cmd.getVlanId());
-//			}
-			return new Answer(cmd); 
-		} catch (Exception e) {
-			// FIXME Não deveria ter estas exceptions aqui!
-			s_logger.error("Error in command " + cmd, e);
-			return new Answer(cmd, false, "Internal Error: " + e.getLocalizedMessage());
+			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
+			List<IPv4Network> networks = vlan.getIpv4Networks();
+			if (networks.isEmpty() || !networks.get(0).getActive()) {
+				return new Answer(cmd, false, "No active networks found in VlanId " + cmd.getVlanId());
+			}
+			
+			IPv4Network network = networks.get(0);
+			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
+			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
+			String netmask = network.getMaskOct1() + "." + network.getMaskOct2() + "." + network.getMaskOct3() + "." + network.getMaskOct4();
+			long cidrSize = NetUtils.getCidrSize(netmask);
+			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
+			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
+				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
+			}
+			return new Answer(cmd);
+		} catch (NetworkAPIException e) {
+			return new Answer(cmd, e);
 		}
 	}
 
@@ -191,9 +197,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
 			return createResponse(vlan, cmd);
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -207,9 +211,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			// Bug in networkapi: I need to have a second call to get networkid
 			vlan = _napi.getVlanAPI().getById(vlan.getId());
 			return createResponse(vlan, cmd);
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -218,9 +220,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			_napi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
 			return new Answer(cmd, true, "Network created");
-		} catch (IOException e) {
-			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}
@@ -229,10 +229,27 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			List<Environment> environmentList = _napi.getEnvironmentAPI().listAll();
 			
-			return new NetworkAPIEnvironmentResponse(cmd, environmentList);
-		} catch (IOException e) {
+			return new NetworkAPIAllEnvironmentResponse(cmd, environmentList);
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
-		} catch (XmlPullParserException e) {
+		}
+	}
+	
+	public Answer execute(RemoveNetworkInNetworkAPICommand cmd) {
+		try {
+			_napi.getVlanAPI().remove(cmd.getVlanId());
+			
+			return new Answer(cmd, true, "Network removed");
+		} catch (NetworkAPIException e) {
+			return new Answer(cmd, e);
+		}
+	}
+	
+	public Answer execute(DeallocateVlanFromNetworkAPICommand cmd) {
+		try {
+			_napi.getVlanAPI().deallocate(cmd.getVlanId());
+			return new Answer(cmd, true, "Vlan deallocated");
+		} catch (NetworkAPIException e) {
 			return new Answer(cmd, e);
 		}
 	}

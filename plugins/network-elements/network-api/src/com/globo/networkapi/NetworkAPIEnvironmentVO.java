@@ -26,38 +26,46 @@ import javax.persistence.Table;
 import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
-@Table(name = "networkapi_network_ref")
-public class NetworkAPINetworkVO implements InternalIdentity {
+@Table(name = "networkapi_environment_ref")
+public class NetworkAPIEnvironmentVO implements InternalIdentity {
 
 	@Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name = "id")
 	private long id;
 
-	@Column(name = "napi_vlan_id")
-	private long napiVlanId;
+	@Column(name = "physical_network_id")
+	private long physicalNetworkId;
 
-	@Column(name = "network_id")
-	private long networkId;
+	@Column(name = "name")
+	private String name;
 
-	public NetworkAPINetworkVO() {
+	@Column(name = "napi_environment_id")
+	private long napiEnvironmentId;
+
+	public NetworkAPIEnvironmentVO() {
 	}
 
-	public NetworkAPINetworkVO(long napiVlanId, long networkId) {
-		this.napiVlanId = napiVlanId;
-		this.networkId = networkId;
+	public NetworkAPIEnvironmentVO(long physicalNetworkId, String name, long napiEnvironmentId) {
+		this.physicalNetworkId = physicalNetworkId;
+		this.name = name;
+		this.napiEnvironmentId = napiEnvironmentId;
 	}
 
 	public long getId() {
 		return id;
 	}
 
-	public long getNapiVlanId() {
-		return napiVlanId;
+	public long getNapiEnvironmentId() {
+		return napiEnvironmentId;
 	}
 
-	public long getNetworkId() {
-		return networkId;
+	public long getPhysicalNetworkId() {
+		return physicalNetworkId;
+	}
+	
+	public String getName() {
+		return name;
 	}
 
 }
