@@ -47,6 +47,7 @@ import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
@@ -718,11 +719,19 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId) {
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId, Long zoneId) {
 		List<NetworkAPIEnvironmentVO> napiEnvironmentsVOList;
 		
 		if (physicalNetworkId == null) {
 			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
+		} else if (zoneId != null) {
+			napiEnvironmentsVOList = new ArrayList<NetworkAPIEnvironmentVO>();
+			for (PhysicalNetworkVO physicalNetwork : _physicalNetworkDao.listByZone(zoneId)) {
+				List<NetworkAPIEnvironmentVO> partialResult = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetwork.getId());
+				if (partialResult != null) {
+					napiEnvironmentsVOList.addAll(partialResult);
+				}
+			}
 		} else {
 			napiEnvironmentsVOList = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 		}
