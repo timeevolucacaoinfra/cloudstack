@@ -114,10 +114,12 @@ public interface NetworkAPIService {
 	public void deallocateVlanFromNetworkAPI(Network network);
 	
 	/**
-	 * List environments from NetworkAPI with optional parameter physicalNetworkId
+	 * List environments from NetworkAPI with optional parameter physicalNetworkId or zoneId. If all parameters are null
+	 * all NetworkAPIEnvironments are returned.
 	 * @param physicalNetworkId
+	 * @param zoneId
 	 */
-	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId);
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId, Long zoneId);
 
 	boolean canEnable(Long physicalNetworkId);
 }

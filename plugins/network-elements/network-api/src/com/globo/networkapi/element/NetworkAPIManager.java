@@ -47,6 +47,7 @@ import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
@@ -717,13 +718,36 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId) {
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId, Long zoneId) {
 		List<NetworkAPIEnvironmentVO> napiEnvironmentsVOList;
-		
+
 		if (physicalNetworkId == null) {
+			// Check if physical network exists
+			PhysicalNetwork pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
+			if (pNtwk == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find a physical network having the specified physical network id");
+			}
+			
 			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
+
+		} else if (zoneId != null) {
+			// Check if zone exists
+			DataCenter zone = _dcDao.findById(zoneId);
+			if (zone == null) {
+				throw new InvalidParameterValueException(
+						"Specified zone id was not found");
+			}
+
+			napiEnvironmentsVOList = new ArrayList<NetworkAPIEnvironmentVO>();
+			for (PhysicalNetworkVO physicalNetwork : _physicalNetworkDao.listByZone(zoneId)) {
+				List<NetworkAPIEnvironmentVO> partialResult = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetwork.getId());
+				if (partialResult != null) {
+					napiEnvironmentsVOList.addAll(partialResult);
+				}
+			}
 		} else {
-			napiEnvironmentsVOList = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
+			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
 		}
 		
 		return napiEnvironmentsVOList;
