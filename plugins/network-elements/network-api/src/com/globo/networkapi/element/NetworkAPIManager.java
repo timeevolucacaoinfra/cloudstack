@@ -24,7 +24,6 @@ import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.deploy.DeployDestination;
-import com.cloud.domain.Domain;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.ConcurrentOperationException;
@@ -82,10 +81,10 @@ import com.globo.networkapi.commands.AddNetworkViaNetworkapiCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
-import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.ListNetworkApiEnvironmentsCmd;
-import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -721,7 +720,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId, Long zoneId) {
 		List<NetworkAPIEnvironmentVO> napiEnvironmentsVOList;
 
-		if (physicalNetworkId == null) {
+		if (physicalNetworkId != null) {
 			// Check if physical network exists
 			PhysicalNetwork pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
 			if (pNtwk == null) {

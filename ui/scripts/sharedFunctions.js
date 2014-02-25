@@ -726,10 +726,8 @@ var addNetworkAPINetworkDialog = {
             preFilter: function(args) {
                 if ('zones' in args.context) {
                     args.$form.find('.form-item[rel=zoneId]').hide();
-                    args.$form.find('.form-item[rel=physicalNetworkId]').hide();
                 } else {
                     args.$form.find('.form-item[rel=zoneId]').css('display', 'inline-block');
-                    args.$form.find('.form-item[rel=physicalNetworkId]').css('display', 'inline-block');
                 }
             },
 
@@ -784,54 +782,19 @@ var addNetworkAPINetworkDialog = {
                     isHidden: true
                 },
 
-                physicalNetworkId: {
-                    label: 'label.physical.network',
-                    dependsOn: 'zoneId',
-                    select: function(args) {
-                        if ('physicalNetworks' in args.context) {
-                            addNetworkAPINetworkDialog.physicalNetworkObjs = args.context.physicalNetworks;
-                        } else {
-                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
-                            $.ajax({
-                                url: createURL('listPhysicalNetworks'),
-                                data: {
-                                    zoneid: selectedZoneId
-                                },
-                                async: false,
-                                success: function(json) {
-                                    addNetworkAPINetworkDialog.physicalNetworkObjs = json.listphysicalnetworksresponse.physicalnetwork;
-                                }
-                            });
-                        }
-                        var items = [];
-                        if (addNetworkAPINetworkDialog.physicalNetworkObjs != null) {
-                            for (var i = 0; i < addNetworkAPINetworkDialog.physicalNetworkObjs.length; i++) {
-                                items.push({
-                                    id: addNetworkAPINetworkDialog.physicalNetworkObjs[i].id,
-                                    description: addNetworkAPINetworkDialog.physicalNetworkObjs[i].name
-                                });
-                            }
-                        }
-                        args.response.success({
-                            data: items
-                        });
-                    },
-                    isHidden: true
-                },
-
                 napiEnvironmentId: {
                     label: 'Environment',
-                    dependsOn: 'physicalNetworkId',
+                    dependsOn: 'zoneId',
                     select: function(args) {
                         if ('networkApiEnvironmentsObjs' in args.context) {
                             // FIXME
                             addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = args.context.networkApiEnvironmentsObjs;
                         } else {
-                            var selectedPhysicalNetworkId = args.$form.find('.form-item[rel=physicalNetworkId]').find('select').val();
+                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
                             $.ajax({
                                 url: createURL('listNetworkApiEnvironments'),
                                 data: {
-                                    physicalnetworkid: selectedPhysicalNetworkId
+                                    zoneid: selectedZoneId
                                 },
                                 async: false,
                                 success: function(json) {
@@ -1035,7 +998,7 @@ var addNetworkAPINetworkDialog = {
                             zoneid: args.$form.find('.form-item[rel=zoneId]').find('select').val()
                         };
 
-                        var selectedPhysicalNetworkObj = [];
+                        /*var selectedPhysicalNetworkObj = [];
                         var selectedPhysicalNetworkId = args.$form.find('.form-item[rel=physicalNetworkId]').find('select').val();
                         if (addNetworkAPINetworkDialog.physicalNetworkObjs != null) {
                             for (var i = 0; i < addNetworkAPINetworkDialog.physicalNetworkObjs.length; i++) {
@@ -1049,7 +1012,7 @@ var addNetworkAPINetworkDialog = {
                             $.extend(data, {
                                 tags: selectedPhysicalNetworkObj.tags
                             });
-                        }
+                        }*/
 
                         //Network tab in Guest Traffic Type in Infrastructure menu is only available when it's under Advanced zone.
                         //zone dropdown in add guest network dialog includes only Advanced zones.
@@ -1152,7 +1115,6 @@ var addNetworkAPINetworkDialog = {
             }
 
             if (selectedNetworkOfferingObj.guestiptype == "Shared")
-                array1.push("&physicalnetworkid=" + args.data.physicalNetworkId);
                 array1.push("&napienvironmentid=" + args.data.napiEnvironmentId);
 
 
