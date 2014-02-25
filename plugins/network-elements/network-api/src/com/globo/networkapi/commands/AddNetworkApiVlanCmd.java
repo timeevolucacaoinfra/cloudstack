@@ -16,16 +16,13 @@
 package com.globo.networkapi.commands;
 
 import javax.inject.Inject;
-import javax.naming.ConfigurationException;
 
-import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.BaseCmd.CommandType;
 import org.apache.cloudstack.api.response.DomainResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
 import org.apache.cloudstack.api.response.NetworkOfferingResponse;

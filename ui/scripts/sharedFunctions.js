@@ -1103,7 +1103,7 @@ var addNetworkAPINetworkDialog = {
             array1.push("&zoneId=" + args.data.zoneId);
             array1.push("&networkOfferingId=" + args.data.networkOfferingId);
 
-            //Pass physical network ID to addNetworkViaNetworkapiCmd API only when network offering's guestiptype is Shared.
+            //Pass physical network ID to addNetworkViaNetworkApiCmd API only when network offering's guestiptype is Shared.
             var selectedNetworkOfferingObj;
             if (addNetworkAPINetworkDialog.networkOfferingObjs != null) {
                 for (var i = 0; i < addNetworkAPINetworkDialog.networkOfferingObjs.length; i++) {
@@ -1146,7 +1146,7 @@ var addNetworkAPINetworkDialog = {
                 array1.push("&networkdomain=" + todb(args.data.networkdomain));
 
             $.ajax({
-                url: createURL("addNetworkViaNetworkapiCmd" + array1.join("")),
+                url: createURL("addNetworkViaNetworkApiCmd" + array1.join("")),
                 dataType: "json",
                 success: function(json) {
                     var item = json.addnetworkapivlanresponse.network;
