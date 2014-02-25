@@ -714,7 +714,7 @@ var addNetworkAPINetworkDialog = {
         },
 
         preFilter: function(args) {
-            if (isAdmin())
+            if (isDomainAdmin() || isAdmin())
                 return true;
             else
                 return false;
@@ -820,7 +820,7 @@ var addNetworkAPINetworkDialog = {
                 },
 
                 napiEnvironmentId: {
-                    label: 'environment',
+                    label: 'Environment',
                     dependsOn: 'physicalNetworkId',
                     select: function(args) {
                         if ('networkApiEnvironmentsObjs' in args.context) {
@@ -1341,7 +1341,7 @@ cloudStack.actionFilter = {
             allowedActions.push('restart');
             allowedActions.push('remove');
         } else if (jsonObj.type == 'Shared') {
-            if (isAdmin()) {
+            if (isAdmin() || isDomainAdmin()) {
                 allowedActions.push('restart');
                 allowedActions.push('remove');
             }

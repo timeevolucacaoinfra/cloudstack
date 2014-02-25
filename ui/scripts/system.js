@@ -5572,7 +5572,7 @@
                                             label: 'label.name'
                                         },
                                         environmentid: {
-                                            label: 'environmentid'
+                                            label: 'Environment ID'
                                         }
                                     },
                                     dataProvider: function(args) {
@@ -5603,10 +5603,10 @@
                                     preFilter: function(args) {}, // TODO What is this?
                                     fields: {
                                         name: {
-                                            label: 'name'
+                                            label: 'Name'
                                         },
                                         napiEnvironmentId: {
-                                            label: 'environment'
+                                            label: 'Environment'
                                         }
                                     }
                                 },

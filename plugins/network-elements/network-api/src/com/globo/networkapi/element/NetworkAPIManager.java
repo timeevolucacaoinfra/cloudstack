@@ -252,7 +252,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 
 		if (displayNetwork != null) {
-			if (!_accountMgr.isRootAdmin(caller.getType())) {
+			if (!_accountMgr.isAdmin(caller.getType())) {
 				throw new PermissionDeniedException(
 						"Only admin allowed to update displaynetwork parameter");
 			}
@@ -267,7 +267,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 
 		if (Grouping.AllocationState.Disabled == zone.getAllocationState()
-				&& !_accountMgr.isRootAdmin(caller.getType())) {
+				&& !_accountMgr.isAdmin(caller.getType())) {
 			// See DataCenterVO.java
 			PermissionDeniedException ex = new PermissionDeniedException(
 					"Cannot perform this operation since specified Zone is currently disabled");
@@ -357,13 +357,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			if (domainId != null) {
 				sharedDomainId = domainId;
 			} else {
-				sharedDomainId = _domainMgr.getDomain(Domain.ROOT_DOMAIN)
-						.getId();
+				sharedDomainId = owner.getDomainId(); // _domainMgr.getDomain(Domain.ROOT_DOMAIN).getId();
 				subdomainAccess = true;
 			}
 		}
 
-		owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
+		// owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
 
 		Network network = _networkMgr.createGuestNetwork(
 				networkOfferingId.longValue(), response.getVlanName(),
@@ -396,7 +395,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				network.getId());
 		napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
 
-		if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN) {
+		if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
 			// Create vlan ip range
 			_configMgr.createVlanAndPublicIpRange(pNtwk.getDataCenterId(),
 					network.getId(), physicalNetworkId, false, (Long) null,
