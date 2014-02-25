@@ -260,7 +260,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 
 		// Only Admin can create Shared networks (implies aclType=Domain)
-		if (!_accountMgr.isAdmin(caller.getType())) {
+		/*if (!_accountMgr.isAdmin(caller.getType())) {
 			throw new PermissionDeniedException(
 					"Only admin can create networkapi shared networks");
 		}
@@ -272,7 +272,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 		} else {
 			displayNetwork = true;
-		}
+		}*/
 
 		DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
@@ -409,13 +409,13 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				network.getId());
 		napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
 
-		if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
+		// if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
 			// Create vlan ip range
 			_configMgr.createVlanAndPublicIpRange(pNtwk.getDataCenterId(),
 					network.getId(), physicalNetworkId, false, (Long) null,
 					startIP, endIP, gateway, netmask, vlanNum.toString(), null,
 					startIPv6, endIPv6, ip6Gateway, ip6Cidr);
-		}
+		// }
 
 		txn.commit();
 

@@ -675,7 +675,7 @@ listDedicatedClusters=1
 listDedicatedHosts=1
 
 ### Network API commands
-addNetworkApiVlan=5
-addNetworkViaNetworkApiCmd=5
-addNetworkAPIEnvironment=5
-listNetworkApiEnvironments=5
+addNetworkApiVlan=15
+addNetworkViaNetworkApiCmd=15
+addNetworkAPIEnvironment=15
+listNetworkApiEnvironments=15

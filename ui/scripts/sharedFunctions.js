@@ -714,10 +714,7 @@ var addNetworkAPINetworkDialog = {
         },
 
         preFilter: function(args) {
-            if (isDomainAdmin() || isAdmin())
-                return true;
-            else
-                return false;
+            return true; // No restrictions
         },
 
         createForm: {
@@ -843,14 +840,16 @@ var addNetworkAPINetworkDialog = {
                                 id: 'zone-wide',
                                 description: 'All'
                             });
-                            array1.push({
-                                id: 'domain-specific',
-                                description: 'Domain'
-                            });
-                            array1.push({
-                                id: 'account-specific',
-                                description: 'Account'
-                            });
+                            if (isAdmin() || isDomainAdmin()) {
+                                array1.push({
+                                    id: 'domain-specific',
+                                    description: 'Domain'
+                                });
+                                array1.push({
+                                    id: 'account-specific',
+                                    description: 'Account'
+                                });
+                            }
                             array1.push({
                                 id: 'project-specific',
                                 description: 'Project'
@@ -878,9 +877,11 @@ var addNetworkAPINetworkDialog = {
                                 $form.find('.form-item[rel=account]').css('display', 'inline-block');
                                 $form.find('.form-item[rel=projectId]').hide();
                             } else if ($(this).val() == "project-specific") {
-                                $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
-                                $form.find('.form-item[rel=subdomainaccess]').hide();
-                                $form.find('.form-item[rel=account]').hide();
+                                if (isAdmin() || isDomainAdmin()) {                                
+                                    $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
+                                    $form.find('.form-item[rel=subdomainaccess]').hide();
+                                    $form.find('.form-item[rel=account]').hide();
+                                }
                                 $form.find('.form-item[rel=projectId]').css('display', 'inline-block');
                             }
                         });
@@ -903,7 +904,12 @@ var addNetworkAPINetworkDialog = {
                                 }
                             }
                         }
-                        if (selectedZoneObj.domainid != null) { //list only domains under selectedZoneObj.domainid
+                        if (isUser()) {
+                            // If it is a regular user, send his own domainID
+                            items.push({
+                                id: args.context.users[0].domainid,
+                            });
+                        } else if (selectedZoneObj.domainid != null) { //list only domains under selectedZoneObj.domainid
                             $.ajax({
                                 url: createURL("listDomainChildren&id=" + selectedZoneObj.domainid + "&isrecursive=true"),
                                 dataType: "json",
@@ -1303,10 +1309,11 @@ cloudStack.actionFilter = {
             allowedActions.push('restart');
             allowedActions.push('remove');
         } else if (jsonObj.type == 'Shared') {
-            if (isAdmin() || isDomainAdmin()) {
+            // FIXME Originally, shared networks actions are only available to Root Admins and NOT to domain admins
+            // if (isAdmin() || isDomainAdmin()) {
                 allowedActions.push('restart');
                 allowedActions.push('remove');
-            }
+            // }
         }
         return allowedActions;
     }
