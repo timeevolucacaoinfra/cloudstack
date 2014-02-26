@@ -5576,15 +5576,22 @@
                                         }
                                     },
                                     dataProvider: function(args) {
+                                        var filter;
+                                        if (args.filterBy.search.value) {
+                                            filter = args.filterBy.search.value;
+                                        }
+
                                         var items = [];
                                         $.ajax({
                                             url: createURL("listNetworkApiEnvironments&physicalnetworkid=" + args.context.physicalNetworks[0].id),
                                             success: function(json) {
                                                 $(json.listnetworkapienvironmentsresponse.networkapienvironment).each(function() {
-                                                    items.push({
-                                                        name: this.name,
-                                                        environmentid: this.napienvironmentid,
-                                                    });
+                                                    if (this.name.match(new RegExp(filter, "i"))) {
+                                                        items.push({
+                                                            name: this.name,
+                                                            environmentid: this.napienvironmentid,
+                                                        });
+                                                    }
                                                 });
                                                 args.response.success({
                                                     data: items
