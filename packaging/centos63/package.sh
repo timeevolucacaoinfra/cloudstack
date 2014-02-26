@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -18,99 +18,64 @@
 
 function usage() {
  echo ""
- echo "usage: ./package.sh [-p|--pack] [-h|--help] [ARGS]"
+ echo "usage: ./package.sh [-t|--tag] [-h|--help] [ARGS]"
  echo ""
- echo "The commonly used Arguments are:"
- echo "oss|OSS         To package OSS specific"
- echo "nonoss|NONOSS   To package NONOSS specific"
- echo ""
- echo "Examples: ./package.sh -p|--pack oss|OSS"
- echo "          ./package.sh -p|--pack nonoss|NONOSS"
- echo "          ./package.sh (Default OSS)"
+ echo "Examples: ./package.sh -t|--tag 4.2.0-201402261200"
  exit 1
 }
 
-function defaultPackaging() {
-CWD=`pwd`
-RPMDIR=$CWD/../../dist/rpmbuild
-PACK_PROJECT=cloudstack
-
-VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
-RELEASE=`date +%Y%m%d%H%M`
-
-if echo $VERSION | grep SNAPSHOT ; then
-  REALVER=`echo $VERSION | cut -d '-' -f 1`
-  DEFVER="-D_ver $REALVER"
-  DEFPRE="-D_prerelease 1"
-  DEFREL="-D_rel SNAPSHOT"
-else
-  REALVER=$VERSION
-  DEFVER="-D_ver $REALVER"
-  DEFREL="-D_rel $RELEASE"
-fi
-
-mkdir -p $RPMDIR/SPECS
-mkdir -p $RPMDIR/BUILD
-mkdir -p $RPMDIR/SRPMS
-mkdir -p $RPMDIR/RPMS
-mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
-
-(cd ../../; tar -c --exclude .git --exclude dist  .  | tar -C $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION -x )
-(cd $RPMDIR/SOURCES/; tar -czf $PACK_PROJECT-$VERSION.tgz $PACK_PROJECT-$VERSION)
-
-cp cloud.spec $RPMDIR/SPECS
-
-(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+"${DEFPRE}"} -ba SPECS/cloud.spec)
-
-exit
-}
 
 function packaging() {
-	 
-CWD=`pwd`
-RPMDIR=$CWD/../../dist/rpmbuild
-PACK_PROJECT=cloudstack
-DEFOSSNOSS="-D_ossnoss $packageval"
+	tag_from_arg=$1
+	git checkout $tag_from_arg > /dev/null 2>&1
+	
 
+	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
+	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
-VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
-if echo $VERSION | grep SNAPSHOT ; then
-  REALVER=`echo $VERSION | cut -d '-' -f 1`
-  DEFVER="-D_ver $REALVER"
-  DEFPRE="-D_prerelease 1"
-  DEFREL="-D_rel SNAPSHOT"
-else
-  REALVER=`echo $VERSION`
-  DEFVER="-D_ver $REALVER"
-  DEFREL="-D_rel 1"
-fi
+	VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
+	[[ "$tag_version" != "$VERSION" ]] && echo "Tag parameter version (${tag_version}) is not the same as git tag version (${VERSION}), fix it!" && exit 1
 
-mkdir -p $RPMDIR/SPECS
-mkdir -p $RPMDIR/BUILD
-mkdir -p $RPMDIR/RPMS
-mkdir -p $RPMDIR/SRPMS
-mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
+	source ~/.virtualenvs/cloudstack/bin/activate
+	exit 1
 
+	CWD=`pwd`
+	RPMDIR=$CWD/../../dist/rpmbuild
+	PACK_PROJECT=cloudstack	
 
-(cd ../../; tar -c --exclude .git --exclude dist  .  | tar -C $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION -x )
-(cd $RPMDIR/SOURCES/; tar -czf $PACK_PROJECT-$VERSION.tgz $PACK_PROJECT-$VERSION)
+	if echo $VERSION | grep SNAPSHOT ; then
+	  REALVER=`echo $VERSION | cut -d '-' -f 1`
+	  DEFVER="-D_ver $REALVER"
+	  DEFPRE="-D_prerelease 1"
+	  DEFREL="-D_rel SNAPSHOT"
+	else
+	  REALVER=$VERSION
+	  DEFVER="-D_ver $REALVER"
+	  DEFREL="-D_rel $RELEASE"
+	fi
 
-cp cloud.spec $RPMDIR/SPECS
+	mkdir -p $RPMDIR/SPECS
+	mkdir -p $RPMDIR/BUILD
+	mkdir -p $RPMDIR/SRPMS
+	mkdir -p $RPMDIR/RPMS
+	mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
 
-(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+\"${DEFPRE}\"} "${DEFOSSNOSS}" -bb SPECS/cloud.spec)
+	(cd ../../; tar -c --exclude .git --exclude dist  .  | tar -C $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION -x )
+	(cd $RPMDIR/SOURCES/; tar -czf $PACK_PROJECT-$VERSION.tgz $PACK_PROJECT-$VERSION)
 
-exit
+	cp cloud.spec $RPMDIR/SPECS
+
+	(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+${DEFPRE}} -ba SPECS/cloud.spec)
+
+	exit
 }
 
-
 if [ $# -lt 1 ] ; then
-
-	defaultPackaging
-
+	usage
 elif [ $# -gt 0 ] ; then
 
-	SHORTOPTS="hp:"
-	LONGOPTS="help,pack:"
+	SHORTOPTS="ht:"
+	LONGOPTS="help,tag:"
 
 	ARGS=$(getopt -s bash -u -a --options $SHORTOPTS  --longoptions $LONGOPTS --name $0 -- "$@" )
 	eval set -- "$ARGS"
@@ -121,32 +86,9 @@ elif [ $# -gt 0 ] ; then
 		usage
 		exit 0
 		;;
-	-p | --pack)
-		echo "Doing CloudStack Packaging ....."
-		packageval=$2
-		if [ "$packageval" == "oss" -o "$packageval" == "OSS" ] ; then
-			defaultPackaging
-		elif [ "$packageval" == "nonoss" -o "$packageval" == "NONOSS" ] ; then
-			packaging
-		else
-			echo "Error: Incorrect value provided in package.sh script, Please see help ./package.sh --help|-h for more details."
-			exit 1
-		fi
-		;;
-	-)
-		echo "Unrecognized option..."
-		usage
-		exit 1
-		;;
-	--)
-		echo "Unrecognized option..."
-		usage
-		exit 1
-		;;
-	-*)
-		echo "Unrecognized option..."
-		usage
-		exit 1
+	-t | --tag)
+		echo "Doing CloudStack Packaging tag: $2..."
+		packaging $2
 		;;
 	*)
 		shift
