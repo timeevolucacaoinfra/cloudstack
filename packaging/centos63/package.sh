@@ -37,7 +37,6 @@ function packaging() {
 	[[ "$tag_version" != "$VERSION" ]] && echo "Tag parameter version (${tag_version}) is not the same as git tag version (${VERSION}), fix it!" && exit 1
 
 	source ~/.virtualenvs/cloudstack/bin/activate
-	exit 1
 
 	CWD=`pwd`
 	RPMDIR=$CWD/../../dist/rpmbuild
@@ -51,7 +50,7 @@ function packaging() {
 	else
 	  REALVER=$VERSION
 	  DEFVER="-D_ver $REALVER"
-	  DEFREL="-D_rel $RELEASE"
+	  DEFREL="-D_rel $tag_release"
 	fi
 
 	mkdir -p $RPMDIR/SPECS
