@@ -5603,10 +5603,35 @@
                                     preFilter: function(args) {}, // TODO What is this?
                                     fields: {
                                         name: {
-                                            label: 'Name'
+                                            label: 'Name',
+                                            validation: {
+                                                required: true
+                                            }
                                         },
                                         napiEnvironmentId: {
-                                            label: 'Environment'
+                                            label: 'Environment',
+                                            validation: {
+                                                required: true
+                                            },
+                                            select: function(args) {
+                                                $.ajax({
+                                                    url: createURL("listAllEnvironmentsFromNetworkApi"),
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(json) {
+                                                        var items = [];
+                                                        $(json.listallenvironmentsfromnetworkapiresponse.networkapienvironment).each(function() {
+                                                            items.push({
+                                                                id: this.environmentId,
+                                                                description: this.environmentFullName
+                                                            });
+                                                        });
+                                                        args.response.success({
+                                                            data: items
+                                                        });
+                                                    }
+                                                });
+                                            }
                                         }
                                     }
                                 },
