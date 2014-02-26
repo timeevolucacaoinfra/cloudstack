@@ -18,6 +18,7 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
+import com.globo.networkapi.model.Environment;
 
 public interface NetworkAPIService {
 
@@ -114,12 +115,18 @@ public interface NetworkAPIService {
 	public void deallocateVlanFromNetworkAPI(Network network);
 	
 	/**
-	 * List environments from NetworkAPI with optional parameter physicalNetworkId or zoneId. If all parameters are null
-	 * all NetworkAPIEnvironments are returned.
+	 * List NetworkAPI environments from database with optional parameter physicalNetworkId or zoneId. If all parameters are null
+	 * all NetworkAPIEnvironments from database are returned.
 	 * @param physicalNetworkId
 	 * @param zoneId
 	 */
-	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId, Long zoneId);
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
 
+	/**
+	 * List all environments from NetworkAPI
+	 * @return
+	 */
+	public List<Environment> listAllEnvironmentsFromNetworkApi();
+	
 	boolean canEnable(Long physicalNetworkId);
 }

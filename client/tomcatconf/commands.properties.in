@@ -679,3 +679,4 @@ addNetworkApiVlan=15
 addNetworkViaNetworkApiCmd=15
 addNetworkAPIEnvironment=15
 listNetworkApiEnvironments=15
+listAllEnvironmentsFromNetworkApi=15

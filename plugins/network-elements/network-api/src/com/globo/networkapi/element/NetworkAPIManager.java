@@ -82,6 +82,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
+import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -659,7 +660,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		// Check if there is a environmnet with same id or name in this zone.
-		List<NetworkAPIEnvironmentVO> napiEnvironments = listNetworkAPIEnvironments(null, zoneId);
+		List<NetworkAPIEnvironmentVO> napiEnvironments = listNetworkAPIEnvironmentsFromDB(null, zoneId);
 		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
 			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
 				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in zone " + zoneId);
@@ -686,10 +687,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkViaNetworkApiCmd.class);
 		cmdList.add(AddNetworkAPIEnvironmentCmd.class);
 		cmdList.add(ListNetworkApiEnvironmentsCmd.class);
+		cmdList.add(ListAllEnvironmentsFromNetworkApiCmd.class);
 		return cmdList;
 	}
 	
-	protected List<Environment> getEnvironmentFromNetworkApi() {
+	@Override
+	public List<Environment> listAllEnvironmentsFromNetworkApi() {
 		ListAllEnvironmentsFromNetworkAPICommand cmd = new ListAllEnvironmentsFromNetworkAPICommand();
 		
 		Answer answer;
@@ -720,7 +723,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		Environment resultEnvironment = null;
-		for (Environment environment : getEnvironmentFromNetworkApi()) {
+		for (Environment environment : listAllEnvironmentsFromNetworkApi()) {
 			if (environmentId.equals(environment.getId())) {
 				resultEnvironment = environment;
 				break;
@@ -783,7 +786,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId, Long zoneId) {
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironmentsFromDB(Long physicalNetworkId, Long zoneId) {
 		List<NetworkAPIEnvironmentVO> napiEnvironmentsVOList;
 
 		if (physicalNetworkId != null) {

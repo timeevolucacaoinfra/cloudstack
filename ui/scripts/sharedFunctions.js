@@ -836,10 +836,12 @@ var addNetworkAPINetworkDialog = {
                                 description: 'All'
                             });
                         } else {
-                            array1.push({
-                                id: 'zone-wide',
-                                description: 'All'
-                            });
+                            if (isAdmin()) {
+                                array1.push({
+                                    id: 'zone-wide',
+                                    description: 'All'
+                                });
+                            } 
                             if (isAdmin() || isDomainAdmin()) {
                                 array1.push({
                                     id: 'domain-specific',
@@ -849,11 +851,20 @@ var addNetworkAPINetworkDialog = {
                                     id: 'account-specific',
                                     description: 'Account'
                                 });
+                                array1.push({
+                                    id: 'project-specific',
+                                    description: 'Project'
+                                });
+                            } else if (isUser()) {
+                                array1.push({
+                                    id: 'my-account',
+                                    description: 'My Account'
+                                });
+                                array1.push({
+                                    id: 'project-specific',
+                                    description: 'Project'
+                                });
                             }
-                            array1.push({
-                                id: 'project-specific',
-                                description: 'Project'
-                            });
                         }
                         args.response.success({
                             data: array1
@@ -861,7 +872,7 @@ var addNetworkAPINetworkDialog = {
 
                         args.$select.change(function() {
                             var $form = $(this).closest('form');
-                            if ($(this).val() == "zone-wide") {
+                            if ($(this).val() == "zone-wide" || $(this).val() == "my-account") {
                                 $form.find('.form-item[rel=domainId]').hide();
                                 $form.find('.form-item[rel=subdomainaccess]').hide();
                                 $form.find('.form-item[rel=account]').hide();

@@ -73,7 +73,7 @@ public class ListNetworkApiEnvironmentsCmd extends BaseCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("listNetworkApiEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId + " zoneId=" + zoneId);
-        	List<NetworkAPIEnvironmentVO> napiEnvironments = _ntwkAPIService.listNetworkAPIEnvironments(this.physicalNetworkId, this.zoneId);
+        	List<NetworkAPIEnvironmentVO> napiEnvironments = _ntwkAPIService.listNetworkAPIEnvironmentsFromDB(this.physicalNetworkId, this.zoneId);
         	
         	List<NetworkAPIEnvironmentResponse> responseList = new ArrayList<NetworkAPIEnvironmentResponse>();
     		
