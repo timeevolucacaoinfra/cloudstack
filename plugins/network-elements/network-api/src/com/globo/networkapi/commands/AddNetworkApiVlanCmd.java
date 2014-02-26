@@ -17,6 +17,7 @@ package com.globo.networkapi.commands;
 
 import javax.inject.Inject;
 
+import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
@@ -69,6 +70,10 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
 
     @Parameter(name=ApiConstants.NETWORK_DOMAIN, type=CommandType.STRING, description="network domain")
     private String networkDomain;
+    
+    @Parameter(name=ApiConstants.ACL_TYPE, type=CommandType.STRING, description="Access control type; supported values" +
+            " are account and domain.")
+    private String aclType;
 
     @Parameter(name=ApiConstants.ACCOUNT, type=CommandType.STRING, description="account who will own the network")
     private String accountName;
@@ -108,15 +113,25 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     public Long getPhysicalNetworkId() {
     	return physicalNetworkId;
     }
+    
+    public ACLType getACLType() {
+    	if ("account".equalsIgnoreCase(aclType)) {
+    		return ACLType.Account;
+    	} else if ("domain".equalsIgnoreCase(aclType)) {
+    		return ACLType.Domain;
+    	} else {
+    		return null;
+    	}
+    }
 
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
-        			" networkDomain=" +  networkDomain + " accountName=" + accountName + " projectId=" + projectId +
-        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, accountName,
+        			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
+        			" domainId=" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
+        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
