@@ -21,8 +21,15 @@ case "$1" in
   populatedb)
     python tools/marvin/marvin/deployDataCenter.py -i tools/marvin/marvin/cloudstack-local.cfg
     ;;
+  tag)
+    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
+    tag_version=$(date +%Y%m%d%H%M)
+    git tag $cs_version-$tag_version
+    git push --tags
+    echo "RELEASE/TAG: $cs_version-$tag_version"
+    ;;
   *)
-    echo "Usage: $0 {run|run-debug|compile|compile-quick|deploydb|populatedb}"
+    echo "Usage: $0 {run|run-debug|compile|compile-quick|deploydb|populatedb|tag}"
     exit 2
 esac
  
