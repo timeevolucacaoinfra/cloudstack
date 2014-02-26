@@ -204,7 +204,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Long napiVlanId = response.getVlanId();
 
 		return createNetworkFromNetworkAPIVlan(napiVlanId, zoneId,
-				networkOfferingId, physicalNetworkId, networkDomain,
+				networkOfferingId, physicalNetworkId, networkDomain, aclType,
 				accountName, projectId, domainId, subdomainAccess,
 				displayNetwork, aclId);
 	}
@@ -213,15 +213,20 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     @DB
 	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
-			String networkDomain, String accountName, Long projectId,
+			String networkDomain, ACLType aclType, String accountName, Long projectId,
 			Long domainId, Boolean subdomainAccess, Boolean displayNetwork,
 			Long aclId) throws ResourceUnavailableException,
 			ResourceAllocationException, ConcurrentOperationException,
 			InsufficientCapacityException {
 
 		Account caller = UserContext.current().getCaller();
-		// NetworkAPI manage only shared network, so aclType is always domain
-		ACLType aclType = ACLType.Domain;
+
+        // Only domain and account ACL types are supported in Acton.
+        if (aclType == null || !(aclType == ACLType.Domain || aclType == ACLType.Account)) {
+            throw new InvalidParameterValueException("AclType should be " + ACLType.Domain + " or " +
+            		ACLType.Account + " for network of type " + Network.GuestType.Shared);
+        }
+		
 		boolean isDomainSpecific = true;
 
 		// Validate network offering
@@ -383,10 +388,11 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				networkOfferingId.longValue(), response.getVlanName(),
 				response.getVlanDescription(), gateway, cidr,
 				String.valueOf(response.getVlanNum()), networkDomain, owner,
-				sharedDomainId, pNtwk, zoneId, aclType, subdomainAccess, null, // vpcId,
-				ip6Gateway, // ip6Gateway,
-				ip6Cidr, // ip6Cidr,
-				displayNetwork, // displayNetwork,
+				sharedDomainId, pNtwk, zoneId, aclType, subdomainAccess, 
+				null, // vpcId,
+				ip6Gateway,
+				ip6Cidr,
+				displayNetwork,
 				null // isolatedPvlan
 				);
 		

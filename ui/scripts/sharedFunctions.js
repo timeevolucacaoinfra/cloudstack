@@ -1156,7 +1156,18 @@ var addNetworkAPINetworkDialog = {
                         array1.push("&subdomainaccess=false");
                 }
             } else { //zone-wide
-                array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
+                if (isAdmin() || isDomainAdmin()) {
+                    array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
+                } else if (isUser()) {
+                    array1.push("&domainId=" + args.data.domainId); // user's domain
+                    array1.push("&acltype=account");
+
+                    if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific for user
+                        array1.push("&projectid=" + args.data.projectId);
+                    } else { // account-specific for user
+                        array1.push("&account=" + args.context.users[0].account); // current user's account
+                    }
+                }
             }
 
             if (args.data.networkdomain != null && args.data.networkdomain.length > 0)

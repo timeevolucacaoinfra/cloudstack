@@ -72,7 +72,7 @@ public interface NetworkAPIService {
 	 */
 	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
-			String networkDomain, String accountName,
+			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)
 			throws ResourceUnavailableException, 
