@@ -27,16 +27,19 @@ function usage() {
 
 function packaging() {
 	tag_from_arg=$1
-	git checkout $tag_from_arg > /dev/null 2>&1
 	
-
+	echo "Getting last commits from git..."
+	git pull > /dev/null 2>&1
+	
+	echo "Cheking out to tag: ${tag_from_arg}"
+	git checkout $tag_from_arg > /dev/null 2>&1
 	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
 	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
+	source ~/.virtualenvs/cloudstack/bin/activate
+
 	VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
 	[[ "$tag_version" != "$VERSION" ]] && echo "Tag parameter version (${tag_version}) is not the same as git tag version (${VERSION}), fix it!" && exit 1
-
-	source ~/.virtualenvs/cloudstack/bin/activate
 
 	CWD=`pwd`
 	RPMDIR=$CWD/../../dist/rpmbuild
