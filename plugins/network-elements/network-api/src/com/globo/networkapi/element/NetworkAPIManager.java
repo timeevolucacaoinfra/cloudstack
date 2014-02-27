@@ -510,11 +510,20 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				Config.ConfigurationParameterScope.global.name(), null);
 		String url = _configServer.getConfigValue(Config.NetworkAPIUrl.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
+		String readTimeout = _configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		String connectTimeout = _configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		String numberOfRetries = _configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
 
 		cfg.putIfAbsent("guid", "networkapi"); // FIXME
 		cfg.putIfAbsent("url", url);
 		cfg.putIfAbsent("username", username);
 		cfg.putIfAbsent("password", password);
+		cfg.putIfAbsent("readTimeout", readTimeout);
+		cfg.putIfAbsent("connectTimeout", connectTimeout);
+		cfg.putIfAbsent("numberOfRetries", numberOfRetries);
 
 		NetworkAPIResource resource = new NetworkAPIResource();
 		Map<String, Object> params = new HashMap<String, Object>();
