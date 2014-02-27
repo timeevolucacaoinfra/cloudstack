@@ -308,8 +308,8 @@ public enum Config {
     NetworkAPIUsername("Network", ManagementServer.class, String.class, "networkapi.username", "", "Specify the username used for networkapi (if using Networkapi)", null),
     NetworkAPIPassword("Network", ManagementServer.class, String.class, "networkapi.password", "", "Specify password for user for networkapi (if using Networkapi)", null),
     NetworkAPIUrl("Network", ManagementServer.class, String.class, "networkapi.url", "http://localhost:9000", "Specify base url of networkapi (if using Networkapi)", null),
-    NetworkAPIConnectionTimeout("Network", ManagementServer.class, String.class, "networkapi.connectiontimeout", "120000", "Networkapi connection timeout", null),
-    NetworkAPIReadTimeout("Network", ManagementServer.class, String.class, "networkapi.readtimeout", "120000", "Networkapi read timeout", null),
+    NetworkAPIConnectionTimeout("Network", ManagementServer.class, String.class, "networkapi.connectiontimeout", "120000", "Networkapi connection timeout (in milliseconds)", null),
+    NetworkAPIReadTimeout("Network", ManagementServer.class, String.class, "networkapi.readtimeout", "120000", "Networkapi read timeout (in milliseconds)", null),
     NetworkAPINumberOfRetries("Network", ManagementServer.class, String.class, "networkapi.numberofretries", "0", "Networkapi number of retries", null),
     
     // KVM
