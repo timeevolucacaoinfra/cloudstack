@@ -680,3 +680,4 @@ addNetworkViaNetworkApiCmd=15
 addNetworkAPIEnvironment=15
 listNetworkApiEnvironments=15
 listAllEnvironmentsFromNetworkApi=15
+removeNetworkAPIEnvironment=15

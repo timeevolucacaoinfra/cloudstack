@@ -5536,18 +5536,13 @@
                         type: 'detailView',
                         id: 'networkAPIProvider',
                         label: 'label.networkAPI',
-                        viewAll: {
-                            label: 'label.devices',
-                            path: '_zone.networkAPINvpDevices'
-                        },
                         tabs: {
                             details: {
                                 title: 'label.details',
                                 fields: [{
                                     name: {
                                         label: 'label.name'
-                                    }
-                                }, {
+                                    },
                                     state: {
                                         label: 'label.state'
                                     }
@@ -5574,12 +5569,47 @@
                                     id: 'napienvironments',
                                     fields: {
                                         name: {
-                                            label: 'label.name'
+                                            label: 'Local Name'
                                         },
                                         environmentid: {
-                                            label: 'Environment ID'
+                                            label: 'Network API Environment ID'
                                         }
                                     },
+
+                                    actions: {
+                                        remove: {
+                                            label: 'label.remove',
+                                            messages: {
+                                                confirm: function(args) {
+                                                    return 'Are you sure you want to remove environment ' + args.context.napienvironments[0].name + '(' + args.context.napienvironments[0].environmentid + ')?';
+                                                },
+                                                notification: function(args) {
+                                                    return 'Environment removed successfully';
+                                                }
+                                            },
+                                            notification: {
+                                                poll: pollAsyncJobResult
+                                            },                                        
+                                            action: function(args) {
+                                                var physicalnetworkid = args.context.physicalNetworks[0].id;
+                                                var napienvironmentid = args.context.napienvironments[0].environmentid;
+                                                $.ajax({
+                                                    url: createURL("removeNetworkAPIEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + napienvironmentid),
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(json) {
+                                                        var jobid = json.removenetworkapiresponse.jobid;
+                                                        args.response.success({
+                                                            _custom: {
+                                                                jobId: jobid,
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            },
+                                        }
+                                    },
+
                                     dataProvider: function(args) {
                                         var filter;
                                         if (args.filterBy.search.value) {

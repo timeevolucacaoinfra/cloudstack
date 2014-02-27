@@ -83,6 +83,7 @@ import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkApiCmd;
+import com.globo.networkapi.commands.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -703,6 +704,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkAPIEnvironmentCmd.class);
 		cmdList.add(ListNetworkApiEnvironmentsCmd.class);
 		cmdList.add(ListAllEnvironmentsFromNetworkApiCmd.class);
+		cmdList.add(RemoveNetworkAPIEnvironmentCmd.class);
 		return cmdList;
 	}
 	
