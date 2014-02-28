@@ -35,10 +35,11 @@ case "$1" in
     ;;
   createrepo)
     [[ -f /etc/redhat-release ]] || echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
+    [[ -d /mnt/root/repository/centos64/x86_64 ]] || echo "Opss... there is no /mnt/root/repository/centos64/x86_64 directory..." && exit 1
     createrepo /mnt/root/repository/centos64/x86_64
     ;;
   *)
-    echo "Usage: $0 {run|run-debug|compile|compile-quick|deploydb|populatedb|tag}"
+    echo "Usage: $0 {run|run-debug|compile|compile-quick|deploydb|populatedb|tag|package}"
     exit 2
 esac
  
