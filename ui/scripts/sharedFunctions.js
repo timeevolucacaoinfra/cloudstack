@@ -748,10 +748,7 @@ var addNetworkAPINetworkDialog = {
         },
 
         preFilter: function(args) {
-            if (isAdmin())
-                return true;
-            else
-                return false;
+            return true; // No restrictions
         },
 
         createForm: {
@@ -760,10 +757,8 @@ var addNetworkAPINetworkDialog = {
             preFilter: function(args) {
                 if ('zones' in args.context) {
                     args.$form.find('.form-item[rel=zoneId]').hide();
-                    args.$form.find('.form-item[rel=physicalNetworkId]').hide();
                 } else {
                     args.$form.find('.form-item[rel=zoneId]').css('display', 'inline-block');
-                    args.$form.find('.form-item[rel=physicalNetworkId]').css('display', 'inline-block');
                 }
             },
 
@@ -818,54 +813,19 @@ var addNetworkAPINetworkDialog = {
                     isHidden: true
                 },
 
-                physicalNetworkId: {
-                    label: 'label.physical.network',
-                    dependsOn: 'zoneId',
-                    select: function(args) {
-                        if ('physicalNetworks' in args.context) {
-                            addNetworkAPINetworkDialog.physicalNetworkObjs = args.context.physicalNetworks;
-                        } else {
-                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
-                            $.ajax({
-                                url: createURL('listPhysicalNetworks'),
-                                data: {
-                                    zoneid: selectedZoneId
-                                },
-                                async: false,
-                                success: function(json) {
-                                    addNetworkAPINetworkDialog.physicalNetworkObjs = json.listphysicalnetworksresponse.physicalnetwork;
-                                }
-                            });
-                        }
-                        var items = [];
-                        if (addNetworkAPINetworkDialog.physicalNetworkObjs != null) {
-                            for (var i = 0; i < addNetworkAPINetworkDialog.physicalNetworkObjs.length; i++) {
-                                items.push({
-                                    id: addNetworkAPINetworkDialog.physicalNetworkObjs[i].id,
-                                    description: addNetworkAPINetworkDialog.physicalNetworkObjs[i].name
-                                });
-                            }
-                        }
-                        args.response.success({
-                            data: items
-                        });
-                    },
-                    isHidden: true
-                },
-
                 napiEnvironmentId: {
-                    label: 'environment',
-                    dependsOn: 'physicalNetworkId',
+                    label: 'Environment',
+                    dependsOn: 'zoneId',
                     select: function(args) {
                         if ('networkApiEnvironmentsObjs' in args.context) {
                             // FIXME
                             addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = args.context.networkApiEnvironmentsObjs;
                         } else {
-                            var selectedPhysicalNetworkId = args.$form.find('.form-item[rel=physicalNetworkId]').find('select').val();
+                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
                             $.ajax({
                                 url: createURL('listNetworkApiEnvironments'),
                                 data: {
-                                    physicalnetworkid: selectedPhysicalNetworkId
+                                    zoneid: selectedZoneId
                                 },
                                 async: false,
                                 success: function(json) {
@@ -910,22 +870,35 @@ var addNetworkAPINetworkDialog = {
                                 description: 'All'
                             });
                         } else {
-                            array1.push({
-                                id: 'zone-wide',
-                                description: 'All'
-                            });
-                            array1.push({
-                                id: 'domain-specific',
-                                description: 'Domain'
-                            });
-                            array1.push({
-                                id: 'account-specific',
-                                description: 'Account'
-                            });
-                            array1.push({
-                                id: 'project-specific',
-                                description: 'Project'
-                            });
+                            if (isAdmin()) {
+                                array1.push({
+                                    id: 'zone-wide',
+                                    description: 'All'
+                                });
+                            } 
+                            if (isAdmin() || isDomainAdmin()) {
+                                array1.push({
+                                    id: 'domain-specific',
+                                    description: 'Domain'
+                                });
+                                array1.push({
+                                    id: 'account-specific',
+                                    description: 'Account'
+                                });
+                                array1.push({
+                                    id: 'project-specific',
+                                    description: 'Project'
+                                });
+                            } else if (isUser()) {
+                                array1.push({
+                                    id: 'my-account',
+                                    description: 'My Account'
+                                });
+                                array1.push({
+                                    id: 'project-specific',
+                                    description: 'Project'
+                                });
+                            }
                         }
                         args.response.success({
                             data: array1
@@ -933,7 +906,7 @@ var addNetworkAPINetworkDialog = {
 
                         args.$select.change(function() {
                             var $form = $(this).closest('form');
-                            if ($(this).val() == "zone-wide") {
+                            if ($(this).val() == "zone-wide" || $(this).val() == "my-account") {
                                 $form.find('.form-item[rel=domainId]').hide();
                                 $form.find('.form-item[rel=subdomainaccess]').hide();
                                 $form.find('.form-item[rel=account]').hide();
@@ -949,9 +922,11 @@ var addNetworkAPINetworkDialog = {
                                 $form.find('.form-item[rel=account]').css('display', 'inline-block');
                                 $form.find('.form-item[rel=projectId]').hide();
                             } else if ($(this).val() == "project-specific") {
-                                $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
-                                $form.find('.form-item[rel=subdomainaccess]').hide();
-                                $form.find('.form-item[rel=account]').hide();
+                                if (isAdmin() || isDomainAdmin()) {                                
+                                    $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
+                                    $form.find('.form-item[rel=subdomainaccess]').hide();
+                                    $form.find('.form-item[rel=account]').hide();
+                                }
                                 $form.find('.form-item[rel=projectId]').css('display', 'inline-block');
                             }
                         });
@@ -974,7 +949,12 @@ var addNetworkAPINetworkDialog = {
                                 }
                             }
                         }
-                        if (selectedZoneObj.domainid != null) { //list only domains under selectedZoneObj.domainid
+                        if (isUser()) {
+                            // If it is a regular user, send his own domainID
+                            items.push({
+                                id: args.context.users[0].domainid,
+                            });
+                        } else if (selectedZoneObj.domainid != null) { //list only domains under selectedZoneObj.domainid
                             $.ajax({
                                 url: createURL("listDomainChildren&id=" + selectedZoneObj.domainid + "&isrecursive=true"),
                                 dataType: "json",
@@ -1069,7 +1049,7 @@ var addNetworkAPINetworkDialog = {
                             zoneid: args.$form.find('.form-item[rel=zoneId]').find('select').val()
                         };
 
-                        var selectedPhysicalNetworkObj = [];
+                        /*var selectedPhysicalNetworkObj = [];
                         var selectedPhysicalNetworkId = args.$form.find('.form-item[rel=physicalNetworkId]').find('select').val();
                         if (addNetworkAPINetworkDialog.physicalNetworkObjs != null) {
                             for (var i = 0; i < addNetworkAPINetworkDialog.physicalNetworkObjs.length; i++) {
@@ -1083,7 +1063,7 @@ var addNetworkAPINetworkDialog = {
                             $.extend(data, {
                                 tags: selectedPhysicalNetworkObj.tags
                             });
-                        }
+                        }*/
 
                         //Network tab in Guest Traffic Type in Infrastructure menu is only available when it's under Advanced zone.
                         //zone dropdown in add guest network dialog includes only Advanced zones.
@@ -1174,7 +1154,7 @@ var addNetworkAPINetworkDialog = {
             array1.push("&zoneId=" + args.data.zoneId);
             array1.push("&networkOfferingId=" + args.data.networkOfferingId);
 
-            //Pass physical network ID to addNetworkViaNetworkapiCmd API only when network offering's guestiptype is Shared.
+            //Pass physical network ID to addNetworkViaNetworkApiCmd API only when network offering's guestiptype is Shared.
             var selectedNetworkOfferingObj;
             if (addNetworkAPINetworkDialog.networkOfferingObjs != null) {
                 for (var i = 0; i < addNetworkAPINetworkDialog.networkOfferingObjs.length; i++) {
@@ -1186,7 +1166,6 @@ var addNetworkAPINetworkDialog = {
             }
 
             if (selectedNetworkOfferingObj.guestiptype == "Shared")
-                array1.push("&physicalnetworkid=" + args.data.physicalNetworkId);
                 array1.push("&napienvironmentid=" + args.data.napiEnvironmentId);
 
 
@@ -1211,14 +1190,25 @@ var addNetworkAPINetworkDialog = {
                         array1.push("&subdomainaccess=false");
                 }
             } else { //zone-wide
-                array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
+                if (isAdmin() || isDomainAdmin()) {
+                    array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
+                } else if (isUser()) {
+                    array1.push("&domainId=" + args.data.domainId); // user's domain
+                    array1.push("&acltype=account");
+
+                    if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific for user
+                        array1.push("&projectid=" + args.data.projectId);
+                    } else { // account-specific for user
+                        array1.push("&account=" + args.context.users[0].account); // current user's account
+                    }
+                }
             }
 
             if (args.data.networkdomain != null && args.data.networkdomain.length > 0)
                 array1.push("&networkdomain=" + todb(args.data.networkdomain));
 
             $.ajax({
-                url: createURL("addNetworkViaNetworkapiCmd" + array1.join("")),
+                url: createURL("addNetworkViaNetworkApiCmd" + array1.join("")),
                 dataType: "json",
                 success: function(json) {
                     var item = json.addnetworkapivlanresponse.network;
@@ -1376,10 +1366,11 @@ cloudStack.actionFilter = {
             allowedActions.push('restart');
             allowedActions.push('remove');
         } else if (jsonObj.type == 'Shared') {
-            if (isAdmin()) {
+            // FIXME Originally, shared networks actions are only available to Root Admins and NOT to domain admins
+            // if (isAdmin() || isDomainAdmin()) {
                 allowedActions.push('restart');
                 allowedActions.push('remove');
-            }
+            // }
         }
         return allowedActions;
     }

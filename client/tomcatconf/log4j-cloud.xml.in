@@ -67,13 +67,14 @@ under the License.
    <!-- ============================== -->
 
    <appender name="SYSLOG" class="org.apache.log4j.net.SyslogAppender">
-      <param name="Threshold" value="WARN"/>
+      <param name="Threshold" value="DEBUG"/>
       <param name="SyslogHost" value="localhost"/>
-      <param name="Facility" value="LOCAL6"/>
+      <param name="Header" value="true"/>
+      <param name="Facility" value="LOCAL2"/>
       <layout class="org.apache.log4j.PatternLayout">
-         <param name="ConversionPattern" value="%-5p [%c{3}] (%t:%x) %m%n"/>
+         <param name="ConversionPattern" value="cloudstack [%c] %m%n"/>
       </layout>
-   </appender>
+  </appender>
 
    <!-- ============================== -->
    <!-- Append alerts to the syslog if it is configured -->

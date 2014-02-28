@@ -17,6 +17,7 @@ import com.cloud.agent.api.Answer;
 import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.api.VlanAPI;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.IPv4Network;
 import com.globo.networkapi.model.Vlan;
 
@@ -55,7 +56,7 @@ public class NetworkAPIResourceTest {
 	public void testValidateNicReturnsAnswerResultTrue() throws Exception {
 
 		long vlanId = 100l;
-		_resource._napi = mock(RequestProcessor.class);
+		_resource._napi = mock(HttpXMLRequestProcessor.class);
 		when(_resource._napi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
 
 		// Returning objects
@@ -93,7 +94,7 @@ public class NetworkAPIResourceTest {
 	public void testValidateNicReturnsAnswerResultFalse() throws Exception {
 
 		long vlanId = 100L;
-		_resource._napi = mock(RequestProcessor.class);
+		_resource._napi = mock(HttpXMLRequestProcessor.class);
 		when(_resource._napi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
 
 		// Returning objects

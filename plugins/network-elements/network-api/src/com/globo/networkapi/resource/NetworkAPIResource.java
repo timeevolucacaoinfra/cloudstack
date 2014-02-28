@@ -25,14 +25,13 @@ import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.NetworkAPIException;
-import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.commands.ActivateNetworkCmd;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
@@ -48,8 +47,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private String _url;
 	
 	private String _password;
-		
-	protected RequestProcessor _napi;
+	
+	protected HttpXMLRequestProcessor _napi;
 	
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
 	
@@ -59,28 +58,46 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	public boolean configure(String name, Map<String, Object> params)
 			throws ConfigurationException {
 		
-		_name = (String) params.get("name");
-		if (_name == null) {
-			throw new ConfigurationException("Unable to find name");
-		}
+		try {
+			_name = (String) params.get("name");
+			if (_name == null) {
+				throw new ConfigurationException("Unable to find name");
+			}
 
-		_url = (String) params.get("url");
-		if (_url == null) {
-			throw new ConfigurationException("Unable to find url");
-		}
-		
-		_username = (String) params.get("username");
-		if (_username == null) {
-			throw new ConfigurationException("Unable to find username");
-		}
+			_url = (String) params.get("url");
+			if (_url == null) {
+				throw new ConfigurationException("Unable to find url");
+			}
+			
+			_username = (String) params.get("username");
+			if (_username == null) {
+				throw new ConfigurationException("Unable to find username");
+			}
 
-		_password = (String) params.get("password");
-		if (_password == null) {
-			throw new ConfigurationException("Unable to find password");
+			_password = (String) params.get("password");
+			if (_password == null) {
+				throw new ConfigurationException("Unable to find password");
+			}
+
+			_napi = new HttpXMLRequestProcessor(_url, _username, _password);
+
+			if (params.containsKey("readTimeout")) {
+				_napi.setReadTimeout(Integer.valueOf((String) params.get("readTimeout")));
+			}
+			
+			if (params.containsKey("connectTimeout")) {
+				_napi.setConnectTimeout(Integer.valueOf((String) params.get("connectTimeout")));
+			}
+
+			if (params.containsKey("numberOfRetries")) {
+				_napi.setNumberOfRetries(Integer.valueOf((String) params.get("numberOfRetries")));
+			}
+
+			return false;
+		} catch (NumberFormatException e) {
+			s_logger.error("Invalid number in configuration parameters", e);
+			throw new ConfigurationException("Invalid number in configuration parameters: " + e);
 		}
-		
-		_napi = new HttpXMLRequestProcessor(_url, _username, _password);
-		return false;
 	}
 
 	@Override

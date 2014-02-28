@@ -28,6 +28,7 @@ import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
+import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.log4j.Logger;
 
 import com.cloud.api.ApiDBUtils;
@@ -55,16 +56,24 @@ public class ListNetworkApiEnvironmentsCmd extends BaseCmd {
             required=false, description="the Physical Network ID the network belongs to")
     private Long physicalNetworkId;
 
+    @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
+            required=false, description="the ZoneID")
+    private Long zoneId;
+
     public Long getPhysicalNetworkId() {
     	return physicalNetworkId;
+    }
+
+    public Long getZoneId() {
+    	return zoneId;
     }
 
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listNetworkApiEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId);
-        	List<NetworkAPIEnvironmentVO> napiEnvironments = _ntwkAPIService.listNetworkAPIEnvironments(this.physicalNetworkId);
+        	s_logger.debug("listNetworkApiEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId + " zoneId=" + zoneId);
+        	List<NetworkAPIEnvironmentVO> napiEnvironments = _ntwkAPIService.listNetworkAPIEnvironmentsFromDB(this.physicalNetworkId, this.zoneId);
         	
         	List<NetworkAPIEnvironmentResponse> responseList = new ArrayList<NetworkAPIEnvironmentResponse>();
     		

@@ -18,68 +18,67 @@
 
 function usage() {
  echo ""
- echo "usage: ./package.sh [-p|--pack] [-h|--help] [ARGS]"
+ echo "usage: ./package.sh [-t|--tag] [-h|--help] [ARGS]"
  echo ""
- echo "The commonly used Arguments are:"
- echo "oss|OSS             To package with only redistributable libraries (default)"
- echo "nonoss|NONOSS   To package with non-redistributable libraries"
- echo ""
- echo "Examples: ./package.sh -p|--pack oss|OSS"
- echo "          ./package.sh -p|--pack nonoss|NONOSS"
- echo "          ./package.sh (Default OSS)"
+
+ echo "Examples: ./package.sh -t|--tag 4.2.0-201402261200"
  exit 1
 }
 
+
 function packaging() {
-	 
-CWD=`pwd`
-RPMDIR=$CWD/../../dist/rpmbuild
-PACK_PROJECT=cloudstack
-if [ -n "$1" ] ; then
-  DEFOSSNOSS="-D_ossnoss nonoss"
-fi
+	tag_from_arg=$1
+	
+	echo "Getting last commits from git..."
+	git pull > /dev/null 2>&1
+	
+	echo "Cheking out to tag: ${tag_from_arg}"
+	git checkout $tag_from_arg > /dev/null 2>&1
+	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
+	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
+	source ~/.virtualenvs/cloudstack/bin/activate
 
-VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
-RELEASE=`date +%Y%m%d%H%M`
+	VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
+	[[ "$tag_version" != "$VERSION" ]] && echo "Tag parameter version (${tag_version}) is not the same as git tag version (${VERSION}), fix it!" && exit 1
 
-if echo $VERSION | grep SNAPSHOT ; then
-  REALVER=`echo $VERSION | cut -d '-' -f 1`
-  DEFVER="-D_ver $REALVER"
-  DEFPRE="-D_prerelease 1"
-  DEFREL="-D_rel SNAPSHOT"
-else
-  REALVER=`echo $VERSION`
-  DEFVER="-D_ver $REALVER"
-  DEFREL="-D_rel $RELEASE"
-fi
+	CWD=`pwd`
+	RPMDIR=$CWD/../../dist/rpmbuild
+	PACK_PROJECT=cloudstack	
 
-mkdir -p $RPMDIR/SPECS
-mkdir -p $RPMDIR/BUILD
-mkdir -p $RPMDIR/RPMS
-mkdir -p $RPMDIR/SRPMS
-mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
+	if echo $VERSION | grep SNAPSHOT ; then
+	  REALVER=`echo $VERSION | cut -d '-' -f 1`
+	  DEFVER="-D_ver $REALVER"
+	  DEFPRE="-D_prerelease 1"
+	  DEFREL="-D_rel SNAPSHOT"
+	else
+	  REALVER=$VERSION
+	  DEFVER="-D_ver $REALVER"
+	  DEFREL="-D_rel $tag_release"
+	fi
 
+	mkdir -p $RPMDIR/SPECS
+	mkdir -p $RPMDIR/BUILD
+	mkdir -p $RPMDIR/SRPMS
+	mkdir -p $RPMDIR/RPMS
+	mkdir -p $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION
 
-(cd ../../; tar -c --exclude .git --exclude dist  .  | tar -C $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION -x )
-(cd $RPMDIR/SOURCES/; tar -czf $PACK_PROJECT-$VERSION.tgz $PACK_PROJECT-$VERSION)
+	(cd ../../; tar -c --exclude .git --exclude dist  .  | tar -C $RPMDIR/SOURCES/$PACK_PROJECT-$VERSION -x )
+	(cd $RPMDIR/SOURCES/; tar -czf $PACK_PROJECT-$VERSION.tgz $PACK_PROJECT-$VERSION)
 
-cp cloud.spec $RPMDIR/SPECS
+	cp cloud.spec $RPMDIR/SPECS
 
-(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+"${DEFPRE}"} ${DEFOSSNOSS+"$DEFOSSNOSS"} -bb SPECS/cloud.spec)
+	(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+${DEFPRE}} -ba SPECS/cloud.spec)
 
-exit
+	exit
 }
 
-
 if [ $# -lt 1 ] ; then
-
-	packaging
-
+	usage
 elif [ $# -gt 0 ] ; then
 
-	SHORTOPTS="hp:"
-	LONGOPTS="help,pack:"
+	SHORTOPTS="ht:"
+	LONGOPTS="help,tag:"
 
 	ARGS=$(getopt -s bash -u -a --options $SHORTOPTS  --longoptions $LONGOPTS --name $0 -- "$@" )
 	eval set -- "$ARGS"
@@ -90,22 +89,9 @@ elif [ $# -gt 0 ] ; then
 		usage
 		exit 0
 		;;
-	-p | --pack)
-		echo "Doing CloudStack Packaging ....."
-		packageval=$2
-		if [ "$packageval" == "oss" -o "$packageval" == "OSS" ] ; then
-			packaging
-		elif [ "$packageval" == "nonoss" -o "$packageval" == "NONOSS" ] ; then
-			packaging nonoss
-		else
-			echo "Error: Incorrect value provided in package.sh script, Please see help ./package.sh --help|-h for more details."
-			exit 1
-		fi
-		;;
-	-)
-		echo "Unrecognized option..."
-		usage
-		exit 1
+	-t | --tag)
+		echo "Doing CloudStack Packaging tag: $2..."
+		packaging $2
 		;;
 	*)
 		shift

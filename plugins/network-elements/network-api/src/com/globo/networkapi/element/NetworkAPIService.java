@@ -18,6 +18,7 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
+import com.globo.networkapi.model.Environment;
 
 public interface NetworkAPIService {
 
@@ -48,7 +49,7 @@ public interface NetworkAPIService {
 	 * @return
 	 */
 	public Network createNetwork(String name, String displayText, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId, Long napiEnvironmentId,
+			Long networkOfferingId, Long napiEnvironmentId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)
@@ -71,7 +72,7 @@ public interface NetworkAPIService {
 	 */
 	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
-			String networkDomain, String accountName,
+			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)
 			throws ResourceUnavailableException, 
@@ -114,10 +115,18 @@ public interface NetworkAPIService {
 	public void deallocateVlanFromNetworkAPI(Network network);
 	
 	/**
-	 * List environments from NetworkAPI with optional parameter physicalNetworkId
+	 * List NetworkAPI environments from database with optional parameter physicalNetworkId or zoneId. If all parameters are null
+	 * all NetworkAPIEnvironments from database are returned.
 	 * @param physicalNetworkId
+	 * @param zoneId
 	 */
-	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironments(Long physicalNetworkId);
+	public List<NetworkAPIEnvironmentVO> listNetworkAPIEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
 
+	/**
+	 * List all environments from NetworkAPI
+	 * @return
+	 */
+	public List<Environment> listAllEnvironmentsFromNetworkApi();
+	
 	boolean canEnable(Long physicalNetworkId);
 }

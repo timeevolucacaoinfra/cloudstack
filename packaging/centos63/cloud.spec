@@ -262,6 +262,16 @@ install -D client/target/utilities/bin/cloud-update-xenserver-licenses ${RPM_BUI
 cp -r client/target/utilities/scripts/db/* ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/setup
 cp -r client/target/cloud-client-ui-%{_maventag}/* ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client
 
+# Append a release number into version info
+if [ -f "${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar" ] ; then
+    unzip -q ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar META-INF/MANIFEST.MF
+    sed -i 's/Implementation-Version: %{_ver}/Implementation-Version: %{_ver}-%{_rel}/g' META-INF/MANIFEST.MF
+    zip -qrum ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar META-INF/MANIFEST.MF
+    rmdir META-INF
+else
+   echo "File ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/lib/cloud-server-4.2.0.jar not found. I can't append the release number into version"
+fi
+
 # Don't package the scripts in the management webapp
 rm -rf ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/classes/scripts
 rm -rf ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/classes/vms

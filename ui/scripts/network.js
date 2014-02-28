@@ -150,7 +150,86 @@
                 return [];
             }
             
-            if (ipObj.issourcenat) { //sourceNAT IP doesn't support staticNAT
+            if (args.context.networks[0].networkofferingconservemode == false) {
+                /*
+                (1) If IP is SourceNat, no StaticNat/VPN/PortForwarding/LoadBalancer can be enabled/added.
+                */
+                if (ipObj.issourcenat == true) {
+                    disallowedActions.push('enableStaticNAT');
+                    disallowedActions.push('enableVPN');
+                }
+
+                /*
+                (2) If IP is non-SourceNat, show StaticNat/VPN/PortForwarding/LoadBalancer at first.
+                1. Once StaticNat is enabled, hide VPN/PortForwarding/LoadBalancer.
+                2. Once VPN is enabled, hide StaticNat/PortForwarding/LoadBalancer.
+                3. Once a PortForwarding rule is added, hide StaticNat/VPN/LoadBalancer.
+                4. Once a LoadBalancer rule is added, hide StaticNat/VPN/PortForwarding.
+                */
+                else { //ipObj.issourcenat == false
+                    if (ipObj.isstaticnat) { //1. Once StaticNat is enabled, hide VPN/PortForwarding/LoadBalancer.
+                        disallowedActions.push('enableVPN');
+                    }
+                    if (ipObj.vpnenabled) { //2. Once VPN is enabled, hide StaticNat/PortForwarding/LoadBalancer.
+                        disallowedActions.push('enableStaticNAT');
+                    }
+
+                    //3. Once a PortForwarding rule is added, hide StaticNat/VPN/LoadBalancer.
+                    $.ajax({
+                        url: createURL('listPortForwardingRules'),
+                        data: {
+                            ipaddressid: ipObj.id,
+                            listAll: true
+                        },
+                        dataType: 'json',
+                        async: false,
+                        success: function(json) {
+                            var rules = json.listportforwardingrulesresponse.portforwardingrule;
+                            if (rules != null && rules.length > 0) {
+                                disallowedActions.push('enableVPN');
+                                disallowedActions.push('enableStaticNAT');
+                            }
+                        }
+                    });
+
+                    //4. Once a LoadBalancer rule is added, hide StaticNat/VPN/PortForwarding.
+                    $.ajax({
+                        url: createURL('listLoadBalancerRules'),
+                        data: {
+                            publicipid: ipObj.id,
+                            listAll: true
+                        },
+                        dataType: 'json',
+                        async: false,
+                        success: function(json) {
+                            var rules = json.listloadbalancerrulesresponse.loadbalancerrule;
+                            if (rules != null && rules.length > 0) {
+                                disallowedActions.push('enableVPN');
+                                disallowedActions.push('enableStaticNAT');
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (ipObj.isstaticnat) {
+                disallowedActions.push('enableStaticNAT');
+            } else {
+                disallowedActions.push('disableStaticNAT');
+            }
+
+            if (ipObj.networkOfferingHavingVpnService == true) {
+                if (ipObj.vpnenabled) {
+                    disallowedActions.push('enableVPN');
+                } else {
+                    disallowedActions.push('disableVPN');
+                }
+            } else { //ipObj.networkOfferingHavingVpnService == false
+                disallowedActions.push('disableVPN');
+                disallowedActions.push('enableVPN');
+            }
+
+            if (ipObj.issourcenat) {
                 disallowedActions.push('enableStaticNAT');
                 disallowedActions.push('disableStaticNAT');
                 disallowedActions.push('remove');
@@ -401,40 +480,40 @@
                                         docID: 'helpGuestNetworkNetworkOffering',
                                         select: function(args) {   
                                             var data = {
-                                            	zoneid: args.zoneId,
+                                                zoneid: args.zoneId,
                                                 guestiptype: 'Isolated',
                                                 supportedServices: 'SourceNat',
                                                 state: 'Enabled',
                                             };
                                            
-                                            if ('vpc' in args.context) { //from VPC section                                            	
-                                            	$.extend(data, {
-                                            		forVpc: true
-                                            	});
+                                            if ('vpc' in args.context) { //from VPC section                                             
+                                                $.extend(data, {
+                                                    forVpc: true
+                                                });
                                             }
                                             else { //from guest network section
-                                            	var vpcs;
-                                            	$.ajax({
+                                                var vpcs;
+                                                $.ajax({
                                                     url: createURL('listVPCs'),
                                                     data: {
                                                         listAll: true
                                                     },
                                                     async: false,
-                                                    success: function(json) {                                                    	
-                                                    	vpcs = json.listvpcsresponse.vpc;                                                     	
+                                                    success: function(json) {                                                       
+                                                        vpcs = json.listvpcsresponse.vpc;                                                       
                                                     }
-                                                });                                            	
+                                                });                                             
                                                 if (vpcs == null || vpcs.length == 0) { //if there is no VPC in the system
-                                                	$.extend(data, {
-                                                		forVpc: false
-                                                	});
+                                                    $.extend(data, {
+                                                        forVpc: false
+                                                    });
                                                 }
                                             }
 
                                             if(!isAdmin()) { //normal user is not aware of the VLANs in the system, so normal user is not allowed to create network with network offerings whose specifyvlan = true 
-                                            	$.extend(data, {
-                                            		specifyvlan: false
-                                            	});
+                                                $.extend(data, {
+                                                    specifyvlan: false
+                                                });
                                             }
                                             
                                             $.ajax({
@@ -669,14 +748,13 @@
                             }
                         },
 
-                        // rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
-                        //     isHeader: true
-                        // })
+                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                             isHeader: true
+                        }),
 
-                        rootAdminAddNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
+                        addNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
                             isHeader: true
-                        })
-
+                        }),
                     },
                     id: 'networks',
                     fields: {
@@ -862,7 +940,7 @@
                                         if (args.context.networks[0].type == "Isolated") { //Isolated network
                                             cloudStack.dialog.confirm({
                                                 message: 'Do you want to keep the current guest network CIDR unchanged?',
-                                                action: function() { //"Yes"	button is clicked
+                                                action: function() { //"Yes"    button is clicked
                                                     $.extend(data, {
                                                         changecidr: false
                                                     });
@@ -1981,8 +2059,8 @@
                                 $.ajax({
                                     url: createURL('listZones'),
                                     data: dataObj,
-                                    //	  id: args.context.networks[0].zoneid
-                                    //	},
+                                    //    id: args.context.networks[0].zoneid
+                                    //  },
                                     async: false,
                                     success: function(json) {
                                         zoneObj = json.listzonesresponse.zone[0];
@@ -1999,29 +2077,29 @@
                                     
                                     var services = args.context.networks[0].service;
                                     if(services != null) {
-                                    	for(var i = 0; i < services.length; i++) {                                    		
-                                    		var thisService = services[i];
-                                    		var capabilities = thisService.capability;
-                                            if (thisService.name == "StaticNat") {                                            	
-                                            	if(capabilities != null) {
-                                            		for(var k = 0; k < capabilities.length; k++) {                                            			
-                                            			if (capabilities[k].name == "ElasticIp" && capabilities[k].value == "true") {                                            				
+                                        for(var i = 0; i < services.length; i++) {                                          
+                                            var thisService = services[i];
+                                            var capabilities = thisService.capability;
+                                            if (thisService.name == "StaticNat") {                                              
+                                                if(capabilities != null) {
+                                                    for(var k = 0; k < capabilities.length; k++) {                                                      
+                                                        if (capabilities[k].name == "ElasticIp" && capabilities[k].value == "true") {                                                           
                                                             havingEIP = true;
                                                             break; 
                                                         }
-                                            		}
-                                            	}                                     	
+                                                    }
+                                                }                                       
                                             } else if (thisService.name == "Lb") {
-                                            	if(capabilities != null) {
-                                            		for(var k = 0; k < capabilities.length; k++) {                                            			
-                                            			if (capabilities[k].name == "ElasticLb" && capabilities[k].value == "true") {                                            				
-                                            				havingELB = true;
+                                                if(capabilities != null) {
+                                                    for(var k = 0; k < capabilities.length; k++) {                                                      
+                                                        if (capabilities[k].name == "ElasticLb" && capabilities[k].value == "true") {                                                           
+                                                            havingELB = true;
                                                             break; 
                                                         }
-                                            		}
-                                            	}     
-                                            }                                    		
-                                    	}
+                                                    }
+                                                }     
+                                            }                                           
+                                        }
                                     }
                                     
                                     if (havingEIP != true || havingELB != true) { //not EIP-ELB
@@ -2050,26 +2128,26 @@
                             createForm: {
                                 title: 'label.acquire.new.ip',
                                 desc: 'Please confirm that you want to acquire new IP',
-                                preFilter: function(args) {                            	
-                                	$.ajax({
-                                		url: createURL('listRegions'),
-                                		success: function(json) {
-                                		    var items = json.listregionsresponse.region;	
-                                		    if(items != null) {
-                                		    	for(var i = 0; i < items.length; i++) {
-                                		    		var region = items[0];  
-                                		    		if(region.name == 'Local') {
-	                                    		    	if(region.portableipserviceenabled == true) {
-	                                    		    		args.$form.find('.form-item[rel=isportable]').css('display', 'inline-block');
-	                                    		    	} else {
-	                                    		    		args.$form.find('.form-item[rel=isportable]').hide();
-	                                    		    	}  
-	                                    		    	break;
-                                		    		}
-                                		    	}               		    	
-                                		    }
-                                		}                                		
-                                	});                                	
+                                preFilter: function(args) {                             
+                                    $.ajax({
+                                        url: createURL('listRegions'),
+                                        success: function(json) {
+                                            var items = json.listregionsresponse.region;    
+                                            if(items != null) {
+                                                for(var i = 0; i < items.length; i++) {
+                                                    var region = items[0];  
+                                                    if(region.name == 'Local') {
+                                                        if(region.portableipserviceenabled == true) {
+                                                            args.$form.find('.form-item[rel=isportable]').css('display', 'inline-block');
+                                                        } else {
+                                                            args.$form.find('.form-item[rel=isportable]').hide();
+                                                        }  
+                                                        break;
+                                                    }
+                                                }                               
+                                            }
+                                        }                                       
+                                    });                                 
                                 },
                                 fields: {
                                     isportable: {
@@ -2093,13 +2171,13 @@
                                 }
                             },
                             action: function(args) {
-                            	var dataObj = {};                            	
-                            	if (args.$form.find('.form-item[rel=isportable]').css("display") != "none") {
-                            		$.extend(dataObj, {
-                            			isportable: args.data.isportable
-                            		});                            	
-                            	}
-                            	                            	
+                                var dataObj = {};                               
+                                if (args.$form.find('.form-item[rel=isportable]').css("display") != "none") {
+                                    $.extend(dataObj, {
+                                        isportable: args.data.isportable
+                                    });                             
+                                }
+                                                                
                                 if ('vpc' in args.context) { //from VPC section
                                     $.extend(dataObj, {
                                         vpcid: args.context.vpc[0].id
@@ -2755,20 +2833,20 @@
                                         if (!('vpc' in args.context)) { //from Guest Network section
                                             var services = args.context.networks[0].service;
                                             if(services != null) {
-                                            	for(var i = 0; i < services.length; i++) {                                    		
-                                            		var thisService = services[i];
-                                            		if (thisService.name == "Firewall")
+                                                for(var i = 0; i < services.length; i++) {                                          
+                                                    var thisService = services[i];
+                                                    if (thisService.name == "Firewall")
                                                         havingFirewallService = true;
                                                     if (thisService.name == "PortForwarding")
                                                         havingPortForwardingService = true;
                                                     if (thisService.name == "Lb")
                                                         havingLbService = true;
                                                     if (thisService.name == "Vpn")
-                                                        havingVpnService = true;                                                                            		
-                                            	}
+                                                        havingVpnService = true;                                                                                    
+                                                }
                                             }  
                                         } else { //from VPC section
-                                        	//a VPC network from Guest Network section or from VPC section
+                                            //a VPC network from Guest Network section or from VPC section
                                             // Firewall is not supported in IP from VPC section
                                             // (because ACL has already supported in tier from VPC section)
                                             havingFirewallService = false;
@@ -2791,18 +2869,18 @@
                                                         var networkObj = json.listnetworksresponse.network[0];                                                    
                                                         var services = networkObj.service;
                                                         if(services != null) {
-                                                        	for(var i = 0; i < services.length; i++) {
-                                                        		if (services[i].name == "PortForwarding")
+                                                            for(var i = 0; i < services.length; i++) {
+                                                                if (services[i].name == "PortForwarding")
                                                                     havingPortForwardingService = true;
                                                                 if (services[i].name == "Lb")
                                                                     havingLbService = true;
-                                                        	}
+                                                            }
                                                         }   
                                                                                                                 
                                                         if (networkObj.networkofferingconservemode == false) {
                                                             /*
-                					                        (1) If IP is SourceNat, no StaticNat/VPN/PortForwarding/LoadBalancer can be enabled/added.
-                					                        */
+                                                            (1) If IP is SourceNat, no StaticNat/VPN/PortForwarding/LoadBalancer can be enabled/added.
+                                                            */
                                                             if (args.context.ipAddresses[0].issourcenat) {
                                                                 if (havingFirewallService == false) { //firewall is not supported in IP from VPC section (because ACL has already supported in tier from VPC section)
                                                                     disallowedActions.push("firewall");
@@ -2813,12 +2891,12 @@
                                                             }
 
                                                             /*
-                					                        (2) If IP is non-SourceNat, show StaticNat/VPN/PortForwarding/LoadBalancer at first.
-                					                        1. Once StaticNat is enabled, hide VPN/PortForwarding/LoadBalancer.
-                					                        2. If VPN service is supported (i.e. IP comes from Guest Network section, not from VPC section), once VPN is enabled, hide StaticNat/PortForwarding/LoadBalancer.
-                					                        3. Once a PortForwarding rule is added, hide StaticNat/VPN/LoadBalancer.
-                					                        4. Once a LoadBalancer rule is added, hide StaticNat/VPN/PortForwarding.
-                					                        */
+                                                            (2) If IP is non-SourceNat, show StaticNat/VPN/PortForwarding/LoadBalancer at first.
+                                                            1. Once StaticNat is enabled, hide VPN/PortForwarding/LoadBalancer.
+                                                            2. If VPN service is supported (i.e. IP comes from Guest Network section, not from VPC section), once VPN is enabled, hide StaticNat/PortForwarding/LoadBalancer.
+                                                            3. Once a PortForwarding rule is added, hide StaticNat/VPN/LoadBalancer.
+                                                            4. Once a LoadBalancer rule is added, hide StaticNat/VPN/PortForwarding.
+                                                            */
                                                             else { //args.context.ipAddresses[0].issourcenat == false
                                                                 if (havingFirewallService == false)
                                                                     disallowedActions.push("firewall");
@@ -6045,60 +6123,37 @@
         }
     };
 
-    function getExtaPropertiesForIpObj(ipObj, args) {	    
-        if (!('vpc' in args.context)) { //***** Guest Network section > Guest Network page > IP Address page *****          
-			var services = args.context.networks[0].service;
-			if(services != null) {
-				for(var i = 0; i < services.length; i++) {                                    		
-					var thisService = services[i];					
-					if (thisService.name == "Vpn") {
-					    ipObj.networkOfferingHavingVpnService = true; 
-						break;
-					}
-				}
-			}		
-			if (ipObj.networkOfferingHavingVpnService == true) {
-				$.ajax({
-					url: createURL('listRemoteAccessVpns'),
-					data: {
-						listAll: true,
-						publicipid: ipObj.id
-					},
-					async: false,
-					success: function(vpnResponse) {
-						var isVPNEnabled = vpnResponse.listremoteaccessvpnsresponse.count;
-						if (isVPNEnabled) {
-							ipObj.vpnenabled = true;
-							ipObj.remoteaccessvpn = vpnResponse.listremoteaccessvpnsresponse.remoteaccessvpn[0];
-						} else {
-							ipObj.vpnenabled = false;
-						}
-					}
-				});
-			}			
-        } else { //***** VPC section > Configuration VPC > Router > Public IP Addresses *****    
-        	//4.2 doesn't support VPN on VPC sourceNAT IP
-        	/*
-        	if (ipObj.issourcenat) { //VPC sourceNAT IP: supports VPN 
-        		$.ajax({
-					url: createURL('listRemoteAccessVpns'),
-					data: {
-						listAll: true,
-						publicipid: ipObj.id
-					},
-					async: false,
-					success: function(vpnResponse) {
-						var isVPNEnabled = vpnResponse.listremoteaccessvpnsresponse.count;
-						if (isVPNEnabled) {
-							ipObj.vpnenabled = true;
-							ipObj.remoteaccessvpn = vpnResponse.listremoteaccessvpnsresponse.remoteaccessvpn[0];
-						} else {
-							ipObj.vpnenabled = false;
-						}
-					}
-				});             		
-        	}
-        	*/ 
+    function getExtaPropertiesForIpObj(ipObj, args) {       
+        if (!('vpc' in args.context)) { //from Guest Network section            
+            var services = args.context.networks[0].service;
+            if(services != null) {
+                for(var i = 0; i < services.length; i++) {                                          
+                    var thisService = services[i];                  
+                    if (thisService.name == "Vpn") {
+                        ipObj.networkOfferingHavingVpnService = true; 
+                        break;
+                    }
+                }
+            }       
+            if (ipObj.networkOfferingHavingVpnService == true) {
+                $.ajax({
+                    url: createURL('listRemoteAccessVpns'),
+                    data: {
+                        listAll: true,
+                        publicipid: ipObj.id
+                    },
+                    async: false,
+                    success: function(vpnResponse) {
+                        var isVPNEnabled = vpnResponse.listremoteaccessvpnsresponse.count;
+                        if (isVPNEnabled) {
+                            ipObj.vpnenabled = true;
+                            ipObj.remoteaccessvpn = vpnResponse.listremoteaccessvpnsresponse.remoteaccessvpn[0];
+                        };
+                    }
+                });
+            }           
+        } else { //from VPC section            
+            ipObj.networkOfferingHavingVpnService = false; //VPN is not supported in IP in VPC, so hardcode it as false
         }
     }
 
