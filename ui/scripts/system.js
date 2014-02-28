@@ -1392,7 +1392,12 @@
                                         //scope: { label: 'label.scope' }
                                     },
                                     actions: {
-                                        add: addGuestNetworkDialog.def
+                                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                                            isHeader: true
+                                        }),
+                                        addNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
+                                            isHeader: true
+                                        })
                                     },
 
                                     dataProvider: function(args) {
