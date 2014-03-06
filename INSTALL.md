@@ -114,11 +114,11 @@ Install them to ~/.m2 so maven can get them as dependencies:
 
 To build with nonoss components, use the build command with the nonoss flag:
 
-    $ mvn clean install -P developer,systemvm,awsapi -Dnoredist -Dnonoss -DskipTests
+    $ mvn clean install -P systemvm,developer -Dnonoss
 
 Clear old database (if any) and deploy the database schema:
 
-    $ mvn -P developer -pl developer -Ddeploydb -Dnoredist -Dnonoss
+    $ mvn -P developer -pl developer -Ddeploydb
 
 Export the following variable if you need to run and debug the management server:
 
