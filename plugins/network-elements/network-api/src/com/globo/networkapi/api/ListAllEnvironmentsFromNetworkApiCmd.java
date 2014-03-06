@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.globo.networkapi.commands;
+package com.globo.networkapi.api;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.UserContext;
-import com.globo.networkapi.element.NetworkAPIService;
+import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.response.NetworkAPIEnvironmentExternalResponse;
 

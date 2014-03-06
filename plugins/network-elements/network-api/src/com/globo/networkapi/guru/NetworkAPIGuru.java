@@ -25,10 +25,10 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
-import com.globo.networkapi.element.NetworkAPIService;
+import com.globo.networkapi.manager.NetworkAPIService;
 
-public class NetworkAPINetworkGuru extends GuestNetworkGuru {
-    private static final Logger s_logger = Logger.getLogger(NetworkAPINetworkGuru.class);
+public class NetworkAPIGuru extends GuestNetworkGuru {
+    private static final Logger s_logger = Logger.getLogger(NetworkAPIGuru.class);
     
     // by default traffic type is TrafficType.Guest
     
@@ -39,7 +39,7 @@ public class NetworkAPINetworkGuru extends GuestNetworkGuru {
 
     protected NetworkType _networkType = NetworkType.Advanced;
     
-    public NetworkAPINetworkGuru() {
+    public NetworkAPIGuru() {
         _isolationMethods = new IsolationMethod[] { IsolationMethod.VLAN };
     }
     

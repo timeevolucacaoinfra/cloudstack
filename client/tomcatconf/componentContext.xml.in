@@ -52,12 +52,12 @@
   <!--
     NetworkAPI components
   -->
-  <bean id="NetworkAPIManager" class="com.globo.networkapi.element.NetworkAPIManager">
+  <bean id="NetworkAPIManager" class="com.globo.networkapi.manager.NetworkAPIManager">
   </bean>
   <bean id="NetworkAPIElement" class="com.globo.networkapi.element.NetworkAPIElement">
     <property name="name" value="NetworkAPI"/>
   </bean>
-  <bean id="NetworkAPIGuru" class="com.globo.networkapi.guru.NetworkAPINetworkGuru">
+  <bean id="NetworkAPIGuru" class="com.globo.networkapi.guru.NetworkAPIGuru">
     <property name="name" value="NetworkAPIGuru"/>
   </bean>
   <bean id="NetworkAPINetworkDao" class="com.globo.networkapi.dao.NetworkAPINetworkDaoImpl" />

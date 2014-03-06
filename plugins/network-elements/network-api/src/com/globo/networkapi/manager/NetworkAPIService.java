@@ -1,4 +1,4 @@
-package com.globo.networkapi.element;
+package com.globo.networkapi.manager;
 
 import java.util.List;
 
