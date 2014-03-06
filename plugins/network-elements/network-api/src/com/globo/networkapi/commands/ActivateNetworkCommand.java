@@ -2,13 +2,13 @@ package com.globo.networkapi.commands;
 
 import com.cloud.agent.api.Command;
 
-public class ActivateNetworkCmd extends Command {
+public class ActivateNetworkCommand extends Command {
 	
 	private long networkId;
 	
 	private long vlanId;
 
-	public ActivateNetworkCmd(long vlanId, long networkId) {
+	public ActivateNetworkCommand(long vlanId, long networkId) {
 		this.vlanId = vlanId;
 		this.networkId = networkId;
 	}

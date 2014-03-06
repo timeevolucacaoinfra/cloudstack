@@ -64,6 +64,7 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.google.gson.Gson;
 

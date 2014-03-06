@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.globo.networkapi.commands;
+package com.globo.networkapi.api;
 
 import javax.inject.Inject;
 
@@ -28,7 +28,6 @@ import org.apache.cloudstack.api.response.DomainResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
 import org.apache.cloudstack.api.response.NetworkOfferingResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
-import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.log4j.Logger;
@@ -41,21 +40,23 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.networkapi.element.NetworkAPIService;
+import com.globo.networkapi.manager.NetworkAPIService;
 
-@APICommand(name = "addNetworkApiVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from Network API")
-public class AddNetworkApiVlanCmd extends BaseCmd {
+@APICommand(name = "addNetworkViaNetworkApiCmd", responseObject=NetworkResponse.class, description="Adds a vlan/network in cloudstack and Network API")
+public class AddNetworkViaNetworkApiCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(AddNetworkApiVlanCmd.class.getName());
+    public static final Logger s_logger = Logger.getLogger(AddNetworkViaNetworkApiCmd.class.getName());
     private static final String s_name = "addnetworkapivlanresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
 
-    /* Parameters */
-    @Parameter(name=ApiConstants.VLAN_ID, type=CommandType.LONG, required = true, description="VLAN ID.")
-    private Long vlanId;
-    
+    @Parameter(name=ApiConstants.NAME, type=CommandType.STRING, required=true, description="the name of the network")
+    private String name;
+
+    @Parameter(name=ApiConstants.DISPLAY_TEXT, type=CommandType.STRING, required=true, description="the display text of the network")
+    private String displayText;
+
     @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
             required=true, description="the Zone ID for the network")
     private Long zoneId;
@@ -64,15 +65,12 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
             required=true, description="the network offering id")
     private Long networkOfferingId;
     
-    @Parameter(name=ApiConstants.PHYSICAL_NETWORK_ID, type=CommandType.UUID, entityType = PhysicalNetworkResponse.class,
-            required=true, description="the Physical Network ID the network belongs to")
-    private Long physicalNetworkId;
-
     @Parameter(name=ApiConstants.NETWORK_DOMAIN, type=CommandType.STRING, description="network domain")
     private String networkDomain;
-    
+
     @Parameter(name=ApiConstants.ACL_TYPE, type=CommandType.STRING, description="Access control type; supported values" +
-            " are account and domain.")
+            " are account and domain. In 3.0 all shared networks should have aclType=Domain, and all Isolated networks" +
+            " - Account. Account means that only the account owner can use the network, domain - all accouns in the domain can use the network")
     private String aclType;
 
     @Parameter(name=ApiConstants.ACCOUNT, type=CommandType.STRING, description="account who will own the network")
@@ -97,10 +95,8 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
             description="Network ACL Id associated for the network")
     private Long aclId;
 
-    /* Accessors */
-    public Long getVlanId() {
-        return vlanId;
-    }
+    @Parameter(name="napienvironmentid", type=CommandType.LONG, required = true, description="NetworkAPI environment ID.")
+    private Long napiEnvironmentId;
 
     public Long getZoneId() {
     	return zoneId;
@@ -110,28 +106,27 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     	return networkOfferingId;
     }
 
-    public Long getPhysicalNetworkId() {
-    	return physicalNetworkId;
-    }
-    
     public ACLType getACLType() {
-    	if ("account".equalsIgnoreCase(aclType)) {
-    		return ACLType.Account;
-    	} else if ("domain".equalsIgnoreCase(aclType)) {
-    		return ACLType.Domain;
-    	} else {
+    	if (aclType == null) {
     		return null;
     	}
+    	for (ACLType aclTypeEnum : ACLType.values()) {
+    		if (aclType.equalsIgnoreCase(aclTypeEnum.name())) {
+    			return aclTypeEnum;
+    		}
+    	}
+    	s_logger.warn("Invalid value for ACLType: " + aclType);
+    	return null;
     }
 
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
+        	s_logger.debug("addNetworkViaNetworkApiCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
-        			" domainId=" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid=" + napiEnvironmentId);
+        	Network network = _ntwkAPIService.createNetwork(name, displayText, zoneId, networkOfferingId, napiEnvironmentId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
