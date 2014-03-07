@@ -18,6 +18,7 @@ package org.apache.cloudstack.storage.snapshot;
 
 import javax.inject.Inject;
 
+import com.cloud.storage.*;
 import com.cloud.utils.db.DB;
 import org.apache.cloudstack.engine.subsystem.api.storage.*;
 import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine.Event;
@@ -31,9 +32,6 @@ import org.springframework.stereotype.Component;
 
 import com.cloud.configuration.dao.ConfigurationDao;
 import com.cloud.exception.InvalidParameterValueException;
-import com.cloud.storage.DataStoreRole;
-import com.cloud.storage.Snapshot;
-import com.cloud.storage.SnapshotVO;
 import com.cloud.storage.dao.SnapshotDao;
 import com.cloud.storage.snapshot.SnapshotManager;
 import com.cloud.utils.NumbersUtil;
@@ -197,7 +195,7 @@ public class XenserverSnapshotStrategy extends SnapshotStrategyBase {
             return true;
         }
 
-        if (!Snapshot.State.BackedUp.equals(snapshotVO.getState())) {
+        if (!Snapshot.State.BackedUp.equals(snapshotVO.getState()) && !Snapshot.State.Error.equals(snapshotVO.getState())) {
             throw new InvalidParameterValueException("Can't delete snapshotshot " + snapshotId
                     + " due to it is in " + snapshotVO.getState() + " Status");
         }
@@ -253,11 +251,28 @@ public class XenserverSnapshotStrategy extends SnapshotStrategyBase {
         }
 
         try {
-            SnapshotResult result =  snapshotSvr.takeSnapshot(snapshot);
-            if (result.isFailed()) {
-                s_logger.debug("Failed to take snapshot: " + result.getResult());
-                throw new CloudRuntimeException(result.getResult());
+            VolumeInfo volumeInfo = snapshot.getBaseVolume();
+            StoragePool store = (StoragePool)volumeInfo.getDataStore();
+            if (store != null && store.getStatus() != StoragePoolStatus.Up) {
+                snapshot.processEvent(Event.OperationFailed);
+                throw new CloudRuntimeException("store is not in up state");
             }
+            volumeInfo.stateTransit(Volume.Event.SnapshotRequested);
+            SnapshotResult result = null;
+            try {
+                result =  snapshotSvr.takeSnapshot(snapshot);
+                if (result.isFailed()) {
+                    s_logger.debug("Failed to take snapshot: " + result.getResult());
+                    throw new CloudRuntimeException(result.getResult());
+                }
+            } finally {
+                if (result != null && result.isSuccess()) {
+                    volumeInfo.stateTransit(Volume.Event.OperationSucceeded);
+                } else {
+                    volumeInfo.stateTransit(Volume.Event.OperationFailed);
+                }
+            }
+
             snapshot = result.getSnashot();
             DataStore primaryStore = snapshot.getDataStore();
 

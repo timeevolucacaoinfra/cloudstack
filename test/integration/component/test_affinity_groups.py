@@ -9,7 +9,7 @@
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required byswa applicable law or agreed to in writing,
+# Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 # KIND, either express or implied.  See the License for the
@@ -20,7 +20,7 @@ from marvin.cloudstackAPI import *
 from marvin.integration.lib.utils import *
 from marvin.integration.lib.base import *
 from marvin.integration.lib.common import *
-from marvin import remoteSSHClient
+from marvin.sshClient import SshClient
 from nose.plugins.attrib import attr
 
 class Services:

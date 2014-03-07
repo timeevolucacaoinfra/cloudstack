@@ -39,6 +39,7 @@ import org.apache.cloudstack.affinity.AffinityGroupService;
 import org.apache.cloudstack.affinity.AffinityGroupVO;
 import org.apache.cloudstack.affinity.dao.AffinityGroupDao;
 import org.apache.cloudstack.affinity.dao.AffinityGroupVMMapDao;
+import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.BaseCmd.HTTPMethod;
 import org.apache.cloudstack.api.command.admin.vm.AssignVMCmd;
 import org.apache.cloudstack.api.command.admin.vm.RecoverVMCmd;
@@ -61,6 +62,10 @@ import org.apache.cloudstack.engine.cloud.entity.api.VirtualMachineEntity;
 import org.apache.cloudstack.engine.service.api.OrchestrationService;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateDataFactory;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateInfo;
+import org.apache.cloudstack.engine.subsystem.api.storage.VolumeDataFactory;
+import org.apache.cloudstack.engine.subsystem.api.storage.VolumeService;
+import org.apache.cloudstack.engine.subsystem.api.storage.VolumeService.VolumeApiResult;
+import org.apache.cloudstack.framework.async.AsyncCallFuture;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.StoragePoolVO;
 import org.apache.cloudstack.storage.to.TemplateObjectTO;
@@ -429,6 +434,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
     PlannerHostReservationDao _plannerHostReservationDao;
     @Inject
     private ServiceOfferingDetailsDao serviceOfferingDetailsDao;
+    @Inject
+    VolumeService _volService;
+    @Inject
+    VolumeDataFactory volFactory;
 
     protected ScheduledExecutorService _executor = null;
     protected int _expungeInterval;
@@ -914,6 +923,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
         NetworkVO network = _networkDao.findById(networkId);
         if(network == null) {
             throw new InvalidParameterValueException("unable to find a network with id " + networkId);
+        }
+        if (!(network.getGuestType() == Network.GuestType.Shared && network.getAclType() == ACLType.Domain)
+                && !(network.getAclType() == ACLType.Account && network.getAccountId() == vmInstance.getAccountId())) {
+            throw new InvalidParameterValueException("only shared network or isolated network with the same account_id can be added to vmId: " + vmId);
         }
         List<NicVO> allNics = _nicDao.listByVmId(vmInstance.getId());
         for(NicVO nic : allNics){
@@ -1479,8 +1492,6 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
         }
 
         //Update Resource Count for the given account
-        _resourceLimitMgr.incrementResourceCount(account.getId(),
-                ResourceType.volume, new Long(volumes.size()));
         resourceCountIncrement(account.getId(), new Long(serviceOffering.getCpu()),
                 new Long(serviceOffering.getRamSize()));
         txn.commit();
@@ -1983,7 +1994,23 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
     @ActionEvent(eventType = EventTypes.EVENT_VM_DESTROY, eventDescription = "destroying Vm", async = true)
     public UserVm destroyVm(DestroyVMCmd cmd)
             throws ResourceUnavailableException, ConcurrentOperationException {
-        return destroyVm(cmd.getId());
+        UserContext ctx = UserContext.current();
+        long vmId = cmd.getId();
+        boolean expunge = cmd.getExpunge();
+        
+        if (!_accountMgr.isAdmin(ctx.getCaller().getType()) && expunge) {
+            throw new PermissionDeniedException("Parameter " + ApiConstants.EXPUNGE + " can be passed by Admin only");
+        }
+        
+        UserVm destroyedVm = destroyVm(vmId);
+        if (expunge) {
+            UserVmVO vm = _vmDao.findById(vmId);
+            if (!expunge(vm, ctx.getCallerUserId(), ctx.getCaller())) {
+                throw new CloudRuntimeException("Failed to expunge vm " + destroyedVm);
+            }
+        }
+        
+        return destroyedVm;
     }
 
     @Override
@@ -2662,7 +2689,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
                         + network.getId() + " doesn't belong to zone "
                         + zone.getId());
             }
-
+            if (!(network.getGuestType() == Network.GuestType.Shared && network.getAclType() == ACLType.Domain)
+                    && !(network.getAclType() == ACLType.Account && network.getAccountId() == accountId)) {
+                throw new InvalidParameterValueException("only shared network or isolated network with the same account_id can be added to vm");
+            }
             IpAddresses requestedIpPair = null;
             if (requestedIps != null && !requestedIps.isEmpty()) {
                 requestedIpPair = requestedIps.get(network.getId());
@@ -2838,7 +2868,6 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
         long guestOSCategoryId = guestOS.getCategoryId();
         GuestOSCategoryVO guestOSCategory = _guestOSCategoryDao.findById(guestOSCategoryId);
 
-
         // If hypervisor is vSphere and OS is OS X, set special settings.
         if (hypervisorType.equals(HypervisorType.VMware)) {
             if (guestOS.getDisplayName().toLowerCase().contains("apple mac os")){
@@ -2848,6 +2877,11 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
                 s_logger.info("guestOS is OSX : overwrite root disk controller to scsi, use smc and efi");
             }
        }
+
+        Map<String, String> details = template.getDetails();
+        if ( details != null && !details.isEmpty() ) {
+            vm.details.putAll(details);
+        }
 
         _vmDao.persist(vm);
         _vmDao.saveDetails(vm);
@@ -3520,7 +3554,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
 	        for (VmDiskStatsEntry vmDiskStat:vmDiskStats) {
                     SearchCriteria<VolumeVO> sc_volume = _volsDao.createSearchCriteria();
                     sc_volume.addAnd("path", SearchCriteria.Op.EQ, vmDiskStat.getPath());
-                    VolumeVO volume = _volsDao.search(sc_volume, null).get(0);
+                    List<VolumeVO> volumes = _volsDao.search(sc_volume, null);
+                    if ((volumes == null) || (volumes.size() == 0))
+                        break;
+                    VolumeVO volume = volumes.get(0);
 	            VmDiskStatisticsVO previousVmDiskStats = _vmDiskStatsDao.findBy(userVm.getAccountId(), userVm.getDataCenterId(), userVm.getId(), volume.getId());
 	            VmDiskStatisticsVO vmDiskStat_lock = _vmDiskStatsDao.lock(userVm.getAccountId(), userVm.getDataCenterId(), userVm.getId(), volume.getId());
 
@@ -4879,6 +4916,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
         } else {
             newVol = volumeMgr.allocateDuplicateVolume(root, null);
         }
+        // Save usage event and update resource count for user vm volumes
+        if (vm instanceof UserVm) {
+            _resourceLimitMgr.incrementResourceCount(vm.getAccountId(), ResourceType.volume);
+        }
 
         _volsDao.attachVolume(newVol.getId(), vmId, newVol.getDeviceId());
 
@@ -4886,6 +4927,17 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Use
 
         _volsDao.detachVolume(root.getId());
         volumeMgr.destroyVolume(root);
+
+        // For VMware hypervisor since the old root volume is replaced by the new root volume in storage, force expunge old root volume
+        if (vm.getHypervisorType() == HypervisorType.VMware) {
+            s_logger.info("Expunging volume " + root.getId() + " from primary data store");
+            AsyncCallFuture<VolumeApiResult> future = _volService.expungeVolumeAsync(volFactory.getVolume(root.getId()));
+            try {
+                future.get();
+            } catch (Exception e) {
+                s_logger.debug("Failed to expunge volume:" + root.getId(), e);
+            }
+        }
 
         if (template.getEnablePassword()) {
             String password = generateRandomPassword();

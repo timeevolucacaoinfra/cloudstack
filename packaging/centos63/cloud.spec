@@ -186,6 +186,8 @@ echo Doing CloudStack build
 cp packaging/centos63/replace.properties build/replace.properties
 echo VERSION=%{_maventag} >> build/replace.properties
 echo PACKAGE=%{name} >> build/replace.properties
+touch build/gitrev.txt
+echo $(git rev-parse HEAD) > build/gitrev.txt
 
 if [ "%{_ossnoss}" == "NONOSS" -o "%{_ossnoss}" == "nonoss" ] ; then
    echo "Executing mvn packaging for NONOSS ..."
@@ -213,6 +215,7 @@ mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}/sysconfig
 mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/scripts
 mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/vms
 mkdir -p ${RPM_BUILD_ROOT}%{python_sitearch}/
+mkdir -p ${RPM_BUILD_ROOT}%/usr/bin
 cp -r scripts/* ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/scripts
 install -D services/console-proxy/server/dist/systemvm.iso ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/vms/systemvm.iso
 install -D services/console-proxy/server/dist/systemvm.zip ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/vms/systemvm.zip
@@ -220,6 +223,8 @@ install python/lib/cloud_utils.py ${RPM_BUILD_ROOT}%{python_sitearch}/cloud_util
 cp -r python/lib/cloudutils ${RPM_BUILD_ROOT}%{python_sitearch}/
 python -m py_compile ${RPM_BUILD_ROOT}%{python_sitearch}/cloud_utils.py
 python -m compileall ${RPM_BUILD_ROOT}%{python_sitearch}/cloudutils
+cp build/gitrev.txt ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/scripts
+cp packaging/centos63/cloudstack-sccs ${RPM_BUILD_ROOT}/usr/bin
  
 mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/scripts/network/cisco
 cp -r plugins/network-elements/cisco-vnmc/scripts/network/cisco/* ${RPM_BUILD_ROOT}%{_datadir}/%{name}-common/scripts/network/cisco
@@ -470,6 +475,12 @@ else
     echo "Unable to determine ssl settings for tomcat.conf, please run cloudstack-setup-management manually"
 fi
 
+if [ -f "%{_sysconfdir}/cloud.rpmsave/management/cloud.keystore" ]; then
+    cp -p %{_sysconfdir}/cloud.rpmsave/management/cloud.keystore %{_sysconfdir}/%{name}/management/cloudmanagementserver.keystore
+    # make sure we only do this on the first install of this RPM, don't want to overwrite on a reinstall
+    mv %{_sysconfdir}/cloud.rpmsave/management/cloud.keystore %{_sysconfdir}/cloud.rpmsave/management/cloud.keystore.rpmsave
+fi
+
 %preun agent
 /sbin/service cloudstack-agent stop || true
 if [ "$1" == "0" ] ; then
@@ -487,6 +498,13 @@ fi
 
 %post agent
 if [ "$1" == "1" ] ; then
+    echo "Running %{_bindir}/%{name}-agent-upgrade to update bridge name for upgrade from CloudStack 4.0.x (and before) to CloudStack 4.1 (and later)"
+    %{_bindir}/%{name}-agent-upgrade
+    if [ ! -d %{_sysconfdir}/libvirt/hooks ] ; then
+        mkdir %{_sysconfdir}/libvirt/hooks
+    fi
+    cp -a ${RPM_BUILD_ROOT}%{_datadir}/%{name}-agent/lib/libvirtqemuhook %{_sysconfdir}/libvirt/hooks/qemu
+    /sbin/service libvirtd restart
     /sbin/chkconfig --add cloudstack-agent > /dev/null 2>&1 || true
     /sbin/chkconfig --level 345 cloudstack-agent on > /dev/null 2>&1 || true
 fi
@@ -499,11 +517,20 @@ if [ -f "%{_sysconfdir}/cloud.rpmsave/agent/agent.properties" ]; then
     mv %{_sysconfdir}/cloud.rpmsave/agent/agent.properties %{_sysconfdir}/cloud.rpmsave/agent/agent.properties.rpmsave
 fi
 
+%preun usage
+/sbin/service cloudstack-usage stop || true
+if [ "$1" == "0" ] ; then
+    /sbin/chkconfig --del cloudstack-usage > /dev/null 2>&1 || true
+    /sbin/service cloudstack-usage stop > /dev/null 2>&1 || true
+fi
+
 %post usage
 if [ -f "%{_sysconfdir}/%{name}/management/db.properties" ]; then
     echo Replacing db.properties with management server db.properties
     rm -f %{_sysconfdir}/%{name}/usage/db.properties
     ln -s %{_sysconfdir}/%{name}/management/db.properties %{_sysconfdir}/%{name}/usage/db.properties
+    /sbin/chkconfig --add cloudstack-usage > /dev/null 2>&1 || true
+    /sbin/chkconfig --level 345 cloudstack-usage on > /dev/null 2>&1 || true
 fi
 
 #%post awsapi
@@ -590,6 +617,7 @@ fi
 %dir %attr(0755,root,root) %{python_sitearch}/cloudutils
 %dir %attr(0755,root,root) %{_datadir}/%{name}-common/vms
 %attr(0755,root,root) %{_datadir}/%{name}-common/scripts
+%attr(0755,root,root) /usr/bin/cloudstack-sccs
 %attr(0644, root, root) %{_datadir}/%{name}-common/vms/systemvm.iso
 %attr(0644, root, root) %{_datadir}/%{name}-common/vms/systemvm.zip
 %attr(0644,root,root) %{python_sitearch}/cloud_utils.py

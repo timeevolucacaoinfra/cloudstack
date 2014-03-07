@@ -96,4 +96,28 @@ public class VMTemplateDetailsDaoImpl extends GenericDaoBase<VMTemplateDetailVO,
         }
         txn.commit();
     }
+    
+    @Override
+    public void addTemplateDetail(long templateId, String key, String value) {
+        VMTemplateDetailVO detail = findDetail(templateId, key);
+        if (detail == null) {
+            VMTemplateDetailVO newEntry = new VMTemplateDetailVO(templateId, key, value);
+            persist(newEntry);
+        } else {
+            detail.setValue(value);
+            update(detail.getId(), detail);
+        }
+    }
+    
+    @Override
+    public void removeDetails(long templateId, String key) {
+        if(key != null){
+            VMTemplateDetailVO detail = findDetail(templateId, key);
+            if(detail != null){
+                remove(detail.getId());
+            }
+        } else {
+            deleteDetails(templateId);
+        }
+    }
 }

@@ -26,21 +26,21 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import org.apache.cloudstack.engine.cloud.entity.api.VolumeEntity;
+import org.apache.cloudstack.engine.subsystem.api.storage.ChapInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.CopyCommandResult;
 import org.apache.cloudstack.engine.subsystem.api.storage.CreateCmdResult;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataMotionService;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataObject;
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStore;
+import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreDriver;
 import org.apache.cloudstack.engine.subsystem.api.storage.EndPoint;
 import org.apache.cloudstack.engine.subsystem.api.storage.EndPointSelector;
 import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine;
-import org.apache.cloudstack.engine.subsystem.api.storage.Scope;
 import org.apache.cloudstack.engine.subsystem.api.storage.ObjectInDataStoreStateMachine.Event;
-import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreDriver;
 import org.apache.cloudstack.engine.subsystem.api.storage.PrimaryDataStoreDriver;
+import org.apache.cloudstack.engine.subsystem.api.storage.Scope;
 import org.apache.cloudstack.engine.subsystem.api.storage.SnapshotInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateInfo;
-import org.apache.cloudstack.engine.subsystem.api.storage.ChapInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeDataFactory;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeInfo;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeService;
@@ -77,11 +77,12 @@ import com.cloud.host.Host;
 import com.cloud.storage.DataStoreRole;
 import com.cloud.storage.ScopeType;
 import com.cloud.storage.StoragePool;
+import com.cloud.storage.StoragePoolStatus;
 import com.cloud.storage.VMTemplateStoragePoolVO;
 import com.cloud.storage.VMTemplateStorageResourceAssoc;
 import com.cloud.storage.VMTemplateStorageResourceAssoc.Status;
-import com.cloud.storage.Volume.State;
 import com.cloud.storage.Volume;
+import com.cloud.storage.Volume.State;
 import com.cloud.storage.VolumeVO;
 import com.cloud.storage.dao.VMTemplatePoolDao;
 import com.cloud.storage.dao.VolumeDao;
@@ -226,7 +227,7 @@ public class VolumeServiceImpl implements VolumeService {
             return false;
         }
         VolumeDataStoreVO volumeStore = _volumeStoreDao.findByVolume(volumeId);
-        if (vol.getState() == State.Expunged && volumeStore == null) {
+        if ((vol.getState() == State.Expunged || (vol.getPodId() == null && vol.getState() == State.Destroy)) && volumeStore == null) {
             // volume is expunged from primary, as well as on secondary
             return true;
         } else {
@@ -264,18 +265,23 @@ public class VolumeServiceImpl implements VolumeService {
 
         String volumePath = vol.getPath();
         Long poolId = vol.getPoolId();
-        if (poolId == null || volumePath == null || volumePath.trim().isEmpty()) {
-            if (s_logger.isDebugEnabled()) {
-                s_logger.debug("Marking volume that was never created as destroyed: " + vol);
+        if (poolId == null || volumePath == null || volumePath.trim().isEmpty() ) {
+            // not created on primary store
+            if (volumeStore == null) {
+                // also not created on secondary store
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("Marking volume that was never created as destroyed: " + vol);
+                }
+                volDao.remove(vol.getId());
+                future.complete(result);
+                return future;
             }
-            volDao.remove(vol.getId());
-            future.complete(result);
-            return future;
         }
         VolumeObject vo = (VolumeObject) volume;
 
         if (volume.getDataStore().getRole() == DataStoreRole.Image) {
-            volume.processEvent(Event.DestroyRequested);
+            // no need to change state in volumes table
+            volume.processEventOnly(Event.DestroyRequested);
         } else if (volume.getDataStore().getRole() == DataStoreRole.Primary) {
             volume.processEvent(Event.ExpungeRequested);
         }
@@ -577,12 +583,12 @@ public class VolumeServiceImpl implements VolumeService {
     @Override
     @DB
     public boolean destroyVolume(long volumeId) throws ConcurrentOperationException {
-
+        // mark volume entry in volumes table as destroy state
         VolumeInfo vol = volFactory.getVolume(volumeId);
-        vol.processEvent(Event.DestroyRequested);
+        vol.stateTransit(Volume.Event.DestroyRequested);
         snapshotMgr.deletePoliciesForVolume(volumeId);
 
-        vol.processEvent(Event.OperationSuccessed);
+        vol.stateTransit(Volume.Event.OperationSucceeded);
 
         return true;
     }
@@ -718,7 +724,7 @@ public class VolumeServiceImpl implements VolumeService {
 
             srcVolume.processEvent(Event.OperationSuccessed);
             destVolume.processEvent(Event.OperationSuccessed, result.getAnswer());
-            // srcVolume.getDataStore().delete(srcVolume);
+            srcVolume.getDataStore().delete(srcVolume);
             future.complete(res);
         } catch (Exception e) {
             res.setResult(e.toString());
@@ -1297,22 +1303,14 @@ public class VolumeServiceImpl implements VolumeService {
 
     @Override
     public SnapshotInfo takeSnapshot(VolumeInfo volume) {
-        VolumeObject vol = (VolumeObject) volume;
-        boolean result = vol.stateTransit(Volume.Event.SnapshotRequested);
-        if (!result) {
-            s_logger.debug("Failed to transit state");
-        }
+
+
+
         SnapshotInfo snapshot = null;
         try {
             snapshot = snapshotMgr.takeSnapshot(volume);
         } catch (Exception e) {
             s_logger.debug("Take snapshot: " + volume.getId() + " failed", e);
-        } finally {
-            if (snapshot != null) {
-                vol.stateTransit(Volume.Event.OperationSucceeded);
-            } else {
-                vol.stateTransit(Volume.Event.OperationFailed);
-            }
         }
 
         return snapshot;

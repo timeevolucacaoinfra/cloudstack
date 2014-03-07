@@ -1185,7 +1185,7 @@ class TestResourceLimitsDomain(cloudstackTestCase):
                               self.apiclient,
                               2, # Volume
                               domainid=self.account.domainid,
-                              max=2
+                              max=1
                               )
 
         self.debug("Deploying VM for account: %s" % self.account.name)
@@ -1401,7 +1401,7 @@ class TestMaxAccountNetworks(cloudstackTestCase):
         return
 
     @attr(tags=["advanced", "advancedns", "simulator",
-                "api", "basic", "eip", "sg"])
+                "api", "eip"])
     def test_maxAccountNetworks(self):
         """Test Limit number of guest account specific networks
         """

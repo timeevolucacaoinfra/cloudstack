@@ -39,7 +39,7 @@ import com.cloud.uservm.UserVm;
 public class AssignVMCmd extends BaseCmd  {
     public static final Logger s_logger = Logger.getLogger(AssignVMCmd.class.getName());
 
-    private static final String s_name = "moveuservmresponse";
+    private static final String s_name = "assignvirtualmachineresponse";
 
     /////////////////////////////////////////////////////
     //////////////// API parameters /////////////////////
@@ -107,7 +107,7 @@ public class AssignVMCmd extends BaseCmd  {
                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to move vm");
            }
            UserVmResponse response = _responseGenerator.createUserVmResponse("virtualmachine", userVm).get(0);
-           response.setResponseName(DeployVMCmd.getResultObjectName());
+           response.setResponseName(getCommandName());
            this.setResponseObject(response);
         }catch (Exception e){
             e.printStackTrace();

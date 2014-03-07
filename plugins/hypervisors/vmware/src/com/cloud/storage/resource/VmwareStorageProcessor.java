@@ -173,7 +173,9 @@ public class VmwareStorageProcessor implements StorageProcessor {
         }
 
         if(vmMo.createSnapshot("cloud.template.base", "Base snapshot", false, false)) {
-            vmMo.setCustomFieldValue(CustomFieldConstants.CLOUD_UUID, templateUuid);
+        	// the same template may be deployed with multiple copies at per-datastore per-host basis,
+        	// save the original template name from CloudStack DB as the UUID to associate them.
+            vmMo.setCustomFieldValue(CustomFieldConstants.CLOUD_UUID, templateName);
             vmMo.markAsTemplate();
         } else {
             vmMo.destroy();
@@ -358,11 +360,6 @@ public class VmwareStorageProcessor implements StorageProcessor {
                         vmMo.createDisk(volumeDatastorePath, (int) (volume.getSize() / (1024L * 1024L)), morDatastore, -1);
                         vmMo.detachDisk(volumeDatastorePath, false);
                     }
-
-                    VolumeObjectTO newVol = new VolumeObjectTO();
-                    newVol.setPath(vmdkName);
-                    newVol.setSize(volume.getSize());
-                    return new CopyCmdAnswer(newVol);
                 } finally {
                     vmMo.detachAllDisks();
 
@@ -396,11 +393,17 @@ public class VmwareStorageProcessor implements StorageProcessor {
 
                 String srcFile = dsMo.getDatastorePath(vmdkName, true);
                 dsMo.deleteFile(srcFile, dcMo.getMor(), true);
-                VolumeObjectTO newVol = new VolumeObjectTO();
-                newVol.setPath(vmdkName);
-                newVol.setSize(volume.getSize());
-                return new CopyCmdAnswer(newVol);
             }
+            // restoreVM - move the new ROOT disk into corresponding VM folder
+            String vmInternalCSName = volume.getVmName();
+            if (dsMo.folderExists(String.format("[%s]", dsMo.getName()), vmInternalCSName)) {
+                    VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmInternalCSName, dsMo, vmdkName);
+            }
+
+            VolumeObjectTO newVol = new VolumeObjectTO();
+            newVol.setPath(vmdkName);
+            newVol.setSize(volume.getSize());
+            return new CopyCmdAnswer(newVol);
         } catch (Throwable e) {
             if (e instanceof RemoteException) {
                 s_logger.warn("Encounter remote exception to vCenter, invalidate VMware session context");
@@ -658,15 +661,10 @@ public class VmwareStorageProcessor implements StorageProcessor {
             }
 
             // 4 MB is the minimum requirement for VM memory in VMware
-            vmMo.cloneFromCurrentSnapshot(workerVmName, 0, 4, volumeDeviceInfo.second(),
+            Pair<VirtualMachineMO, String[]> cloneResult = vmMo.cloneFromCurrentSnapshot(workerVmName, 0, 4, volumeDeviceInfo.second(),
                     VmwareHelper.getDiskDeviceDatastore(volumeDeviceInfo.first()));
-            clonedVm = vmMo.getRunningHost().findVmOnHyperHost(workerVmName);
-            if(clonedVm == null) {
-                String msg = "Unable to create dummy VM to export volume. volume path: " + volumePath;
-                s_logger.error(msg);
-                throw new Exception(msg);
-            }
-
+            clonedVm = cloneResult.first();
+            
             clonedVm.exportVm(secondaryMountPoint + "/" + installPath, templateUniqueName, true, false);
 
             long physicalSize = new File(installFullPath + "/" + templateUniqueName + ".ova").length();
@@ -982,17 +980,12 @@ public class VmwareStorageProcessor implements StorageProcessor {
             }
 
             // 4 MB is the minimum requirement for VM memory in VMware
-            String disks[] = vmMo.cloneFromCurrentSnapshot(workerVmName, 0, 4, volumeDeviceInfo.second(),
-                    VmwareHelper.getDiskDeviceDatastore(volumeDeviceInfo.first()));
-            clonedVm = vmMo.getRunningHost().findVmOnHyperHost(workerVmName);
-            if(clonedVm == null) {
-                String msg = "Unable to create dummy VM to export volume. volume path: " + volumePath;
-                s_logger.error(msg);
-                throw new Exception(msg);
-            }
+            Pair<VirtualMachineMO, String[]> cloneResult = vmMo.cloneFromCurrentSnapshot(workerVmName, 0, 4, volumeDeviceInfo.second(),
+                VmwareHelper.getDiskDeviceDatastore(volumeDeviceInfo.first()));
+            clonedVm = cloneResult.first();
+            String disks[] = cloneResult.second();
 
             clonedVm.exportVm(exportPath, exportName, false, false);
-            
             return new Pair<String, String[]>(volumeDeviceInfo.second(), disks);
         } finally {
             if(clonedVm != null) {

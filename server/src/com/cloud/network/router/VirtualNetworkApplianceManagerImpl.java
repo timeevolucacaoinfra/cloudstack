@@ -189,6 +189,7 @@ import com.cloud.network.rules.StaticNat;
 import com.cloud.network.rules.StaticNatImpl;
 import com.cloud.network.rules.StaticNatRule;
 import com.cloud.network.rules.dao.PortForwardingRulesDao;
+import com.cloud.network.rules.FirewallRuleVO;
 import com.cloud.network.vpn.Site2SiteVpnManager;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.offering.ServiceOffering;
@@ -1421,6 +1422,26 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         throw new CloudRuntimeException(errMsg);
     }
 
+    private void checkAndResetPriorityOfRedundantRouter(List<DomainRouterVO> routers) {
+    	boolean allStopped = true;
+    	for (DomainRouterVO router : routers) {
+    		if (!router.getIsRedundantRouter() || router.getState() != VirtualMachine.State.Stopped) {
+    			allStopped = false;
+    			break;
+    		}
+    	}
+    	if (!allStopped) {
+    		return;
+    	}
+    	
+    	for (DomainRouterVO router : routers) {
+    		// getUpdatedPriority() would update the value later
+    		router.setPriority(0);
+    		router.setIsPriorityBumpUp(false);
+    		_routerDao.update(router.getId(), router);
+    	}
+    }
+    
     @DB
     protected List<DomainRouterVO> findOrDeployVirtualRouterInGuestNetwork(Network guestNetwork, DeployDestination dest, Account owner,
             boolean isRedundant, Map<Param, Object> params) throws ConcurrentOperationException, 
@@ -1491,6 +1512,10 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             int routerCount = 1;
             if (isRedundant) {
                 routerCount = 2;
+                //Check current redundant routers, if possible(all routers are stopped), reset the priority
+                if (routers.size() != 0) {
+              	    checkAndResetPriorityOfRedundantRouter(routers);
+                }
             }
         
                 // If old network is redundant but new is single router, then routers.size() = 2 but routerCount = 1
@@ -2770,12 +2795,11 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     @Override
-    public boolean configDhcpForSubnet(Network network, final NicProfile nic, VirtualMachineProfile<UserVm> profile, DeployDestination dest, List<DomainRouterVO> routers) throws ResourceUnavailableException {
+    public boolean configDhcpForSubnet(Network network, final NicProfile nic, VirtualMachineProfile<UserVm> profile, DeployDestination dest, List<DomainRouterVO> routers)
+            throws ResourceUnavailableException {
         _userVmDao.loadDetails((UserVmVO) profile.getVirtualMachine());
 
         final VirtualMachineProfile<UserVm> updatedProfile = profile;
-        final boolean isZoneBasic = (dest.getDataCenter().getNetworkType() == NetworkType.Basic);
-        final Long podId = isZoneBasic ? dest.getPod().getId() : null;
 
         //Asuming we have only one router per network For Now.
         DomainRouterVO router = routers.get(0);
@@ -3346,7 +3370,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         List<VpnUser> addUsers = new ArrayList<VpnUser>();
         List<VpnUser> removeUsers = new ArrayList<VpnUser>();
         for (VpnUser user : vpnUsers) {
-            if (user.getState() == VpnUser.State.Add) {
+            if (user.getState() == VpnUser.State.Add || user.getState() == VpnUser.State.Active) {
                 addUsers.add(user);
             } else if (user.getState() == VpnUser.State.Revoke) {
                 removeUsers.add(user);
@@ -3378,12 +3402,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
         // password should be set only on default network element
         if (password != null && nic.isDefaultNic()) {
-            String encodedPassword = PasswordGenerator.rot13(password);
-            // We would unset password for BACKUP router in the RvR, to prevent user from accidently reset the 
-            // password again after BACKUP become MASTER
-            if (router.getIsRedundantRouter() && router.getRedundantState() != RedundantState.MASTER) {
-            	encodedPassword = PasswordGenerator.rot13("saved_password");
-            }
+            final String encodedPassword = PasswordGenerator.rot13(password);
             SavePasswordCommand cmd = new SavePasswordCommand(encodedPassword, nic.getIp4Address(), profile.getVirtualMachine().getHostName(), _networkModel.getExecuteInSeqNtwkElmtCmd());
             cmd.setAccessDetail(NetworkElementCommand.ROUTER_IP, getRouterControlIp(router.getId()));
             cmd.setAccessDetail(NetworkElementCommand.ROUTER_GUEST_IP, getRouterIpInNetwork(nic.getNetworkId(), router.getId()));
@@ -3713,6 +3732,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             }
             rulesTO = new ArrayList<FirewallRuleTO>();
             for (FirewallRule rule : rules) {
+                _rulesDao.loadSourceCidrs((FirewallRuleVO)rule);
                 FirewallRule.TrafficType traffictype = rule.getTrafficType();
                 if(traffictype == FirewallRule.TrafficType.Ingress){
                     IpAddress sourceIp = _networkModel.getIp(rule.getSourceIpAddressId());

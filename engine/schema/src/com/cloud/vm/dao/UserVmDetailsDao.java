@@ -29,4 +29,8 @@ public interface UserVmDetailsDao extends GenericDao<UserVmDetailVO, Long> {
     UserVmDetailVO findDetail(long vmId, String name);
     
 	void deleteDetails(long vmId);
+	
+    void addVmDetail(long vmId, String key, String value);
+    
+    void removeDetails(long vmId, String key);
 }

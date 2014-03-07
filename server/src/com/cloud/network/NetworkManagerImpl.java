@@ -508,7 +508,7 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
         }
         addr.setState(assign ? IpAddress.State.Allocated : IpAddress.State.Allocating);
 
-        if (vlanUse != VlanType.DirectAttached || zone.getNetworkType() == NetworkType.Basic) {
+        if (vlanUse != VlanType.DirectAttached) {
             addr.setAssociatedWithNetworkId(guestNetworkId);
             addr.setVpcId(vpcId);
         }
@@ -551,7 +551,7 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
                         addr.getSystem(), addr.getClass().getName(), addr.getUuid());
             }
             // don't increment resource count for direct and dedicated ip addresses
-            if (addr.getAssociatedWithNetworkId() != null && !isIpDedicated(addr)) {
+            if (updateIpResourceCount(addr)) {
                 _resourceLimitMgr.incrementResourceCount(owner.getId(), ResourceType.public_ip);
             }
         }
@@ -970,14 +970,23 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
             }
         }
 
-        // In Advance zone only allow to do IP assoc
-        //      - for Isolated networks with source nat service enabled
-        //      - for shared networks with source nat service enabled
-        if (zone.getNetworkType() == NetworkType.Advanced &&
-            !(_networkModel.areServicesSupportedInNetwork(network.getId(), Service.SourceNat))) {
-            throw new InvalidParameterValueException("In zone of type " + NetworkType.Advanced +
-                    " ip address can be associated only to the network of guest type " + GuestType.Isolated + " with the "
-                    + Service.SourceNat.getName() + " enabled");
+        if (zone.getNetworkType() == NetworkType.Advanced) {
+            // In Advance zone allow to do IP assoc only for Isolated networks with source nat service enabled
+            if (network.getGuestType() == GuestType.Isolated &&
+                    !(_networkModel.areServicesSupportedInNetwork(network.getId(), Service.SourceNat))) {
+                throw new InvalidParameterValueException("In zone of type " + NetworkType.Advanced +
+                        " ip address can be associated only to the network of guest type " + GuestType.Isolated +
+                        " with the " + Service.SourceNat.getName() + " enabled");
+            }
+
+            // In Advance zone allow to do IP assoc only for shared networks with source nat/static nat/lb/pf services enabled
+            if (network.getGuestType() == GuestType.Shared &&
+                    !isSharedNetworkOfferingWithServices(network.getNetworkOfferingId())) {
+                throw new InvalidParameterValueException("In zone of type " + NetworkType.Advanced +
+                        " ip address can be associated with network of guest type " + GuestType.Shared + "only if at " +
+                        "least one of the services "  + Service.SourceNat.getName() + "/" + Service.StaticNat.getName() + "/"
+                        + Service.Lb.getName() + "/" + Service.PortForwarding.getName() + " is enabled");
+            }
         }
 
         NetworkOffering offering = _networkOfferingDao.findById(network.getNetworkOfferingId());
@@ -2519,6 +2528,10 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
     }
 
     public boolean isDhcpAccrossMultipleSubnetsSupported(Network network) {
+        if (!_networkModel.areServicesSupportedInNetwork(network.getId(), Service.Dhcp)) {
+        	return false;
+        }
+    	
         DhcpServiceProvider dhcpServiceProvider = getDhcpServiceProvider(network);
         Map <Network.Capability, String> capabilities = dhcpServiceProvider.getCapabilities().get(Network.Service.Dhcp);
         String supportsMultipleSubnets = capabilities.get(Network.Capability.DhcpAccrossMultipleSubnets);
@@ -3779,7 +3792,7 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
             txn.start();
 
             // don't decrement resource count for direct and dedicated ips
-            if (ip.getAssociatedWithNetworkId() != null && !isIpDedicated(ip)) {
+            if (updateIpResourceCount(ip)) {
                 _resourceLimitMgr.decrementResourceCount(_ipAddressDao.findById(addrId).getAllocatedToAccountId(), ResourceType.public_ip);
             }
 
@@ -3803,7 +3816,10 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
 
         return ip;
     }
-
+    
+    protected boolean updateIpResourceCount(IPAddressVO ip) {
+        return (ip.getAssociatedWithNetworkId() != null || ip.getVpcId() != null) && !isIpDedicated(ip);
+    }
     
 
     Random _rand = new Random(System.currentTimeMillis());
@@ -4489,7 +4505,10 @@ public class NetworkManagerImpl extends ManagerBase implements NetworkManager, L
     			//nic.setBroadcastType(BroadcastDomainType.Vlan);
     			//nic.setBroadcastUri(BroadcastDomainType.Vlan.toUri(ip.getVlanTag()));
     			nic.setBroadcastType(network.getBroadcastDomainType());
-    			nic.setBroadcastUri(network.getBroadcastUri());
+    			if (network.getBroadcastUri() != null)
+    			    nic.setBroadcastUri(network.getBroadcastUri());
+    			else
+    			    nic.setBroadcastUri(BroadcastDomainType.Vlan.toUri(ip.getVlanTag()));
     			nic.setFormat(AddressFormat.Ip4);
     			nic.setReservationId(String.valueOf(ip.getVlanTag()));
     			nic.setMacAddress(ip.getMacAddress());

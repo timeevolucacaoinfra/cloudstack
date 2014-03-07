@@ -20,7 +20,7 @@
 import marvin
 from marvin.cloudstackTestCase import *
 from marvin.cloudstackAPI import *
-from marvin import remoteSSHClient
+from marvin.sshClient import SshClient
 from marvin.integration.lib.utils import *
 from marvin.integration.lib.base import *
 from marvin.integration.lib.common import *
@@ -201,16 +201,17 @@ class TestRouterServices(cloudstackTestCase):
                                     router.linklocalip,
                                     "service dnsmasq status"
                                     )
-                res = str(result)
-                self.debug("Dnsmasq process status: %s" % res)
 
-                self.assertEqual(
-                                res.count("running"),
-                                1,
-                                "Check dnsmasq service is running or not"
-                        )
             except KeyError:
                 self.skipTest("Marvin configuration has no host credentials to check router services")
+        res = str(result)
+        self.debug("Dnsmasq process status: %s" % res)
+
+        self.assertEqual(
+            res.count("running"),
+            1,
+            "Check dnsmasq service is running or not"
+        )
         return
 
 

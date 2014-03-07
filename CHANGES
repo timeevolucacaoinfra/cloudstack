@@ -4,12 +4,24 @@ Apache CloudStack CHANGES
 Full release notes for each release are located in the project's documentation website:  
 http://cloudstack.apache.org/docs
 
+Version 4.2.1
+------------------------
+
+Important Fixes:
+
+*CLOUDSTACK-4817: Configurable option to choose single vs multipart upload for S3 API
+*CLOUDSTACK-4717: Allow network with public IP Address without needing SourceNAT
+*CLOUDSTACK-4649: Device Id Changes for Xen
+*CLOUDSTACK-4816: Provide configurable option to choose single vs multipart upload to S3 object storage
+*CLOUDSTACK-3677: Xenserver VMSnapshot
+*CLOUDSTACK-723:  UCS rework
+
+The exhaustive list of known issues and fixes is in Release Notes.
+
 Version 4.2.0
 ------------------------
 
 Please check the release notes for details
-
-
 
 
 Version 4.1.0

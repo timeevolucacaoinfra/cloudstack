@@ -542,9 +542,9 @@ public class CapacityManagerImpl extends ManagerBase implements CapacityManager,
         ClusterDetailsVO clusterDetailRam = _clusterDetailsDao.findDetail(cluster.getId(), "memoryOvercommitRatio");
         Float clusterCpuOvercommitRatio = Float.parseFloat(clusterDetailCpu.getValue());
         Float clusterRamOvercommitRatio = Float.parseFloat(clusterDetailRam.getValue());
-        Float cpuOvercommitRatio = 1f;
-        Float ramOvercommitRatio = 1f;
         for (VMInstanceVO vm : vms) {
+            Float cpuOvercommitRatio = 1f;
+            Float ramOvercommitRatio = 1f;
             UserVmDetailVO vmDetailCpu = _userVmDetailsDao.findDetail(vm.getId(), "cpuOvercommitRatio");
             UserVmDetailVO vmDetailRam = _userVmDetailsDao.findDetail(vm.getId(),"memoryOvercommitRatio");
             if (vmDetailCpu != null ) {
@@ -562,6 +562,8 @@ public class CapacityManagerImpl extends ManagerBase implements CapacityManager,
             s_logger.debug("Found " + vmsByLastHostId.size() + " VM, not running on host " + host.getId());
         }
         for (VMInstanceVO vm : vmsByLastHostId) {
+            Float cpuOvercommitRatio = 1f;
+            Float ramOvercommitRatio = 1f;
             long secondsSinceLastUpdate = (DateUtil.currentGMTTime().getTime() - vm.getUpdateTime().getTime()) / 1000;
             if (secondsSinceLastUpdate < _vmCapacityReleaseInterval) {
                 UserVmDetailVO vmDetailCpu = _userVmDetailsDao.findDetail(vm.getId(), "cpuOvercommitRatio");
@@ -595,34 +597,60 @@ public class CapacityManagerImpl extends ManagerBase implements CapacityManager,
         CapacityVO memCap = _capacityDao.findByHostIdType(host.getId(), CapacityVO.CAPACITY_TYPE_MEMORY);
 
         if (cpuCap != null && memCap != null){
+            if ( host.getTotalMemory() != null ) {
+                memCap.setTotalCapacity(host.getTotalMemory());
+            }
+            long hostTotalCpu = host.getCpus().longValue() * host.getSpeed().longValue();
+
+            if (cpuCap.getTotalCapacity() != hostTotalCpu) {
+                s_logger.debug("Calibrate total cpu for host: " + host.getId() + " old total CPU:"
+                        + cpuCap.getTotalCapacity() + " new total CPU:" + hostTotalCpu);
+                cpuCap.setTotalCapacity(hostTotalCpu);
+
+            }
+
         	if (cpuCap.getUsedCapacity() == usedCpu && cpuCap.getReservedCapacity() == reservedCpu) {
         		s_logger.debug("No need to calibrate cpu capacity, host:" + host.getId() + " usedCpu: " + cpuCap.getUsedCapacity()
         				+ " reservedCpu: " + cpuCap.getReservedCapacity());
-        	} else if (cpuCap.getReservedCapacity() != reservedCpu) {
-        		s_logger.debug("Calibrate reserved cpu for host: " + host.getId() + " old reservedCpu:" + cpuCap.getReservedCapacity()
-        				+ " new reservedCpu:" + reservedCpu);
-        		cpuCap.setReservedCapacity(reservedCpu);
-        	} else if (cpuCap.getUsedCapacity() != usedCpu) {
-        		s_logger.debug("Calibrate used cpu for host: " + host.getId() + " old usedCpu:" + cpuCap.getUsedCapacity() + " new usedCpu:"
-        				+ usedCpu);
-        		cpuCap.setUsedCapacity(usedCpu);
+            } else {
+                if (cpuCap.getReservedCapacity() != reservedCpu) {
+                    s_logger.debug("Calibrate reserved cpu for host: " + host.getId() + " old reservedCpu:"
+                            + cpuCap.getReservedCapacity() + " new reservedCpu:" + reservedCpu);
+                    cpuCap.setReservedCapacity(reservedCpu);
+                }
+                if (cpuCap.getUsedCapacity() != usedCpu) {
+                    s_logger.debug("Calibrate used cpu for host: " + host.getId() + " old usedCpu:"
+                            + cpuCap.getUsedCapacity() + " new usedCpu:" + usedCpu);
+                    cpuCap.setUsedCapacity(usedCpu);
+                }
         	}
+
+            if (memCap.getTotalCapacity() != host.getTotalMemory()) {
+                s_logger.debug("Calibrate total memory for host: " + host.getId() + " old total memory:"
+                        + memCap.getTotalCapacity() + " new total memory:" + host.getTotalMemory());
+                memCap.setTotalCapacity(host.getTotalMemory());
+
+            }
 
 	        if (memCap.getUsedCapacity() == usedMemory && memCap.getReservedCapacity() == reservedMemory) {
 	            s_logger.debug("No need to calibrate memory capacity, host:" + host.getId() + " usedMem: " + memCap.getUsedCapacity()
 	                    + " reservedMem: " + memCap.getReservedCapacity());
-	        } else if (memCap.getReservedCapacity() != reservedMemory) {
-	            s_logger.debug("Calibrate reserved memory for host: " + host.getId() + " old reservedMem:" + memCap.getReservedCapacity()
-	                    + " new reservedMem:" + reservedMemory);
-	            memCap.setReservedCapacity(reservedMemory);
-	        } else if (memCap.getUsedCapacity() != usedMemory) {
-	            /*
-	             * Didn't calibrate for used memory, because VMs can be in state(starting/migrating) that I don't know on which host they are
-	             * allocated
-	             */
-	            s_logger.debug("Calibrate used memory for host: " + host.getId() + " old usedMem: " + memCap.getUsedCapacity()
-	                    + " new usedMem: " + usedMemory);
-	            memCap.setUsedCapacity(usedMemory);
+            } else {
+                if (memCap.getReservedCapacity() != reservedMemory) {
+                    s_logger.debug("Calibrate reserved memory for host: " + host.getId() + " old reservedMem:"
+                            + memCap.getReservedCapacity() + " new reservedMem:" + reservedMemory);
+                    memCap.setReservedCapacity(reservedMemory);
+                }
+                if (memCap.getUsedCapacity() != usedMemory) {
+                    /*
+                     * Didn't calibrate for used memory, because VMs can be in
+                     * state(starting/migrating) that I don't know on which host
+                     * they are allocated
+                     */
+                    s_logger.debug("Calibrate used memory for host: " + host.getId() + " old usedMem: "
+                            + memCap.getUsedCapacity() + " new usedMem: " + usedMemory);
+                    memCap.setUsedCapacity(usedMemory);
+                }
 	        }
 
 	        try {

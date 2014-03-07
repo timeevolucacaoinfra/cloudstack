@@ -83,7 +83,7 @@ public class Upgrade410to420 implements DbUpgrade {
         createPlaceHolderNics(conn);
         updateRemoteAccessVpn(conn);
         updateSystemVmTemplates(conn);
-        updateCluster_details(conn);
+        updateOverCommitRatioClusterDetails(conn);
         updatePrimaryStore(conn);
         addEgressFwRulesForSRXGuestNw(conn);
         upgradeEIPNetworkOfferings(conn);
@@ -899,7 +899,7 @@ public class Upgrade410to420 implements DbUpgrade {
     }
 
     //update the cluster_details table with default overcommit ratios.
-    private void updateCluster_details(Connection conn) {
+    private void updateOverCommitRatioClusterDetails(Connection conn) {
         PreparedStatement pstmt = null;
         PreparedStatement pstmt1 = null;
         PreparedStatement pstmt2 =null;
@@ -908,7 +908,7 @@ public class Upgrade410to420 implements DbUpgrade {
         ResultSet rscpu_global = null;
         ResultSet rsmem_global = null;
         try {
-            pstmt = conn.prepareStatement("select id, hypervisor_type from `cloud`.`cluster`");
+            pstmt = conn.prepareStatement("select id, hypervisor_type from `cloud`.`cluster` WHERE removed IS NULL");
             pstmt1=conn.prepareStatement("INSERT INTO `cloud`.`cluster_details` (cluster_id, name, value)  VALUES(?, 'cpuOvercommitRatio', ?)");
             pstmt2=conn.prepareStatement("INSERT INTO `cloud`.`cluster_details` (cluster_id, name, value)  VALUES(?, 'memoryOvercommitRatio', ?)");
             pstmt3=conn.prepareStatement("select value from `cloud`.`configuration` where name=?");
@@ -927,7 +927,7 @@ public class Upgrade410to420 implements DbUpgrade {
             while (rs1.next()) {
                 long id = rs1.getLong(1);
                 String hypervisor_type = rs1.getString(2);
-                if (hypervisor_type.equalsIgnoreCase(HypervisorType.VMware.toString())) {
+                if (HypervisorType.VMware.toString().equalsIgnoreCase(hypervisor_type)) {
                     pstmt1.setLong(1,id);
                     pstmt1.setString(2,global_cpu_overprovisioning_factor);
                     pstmt1.execute();
@@ -937,7 +937,7 @@ public class Upgrade410to420 implements DbUpgrade {
                 }else {
                     //update cluster_details table with the default overcommit ratios.
                     pstmt1.setLong(1,id);
-                    pstmt1.setString(2,"1");
+                    pstmt1.setString(2,global_cpu_overprovisioning_factor);
                     pstmt1.execute();
                     pstmt2.setLong(1,id);
                     pstmt2.setString(2,"1");
@@ -2239,6 +2239,11 @@ public class Upgrade410to420 implements DbUpgrade {
                 storeInsert.setDate(9, nfs_created);
                 storeInsert.executeUpdate();
             }
+
+            s_logger.debug("Marking NFS secondary storage in host table as removed");
+            pstmt = conn.prepareStatement("UPDATE `cloud`.`host` SET removed = now() WHERE type = 'SecondaryStorage' and removed is null");
+            pstmt.executeUpdate();
+            pstmt.close();
         }
         catch (SQLException e) {
             String msg = "Unable to migrate secondary storages." + e.getMessage();

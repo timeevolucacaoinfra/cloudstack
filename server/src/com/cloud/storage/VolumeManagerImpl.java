@@ -331,6 +331,7 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
     private final int _customDiskOfferingMaxSize = 1024;
     private long _maxVolumeSizeInGb;
     private boolean _recreateSystemVmEnabled;
+    private boolean _storageHAMigrationEnabled;    
 
     public VolumeManagerImpl() {
         _volStateMachine = Volume.State.getStateMachine();
@@ -681,30 +682,39 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
             s_logger.debug("Trying to create " + volume + " on " + pool);
         }
         DataStore store = dataStoreMgr.getDataStore(pool.getId(), DataStoreRole.Primary);
-        AsyncCallFuture<VolumeApiResult> future = null;
-        boolean isNotCreatedFromTemplate = volume.getTemplateId() == null ? true : false;
-        if (isNotCreatedFromTemplate) {
-            future = volService.createVolumeAsync(volume, store);
-        } else {
-            TemplateInfo templ = tmplFactory.getTemplate(template.getId(), DataStoreRole.Image);
-            future = volService.createVolumeFromTemplateAsync(volume, store.getId(), templ);
-        }
-        try {
-            VolumeApiResult result = future.get();
-            if (result.isFailed()) {
-                s_logger.debug("create volume failed: " + result.getResult());
-                throw new CloudRuntimeException("create volume failed:" + result.getResult());
+        for (int i = 0; i < 2; i++) {
+            // retry one more time in case of template reload is required for Vmware case
+            AsyncCallFuture<VolumeApiResult> future = null;
+            boolean isNotCreatedFromTemplate = volume.getTemplateId() == null ? true : false;
+            if (isNotCreatedFromTemplate) {
+                future = volService.createVolumeAsync(volume, store);
+            } else {
+                TemplateInfo templ = tmplFactory.getTemplate(template.getId(), DataStoreRole.Image);
+                future = volService.createVolumeFromTemplateAsync(volume, store.getId(), templ);
             }
+            try {
+                VolumeApiResult result = future.get();
+                if (result.isFailed()) {
+                    if (result.getResult().contains("request template reload") && (i == 0)) {
+                        s_logger.debug("Retry template re-deploy for vmware");
+                        continue;
+                    } else {
+                        s_logger.debug("create volume failed: " + result.getResult());
+                        throw new CloudRuntimeException("create volume failed:" + result.getResult());
+                    }
+                }
 
-            return result.getVolume();
-        } catch (InterruptedException e) {
-            s_logger.error("create volume failed", e);
-            throw new CloudRuntimeException("create volume failed", e);
-        } catch (ExecutionException e) {
-            s_logger.error("create volume failed", e);
-            throw new CloudRuntimeException("create volume failed", e);
+                return result.getVolume();
+            } catch (InterruptedException e) {
+                s_logger.error("create volume failed", e);
+                throw new CloudRuntimeException("create volume failed", e);
+            } catch (ExecutionException e) {
+                s_logger.error("create volume failed", e);
+                throw new CloudRuntimeException("create volume failed", e);
+            }
         }
-
+        
+        throw new CloudRuntimeException("create volume failed even after template re-deploy");
     }
 
     public String getRandomVolumeName() {
@@ -1581,15 +1591,25 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
         }
 
         if (storeForRootStoreScope.getScopeType() != storeForDataStoreScope.getScopeType()) {
-            if (storeForDataStoreScope.getScopeType() == ScopeType.CLUSTER && storeForRootStoreScope.getScopeType() == ScopeType.HOST) {
-                HostScope hs = (HostScope)storeForRootStoreScope;
-                if (storeForDataStoreScope.getScopeId().equals(hs.getClusterId())) {
+            if (storeForDataStoreScope.getScopeType() == ScopeType.CLUSTER) {
+                Long vmClusterId = null;
+                if (storeForRootStoreScope.getScopeType() == ScopeType.HOST) {
+                    HostScope hs = (HostScope)storeForRootStoreScope;
+                    vmClusterId = hs.getClusterId();
+                } else if (storeForRootStoreScope.getScopeType() == ScopeType.ZONE) {
+                    Long hostId = _vmInstanceDao.findById(rootVolumeOfVm.getInstanceId()).getHostId();
+                    if (hostId != null) {
+                        HostVO host = _hostDao.findById(hostId);
+                        vmClusterId = host.getClusterId();
+                    }
+                }
+                if (storeForDataStoreScope.getScopeId().equals(vmClusterId)) {
                     return false;
                 }
-            }
-            if (storeForRootStoreScope.getScopeType() == ScopeType.CLUSTER && storeForDataStoreScope.getScopeType() == ScopeType.HOST) {
-                HostScope hs = (HostScope)storeForDataStoreScope;
-                if (storeForRootStoreScope.getScopeId().equals(hs.getClusterId())) {
+            } else if (storeForDataStoreScope.getScopeType() == ScopeType.HOST &&
+                    (storeForRootStoreScope.getScopeType() == ScopeType.CLUSTER || storeForRootStoreScope.getScopeType() == ScopeType.ZONE)) {
+                Long hostId = _vmInstanceDao.findById(rootVolumeOfVm.getInstanceId()).getHostId();
+                if (storeForDataStoreScope.getScopeId().equals(hostId)) {
                     return false;
                 }
             }
@@ -2113,6 +2133,16 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
         } catch (NoTransitionException e) {
             s_logger.debug("Unable to destroy existing volume: " + e.toString());
         }
+        // In case of VMware VM will continue to use the old root disk until expunged, so force expunge old root disk
+        if (vm.getHypervisorType() == HypervisorType.VMware) {
+            s_logger.info("Expunging volume " + existingVolume.getId() + " from primary data store");
+            AsyncCallFuture<VolumeApiResult> future = volService.expungeVolumeAsync(volFactory.getVolume(existingVolume.getId()));
+            try {
+                future.get();
+            } catch (Exception e) {
+                s_logger.debug("Failed to expunge volume:" + existingVolume.getId(), e);
+            }
+        }
         txn.commit();
         return newVolume;
 
@@ -2225,7 +2255,11 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
                             + storagePoolId);
         }
 
-        if (!volumeOnSharedStoragePool(vol)) {
+        if (volumeOnSharedStoragePool(vol)) {
+            if (destPool.isLocal()) {
+                throw new InvalidParameterValueException("Migration of volume from shared to local storage pool is not supported");
+            }
+        } else {
             throw new InvalidParameterValueException(
                     "Migration of volume from local storage pool is not supported");
         }
@@ -2452,15 +2486,20 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
                                 }
                                 throw new CloudRuntimeException("Local volume " + vol + " cannot be recreated on storagepool " + assignedPool + " assigned by deploymentPlanner");
                             } else {
-                                if (s_logger.isDebugEnabled()) {
-                                    s_logger.debug("Shared volume "
-                                            + vol
-                                            + " will be migrated on storage pool "
-                                            + assignedPool
-                                            + " assigned by deploymentPlanner");
+                                //Check if storage migration is enabled in config
+                                if (_storageHAMigrationEnabled) {
+                                    if (s_logger.isDebugEnabled()) {
+                                        s_logger.debug("Shared volume "
+                                                + vol
+                                                + " will be migrated on storage pool "
+                                                + assignedPool
+                                                + " assigned by deploymentPlanner");
+                                    }
+                                    VolumeTask task = new VolumeTask(VolumeTaskType.MIGRATE, vol, assignedPool);
+                                    tasks.add(task);
+                                } else {
+                                    throw new CloudRuntimeException("Cannot migrate volumes. Volume Migration is disabled");
                                 }
-                                VolumeTask task = new VolumeTask(VolumeTaskType.MIGRATE, vol, assignedPool);
-                                tasks.add(task);
                             }
                         } else {
                             StoragePoolVO pool = _storagePoolDao
@@ -2528,31 +2567,41 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
         }
         VolumeInfo volume = volFactory.getVolume(newVol.getId(), destPool);
         Long templateId = newVol.getTemplateId();
-        AsyncCallFuture<VolumeApiResult> future = null;
-        if (templateId == null) {
-            future = volService.createVolumeAsync(volume, destPool);
-        } else {
-            TemplateInfo templ = tmplFactory.getTemplate(templateId, DataStoreRole.Image);
-            future = volService.createVolumeFromTemplateAsync(volume, destPool.getId(), templ);
-        }
-        VolumeApiResult result = null;
-        try {
-            result = future.get();
-            if (result.isFailed()) {
-                s_logger.debug("Unable to create "
-                        + newVol + ":" + result.getResult());
-                throw new StorageUnavailableException("Unable to create "
-                        + newVol + ":" + result.getResult(), destPool.getId());
+        for (int i = 0; i < 2; i++) {
+            // retry one more time in case of template reload is required for Vmware case
+            AsyncCallFuture<VolumeApiResult> future = null;
+            if (templateId == null) {
+                future = volService.createVolumeAsync(volume, destPool);
+            } else {
+                TemplateInfo templ = tmplFactory.getTemplate(templateId, DataStoreRole.Image);
+                future = volService.createVolumeFromTemplateAsync(volume, destPool.getId(), templ);
             }
-            newVol = _volsDao.findById(newVol.getId());
-        } catch (InterruptedException e) {
-            s_logger.error("Unable to create " + newVol, e);
-            throw new StorageUnavailableException("Unable to create "
-                    + newVol + ":" + e.toString(), destPool.getId());
-        } catch (ExecutionException e) {
-            s_logger.error("Unable to create " + newVol, e);
-            throw new StorageUnavailableException("Unable to create "
-                    + newVol + ":" + e.toString(), destPool.getId());
+            VolumeApiResult result = null;
+            try {
+                result = future.get();
+                if (result.isFailed()) {
+                    if (result.getResult().contains("request template reload") && (i == 0)) {
+                        s_logger.debug("Retry template re-deploy for vmware");
+                        continue;
+                    }
+                    else {
+                        s_logger.debug("Unable to create "
+                                + newVol + ":" + result.getResult());
+                        throw new StorageUnavailableException("Unable to create "
+                                + newVol + ":" + result.getResult(), destPool.getId());
+                    }
+                }
+                newVol = _volsDao.findById(newVol.getId());
+                break; //break out of template-redeploy retry loop
+            } catch (InterruptedException e) {
+                s_logger.error("Unable to create " + newVol, e);
+                throw new StorageUnavailableException("Unable to create "
+                        + newVol + ":" + e.toString(), destPool.getId());
+            } catch (ExecutionException e) {
+                s_logger.error("Unable to create " + newVol, e);
+                throw new StorageUnavailableException("Unable to create "
+                        + newVol + ":" + e.toString(), destPool.getId());
+            }
         }
 
         return new Pair<VolumeVO, DataStore>(newVol, destPool);
@@ -2638,7 +2687,8 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
     public boolean canVmRestartOnAnotherServer(long vmId) {
         List<VolumeVO> vols = _volsDao.findCreatedByInstance(vmId);
         for (VolumeVO vol : vols) {
-            if (!vol.isRecreatable() && !vol.getPoolType().isShared()) {
+            StoragePoolVO storagePoolVO = _storagePoolDao.findById(vol.getPoolId());
+            if (!vol.isRecreatable() && storagePoolVO != null && storagePoolVO.getPoolType() != null && !(storagePoolVO.getPoolType().isShared())) {
                 return false;
             }
         }
@@ -2662,9 +2712,13 @@ public class VolumeManagerImpl extends ManagerBase implements VolumeManager {
 
         String value = _configDao.getValue(Config.RecreateSystemVmEnabled.key());
         _recreateSystemVmEnabled = Boolean.parseBoolean(value);
+        
+        String storageMigrationEnabled = _configDao.getValue(Config.HAStorageMigration.key());
+        _storageHAMigrationEnabled = (storageMigrationEnabled == null) ? true : Boolean.parseBoolean(storageMigrationEnabled);       
+        
         _copyvolumewait = NumbersUtil.parseInt(value,
                 Integer.parseInt(Config.CopyVolumeWait.getDefaultValue()));
-
+        
         return true;
     }
 

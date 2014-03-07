@@ -20,6 +20,7 @@ function usage() {
  echo ""
  echo "usage: ./package.sh [-t|--tag] [-h|--help] [ARGS]"
  echo ""
+
  echo "Examples: ./package.sh -t|--tag 4.2.0-201402261200"
  exit 1
 }
@@ -94,7 +95,6 @@ elif [ $# -gt 0 ] ; then
 		;;
 	*)
 		shift
-		break
 		;;
 	esac
 	done
