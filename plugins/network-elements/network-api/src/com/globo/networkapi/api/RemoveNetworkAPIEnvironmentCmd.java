@@ -14,7 +14,7 @@
 //KIND, either express or implied.  See the License for the
 //specific language governing permissions and limitations
 //under the License.
-package com.globo.networkapi.commands;
+package com.globo.networkapi.api;
 
 import javax.inject.Inject;
 
@@ -35,7 +35,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.networkapi.element.NetworkAPIService;
+import com.globo.networkapi.manager.NetworkAPIService;
 
 @APICommand(name = "removeNetworkAPIEnvironment", responseObject = SuccessResponse.class, description = "Removes a NetworkAPI environment from a zone")
 public class RemoveNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
