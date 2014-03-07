@@ -814,7 +814,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 						"Unable to find a physical network having the specified physical network id");
 			}
 			
-			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
+			napiEnvironmentsVOList = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 
 		} else if (zoneId != null) {
 			// Check if zone exists

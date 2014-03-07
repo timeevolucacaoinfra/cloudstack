@@ -29,13 +29,13 @@ case "$1" in
     echo "RELEASE/TAG: $cs_version-$tag_version"
     ;;
   package)
-    [[ -f /etc/redhat-release ]] || echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
+    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
     [[ $# -ne 2 ]] && echo "You need to provide the tag from git... eg: $0 package 4.2.0-201402262000" && exit 1
     (cd packaging/centos63; ./package.sh -t $2)
     ;;
   createrepo)
-    [[ -f /etc/redhat-release ]] || echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
-    [[ -d /mnt/root/repository/centos64/x86_64 ]] || echo "Opss... there is no /mnt/root/repository/centos64/x86_64 directory..." && exit 1
+    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
+    [[ ! -d /mnt/root/repository/centos64/x86_64 ]] && echo "Opss... there is no /mnt/root/repository/centos64/x86_64 directory..." && exit 1
     createrepo /mnt/root/repository/centos64/x86_64
     ;;
   *)
