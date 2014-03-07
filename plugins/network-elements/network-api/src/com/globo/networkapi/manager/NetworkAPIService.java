@@ -129,4 +129,12 @@ public interface NetworkAPIService {
 	public List<Environment> listAllEnvironmentsFromNetworkApi();
 	
 	boolean canEnable(Long physicalNetworkId);
+
+	/**
+	 * Removes the relationship between physical network and NetworkAPI environment
+	 * @param physicalNetworkId
+	 * @param napiEnvironmentId
+	 * @return
+	 */
+	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId);
 }

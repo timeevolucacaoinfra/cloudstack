@@ -838,4 +838,27 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		return napiEnvironmentsVOList;
 	}
 
+	@Override
+	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId) {
+
+		// FIXME Check if there are any networks in this environment before removing it
+
+        Transaction txn = Transaction.currentTxn();
+        txn.start();
+        
+		// Retrieve napiEnvironment from DB
+		NetworkAPIEnvironmentVO napiEnvironment = _napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId);
+		
+		if (napiEnvironment == null) {
+			// No physical network/environment pair registered in the database.
+			throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and NetworkAPI environment=" + napiEnvironmentId);
+		}
+		        
+        boolean result = _napiEnvironmentDao.remove(napiEnvironment.getId());
+
+        txn.commit();
+		
+		return result;
+	}
+
 }

@@ -75,9 +75,7 @@ public class RemoveNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			// FIXME Implement this functionality
-			// boolean result = _napiManager.removeNetworkAPIEnvironment(physicalNetworkId, napiEnvironmentId);
-			boolean result = true;
+			boolean result = _napiManager.removeNetworkAPIEnvironment(physicalNetworkId, napiEnvironmentId);
 
 			if (result) {
 				SuccessResponse response = new SuccessResponse(getCommandName());
