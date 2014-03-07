@@ -1,4 +1,4 @@
-package com.globo.networkapi.element;
+package com.globo.networkapi.manager;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -74,18 +74,17 @@ import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
-import com.globo.networkapi.commands.ActivateNetworkCmd;
-import com.globo.networkapi.commands.AddNetworkAPIEnvironmentCmd;
-import com.globo.networkapi.commands.AddNetworkApiVlanCmd;
-import com.globo.networkapi.commands.AddNetworkViaNetworkApiCmd;
+import com.globo.networkapi.api.AddNetworkAPIEnvironmentCmd;
+import com.globo.networkapi.api.AddNetworkApiVlanCmd;
+import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
+import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
+import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
+import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkApiCmd;
-import com.globo.networkapi.commands.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
-import com.globo.networkapi.commands.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
@@ -590,7 +589,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Long networkId = vlanResponse.getNetworkId();
 		if (!vlanResponse.isActive()) {
 			// Create network in equipment
-			ActivateNetworkCmd cmd_creation = new ActivateNetworkCmd(vlanId,
+			ActivateNetworkCommand cmd_creation = new ActivateNetworkCommand(vlanId,
 					networkId);
 			Answer creation_answer = callCommand(cmd_creation, cfg);
 			if (creation_answer == null || !creation_answer.getResult()) {

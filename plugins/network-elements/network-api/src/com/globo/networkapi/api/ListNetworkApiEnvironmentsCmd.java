@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package com.globo.networkapi.commands;
+package com.globo.networkapi.api;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,8 +40,7 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
-import com.globo.networkapi.element.NetworkAPIService;
-import com.globo.networkapi.response.NetworkAPIEnvironmentResponse;
+import com.globo.networkapi.manager.NetworkAPIService;
 
 @APICommand(name = "listNetworkApiEnvironments", responseObject=NetworkAPIEnvironmentResponse.class, description="Lists NetworkAPI environments")
 public class ListNetworkApiEnvironmentsCmd extends BaseCmd {

@@ -25,7 +25,7 @@ import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.NetworkAPIException;
-import com.globo.networkapi.commands.ActivateNetworkCmd;
+import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
@@ -168,8 +168,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((ValidateNicInVlanCommand) cmd);
 		} else if (cmd instanceof CreateNewVlanInNetworkAPICommand) {
 			return execute((CreateNewVlanInNetworkAPICommand) cmd);
-		} else if (cmd instanceof ActivateNetworkCmd) {
-			return execute((ActivateNetworkCmd) cmd);
+		} else if (cmd instanceof ActivateNetworkCommand) {
+			return execute((ActivateNetworkCommand) cmd);
 		} else if (cmd instanceof ListAllEnvironmentsFromNetworkAPICommand) {
 			return execute((ListAllEnvironmentsFromNetworkAPICommand) cmd);
 		} else if (cmd instanceof RemoveNetworkInNetworkAPICommand) {
@@ -233,7 +233,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	public Answer execute(ActivateNetworkCmd cmd) {
+	public Answer execute(ActivateNetworkCommand cmd) {
 		try {
 			_napi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
 			return new Answer(cmd, true, "Network created");
