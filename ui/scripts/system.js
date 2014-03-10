@@ -5536,10 +5536,6 @@
                         type: 'detailView',
                         id: 'networkAPIProvider',
                         label: 'label.networkAPI',
-                        viewAll: {
-                            label: 'label.devices',
-                            path: '_zone.networkAPINvpDevices'
-                        },
                         tabs: {
                             details: {
                                 title: 'label.details',
