@@ -93,7 +93,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				_napi.setNumberOfRetries(Integer.valueOf((String) params.get("numberOfRetries")));
 			}
 
-			return false;
+			return true;
 		} catch (NumberFormatException e) {
 			s_logger.error("Invalid number in configuration parameters", e);
 			throw new ConfigurationException("Invalid number in configuration parameters: " + e);
