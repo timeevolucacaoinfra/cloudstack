@@ -778,7 +778,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			_napiNetworkDao.remove(napiNetworkVO.getId());
 		}
 		
-		this.deallocateVlanFromNetworkAPI(napiNetworkVO.getId());
+		this.deallocateVlanFromNetworkAPI(napiNetworkVO.getNapiVlanId());
 		
 		txn.commit();
 	}
