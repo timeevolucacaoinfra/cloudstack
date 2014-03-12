@@ -20,6 +20,7 @@ import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
+import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
@@ -84,8 +85,8 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.model.Environment;
@@ -167,8 +168,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException {
 
-		// FIXME Very important: Include permission checks before create network
-		// in networkapi
+		// FIXME Very important: Include permission checks before creating network in networkapi
 
 		DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
@@ -203,10 +203,23 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
 		Long napiVlanId = response.getVlanId();
 
-		return createNetworkFromNetworkAPIVlan(napiVlanId, zoneId,
+		Network network = null;
+		
+		try {
+			network = this.createNetworkFromNetworkAPIVlan(napiVlanId, zoneId,
 				networkOfferingId, physicalNetworkId, networkDomain, aclType,
 				accountName, projectId, domainId, subdomainAccess,
 				displayNetwork, aclId);
+		} catch (Exception e) {
+			// Exception when creating network in Cloudstack. Roll back transaction in NetworkAPI
+			
+			s_logger.error("Reverting network creation in Network API due to error creating network", e);
+			this.deallocateVlanFromNetworkAPI(napiVlanId);
+			
+			throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.network);
+		}
+		
+		return network;
 	}
 
 	@Override
@@ -221,7 +234,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		Account caller = UserContext.current().getCaller();
 
-        // Only domain and account ACL types are supported in Acton.
+        // Only domain and account ACL types are supported in Action.
         if (aclType == null || !(aclType == ACLType.Domain || aclType == ACLType.Account)) {
             throw new InvalidParameterValueException("AclType should be " + ACLType.Domain + " or " +
             		ACLType.Account + " for network of type " + Network.GuestType.Shared);
@@ -264,21 +277,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (zoneId == null) {
 			zoneId = pNtwk.getDataCenterId();
 		}
-
-		// Only Admin can create Shared networks (implies aclType=Domain)
-		/*if (!_accountMgr.isAdmin(caller.getType())) {
-			throw new PermissionDeniedException(
-					"Only admin can create networkapi shared networks");
-		}
-
-		if (displayNetwork != null) {
-			if (!_accountMgr.isAdmin(caller.getType())) {
-				throw new PermissionDeniedException(
-						"Only admin allowed to update displaynetwork parameter");
-			}
-		} else {
-			displayNetwork = true;
-		}*/
 
 		DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
@@ -780,8 +778,15 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			_napiNetworkDao.remove(napiNetworkVO.getId());
 		}
 		
+		this.deallocateVlanFromNetworkAPI(napiNetworkVO.getId());
+		
+		txn.commit();
+	}
+	
+	public void deallocateVlanFromNetworkAPI(Long vlanId) {
+				
 		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
-		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
+		cmd.setVlanId(vlanId);
 		
 		Answer answer;
 		try {
@@ -796,8 +801,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(
 					"Error deallocating vlan from NetworkAPI: " + errorDescription);
 		}
-		
-		txn.commit();
 	}
 	
 	@Override

@@ -156,7 +156,4 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 		s_logger.debug("VLAN networks released. Passing on to GuestNetworkGuru to trash network " + network.getName());
 		return super.trash(network, offering, owner);
 	}
-	
-	
-
 }
