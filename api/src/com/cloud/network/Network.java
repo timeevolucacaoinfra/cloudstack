@@ -126,6 +126,7 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         // NiciraNvp is not an "External" provider, otherwise we get in trouble with NetworkServiceImpl.providersConfiguredForExternalNetworking 
         public static final Provider NiciraNvp = new Provider("NiciraNvp", false);
         public static final Provider NetworkAPI = new Provider("NetworkAPI", true);
+        public static final Provider DnsAPI = new Provider("DnsAPI", true);
         public static final Provider InternalLbVm = new Provider("InternalLbVm", false);
         public static final Provider CiscoVnmc = new Provider("CiscoVnmc", true);
 

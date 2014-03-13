@@ -44,6 +44,7 @@ public interface ExternalNetworkDeviceManager extends Manager {
         public static final NetworkDevice JuniperSRXFirewall = new NetworkDevice("JuniperSRXFirewall", Network.Provider.JuniperSRX.getName());
         public static final NetworkDevice NiciraNvp = new NetworkDevice("NiciraNvp", Network.Provider.NiciraNvp.getName());
         public static final NetworkDevice NetworkAPI = new NetworkDevice("NetworkAPI", Network.Provider.NetworkAPI.getName());
+        public static final NetworkDevice DnsAPI = new NetworkDevice("DnsAPI", Network.Provider.DnsAPI.getName());
         public static final NetworkDevice CiscoVnmc = new NetworkDevice("CiscoVnmc", Network.Provider.CiscoVnmc.getName());
 
         public NetworkDevice(String deviceName, String ntwkServiceprovider) {

@@ -17,12 +17,16 @@
 
 package com.globo.dnsapi.element;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import javax.ejb.Local;
-import javax.naming.ConfigurationException;
+
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
@@ -41,32 +45,38 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 
-/**
- * @author ahuang
- *
- */
+@Component
 @Local(NetworkElement.class)
-public class DnsAPIElement extends AdapterBase implements NetworkElement {
+public class DnsAPIElement extends AdapterBase implements NetworkElement, DnsAPIElementService {
 
+	private static final Logger s_logger = Logger.getLogger(DnsAPIElement.class);
+	
+	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
+	
     public DnsAPIElement() {
 
     }
 
     @Override
     public Map<Service, Map<Capability, String>> getCapabilities() {
-        Map<Service, Map<Capability, String>> caps = new HashMap<Service, Map<Capability, String>>();
+        return capabilities;
+    }
+    
+    private static Map<Service, Map<Capability, String>> setCapabilities() {
+    	Map<Service, Map<Capability, String>> caps = new HashMap<Service, Map<Capability, String>>();
         caps.put(Service.Dns, new HashMap<Capability, String>());
         return caps;
     }
 
     @Override
     public Provider getProvider() {
-        return null;
+        return Provider.DnsAPI;
     }
 
     @Override
     public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
     InsufficientCapacityException {
+    	s_logger.debug("Entering implement method for DnsAPI");
         return true;
     }
 
@@ -74,7 +84,8 @@ public class DnsAPIElement extends AdapterBase implements NetworkElement {
     public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
     ResourceUnavailableException, InsufficientCapacityException {
         // signal to the dns server that this vm is up and running and set the ip address to hostname mapping.
-        vm.getHostName();
+    	s_logger.debug("Entering prepare method for DnsAPI");
+    	vm.getHostName();
         nic.getIp4Address();
         nic.getIp6Address();
         return true;
@@ -82,7 +93,8 @@ public class DnsAPIElement extends AdapterBase implements NetworkElement {
 
     @Override
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
-        vm.getHostName();
+    	s_logger.debug("Entering release method for DnsAPI");
+    	vm.getHostName();
         nic.getIp4Address();
         nic.getIp6Address();
         // signal to the dns server that the vm is being shutdown and remove the mapping.
@@ -91,12 +103,14 @@ public class DnsAPIElement extends AdapterBase implements NetworkElement {
 
     @Override
     public boolean shutdown(Network network, ReservationContext context, boolean cleanup) throws ConcurrentOperationException, ResourceUnavailableException {
+    	s_logger.debug("Entering shutdown method for DnsAPI");
         return true;
     }
 
     @Override
     public boolean destroy(Network network, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
-        return true;
+    	s_logger.debug("Entering destroy method for DnsAPI");
+    	return true;
     }
 
     @Override
@@ -119,4 +133,9 @@ public class DnsAPIElement extends AdapterBase implements NetworkElement {
         return true;
     }
 
+	@Override
+	public List<Class<?>> getCommands() {
+		List<Class<?>> cmdList = new ArrayList<Class<?>>();
+		return cmdList;
+	}
 }

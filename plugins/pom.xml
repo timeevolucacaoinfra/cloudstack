@@ -72,6 +72,7 @@
     <module>alert-handlers/syslog-alerts</module>
     <module>network-elements/internal-loadbalancer</module>
     <module>network-elements/network-api</module>
+    <module>network-elements/dns-api</module>
   </modules>
 
   <dependencies>

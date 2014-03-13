@@ -50,6 +50,13 @@
   <bean id="GlobalLoadBalancingRulesServiceImpl" class="org.apache.cloudstack.region.gslb.GlobalLoadBalancingRulesServiceImpl" />
 
   <!--
+    DnsAPI components
+  -->
+  <bean id="DnsAPIElement" class="com.globo.dnsapi.element.DnsAPIElement">
+    <property name="name" value="DnsAPI"/>
+  </bean>
+
+  <!--
     NetworkAPI components
   -->
   <bean id="NetworkAPIManager" class="com.globo.networkapi.manager.NetworkAPIManager">
@@ -309,6 +316,7 @@
           <ref bean="BareMetalPxe"/>
           <ref bean="BareMetalUserdata"/>
           <ref bean="NetworkAPIElement"/>
+          <ref bean="DnsAPIElement"/>
       </list>
     </property>
   </bean>
