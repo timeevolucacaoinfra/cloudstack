@@ -36,7 +36,6 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
-import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
@@ -66,8 +65,8 @@ import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 import static org.mockito.Mockito.*;
 
-@RunWith(SpringJUnit4ClassRunner.class)// NOTE #1
-@ContextConfiguration(loader = AnnotationConfigContextLoader.class) // NOTE #2
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(loader = AnnotationConfigContextLoader.class)
 public class NetworkAPIManagerTest {
 
     private static long zoneId = 5L;
@@ -103,7 +102,7 @@ public class NetworkAPIManagerTest {
  
     @Before
     public void testSetUp() {
-        ComponentContext.initComponentsLifeCycle();  // NOTE #3
+        ComponentContext.initComponentsLifeCycle();
 //        AccountVO acct = new AccountVO(200L);
 //        acct.setType(Account.ACCOUNT_TYPE_NORMAL);
 //        acct.setAccountName("user");
@@ -181,12 +180,7 @@ public class NetworkAPIManagerTest {
   
     @Configuration
     @ComponentScan(basePackageClasses = {NetworkAPIManager.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
-    public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration { // NOTE #4
- 
-//        @Bean
-//        public AccountDao accountDao() {
-//            return Mockito.mock(AccountDao.class);
-//        }
+    public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
     	
     	@Bean
     	public DomainDao domainDao() {
