@@ -269,7 +269,7 @@ if [ -f "${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/
     zip -qrum ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar META-INF/MANIFEST.MF
     rmdir META-INF
 else
-   echo "File ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/lib/cloud-server-4.2.0.jar not found. I can't append the release number into version"
+   echo "File ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/lib/cloud-server-%{_ver}.jar not found. I can't append the release number into version"
 fi
 
 # Don't package the scripts in the management webapp
