@@ -194,12 +194,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		Answer answer = createNewVlan(name, displayText, napiEnvironmentId);
-		if (answer == null || !answer.getResult()) {
-			String errorDescription = answer == null ? "no description"
-					: answer.getDetails();
-			throw new CloudRuntimeException(
-					"Error creating Vlan in NetworkAPI: " + errorDescription);
-		}
+
 		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
 		Long napiVlanId = response.getVlanId();
 
@@ -475,7 +470,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			answer = callCommand(cmd, cfg);
 			if (answer == null || !answer.getResult()) {
 				throw new CloudRuntimeException(
-						"Error creating VLAN in networkAPI");
+						"Error creating VLAN in networkAPI: " + (answer == null ? "" : answer.getDetails()));
 			}
 		} catch (ConfigurationException e) {
 			throw new CloudRuntimeException(
