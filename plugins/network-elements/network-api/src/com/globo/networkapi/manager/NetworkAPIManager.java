@@ -212,7 +212,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				displayNetwork, aclId);
 		} catch (Exception e) {
 			// Exception when creating network in Cloudstack. Roll back transaction in NetworkAPI
-			
 			s_logger.error("Reverting network creation in Network API due to error creating network", e);
 			this.deallocateVlanFromNetworkAPI(napiVlanId);
 			
