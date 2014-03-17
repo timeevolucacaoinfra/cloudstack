@@ -1,13 +1,11 @@
 package com.globo.networkapi.resource;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
 import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
-import org.xmlpull.v1.XmlPullParserException;
 
 import com.cloud.agent.IAgentControl;
 import com.cloud.agent.api.Answer;
@@ -24,7 +22,6 @@ import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
-import com.globo.networkapi.NetworkAPIException;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
@@ -32,6 +29,8 @@ import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
+import com.globo.networkapi.exception.NetworkAPIException;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.IPv4Network;
@@ -180,12 +179,21 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
 	
+	private Answer handleNetworkAPIException(Command cmd, NetworkAPIException e) {
+		if (e instanceof NetworkAPIErrorCodeException) {
+			NetworkAPIErrorCodeException ex = (NetworkAPIErrorCodeException) e;
+			s_logger.error("Error accessing Network API: " + ex.getCode() + " - " + ex.getDescription(), ex);
+			return new Answer(cmd, false, ex.getCode() + " - " + ex.getDescription());
+		} else {
+			s_logger.error("Generic error accessing Network API", e);
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
 	/**
 	 * Validate if Nic ip and vlan number belongs to NetworkAPI VlanId
 	 * @param cmd
 	 * @return
-	 * @throws IOException
-	 * @throws XmlPullParserException
 	 */
 	public Answer execute(ValidateNicInVlanCommand cmd) {
 		try {
@@ -206,7 +214,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			}
 			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 
@@ -215,7 +223,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
 			return createResponse(vlan, cmd);
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 
@@ -229,7 +237,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			vlan = _napi.getVlanAPI().getById(vlan.getId());
 			return createResponse(vlan, cmd);
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 	
@@ -238,7 +246,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			_napi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
 			return new Answer(cmd, true, "Network created");
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 	
@@ -248,7 +256,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			
 			return new NetworkAPIAllEnvironmentResponse(cmd, environmentList);
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 	
@@ -258,7 +266,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			
 			return new Answer(cmd, true, "Network removed");
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 	
@@ -267,7 +275,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			_napi.getVlanAPI().deallocate(cmd.getVlanId());
 			return new Answer(cmd, true, "Vlan deallocated");
 		} catch (NetworkAPIException e) {
-			return new Answer(cmd, e);
+			return handleNetworkAPIException(cmd, e);
 		}
 	}
 	
