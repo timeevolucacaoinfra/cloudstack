@@ -706,7 +706,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		try {
 			NetworkAPIResource resource = new NetworkAPIResource();
-				resource.configure(Provider.NetworkAPI.getName(), hostDetails);
+			resource.configure(Provider.NetworkAPI.getName(), hostDetails);
 			
 			Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
 					params);

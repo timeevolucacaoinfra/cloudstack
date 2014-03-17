@@ -1,5 +1,15 @@
 package com.globo.networkapi.manager;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyMapOf;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,10 +46,12 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
+import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
-import com.cloud.host.Host.Type;
+import com.cloud.host.Host;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkManager;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
@@ -49,6 +61,7 @@ import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.resource.ResourceManager;
+import com.cloud.resource.ServerResource;
 import com.cloud.server.ConfigurationServer;
 import com.cloud.user.AccountManager;
 import com.cloud.user.DomainManager;
@@ -60,10 +73,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
-import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
-
-import static org.mockito.Mockito.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
@@ -86,6 +96,9 @@ public class NetworkAPIManagerTest {
 	
 	@Inject
 	NetworkAPIEnvironmentDao _napiEnvironmentDao;
+	
+	@Inject
+	HostDao _hostDao;
 	
 	@Inject
 	ConfigurationServer _configServer;
@@ -155,8 +168,8 @@ public class NetworkAPIManagerTest {
     	
     	HostVO napiHost = new HostVO(napiHostId, null, null, null, null, null, null, 
     			null, null, null, null, null, null, null, null, null, null, zoneId, null,
-    			0L, 0L, null, null, null, 0L, null);
-    	when(_resourceMgr.addHost(eq(1l), any(NetworkAPIResource.class), any(Type.class), anyMapOf(String.class, String.class))).thenReturn(napiHost);
+    			0L, 0L, null, null, null, 0L, null);    	
+    	when(_hostDao.findByTypeNameAndZoneId(zoneId, Provider.NetworkAPI.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
     	
     	Answer answer = new NetworkAPIVlanResponse(new CreateNewVlanInNetworkAPICommand(), null, null, null, null, null, null, null, false);
     	when(_agentMgr.easySend(eq(napiHostId), any(CreateNewVlanInNetworkAPICommand.class))).thenReturn(answer);
@@ -174,7 +187,59 @@ public class NetworkAPIManagerTest {
 		   verify(_agentMgr, atLeastOnce()).easySend(eq(napiHostId), any(DeallocateVlanFromNetworkAPICommand.class));
     	}
     }
-  
+    
+    @Test(expected = InvalidParameterValueException.class)
+    public void addNetworkAPIHostInvalidParameters() throws CloudException {
+    	
+    	String username = null;
+    	String password = null;
+    	String url = null;
+    	
+    	UserContext.registerContext(1l, null, null, true);
+    	
+	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
+    }
+    
+    @Test(expected = InvalidParameterValueException.class)
+    public void addNetworkAPIHostEmptyParameters() throws CloudException {
+    	
+    	String username = "";
+    	String password = "";
+    	String url = "";
+    	
+    	UserContext.registerContext(1l, null, null, true);
+    	
+	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
+    }
+      
+    @Test
+    public void addNetworkAPIHost() throws CloudException {
+    	
+//    	String username = "testUser";
+//    	String password = "testPwd";
+//    	String url = "testUrl";
+//    	
+//    	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
+//    	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
+//    	
+//    	when(_configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
+//    	when(_configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
+//    	when(_configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("0");
+//    	
+//    	HostVO napiHost = new HostVO(1L, "NetworkAPI", null, "Up", "L2Networking", "", null, 
+//    			null, "", null, null, null, null, null, null, null, null, zoneId, null,
+//    			0L, 0L, null, null, null, 0L, null);
+//
+//    	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(napiHost);
+//    	
+//    	UserContext.registerContext(1l, null, null, true);
+//    	
+//	    Host host = _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url);
+//	    assertNotNull(host);
+//	    assertEquals(host.getDataCenterId(), zoneId);
+//	    assertEquals(host.getName(), "NetworkAPI");
+    }
+    
     @Configuration
     @ComponentScan(basePackageClasses = {NetworkAPIManager.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
