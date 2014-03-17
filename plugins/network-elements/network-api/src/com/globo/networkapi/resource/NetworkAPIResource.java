@@ -39,6 +39,8 @@ import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
+	private String _zoneId;
+	
 	private String _name;
 	
 	private String _username;
@@ -58,6 +60,11 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			throws ConfigurationException {
 		
 		try {
+			_zoneId = (String) params.get("zoneId");
+			if (_zoneId == null) {
+				throw new ConfigurationException("Unable to find zone");
+			}
+			
 			_name = (String) params.get("name");
 			if (_name == null) {
 				throw new ConfigurationException("Unable to find name");
@@ -122,11 +129,9 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		StartupCommand cmd = new StartupCommand(getType());
 		cmd.setName(_name);
 		cmd.setGuid("networkapi");
-		/* FIXME */
-		cmd.setDataCenter("1");
-		cmd.setPod("1");
-		cmd.setCluster("1");
-		cmd.setPrivateIpAddress("10.70.129.47"); // resolver ip da networkapi
+		cmd.setDataCenter(_zoneId);
+		cmd.setPod("");
+		cmd.setPrivateIpAddress("");
 		cmd.setStorageIpAddress("");
 		cmd.setVersion(NetworkAPIResource.class.getPackage().getImplementationVersion());
 		return new StartupCommand[] {cmd};
