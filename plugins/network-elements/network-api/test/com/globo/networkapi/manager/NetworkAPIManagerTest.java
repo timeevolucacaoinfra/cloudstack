@@ -1,5 +1,6 @@
 package com.globo.networkapi.manager;
 
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,6 +13,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.owasp.esapi.waf.ConfigurationException;
@@ -29,6 +31,7 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
+import com.cloud.agent.api.Command;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.DataCenterVO;
@@ -36,7 +39,11 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
+import com.cloud.exception.ConcurrentOperationException;
+import com.cloud.exception.InsufficientCapacityException;
+import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.ResourceAllocationException;
+import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
@@ -50,9 +57,13 @@ import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.resource.ResourceManager;
 import com.cloud.server.ConfigurationServer;
+import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
+import com.cloud.user.AccountVO;
 import com.cloud.user.DomainManager;
 import com.cloud.user.UserContext;
+import com.cloud.user.UserContextInitializer;
+import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
@@ -63,7 +74,9 @@ import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
@@ -74,6 +87,8 @@ public class NetworkAPIManagerTest {
     private static long napiEnvironmentId = 120L;
     private static long physicalNetworkId = 200L;
     private static long napiHostId = 7L;
+    private static long domainId = 10L;
+    private AccountVO acct = null;
 	
 	@Inject
 	NetworkAPIService _napiService;
@@ -95,6 +110,9 @@ public class NetworkAPIManagerTest {
 
 	@Inject
 	ResourceManager _resourceMgr;
+	
+	@Inject
+	AccountManager _acctMgr; 
  
     @BeforeClass
     public static void setUp() throws ConfigurationException {
@@ -103,12 +121,14 @@ public class NetworkAPIManagerTest {
     @Before
     public void testSetUp() {
         ComponentContext.initComponentsLifeCycle();
-//        AccountVO acct = new AccountVO(200L);
-//        acct.setType(Account.ACCOUNT_TYPE_NORMAL);
-//        acct.setAccountName("user");
-//        acct.setDomainId(domainId);
-// 
-//        UserContext.registerContext(1, acct, null, true);
+        acct = new AccountVO(200L);
+        acct.setType(Account.ACCOUNT_TYPE_NORMAL);
+        acct.setAccountName("user");
+        acct.setDomainId(domainId);
+ 
+        UserContext.registerContext(1, acct, null, true);
+        when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
+        when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
  
 //        when(_acctMgr.finalizeOwner((Account) anyObject(), anyString(), anyLong(), anyLong())).thenReturn(acct);
 //        when(_processor.getType()).thenReturn("mock");
@@ -121,7 +141,12 @@ public class NetworkAPIManagerTest {
 //        Mockito.when(_affinityGroupDao.lockRow(Mockito.anyLong(), anyBoolean())).thenReturn(group);
 //        Mockito.when(_affinityGroupDao.expunge(Mockito.anyLong())).thenReturn(true);
 //        Mockito.when(_eventDao.persist(Mockito.any(EventVO.class))).thenReturn(new EventVO());
-    } 
+    }
+    
+    public void testTearDown() {
+    	UserContext.unregisterContext();
+    	acct = null;
+    }
  
 //    @Test(expected = ResourceInUseException.class)
 //    public void deleteAffinityGroupInUse() throws ResourceInUseException {
@@ -139,7 +164,7 @@ public class NetworkAPIManagerTest {
     
     @Test
     public void revertNetworkAPICreationWhenFailureNetworkCreation() throws CloudException {
-    	
+
     	DataCenterVO dc = new DataCenterVO(0L, null, null, null, null, null, null, null, null, null, null, null, null);
     	when(_dcDao.findById(anyLong())).thenReturn(dc);
     	
@@ -166,8 +191,6 @@ public class NetworkAPIManagerTest {
     	
     	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(null);
     	
-    	UserContext.registerContext(1l, null, null, true);
-    	
     	try {
 	    	_napiService.createNetwork(networkName, networkName, zoneId, networkOfferingId, napiEnvironmentId, null, 
 	    			ACLType.Domain, null, null, null, null, true, null);
@@ -177,7 +200,22 @@ public class NetworkAPIManagerTest {
 		   verify(_agentMgr, atLeastOnce()).easySend(eq(napiHostId), any(DeallocateVlanFromNetworkAPICommand.class));
     	}
     }
-  
+    
+    @Test
+    public void checkPermissionsBeforeCreateVlanOnNetworkAPI() throws CloudException {
+    	try {
+//            when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
+//            when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
+    		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
+
+    		acct.setDomainId(domainId+1);
+        	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, null, null, domainId, null, true, null);
+        	fail();
+    	} catch (PermissionDeniedException e) {
+    		verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));
+    	}
+    }
+
     @Configuration
     @ComponentScan(basePackageClasses = {NetworkAPIManager.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
@@ -261,6 +299,11 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public NetworkService networkService() {
     		return Mockito.mock(NetworkService.class);
+    	}
+    	
+    	@Bean
+    	public UserContextInitializer userContextInitializer() {
+    		return new UserContextInitializer();
     	}
 
         public static class Library implements TypeFilter {
