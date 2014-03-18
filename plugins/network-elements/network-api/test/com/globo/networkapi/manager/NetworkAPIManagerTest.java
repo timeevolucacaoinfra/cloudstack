@@ -1,14 +1,8 @@
 package com.globo.networkapi.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMapOf;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -23,7 +17,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.owasp.esapi.waf.ConfigurationException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -68,6 +61,7 @@ import com.cloud.user.DomainManager;
 import com.cloud.user.UserContext;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
+import com.cloud.utils.db.Transaction;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
@@ -215,29 +209,34 @@ public class NetworkAPIManagerTest {
     @Test
     public void addNetworkAPIHost() throws CloudException {
     	
-//    	String username = "testUser";
-//    	String password = "testPwd";
-//    	String url = "testUrl";
-//    	
-//    	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
-//    	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
-//    	
-//    	when(_configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
-//    	when(_configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
-//    	when(_configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("0");
-//    	
-//    	HostVO napiHost = new HostVO(1L, "NetworkAPI", null, "Up", "L2Networking", "", null, 
-//    			null, "", null, null, null, null, null, null, null, null, zoneId, null,
-//    			0L, 0L, null, null, null, 0L, null);
-//
-//    	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(napiHost);
-//    	
-//    	UserContext.registerContext(1l, null, null, true);
-//    	
-//	    Host host = _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url);
-//	    assertNotNull(host);
-//	    assertEquals(host.getDataCenterId(), zoneId);
-//	    assertEquals(host.getName(), "NetworkAPI");
+    	String username = "testUser";
+    	String password = "testPwd";
+    	String url = "testUrl";
+    	
+    	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
+    	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
+    	
+    	when(_configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
+    	when(_configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
+    	when(_configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("0");
+    	
+    	HostVO napiHost = new HostVO(1L, "NetworkAPI", null, "Up", "L2Networking", "", null, 
+    			null, "", null, null, null, null, null, null, null, null, zoneId, null,
+    			0L, 0L, null, null, null, 0L, null);
+
+    	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(napiHost);
+    	
+    	Transaction tx = Transaction.open(Transaction.CLOUD_DB);
+    	try {
+	    	UserContext.registerContext(1l, null, null, true);
+	    	
+		    Host host = _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url);
+		    assertNotNull(host);
+		    assertEquals(host.getDataCenterId(), zoneId);
+		    assertEquals(host.getName(), "NetworkAPI");
+    	} finally {
+    		tx.rollback();
+    	}
     }
     
     @Configuration
@@ -246,83 +245,83 @@ public class NetworkAPIManagerTest {
     	
     	@Bean
     	public DomainDao domainDao() {
-    		return Mockito.mock(DomainDao.class);
+    		return mock(DomainDao.class);
     	}
     	@Bean
     	public HostDao hostDao() {
-    		return Mockito.mock(HostDao.class);
+    		return mock(HostDao.class);
     	}
     	@Bean
     	public DataCenterDao dataCenterDao() {
-    		return Mockito.mock(DataCenterDao.class);
+    		return mock(DataCenterDao.class);
     	}
     	@Bean
     	public HostPodDao hostPodDao() {
-    		return Mockito.mock(HostPodDao.class);
+    		return mock(HostPodDao.class);
     	}
     	@Bean
     	public PhysicalNetworkDao physicalNetworkDao() {
-    		return Mockito.mock(PhysicalNetworkDao.class);
+    		return mock(PhysicalNetworkDao.class);
     	}
     	@Bean
     	public NetworkOfferingDao networkOfferingDao() {
-    		return Mockito.mock(NetworkOfferingDao.class);
+    		return mock(NetworkOfferingDao.class);
     	}
     	@Bean
     	public UserDao userDao() {
-    		return Mockito.mock(UserDao.class);
+    		return mock(UserDao.class);
     	}
     	@Bean
     	public NetworkDao networkDao() {
-    		return Mockito.mock(NetworkDao.class);
+    		return mock(NetworkDao.class);
     	}
     	@Bean
     	public NetworkServiceMapDao networkServiceMapDao() {
-    		return Mockito.mock(NetworkServiceMapDao.class);
+    		return mock(NetworkServiceMapDao.class);
     	}
     	@Bean
     	public NetworkAPINetworkDao networkAPINetworkDao() {
-    		return Mockito.mock(NetworkAPINetworkDao.class);
+    		return mock(NetworkAPINetworkDao.class);
     	}
     	@Bean
     	public NetworkAPIEnvironmentDao networkAPIEnvironmentDao() {
-    		return Mockito.mock(NetworkAPIEnvironmentDao.class);
+    		return mock(NetworkAPIEnvironmentDao.class);
     	}
     	@Bean
     	public NetworkModel networkModel() {
-    		return Mockito.mock(NetworkModel.class);
+    		return mock(NetworkModel.class);
     	}
     	@Bean
     	public AgentManager agentManager() {
-    		return Mockito.mock(AgentManager.class);
+    		return mock(AgentManager.class);
     	}
     	@Bean
     	public ConfigurationManager configurationManager() {
-    		return Mockito.mock(ConfigurationManager.class);
+    		return mock(ConfigurationManager.class);
     	}
     	@Bean
     	public ResourceManager resourceManager() {
-    		return Mockito.mock(ResourceManager.class);
+    		return mock(ResourceManager.class);
     	}
     	@Bean
     	public DomainManager domainManager() {
-    		return Mockito.mock(DomainManager.class);
+    		return mock(DomainManager.class);
     	}
     	@Bean
     	public NetworkManager networkManager() {
-    		return Mockito.mock(NetworkManager.class);
+    		return mock(NetworkManager.class);
     	}
     	@Bean
     	public AccountManager accountManager() {
-    		return Mockito.mock(AccountManager.class);
+    		return mock(AccountManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {
-    		return Mockito.mock(ConfigurationServer.class);
+    		return mock(ConfigurationServer.class);
     	}
     	@Bean
     	public NetworkService networkService() {
-    		return Mockito.mock(NetworkService.class);
+    		return mock(NetworkService.class);
     	}
 
         public static class Library implements TypeFilter {
