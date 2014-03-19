@@ -1,0 +1,31 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	INSERT INTO `cloud`.`host` (name, uuid, status, type, private_ip_address, data_center_id, ram, resource, version, guid, available, setup, dom0_memory, last_ping, created, update_count, resource_state, engine_state) 
+	SELECT 
+	'NetworkAPI' AS name,
+	UUID(),
+	'Up' AS status,
+	'L2Networking' AS type,
+	'' AS private_ip_address,
+	id AS data_center_id,
+	0 AS ram,
+	'com.globo.networkapi.resource.NetworkAPIResource' AS resource,
+	'4.2.1' AS version,
+	CONCAT('networkapi-', id) AS guid,
+	1 AS available,
+	0 AS setup,
+	0 AS dom0_memory,
+	UNIX_TIMESTAMP(),
+	NOW(),
+	0 AS update_count,
+	'Enabled' AS resource_state,
+	'Disabled' AS engine_state
+	FROM `cloud`.`data_center`;
+"""
+
+SQL_DOWN = u"""
+	DELETE FROM `cloud`.`host` 
+	WHERE name = 'NetworkAPI'
+	AND resource = 'com.globo.networkapi.resource.NetworkAPIResource'
+	AND version = '4.2.1'
+"""

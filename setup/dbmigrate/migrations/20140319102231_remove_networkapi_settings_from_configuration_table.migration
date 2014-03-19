@@ -1,0 +1,13 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+    DELETE FROM `cloud`.`configuration` WHERE name = 'networkapi.username';
+    DELETE FROM `cloud`.`configuration` WHERE name = 'networkapi.password';
+    DELETE FROM `cloud`.`configuration` WHERE name = 'networkapi.url';
+"""
+
+SQL_DOWN = u"""
+    INSERT INTO `cloud`.`configuration` (category, instance, component, name, description) VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.username', 'Specify the username used for networkapi (if using Networkapi)');
+    INSERT INTO `cloud`.`configuration` (category, instance, component, name, description) VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.password', 'Specify password for user for networkapi (if using Networkapi)');
+    INSERT INTO `cloud`.`configuration` (category, instance, component, name, value, description) VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.url', 'https://networkapi.globoi.com', 'Specify base url of networkapi (if using Networkapi)');    
+
+"""

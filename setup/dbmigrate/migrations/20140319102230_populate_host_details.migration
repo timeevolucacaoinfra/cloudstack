@@ -1,0 +1,86 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'zoneId' AS name,
+		data_center_id AS value
+		FROM `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI';
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'guid' AS name,
+		CONCAT('networkapi-', id) AS value
+		FROM `cloud`.`data_center`;
+
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'name' AS name,
+		'NetworkAPI' AS value
+		FROM `cloud`.`data_center`;
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'readTimeout' AS name,
+		configuration.value AS value
+		FROM `cloud`.`configuration`, `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
+		AND `cloud`.`configuration`.`name` =  'networkapi.readtimeout';
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'connectTimeout' AS name,
+		configuration.value AS value
+		FROM `cloud`.`configuration`, `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
+		AND `cloud`.`configuration`.`name` =  'networkapi.connectiontimeout';
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'username' AS name,
+		configuration.value AS value
+		FROM `cloud`.`configuration`, `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
+		AND `cloud`.`configuration`.`name` =  'networkapi.username';
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'password' AS name,
+		configuration.value AS value
+		FROM `cloud`.`configuration`, `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
+		AND `cloud`.`configuration`.`name` =  'networkapi.password';
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'numberOfRetries' AS name,
+		configuration.value AS value
+		FROM `cloud`.`configuration`, `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
+		AND `cloud`.`configuration`.`name` =  'networkapi.numberofretries';
+
+	INSERT INTO `cloud`.`host_details` (host_id, name, value)
+		SELECT
+		id AS host_id,
+		'url' AS name,
+		configuration.value AS value
+		FROM `cloud`.`configuration`, `cloud`.`host`
+		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
+		AND `cloud`.`configuration`.`name` =  'networkapi.url';
+"""
+
+SQL_DOWN = u"""
+	DELETE FROM `cloud`.`host_details`
+		USING `cloud`.`host_details`, `cloud`.`host`
+		WHERE `cloud`.`host_details`.`host_id` = `cloud`.`host`.`id`
+		AND `cloud`.`host`.`name` = 'NetworkAPI';
+"""
