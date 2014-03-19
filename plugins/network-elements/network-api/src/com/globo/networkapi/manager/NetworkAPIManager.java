@@ -680,7 +680,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Long zoneId = pNtwk.getDataCenterId();
 
 		Map<String, String> params = new HashMap<String, String>();
-		params.put("guid", "networkapi");
+		params.put("guid", "networkapi-" + String.valueOf(zoneId));
 		params.put("zoneId", String.valueOf(zoneId));
 		params.put("name", Provider.NetworkAPI.getName());
 		

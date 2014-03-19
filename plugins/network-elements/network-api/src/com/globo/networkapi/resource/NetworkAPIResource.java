@@ -41,6 +41,8 @@ import com.globo.networkapi.response.NetworkAPIVlanResponse;
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private String _zoneId;
 	
+	private String _guid;
+	
 	private String _name;
 	
 	private String _username;
@@ -63,6 +65,11 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			_zoneId = (String) params.get("zoneId");
 			if (_zoneId == null) {
 				throw new ConfigurationException("Unable to find zone");
+			}
+			
+			_guid = (String) params.get("guid");
+			if (_guid == null) {
+				throw new ConfigurationException("Unable to find guid");
 			}
 			
 			_name = (String) params.get("name");
@@ -128,7 +135,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		s_logger.trace("initialize called");
 		StartupCommand cmd = new StartupCommand(getType());
 		cmd.setName(_name);
-		cmd.setGuid("networkapi");
+		cmd.setGuid(_guid);
 		cmd.setDataCenter(_zoneId);
 		cmd.setPod("");
 		cmd.setPrivateIpAddress("");
