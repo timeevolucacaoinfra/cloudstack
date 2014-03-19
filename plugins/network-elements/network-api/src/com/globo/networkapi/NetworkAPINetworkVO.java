@@ -39,13 +39,17 @@ public class NetworkAPINetworkVO implements InternalIdentity {
 
 	@Column(name = "network_id")
 	private long networkId;
+	
+	@Column(name = "napi_environment_id")
+	private long napiEnvironmentId;
 
 	public NetworkAPINetworkVO() {
 	}
 
-	public NetworkAPINetworkVO(long napiVlanId, long networkId) {
+	public NetworkAPINetworkVO(long napiVlanId, long networkId, long napiEnvironmentId) {
 		this.napiVlanId = napiVlanId;
 		this.networkId = networkId;
+		this.napiEnvironmentId = napiEnvironmentId;
 	}
 
 	public long getId() {
@@ -58,6 +62,10 @@ public class NetworkAPINetworkVO implements InternalIdentity {
 
 	public long getNetworkId() {
 		return networkId;
+	}
+	
+	public long getNapiEnvironmentId() {
+		return napiEnvironmentId;
 	}
 
 }

@@ -21,13 +21,12 @@ import javax.inject.Inject;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
-import org.apache.cloudstack.api.BaseAsyncCmd;
+import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.api.response.SuccessResponse;
 
-import com.cloud.event.EventTypes;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
@@ -38,7 +37,7 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.manager.NetworkAPIService;
 
 @APICommand(name = "removeNetworkAPIEnvironment", responseObject = SuccessResponse.class, description = "Removes a NetworkAPI environment from a zone")
-public class RemoveNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
+public class RemoveNetworkAPIEnvironmentCmd extends BaseCmd {
 
 	private static final String s_name = "removenetworkapiresponse";
 	@Inject
@@ -101,15 +100,4 @@ public class RemoveNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
 	public long getEntityOwnerId() {
 		return UserContext.current().getCaller().getId();
 	}
-
-	@Override
-	public String getEventType() {
-		return EventTypes.EVENT_SERVICE_PROVIDER_DELETE;
-	}
-
-	@Override
-	public String getEventDescription() {
-		return "Removing a NetworkAPI Environment from a zone";
-	}
-
 }

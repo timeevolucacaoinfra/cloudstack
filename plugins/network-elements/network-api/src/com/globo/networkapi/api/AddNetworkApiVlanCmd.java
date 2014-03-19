@@ -131,7 +131,7 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
         			" domainId=" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, null, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);

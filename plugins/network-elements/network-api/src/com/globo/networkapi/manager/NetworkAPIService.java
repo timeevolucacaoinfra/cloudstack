@@ -60,6 +60,7 @@ public interface NetworkAPIService {
 	 * Create a new network based on existed vlanId from NetworkAPI.
 	 * 
 	 * @param vlanId Id (to the vlan number) of vlan.
+	 * @param napiEnvironmentId Id of the environment in NetworkAPI
 	 * @param zoneId
 	 * @param networkOfferingId
 	 * @param physicalNetworkId
@@ -70,7 +71,7 @@ public interface NetworkAPIService {
 	 * @throws ConcurrentOperationException
 	 * @throws InsufficientCapacityException
 	 */
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
+	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long napiEnvironmentId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,

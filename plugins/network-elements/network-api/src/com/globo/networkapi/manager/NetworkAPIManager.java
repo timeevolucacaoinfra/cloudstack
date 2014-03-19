@@ -204,7 +204,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
 		Long napiVlanId = response.getVlanId();
 
-		return createNetworkFromNetworkAPIVlan(napiVlanId, zoneId,
+		return createNetworkFromNetworkAPIVlan(napiVlanId, napiEnvironmentId, zoneId,
 				networkOfferingId, physicalNetworkId, networkDomain, aclType,
 				accountName, projectId, domainId, subdomainAccess,
 				displayNetwork, aclId);
@@ -212,7 +212,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
     @DB
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
+	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long napiEnvironmentId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName, Long projectId,
 			Long domainId, Boolean subdomainAccess, Boolean displayNetwork,
@@ -414,7 +414,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		// Save relashionship with napi and network
 		NetworkAPINetworkVO napiNetworkVO = new NetworkAPINetworkVO(vlanId,
-				network.getId());
+				network.getId(), napiEnvironmentId);
 		napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
 
 		// if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
@@ -839,12 +839,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
+	@DB
 	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId) {
-
-		// FIXME Check if there are any networks in this environment before removing it
 
         Transaction txn = Transaction.currentTxn();
         txn.start();
+        
+        // Check if there are any networks in this Network API environment
+        List<NetworkAPINetworkVO> associationList = _napiNetworkDao.listByEnvironmentId(napiEnvironmentId);
+        
+        if (!associationList.isEmpty()) {
+        	throw new InvalidParameterValueException("There are active networks on environment " + napiEnvironmentId + ". Please delete them before removing this environment.");
+        }
         
 		// Retrieve napiEnvironment from DB
 		NetworkAPIEnvironmentVO napiEnvironment = _napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId);

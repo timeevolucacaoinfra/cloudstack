@@ -5575,7 +5575,6 @@
                                             label: 'Network API Environment ID'
                                         }
                                     },
-
                                     actions: {
                                         remove: {
                                             label: 'label.remove',
@@ -5584,29 +5583,31 @@
                                                     return 'Are you sure you want to remove environment ' + args.context.napienvironments[0].name + '(' + args.context.napienvironments[0].environmentid + ')?';
                                                 },
                                                 notification: function(args) {
-                                                    return 'Environment removed successfully';
+                                                    return 'Remove Network API environment';
                                                 }
                                             },
-                                            notification: {
-                                                poll: pollAsyncJobResult
-                                            },                                        
                                             action: function(args) {
                                                 var physicalnetworkid = args.context.physicalNetworks[0].id;
                                                 var napienvironmentid = args.context.napienvironments[0].environmentid;
                                                 $.ajax({
                                                     url: createURL("removeNetworkAPIEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + napienvironmentid),
                                                     dataType: "json",
-                                                    async: false,
+                                                    async: true,
                                                     success: function(json) {
-                                                        var jobid = json.removenetworkapiresponse.jobid;
-                                                        args.response.success({
-                                                            _custom: {
-                                                                jobId: jobid,
-                                                            }
-                                                        });
+                                                        args.response.success();
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    },
+                                                    error: function(XMLHttpResponse) {
+                                                        var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                        args.response.error(errorMsg);
                                                     }
                                                 });
                                             },
+                                            notification: {
+                                                poll: function(args) {
+                                                    args.complete();
+                                                }
+                                            }                                     
                                         }
                                     },
 
@@ -6003,12 +6004,12 @@
                                                 url: createURL('removeVmwareDc'),
                                                 data: data,
                                                 success: function(json) {
-                                                	delete args.context.physicalResources[0].vmwaredcName;
-                                                	delete args.context.physicalResources[0].vmwaredcVcenter;
-                                                	delete args.context.physicalResources[0].vmwaredcId;
-                                                	
-                                                	selectedZoneObj = args.context.physicalResources[0];
-                                                	
+                                                    delete args.context.physicalResources[0].vmwaredcName;
+                                                    delete args.context.physicalResources[0].vmwaredcVcenter;
+                                                    delete args.context.physicalResources[0].vmwaredcId;
+                                                    
+                                                    selectedZoneObj = args.context.physicalResources[0];
+                                                    
                                                     args.response.success({                                                        
                                                         data: args.context.physicalResources[0]
                                                     });
@@ -6398,17 +6399,17 @@
                                                     });
 
                                                     $.ajax({
-                                                    	url: createURL('listClusters'),
-                                                    	data: {
+                                                        url: createURL('listClusters'),
+                                                        data: {
                                                             zoneid: args.context.physicalResources[0].id
                                                         },
                                                         async: false,
-                                                        success: function(json) {                                                        	
-                                                        	var clusters = json.listclustersresponse.cluster;
-                                                        	if (clusters != null) {
-                                                        		for (var i = 0; i < clusters.length; i++) {                                                        			
-                                                        			if (clusters[i].hypervisortype == 'VMware') {                                                        				
-                                                        				$.ajax({
+                                                        success: function(json) {                                                           
+                                                            var clusters = json.listclustersresponse.cluster;
+                                                            if (clusters != null) {
+                                                                for (var i = 0; i < clusters.length; i++) {                                                                 
+                                                                    if (clusters[i].hypervisortype == 'VMware') {                                                                       
+                                                                        $.ajax({
                                                                             url: createURL('listVmwareDcs'), //listVmwareDcs API exists in only non-oss bild
                                                                             data: {
                                                                                 zoneid: args.context.physicalResources[0].id
@@ -6423,12 +6424,12 @@
                                                                                 }
                                                                             }
                                                                             //, error: function(XMLHttpResponse) {} //override default error handling: cloudStack.dialog.notice({ message: parseXMLHttpResponse(XMLHttpResponse)});   
-                                                                        });                                                        				
-                                                        				
-                                                        				break;
-                                                        			}
-                                                        		}                                                        		
-                                                        	}                                                        	
+                                                                        });                                                                     
+                                                                        
+                                                                        break;
+                                                                    }
+                                                                }                                                               
+                                                            }                                                           
                                                         }
                                                     });                         
                                                     
@@ -11677,9 +11678,9 @@
                                                     var item = json.updateconfigurationresponse.configuration;
                                                    
                                                     if (args.data.jsonObj.name == 'cpu.overprovisioning.factor' || args.data.jsonObj.name == 'mem.overprovisioning.factor') {
-                                                    	cloudStack.dialog.notice({
-                                                    		message: 'Please note - if you are changing the over provisioning factor for a cluster with vms running, please refer to the admin guide to understand the capacity calculation.'
-                                                    	});
+                                                        cloudStack.dialog.notice({
+                                                            message: 'Please note - if you are changing the over provisioning factor for a cluster with vms running, please refer to the admin guide to understand the capacity calculation.'
+                                                        });
                                                     }
                                                     
                                                     args.response.success({
@@ -12601,10 +12602,10 @@
                                             label: 'label.type'
                                         },                                                                                
                                         hypervisor: {
-                                        	label: 'label.hypervisor'
+                                            label: 'label.hypervisor'
                                         },
                                         hypervisorversion: {
-                                        	label: 'label.hypervisor.version'
+                                            label: 'label.hypervisor.version'
                                         },
                                         hosttags: {
                                             label: 'label.host.tags',
@@ -13893,35 +13894,35 @@
                         }
                     },
                     dataProvider: function(args) {                       
-			            $.ajax({
-			              url: createURL('listUcsManagers'),
-			              data: {
-			                zoneid: args.context.physicalResources[0].id
-			              },
-			              success: function(json) {	
-			            	  //for testing only (begin)
-			            	  /*           	  
-			            	  json = 
-			            	  {
-			            	      "listucsmanagerreponse": {
-			            		      "count": 1,
-			            		      "ucsmanager": [
-			            		          {
-			            		              "id": "07b5b813-83ed-4859-952c-c95cafb63ac4",
-			            		              "name": "ucsmanager",
-			            		              "url": "10.223.184.2",
-			            		              "zoneid": "54c9a65c-ba89-4380-96e9-1d429c5372e3"
-			            		          }
-			            		      ]
-			            	      }
-			            	  };
-			            	  */
-			            	  //for testing only (end)
-			            	  
-			            	  var items = json.listucsmanagerreponse.ucsmanager;
-			            	  args.response.success({ data: items });			            	  
-			              }
-			            });
+                        $.ajax({
+                          url: createURL('listUcsManagers'),
+                          data: {
+                            zoneid: args.context.physicalResources[0].id
+                          },
+                          success: function(json) { 
+                              //for testing only (begin)
+                              /*              
+                              json = 
+                              {
+                                  "listucsmanagerreponse": {
+                                      "count": 1,
+                                      "ucsmanager": [
+                                          {
+                                              "id": "07b5b813-83ed-4859-952c-c95cafb63ac4",
+                                              "name": "ucsmanager",
+                                              "url": "10.223.184.2",
+                                              "zoneid": "54c9a65c-ba89-4380-96e9-1d429c5372e3"
+                                          }
+                                      ]
+                                  }
+                              };
+                              */
+                              //for testing only (end)
+                              
+                              var items = json.listucsmanagerreponse.ucsmanager;
+                              args.response.success({ data: items });                             
+                          }
+                        });
 
                     },
                     actions: {
@@ -14057,30 +14058,30 @@
 
                                 dataProvider: function(args) {                                    
                                     $.ajax({
-                                    	url: createURL('listUcsManagers'),
-                                    	data: {
-                                    		id: args.context.ucsManagers[0].id 
-                			            },                                      
-                			            success: function(json) {
+                                        url: createURL('listUcsManagers'),
+                                        data: {
+                                            id: args.context.ucsManagers[0].id 
+                                        },                                      
+                                        success: function(json) {
                                             //for testing only (begin)
-              			            	    /*          	  
-              			            	    json = 
-              			            	    {
-              			            	        "listucsmanagerreponse": {
-              			            		        "count": 1,
-              			            		        "ucsmanager": [
-              			            		            {
-              			            		                "id": "07b5b813-83ed-4859-952c-c95cafb63ac4",
-              			            		                "name": "ucsmanager",
-              			            		                "url": "10.223.184.2",
-              			            		                "zoneid": "54c9a65c-ba89-4380-96e9-1d429c5372e3"
-              			            		            }
-              			            		        ]
-              			            	        }
-              			            	    };
-              			            	    */
-              			            	    //for testing only (end)
-                                        	                                        	
+                                            /*                
+                                            json = 
+                                            {
+                                                "listucsmanagerreponse": {
+                                                    "count": 1,
+                                                    "ucsmanager": [
+                                                        {
+                                                            "id": "07b5b813-83ed-4859-952c-c95cafb63ac4",
+                                                            "name": "ucsmanager",
+                                                            "url": "10.223.184.2",
+                                                            "zoneid": "54c9a65c-ba89-4380-96e9-1d429c5372e3"
+                                                        }
+                                                    ]
+                                                }
+                                            };
+                                            */
+                                            //for testing only (end)
+                                                                                        
 
                                             var item = json.listucsmanagerreponse.ucsmanager[0];
                                             args.response.success({                                                
@@ -14145,23 +14146,23 @@
                                                         ]
                                                     }
                                                 };  
-                                            	*/
-                                            	//for testing only (end)
-                                            	
-                                            	var items = json.listucsbladeresponse.ucsblade ? json.listucsbladeresponse.ucsblade : [];
+                                                */
+                                                //for testing only (end)
+                                                
+                                                var items = json.listucsbladeresponse.ucsblade ? json.listucsbladeresponse.ucsblade : [];
                                                 for (var i = 0; i < items.length; i++) {                                                    
-                                                	addExtraPropertiesToUcsBladeObject(items[i]);   
+                                                    addExtraPropertiesToUcsBladeObject(items[i]);   
                                                 }
                                                 args.response.success({
-                                                	actionFilter: bladeActionfilter,
+                                                    actionFilter: bladeActionfilter,
                                                     data: items
                                                 });
                                             }
                                         });
                                     },
                                     actions: {
-                                    	refreshUcsBlades: {
-                                    		isHeader: true,
+                                        refreshUcsBlades: {
+                                            isHeader: true,
                                             label: 'Refresh Blades',
                                             messages: {
                                                 confirm: function(args) {
@@ -14171,68 +14172,68 @@
                                                     return 'Refresh Blades';
                                                 }
                                             },
-                                            action: function(args) {                                            	                                            
+                                            action: function(args) {                                                                                            
                                                 $.ajax({
                                                     url: createURL('refreshUcsBlades'),
                                                     data: {
-                                                    	ucsmanagerid: args.context.ucsManagers[0].id
+                                                        ucsmanagerid: args.context.ucsManagers[0].id
                                                     },
-                                                    success: function(json) {                                                    	
-                                                    	//for testing only (begin)
-                                                    	/*
-                                                    	json = {
-                                                    		    "refreshucsbladesresponse": {
-                                                    		        "count": 7,
-                                                    		        "ucsblade": [
-                                                    		            {
-                                                    		                "id": "6c6a2d2c-575e-41ac-9782-eee51b0b80f8",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-5"
-                                                    		            },
-                                                    		            {
-                                                    		                "id": "d371d470-a51f-489c-aded-54a63dfd76c7",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-6"
-                                                    		            },
-                                                    		            {
-                                                    		                "id": "c0f64591-4a80-4083-bb7b-576220b436a2",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-7"
-                                                    		            },
-                                                    		            {
-                                                    		                "id": "74b9b69a-cb16-42f5-aad6-06391ebdd759",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-1"
-                                                    		            },
-                                                    		            {
-                                                    		                "id": "713a5adb-0136-484f-9acb-d9203af497be",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-2"
-                                                    		            },
-                                                    		            {
-                                                    		                "id": "da633578-21cb-4678-9eb4-981a53198b41",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-4"
-                                                    		            },
-                                                    		            {
-                                                    		                "id": "3d491c6e-f0b6-40b0-bf6e-f89efdd73c30",
-                                                    		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                    		                "bladedn": "sys/chassis-1/blade-3"
-                                                    		            }
-                                                    		        ]
-                                                    		    }
-                                                    		};
-                                                    	*/
-                                                    	//for testing only (end)
-                                                    	  
-                                                    	/*
+                                                    success: function(json) {                                                       
+                                                        //for testing only (begin)
+                                                        /*
+                                                        json = {
+                                                                "refreshucsbladesresponse": {
+                                                                    "count": 7,
+                                                                    "ucsblade": [
+                                                                        {
+                                                                            "id": "6c6a2d2c-575e-41ac-9782-eee51b0b80f8",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-5"
+                                                                        },
+                                                                        {
+                                                                            "id": "d371d470-a51f-489c-aded-54a63dfd76c7",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-6"
+                                                                        },
+                                                                        {
+                                                                            "id": "c0f64591-4a80-4083-bb7b-576220b436a2",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-7"
+                                                                        },
+                                                                        {
+                                                                            "id": "74b9b69a-cb16-42f5-aad6-06391ebdd759",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-1"
+                                                                        },
+                                                                        {
+                                                                            "id": "713a5adb-0136-484f-9acb-d9203af497be",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-2"
+                                                                        },
+                                                                        {
+                                                                            "id": "da633578-21cb-4678-9eb4-981a53198b41",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-4"
+                                                                        },
+                                                                        {
+                                                                            "id": "3d491c6e-f0b6-40b0-bf6e-f89efdd73c30",
+                                                                            "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                            "bladedn": "sys/chassis-1/blade-3"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            };
+                                                        */
+                                                        //for testing only (end)
+                                                          
+                                                        /*
                                                         var item = json.refreshucsbladesresponse.ucsblade[0];                                                        
                                                         addExtraPropertiesToUcsBladeObject(item);                                                        
                                                         args.response.success({
                                                             data: item
                                                         });
-                                                        */                                                    	                                                    
-                                                    	$(window).trigger('cloudStack.fullRefresh');
+                                                        */                                                                                                          
+                                                        $(window).trigger('cloudStack.fullRefresh');
                                                     }
                                                 });
                                             },
@@ -14241,8 +14242,8 @@
                                                     args.complete();
                                                 }
                                             }                                            
-                                    	},
-                                    	
+                                        },
+                                        
                                         associateTemplateToBlade: {
                                             label: 'Instanciate Template and Associate Profile to Blade',
                                             addRow: 'false',
@@ -14254,7 +14255,7 @@
                                             createForm: {
                                                 title: 'Instanciate Template and Associate Profile to Blade',
                                                 fields: {
-                                                	templatedn: {
+                                                    templatedn: {
                                                         label: 'Select Template',
                                                         select: function(args) {
                                                             var items = [];
@@ -14267,21 +14268,21 @@
                                                                 async: false,
                                                                 success: function(json) { 
                                                                     //for testing only (begin)
-                                                                	/*
-                                                                	json = {
-                                                                		    "listucstemplatesresponse": {
-                                                                		        "count": 1,
-                                                                		        "ucstemplate": [
-                                                                		            {
-                                                                		                "ucsdn": "org-root/ls-test"
-                                                                		            }
-                                                                		        ]
-                                                                		    }
-                                                                		};  
+                                                                    /*
+                                                                    json = {
+                                                                            "listucstemplatesresponse": {
+                                                                                "count": 1,
+                                                                                "ucstemplate": [
+                                                                                    {
+                                                                                        "ucsdn": "org-root/ls-test"
+                                                                                    }
+                                                                                ]
+                                                                            }
+                                                                        };  
                                                                     */
-                                                                	//for testing only (end)
-                                                                	
-                                                                	var ucstemplates = json.listucstemplatesresponse.ucstemplate;
+                                                                    //for testing only (end)
+                                                                    
+                                                                    var ucstemplates = json.listucstemplatesresponse.ucstemplate;
                                                                     if (ucstemplates != null) {
                                                                         for (var i = 0; i < ucstemplates.length; i++) {
                                                                             items.push({
@@ -14303,69 +14304,69 @@
                                                         }
                                                     },
                                                     profilename: {
-                                                    	label: 'Profile'
+                                                        label: 'Profile'
                                                     }
                                                 }
                                             },
                                             action: function(args) {
-                                            	var data = {
+                                                var data = {
                                                     ucsmanagerid: args.context.ucsManagers[0].id,
                                                     templatedn: args.data.templatedn,                                                    
                                                     bladeid: args.context.blades[0].id
                                                 };
-                                            	
-                                            	if (args.data.profilename != null && args.data.profilename.length > 0) {
-                                            		$.extend(data, {
-                                            			profilename: args.data.profilename
-                                            		});
-                                            	}
-                                            	
+                                                
+                                                if (args.data.profilename != null && args.data.profilename.length > 0) {
+                                                    $.extend(data, {
+                                                        profilename: args.data.profilename
+                                                    });
+                                                }
+                                                
                                                 $.ajax({
                                                     url: createURL('instantiateUcsTemplateAndAssocaciateToBlade'), 
                                                     data: data,
                                                     success: function(json) {
-                                                    	//for testing only (begin)
-                                                    	/*
-                                                    	json = {
-                                                        	    "instantiateucstemplateandassociatetobladeresponse": {
-                                                        	        "jobid": "cd9d0282-4dae-463f-80b6-451e168e2e92"
-                                                        	    }
-                                                        	}
-                                                    	*/
-                                                    	//for testing only (end)
-                                                    	                                                    	
-                                                    	var jid = json.instantiateucstemplateandassociatetobladeresponse.jobid;
+                                                        //for testing only (begin)
+                                                        /*
+                                                        json = {
+                                                                "instantiateucstemplateandassociatetobladeresponse": {
+                                                                    "jobid": "cd9d0282-4dae-463f-80b6-451e168e2e92"
+                                                                }
+                                                            }
+                                                        */
+                                                        //for testing only (end)
+                                                                                                                
+                                                        var jid = json.instantiateucstemplateandassociatetobladeresponse.jobid;
                                                         args.response.success({
                                                             _custom: {
                                                                 jobId: jid,
-                                                                getUpdatedItem: function(json) {                                                               	    
-                                                                	//for testing only (begin)
-                                                                	/*
-                                                                	json = {
-                                                                		    "queryasyncjobresultresponse": {
-                                                                		        "accountid": "970b694a-2f8c-11e3-a77d-000c29b36ff5",
-                                                                		        "userid": "970b7b4f-2f8c-11e3-a77d-000c29b36ff5",
-                                                                		        "cmd": "org.apache.cloudstack.api.InstantiateUcsTemplateAndAssociateToBladeCmd",
-                                                                		        "jobstatus": 1,
-                                                                		        "jobprocstatus": 0,
-                                                                		        "jobresultcode": 0,
-                                                                		        "jobresulttype": "object",
-                                                                		        "jobresult": {
-                                                                		            "ucsblade": {
-                                                                		                "id": "3d491c6e-f0b6-40b0-bf6e-f89efdd73c30",
-                                                                		                "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
-                                                                		                "bladedn": "sys/chassis-1/blade-3",
-                                                                		                "profiledn": "org-root/ls-xxxx"
-                                                                		            }
-                                                                		        },
-                                                                		        "created": "2013-10-10T17:29:00-0700",
-                                                                		        "jobid": "cd9d0282-4dae-463f-80b6-451e168e2e92"
-                                                                		    }
-                                                                		};                                                                	                                                               	
-                                                                	*/
-                                                                	//for testing only (end)
-                                                                	 
-                                                                	addExtraPropertiesToUcsBladeObject(json.queryasyncjobresultresponse.jobresult.ucsblade);                                                                	
+                                                                getUpdatedItem: function(json) {                                                                    
+                                                                    //for testing only (begin)
+                                                                    /*
+                                                                    json = {
+                                                                            "queryasyncjobresultresponse": {
+                                                                                "accountid": "970b694a-2f8c-11e3-a77d-000c29b36ff5",
+                                                                                "userid": "970b7b4f-2f8c-11e3-a77d-000c29b36ff5",
+                                                                                "cmd": "org.apache.cloudstack.api.InstantiateUcsTemplateAndAssociateToBladeCmd",
+                                                                                "jobstatus": 1,
+                                                                                "jobprocstatus": 0,
+                                                                                "jobresultcode": 0,
+                                                                                "jobresulttype": "object",
+                                                                                "jobresult": {
+                                                                                    "ucsblade": {
+                                                                                        "id": "3d491c6e-f0b6-40b0-bf6e-f89efdd73c30",
+                                                                                        "ucsmanagerid": "9a34c186-12fa-4bbc-af04-5f1a2bf7ae4a",
+                                                                                        "bladedn": "sys/chassis-1/blade-3",
+                                                                                        "profiledn": "org-root/ls-xxxx"
+                                                                                    }
+                                                                                },
+                                                                                "created": "2013-10-10T17:29:00-0700",
+                                                                                "jobid": "cd9d0282-4dae-463f-80b6-451e168e2e92"
+                                                                            }
+                                                                        };                                                                                                                                  
+                                                                    */
+                                                                    //for testing only (end)
+                                                                     
+                                                                    addExtraPropertiesToUcsBladeObject(json.queryasyncjobresultresponse.jobresult.ucsblade);                                                                    
                                                                     return json.queryasyncjobresultresponse.jobresult.ucsblade;
                                                                 }
                                                             }
@@ -14381,22 +14382,22 @@
                                         disassociateProfileFromBlade: {
                                             label: 'Disassociate Profile from Blade',
                                             addRow: 'false',
-                                            messages: {                                            	
+                                            messages: {                                             
                                                 notification: function(args) {
                                                     return 'Disassociate Profile from Blade';
                                                 }
                                             },  
                                             createForm: {
-                                            	title: 'Disassociate Profile from Blade',
-                                            	fields: {
-                                            		deleteprofile: {
+                                                title: 'Disassociate Profile from Blade',
+                                                fields: {
+                                                    deleteprofile: {
                                                         label: 'Delete Profile',
                                                         isBoolean: true,
                                                         isChecked: true
                                                     }
-                                            	}
+                                                }
                                             },
-                                            action: function(args) {                                               	
+                                            action: function(args) {                                                
                                                 $.ajax({
                                                     url: createURL('disassociateUcsProfileFromBlade'), 
                                                     data: {                                                                                                              
@@ -14404,51 +14405,51 @@
                                                         deleteprofile: (args.data.deleteprofile == 'on'? true: false)
                                                     },
                                                     success: function(json) {   
-                                                    	//for testing only (begin)
-                                                    	/*
-                                                    	json = {
-                                                        	    "disassociateucsprofilefrombladeresponse": {
-                                                        	        "jobid": "e371592e-31be-4e53-9346-a5c565d420df"
-                                                        	    }
-                                                        	}
-                                                    	*/
-                                                    	//for testing only (end)
-                                                    	                                                    	
-                                                    	var jid = json.disassociateucsprofilefrombladeresponse.jobid;
+                                                        //for testing only (begin)
+                                                        /*
+                                                        json = {
+                                                                "disassociateucsprofilefrombladeresponse": {
+                                                                    "jobid": "e371592e-31be-4e53-9346-a5c565d420df"
+                                                                }
+                                                            }
+                                                        */
+                                                        //for testing only (end)
+                                                                                                                
+                                                        var jid = json.disassociateucsprofilefrombladeresponse.jobid;
                                                         args.response.success({
                                                             _custom: {
                                                                 jobId: jid,
                                                                 getUpdatedItem: function(json) {  
-                                                                	//for testing only (begin)
-                                                                	/*
-                                                                	json = {
-                                                                		    "queryasyncjobresultresponse": {
-                                                                		        "accountid": "835fb2d5-0b76-11e3-9350-f4f3e49b5dfe",
-                                                                		        "userid": "835fc0e5-0b76-11e3-9350-f4f3e49b5dfe",
-                                                                		        "cmd": "org.apache.cloudstack.api.DisassociateUcsProfileCmd",
-                                                                		        "jobstatus": 1,
-                                                                		        "jobprocstatus": 0,
-                                                                		        "jobresultcode": 0,
-                                                                		        "jobresulttype": "object",
-                                                                		        "jobresult": {
-                                                                		            "ucsblade": {
-                                                                		                "id": "f8d08575-7a1c-4f79-a588-d129c38bcc4f",
-                                                                		                "ucsmanagerid": "0d87c1a6-5664-425c-9024-2ddd9605d260",
-                                                                		                "bladedn": "sys/chassis-1/blade-1"
-                                                                		            }
-                                                                		        },
-                                                                		        "created": "2013-09-13T22:17:29-0700",
-                                                                		        "jobid": "2c3698a8-39ac-43e6-8ade-86eb2d3726a0"
-                                                                		    }
-                                                                		}; 
-                                                                	*/       
-                                                                	//for testing only (end)
-                                                                	 
-                                                                	addExtraPropertiesToUcsBladeObject(json.queryasyncjobresultresponse.jobresult.ucsblade);         
+                                                                    //for testing only (begin)
+                                                                    /*
+                                                                    json = {
+                                                                            "queryasyncjobresultresponse": {
+                                                                                "accountid": "835fb2d5-0b76-11e3-9350-f4f3e49b5dfe",
+                                                                                "userid": "835fc0e5-0b76-11e3-9350-f4f3e49b5dfe",
+                                                                                "cmd": "org.apache.cloudstack.api.DisassociateUcsProfileCmd",
+                                                                                "jobstatus": 1,
+                                                                                "jobprocstatus": 0,
+                                                                                "jobresultcode": 0,
+                                                                                "jobresulttype": "object",
+                                                                                "jobresult": {
+                                                                                    "ucsblade": {
+                                                                                        "id": "f8d08575-7a1c-4f79-a588-d129c38bcc4f",
+                                                                                        "ucsmanagerid": "0d87c1a6-5664-425c-9024-2ddd9605d260",
+                                                                                        "bladedn": "sys/chassis-1/blade-1"
+                                                                                    }
+                                                                                },
+                                                                                "created": "2013-09-13T22:17:29-0700",
+                                                                                "jobid": "2c3698a8-39ac-43e6-8ade-86eb2d3726a0"
+                                                                            }
+                                                                        }; 
+                                                                    */       
+                                                                    //for testing only (end)
+                                                                     
+                                                                    addExtraPropertiesToUcsBladeObject(json.queryasyncjobresultresponse.jobresult.ucsblade);         
                                                                     return json.queryasyncjobresultresponse.jobresult.ucsblade;
                                                                 }
                                                             }
-                                                        });                                                    	
+                                                        });                                                     
                                                     }
                                                 });
                                             },
@@ -16572,9 +16573,9 @@
         var jsonObj = args.context.item;
         var allowedActions = [];
         if(jsonObj.profiledn == null) {
-        	allowedActions.push("associateTemplateToBlade");
+            allowedActions.push("associateTemplateToBlade");
         } else {
-        	allowedActions.push("disassociateProfileFromBlade");
+            allowedActions.push("disassociateProfileFromBlade");
         }     
         return allowedActions;
     }
