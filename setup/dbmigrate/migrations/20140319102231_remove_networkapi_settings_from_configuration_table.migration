@@ -3,6 +3,7 @@ SQL_UP = u"""
     DELETE FROM `cloud`.`configuration` WHERE name = 'networkapi.username';
     DELETE FROM `cloud`.`configuration` WHERE name = 'networkapi.password';
     DELETE FROM `cloud`.`configuration` WHERE name = 'networkapi.url';
+    DELETE FROM `cloud`.`host` WHERE name = 'napivlan' AND type = 'L2Networking' AND resource = 'com.globo.networkapi.resource.NetworkAPIResource';
 """
 
 SQL_DOWN = u"""
