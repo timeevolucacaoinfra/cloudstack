@@ -681,6 +681,7 @@ listDedicatedHosts=1
 ### Network API commands
 addNetworkApiVlan=15
 addNetworkViaNetworkApiCmd=15
-addNetworkAPIEnvironment=15
+addNetworkAPIEnvironment=1
+addNetworkApiHost=1
 listNetworkApiEnvironments=15
-listAllEnvironmentsFromNetworkApi=15
+listAllEnvironmentsFromNetworkApi=1

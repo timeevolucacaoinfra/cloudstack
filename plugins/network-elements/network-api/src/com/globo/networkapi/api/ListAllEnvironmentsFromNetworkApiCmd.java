@@ -21,10 +21,13 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.apache.cloudstack.api.APICommand;
+import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
+import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.ListResponse;
+import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.log4j.Logger;
 
 import com.cloud.exception.ConcurrentOperationException;
@@ -44,12 +47,27 @@ public class ListAllEnvironmentsFromNetworkApiCmd extends BaseCmd {
     
     @Inject
     NetworkAPIService _ntwkAPIService;
+    
+	// ///////////////////////////////////////////////////
+	// ////////////// API parameters /////////////////////
+	// ///////////////////////////////////////////////////
+
+	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
+	private Long physicalNetworkId;
+	
+	// ///////////////////////////////////////////////////
+	// ///////////////// Accessors ///////////////////////
+	// ///////////////////////////////////////////////////
+
+	public Long getPhysicalNetworkId() {
+		return physicalNetworkId;
+	}
 
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
     	s_logger.debug("listAllEnvironmentsFromNetworkApiCmd command");
-    	List<Environment> environmentList = _ntwkAPIService.listAllEnvironmentsFromNetworkApi();
+    	List<Environment> environmentList = _ntwkAPIService.listAllEnvironmentsFromNetworkApi(physicalNetworkId);
     	if (environmentList != null) {
     		List<NetworkAPIEnvironmentExternalResponse> responseList = new ArrayList<NetworkAPIEnvironmentExternalResponse>();
     		for (Environment environment : environmentList) {
