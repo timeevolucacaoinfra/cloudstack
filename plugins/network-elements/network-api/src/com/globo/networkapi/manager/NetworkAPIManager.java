@@ -324,22 +324,13 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 
-		NetworkAPIVlanResponse response;
-		try {
-			response = (NetworkAPIVlanResponse) callCommand(cmd, zoneId);
-		} catch (ConfigurationException e) {
-			// FIXME
-			throw new CloudRuntimeException(e);
+		Answer answer = callCommand(cmd, zoneId);
+		if (answer == null || !answer.getResult()) {
+			throw new CloudRuntimeException(
+					"Unable to get information for vlan " + vlanId + " from Network API");
 		}
-
-		if (response == null || !response.getResult()) {
-			String msg = "Unable to execute command "
-					+ cmd.getClass().getSimpleName();
-			s_logger.error(msg);
-			// FIXME Understand this exception, and put more specific object
-			throw new ResourceUnavailableException(msg, DataCenter.class,
-					zoneId);
-		}
+		
+		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
 
 		long networkAddresLong = response.getNetworkAddress().toLong();
 		String networkAddress = NetUtils.long2Ip(networkAddresLong);
@@ -464,21 +455,16 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setNetworkAPIEnvironmentId(networkAPIEnvironmentId);
 
 		Answer answer = null;
-		try {
-			answer = callCommand(cmd, zoneId);
-			if (answer == null || !answer.getResult()) {
-				throw new CloudRuntimeException(
-						"Error creating VLAN in networkAPI: " + (answer == null ? "" : answer.getDetails()));
-			}
-		} catch (ConfigurationException e) {
+		answer = callCommand(cmd, zoneId);
+		if (answer == null || !answer.getResult()) {
 			throw new CloudRuntimeException(
-					"Error creating VLAN in networkAPI", e);
+					"Error creating VLAN in networkAPI: " + (answer == null ? "" : answer.getDetails()));
 		}
+
 		return (NetworkAPIVlanResponse) answer;
 	}
 
-	private Answer callCommand(Command cmd, Long zoneId)
-			throws ConfigurationException {
+	private Answer callCommand(Command cmd, Long zoneId) {
 		
 		HostVO napiHost = getNetworkAPIHost(zoneId);
 		if (napiHost != null) {
@@ -505,15 +491,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setVlanNum(Long.valueOf(getVlanNum(nicProfile.getBroadCastUri())));
 
 		String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
-		try {
-			Answer answer = this.callCommand(cmd, network.getDataCenterId());
-			if (answer == null || !answer.getResult()) {
-				msg = answer == null ? msg : answer.getDetails();
-				throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
-			}
-		} catch (ConfigurationException e) {
-			throw new CloudRuntimeException(msg, e);
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
 		}
+
 		// everything is ok
 		return network;
 	}
@@ -753,12 +736,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		ListAllEnvironmentsFromNetworkAPICommand cmd = new ListAllEnvironmentsFromNetworkAPICommand();
 		
-		Answer answer;
-		try {
-			answer = callCommand(cmd, zoneId);
-		} catch (ConfigurationException ex) {
-			throw new CloudRuntimeException("Error getting all environments from NetworkAPI.");
-		}
+		Answer answer = callCommand(cmd, zoneId);
 		
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
@@ -797,12 +775,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Long vlanId = getNapiVlanId(network.getId());
 		cmd.setVlanId(vlanId);
 		
-		Answer answer;
-		try {
-			answer = callCommand(cmd, network.getDataCenterId());
-		} catch (ConfigurationException ex) {
-			throw new CloudRuntimeException("Error removing network from NetworkAPI.");
-		}
+		Answer answer = callCommand(cmd, network.getDataCenterId());
 		
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
@@ -833,12 +806,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 		
-		Answer answer;
-		try {
-			answer = callCommand(cmd, zoneId);
-		} catch (ConfigurationException ex) {
-			throw new CloudRuntimeException("Error deallocating vlan from NetworkAPI.");
-		}
+		Answer answer = callCommand(cmd, zoneId);
 		
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
