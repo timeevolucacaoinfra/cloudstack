@@ -5575,7 +5575,81 @@
                                             label: 'Network API Environment ID'
                                         }
                                     },
+                                    dataProvider: function(args) {
+                                        var filter;
+                                        if (args.filterBy.search.value) {
+                                            filter = args.filterBy.search.value;
+                                        }
+
+                                        var items = [];
+                                        $.ajax({
+                                            url: createURL("listNetworkApiEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            success: function(json) {
+                                                $(json.listnetworkapienvironmentsresponse.networkapienvironment).each(function() {
+                                                    if (this.name.match(new RegExp(filter, "i"))) {
+                                                        items.push({
+                                                            name: this.name,
+                                                            environmentid: this.napienvironmentid,
+                                                        });
+                                                    }
+                                                });
+                                                args.response.success({
+                                                    data: items
+                                                });
+                                            }
+                                        });
+                                    },                                    
                                     actions: {
+                                        add: {
+                                            label: 'Add Environment',
+                                            createForm: {
+                                                title: 'Add a Network API Environment',
+                                                fields: {
+                                                    name: {
+                                                        label: 'Name',
+                                                        validation: {
+                                                            required: true
+                                                        }
+                                                    },
+                                                    napiEnvironmentId: {
+                                                        label: 'Environment',
+                                                        validation: {
+                                                            required: true
+                                                        },
+                                                        select: function(args) {
+                                                            $.ajax({
+                                                                url: createURL("listAllEnvironmentsFromNetworkApi&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                                                dataType: "json",
+                                                                async: false,
+                                                                success: function(json) {
+                                                                    var items = [];
+                                                                    $(json.listallenvironmentsfromnetworkapiresponse.networkapienvironment).each(function() {
+                                                                        items.push({
+                                                                            id: this.environmentId,
+                                                                            description: this.environmentFullName
+                                                                        });
+                                                                    });
+                                                                    args.response.success({
+                                                                        data: items
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            action: function(args) {
+                                                addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment");
+                                            },
+                                            messages: {
+                                                notification: function(args) {
+                                                    return 'Environment added successfully';
+                                                }
+                                            },
+                                            notification: {
+                                                poll: pollAsyncJobResult
+                                            }
+                                        },
                                         remove: {
                                             label: 'label.remove',
                                             messages: {
@@ -5608,72 +5682,33 @@
                                                     args.complete();
                                                 }
                                             }                                     
-                                        }
+                                        },                                        
                                     },
-
-                                    dataProvider: function(args) {
-                                        var filter;
-                                        if (args.filterBy.search.value) {
-                                            filter = args.filterBy.search.value;
-                                        }
-
-                                        var items = [];
-                                        $.ajax({
-                                            url: createURL("listNetworkApiEnvironments&physicalnetworkid=" + args.context.physicalNetworks[0].id),
-                                            success: function(json) {
-                                                $(json.listnetworkapienvironmentsresponse.networkapienvironment).each(function() {
-                                                    if (this.name.match(new RegExp(filter, "i"))) {
-                                                        items.push({
-                                                            name: this.name,
-                                                            environmentid: this.napienvironmentid,
-                                                        });
-                                                    }
-                                                });
-                                                args.response.success({
-                                                    data: items
-                                                });
-                                            }
-                                        })
-                                    }
                                 }
                             }
                         },
                         actions: {
                             add: {
-                                label: 'NetworkAPI Environment Configuration',
+                                label: 'Network API Configuration',
                                 createForm: {
-                                    title: 'NetworkAPI Environment Configuration',
-                                    preFilter: function(args) {}, // TODO What is this?
+                                    title: 'Network API Configuration',
                                     fields: {
-                                        name: {
-                                            label: 'Name',
+                                        username: {
+                                            label: 'Username',
                                             validation: {
                                                 required: true
                                             }
                                         },
-                                        napiEnvironmentId: {
-                                            label: 'Environment',
+                                        password: {
+                                            label: 'Password',
                                             validation: {
                                                 required: true
-                                            },
-                                            select: function(args) {
-                                                $.ajax({
-                                                    url: createURL("listAllEnvironmentsFromNetworkApi"),
-                                                    dataType: "json",
-                                                    async: false,
-                                                    success: function(json) {
-                                                        var items = [];
-                                                        $(json.listallenvironmentsfromnetworkapiresponse.networkapienvironment).each(function() {
-                                                            items.push({
-                                                                id: this.environmentId,
-                                                                description: this.environmentFullName
-                                                            });
-                                                        });
-                                                        args.response.success({
-                                                            data: items
-                                                        });
-                                                    }
-                                                });
+                                            }
+                                        },
+                                        url: {
+                                            label: 'URL',
+                                            validation: {
+                                                required: true
                                             }
                                         }
                                     }
@@ -5698,7 +5733,7 @@
                                                                 clearInterval(addNetworkAPIProviderIntervalID);
                                                                 if (result.jobstatus == 1) {
                                                                     nspMap["NetworkAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
-                                                                    addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment");
+                                                                    addNetworkApiHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
                                                                 } else if (result.jobstatus == 2) {
                                                                     alert("addNetworkServiceProvider&name=NetworkAPI failed. Error: " + _s(result.jobresult.errortext));
                                                                 }
@@ -5713,7 +5748,7 @@
                                             }
                                         });
                                     } else {
-                                        addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment")
+                                        addNetworkApiHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
                                     }
                                 },
                                 messages: {
@@ -15939,6 +15974,28 @@
         });
     }
 
+    function addNetworkApiHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&username=" + todb(args.data.username));
+        array1.push("&password=" + todb(args.data.password));
+        array1.push("&url=" + todb(args.data.url));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                    }
+                });
+            }
+        });
+    }
+
     function addNetworkApiEnvironment(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
         var array1 = [];
         array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
@@ -15955,8 +16012,7 @@
                     _custom: {
                         jobId: jid,
                         getUpdatedItem: function(json) {
-                            var item = json.queryasyncjobresultresponse.jobresult[apiCmdObj];
-                            return item;
+                            $(window).trigger('cloudStack.fullRefresh');
                         }
                     }
                 });

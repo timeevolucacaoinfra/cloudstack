@@ -13,6 +13,7 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
+import com.cloud.host.Host;
 import com.cloud.network.Network;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
@@ -125,9 +126,10 @@ public interface NetworkAPIService {
 
 	/**
 	 * List all environments from NetworkAPI
+	 * @param zoneId
 	 * @return
 	 */
-	public List<Environment> listAllEnvironmentsFromNetworkApi();
+	public List<Environment> listAllEnvironmentsFromNetworkApi(Long zoneId);
 	
 	boolean canEnable(Long physicalNetworkId);
 
@@ -138,4 +140,14 @@ public interface NetworkAPIService {
 	 * @return
 	 */
 	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId);
+
+	/**
+	 * Add Network API host details (provider) to CloudStack
+	 * @param physicalNetworkId
+	 * @param username
+	 * @param password
+	 * @param url
+	 */
+	public Host addNetworkAPIHost(Long physicalNetworkId, String username,
+			String password, String url);
 }

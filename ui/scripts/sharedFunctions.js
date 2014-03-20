@@ -1139,10 +1139,6 @@ var addNetworkAPINetworkDialog = {
                             });
                         });*/
                     }
-                },
-
-                networkdomain: {
-                    label: 'label.network.domain',
                 }
             }
         }, 
@@ -1203,9 +1199,6 @@ var addNetworkAPINetworkDialog = {
                     }
                 }
             }
-
-            if (args.data.networkdomain != null && args.data.networkdomain.length > 0)
-                array1.push("&networkdomain=" + todb(args.data.networkdomain));
 
             $.ajax({
                 url: createURL("addNetworkViaNetworkApiCmd" + array1.join("")),
