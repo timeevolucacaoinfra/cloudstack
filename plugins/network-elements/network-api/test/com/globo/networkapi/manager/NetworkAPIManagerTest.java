@@ -1,6 +1,10 @@
 package com.globo.networkapi.manager;
 
 
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +17,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.owasp.esapi.waf.ConfigurationException;
@@ -25,6 +28,8 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.core.type.filter.TypeFilter;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
@@ -39,11 +44,8 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
-import com.cloud.exception.ConcurrentOperationException;
-import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.ResourceAllocationException;
-import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
@@ -74,12 +76,9 @@ import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
+@DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
 public class NetworkAPIManagerTest {
 
     private static long zoneId = 5L;
@@ -129,18 +128,6 @@ public class NetworkAPIManagerTest {
         UserContext.registerContext(1, acct, null, true);
         when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
         when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
- 
-//        when(_acctMgr.finalizeOwner((Account) anyObject(), anyString(), anyLong(), anyLong())).thenReturn(acct);
-//        when(_processor.getType()).thenReturn("mock");
-//        when(_accountDao.findByIdIncludingRemoved(0L)).thenReturn(acct);
- 
-//        AffinityGroupVO group = new AffinityGroupVO("group1", "mock", "mock group", domainId, 200L);
-//        Mockito.when(_affinityGroupDao.persist(Mockito.any(AffinityGroupVO.class))).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.findById(Mockito.anyLong())).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.findByAccountAndName(Mockito.anyLong(), Mockito.anyString())).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.lockRow(Mockito.anyLong(), anyBoolean())).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.expunge(Mockito.anyLong())).thenReturn(true);
-//        Mockito.when(_eventDao.persist(Mockito.any(EventVO.class))).thenReturn(new EventVO());
     }
     
     public void testTearDown() {
@@ -148,20 +135,6 @@ public class NetworkAPIManagerTest {
     	acct = null;
     }
  
-//    @Test(expected = ResourceInUseException.class)
-//    public void deleteAffinityGroupInUse() throws ResourceInUseException {
-//        List<AffinityGroupVMMapVO> affinityGroupVmMap = new ArrayList<AffinityGroupVMMapVO>();
-//        AffinityGroupVMMapVO mapVO = new AffinityGroupVMMapVO(20L, 10L);
-//        affinityGroupVmMap.add(mapVO);
-//        when(_affinityGroupVMMapDao.listByAffinityGroup(20L)).thenReturn(affinityGroupVmMap);
-// 
-//        AffinityGroupVO groupVO = new AffinityGroupVO();
-//        when(_groupDao.findById(20L)).thenReturn(groupVO);
-//        when(_groupDao.lockRow(20L, true)).thenReturn(groupVO);
-// 
-//        _affinityService.deleteAffinityGroup(20L, "user", domainId, null);
-//    }
-    
     @Test
     public void revertNetworkAPICreationWhenFailureNetworkCreation() throws CloudException {
 
@@ -204,8 +177,6 @@ public class NetworkAPIManagerTest {
     @Test
     public void checkPermissionsBeforeCreateVlanOnNetworkAPI() throws CloudException {
     	try {
-//            when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
-//            when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
     		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
 
     		acct.setDomainId(domainId+1);
