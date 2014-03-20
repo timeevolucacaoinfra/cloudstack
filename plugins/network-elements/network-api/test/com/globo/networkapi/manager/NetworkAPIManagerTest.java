@@ -124,7 +124,7 @@ public class NetworkAPIManagerTest {
         acct.setType(Account.ACCOUNT_TYPE_NORMAL);
         acct.setAccountName("user");
         acct.setDomainId(domainId);
- 
+        
         UserContext.registerContext(1, acct, null, true);
         when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
         when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
