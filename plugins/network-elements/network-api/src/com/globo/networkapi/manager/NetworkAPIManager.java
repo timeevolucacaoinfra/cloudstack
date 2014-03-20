@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
@@ -36,9 +34,12 @@ import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
+import com.cloud.host.Host.Type;
+import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
+import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkManager;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
@@ -76,10 +77,12 @@ import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.api.AddNetworkAPIEnvironmentCmd;
+import com.globo.networkapi.api.AddNetworkApiHostCmd;
 import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
 import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
+import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
@@ -204,7 +207,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("NetworkApi EnviromentId was not found");
 		}
 		
-		Answer answer = createNewVlan(name, displayText, napiEnvironmentId);
+		Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId);
 
 		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
 		Long napiVlanId = response.getVlanId();
@@ -212,14 +215,14 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Network network = null;
 		
 		try {
-			network = this.createNetworkFromNetworkAPIVlan(napiVlanId, zoneId,
+			network = this.createNetworkFromNetworkAPIVlan(napiVlanId, napiEnvironmentId, zoneId,
 				networkOfferingId, physicalNetworkId, networkDomain, aclType,
 				accountName, projectId, domainId, subdomainAccess,
 				displayNetwork, aclId);
 		} catch (Exception e) {
 			// Exception when creating network in Cloudstack. Roll back transaction in NetworkAPI
 			s_logger.error("Reverting network creation in Network API due to error creating network", e);
-			this.deallocateVlanFromNetworkAPI(napiVlanId);
+			this.deallocateVlanFromNetworkAPI(zoneId, napiVlanId);
 			
 			throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.network);
 		}
@@ -229,7 +232,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
     @DB
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
+	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long napiEnvironmentId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName, Long projectId,
 			Long domainId, Boolean subdomainAccess, Boolean displayNetwork,
@@ -335,11 +338,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 
-		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
-
 		NetworkAPIVlanResponse response;
 		try {
-			response = (NetworkAPIVlanResponse) callCommand(cmd, cfg);
+			response = (NetworkAPIVlanResponse) callCommand(cmd, zoneId);
 		} catch (ConfigurationException e) {
 			// FIXME
 			throw new CloudRuntimeException(e);
@@ -383,12 +384,10 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			if (domainId != null) {
 				sharedDomainId = domainId;
 			} else {
-				sharedDomainId = owner.getDomainId(); // _domainMgr.getDomain(Domain.ROOT_DOMAIN).getId();
+				sharedDomainId = owner.getDomainId();
 				subdomainAccess = true;
 			}
 		}
-
-		// owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
 
 		Network network = _networkMgr.createGuestNetwork(
 				networkOfferingId.longValue(), response.getVlanName(),
@@ -419,7 +418,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		// Save relashionship with napi and network
 		NetworkAPINetworkVO napiNetworkVO = new NetworkAPINetworkVO(vlanId,
-				network.getId());
+				network.getId(), napiEnvironmentId);
 		napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
 
 		// if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
@@ -470,7 +469,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		return network;
 	}
 
-	protected NetworkAPIVlanResponse createNewVlan(String name,
+	protected NetworkAPIVlanResponse createNewVlan(Long zoneId, String name,
 			String description, Long networkAPIEnvironmentId) {
 
 		CreateNewVlanInNetworkAPICommand cmd = new CreateNewVlanInNetworkAPICommand();
@@ -480,8 +479,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		Answer answer = null;
 		try {
-			ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
-			answer = callCommand(cmd, cfg);
+			answer = callCommand(cmd, zoneId);
 			if (answer == null || !answer.getResult()) {
 				throw new CloudRuntimeException(
 						"Error creating VLAN in networkAPI: " + (answer == null ? "" : answer.getDetails()));
@@ -493,54 +491,19 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		return (NetworkAPIVlanResponse) answer;
 	}
 
-	private Answer callCommand(Command cmd, ConcurrentMap<String, String> cfg)
+	private Answer callCommand(Command cmd, Long zoneId)
 			throws ConfigurationException {
 		
-		if (cfg == null) {
-			cfg = new ConcurrentHashMap<String, String>();
+		HostVO napiHost = getNetworkAPIHost(zoneId);
+		if (napiHost != null) {
+			return _agentMgr.easySend(napiHost.getId(), cmd);
+		} else {
+			return null;
 		}
-		
-		// Long zoneId = Long.valueOf(cfg.get("zoneId"));
-		Long zoneId = 1L;
-
-		cfg.put("name", "napivlan");
-		cfg.put("zoneId", String.valueOf(zoneId));
-		cfg.put("podId", String.valueOf(1L /* FIXME */));
-		cfg.put("clusterId", String.valueOf(1L /* FIXME */));
-
-		String username = _configServer.getConfigValue(
-				Config.NetworkAPIUsername.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String password = _configServer.getConfigValue(
-				Config.NetworkAPIPassword.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String url = _configServer.getConfigValue(Config.NetworkAPIUrl.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String readTimeout = _configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String connectTimeout = _configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String numberOfRetries = _configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-
-		cfg.putIfAbsent("guid", "networkapi"); // FIXME
-		cfg.putIfAbsent("url", url);
-		cfg.putIfAbsent("username", username);
-		cfg.putIfAbsent("password", password);
-		cfg.putIfAbsent("readTimeout", readTimeout);
-		cfg.putIfAbsent("connectTimeout", connectTimeout);
-		cfg.putIfAbsent("numberOfRetries", numberOfRetries);
-
-		NetworkAPIResource resource = new NetworkAPIResource();
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.putAll(cfg);
-		resource.configure("networkapi", params);
-
-		Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
-				cfg);
-
-		Answer answer = _agentMgr.easySend(host.getId(), cmd);
-		return answer;
+	}
+	
+	private HostVO getNetworkAPIHost(Long zoneId) {
+		return _hostDao.findByTypeNameAndZoneId(zoneId, Provider.NetworkAPI.getName(), Type.L2Networking);
 	}
 
 	@Override
@@ -557,7 +520,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
 		try {
-			Answer answer = this.callCommand(cmd, null);
+			Answer answer = this.callCommand(cmd, network.getDataCenterId());
 			if (answer == null || !answer.getResult()) {
 				msg = answer == null ? msg : answer.getDetails();
 				throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
@@ -581,8 +544,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 
-		ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
-		Answer answer = callCommand(cmd, cfg);
+		Answer answer = callCommand(cmd, network.getDataCenterId());
 		if (answer == null || !answer.getResult()) {
 			String errorDescription = answer == null ? "no description"
 					: answer.getDetails();
@@ -597,7 +559,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			// Create network in equipment
 			ActivateNetworkCommand cmd_creation = new ActivateNetworkCommand(vlanId,
 					networkId);
-			Answer creation_answer = callCommand(cmd_creation, cfg);
+			Answer creation_answer = callCommand(cmd_creation, network.getDataCenterId());
 			if (creation_answer == null || !creation_answer.getResult()) {
 				throw new CloudRuntimeException(
 						"Unable to create network in NetworkAPI: VlanId "
@@ -653,6 +615,69 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Invalid name: " + name);
 		}
 		
+		// validate physical network and zone
+		// Check if physical network exists
+		PhysicalNetwork pNtwk = null;
+		if (physicalNetworkId != null) {
+			pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
+			if (pNtwk == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find a physical network having the specified physical network id");
+			}
+		} else {
+			throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
+		}
+
+		Long zoneId = pNtwk.getDataCenterId();
+		
+		// now, check if environment exists in NetworkAPI
+		if (napiEnvironmentId != null) {
+			Environment environment = getEnvironment(physicalNetworkId, napiEnvironmentId);
+			if (environment == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find in NetworkAPI an enviroment having the specified environment id");
+			}
+		} else {
+			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
+		}
+		
+		// Check if there is a environment with same id or name in this zone.
+		List<NetworkAPIEnvironmentVO> napiEnvironments = listNetworkAPIEnvironmentsFromDB(null, zoneId);
+		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
+			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
+				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in zone " + zoneId);
+			}
+			if (napiEnvironment.getNapiEnvironmentId() == napiEnvironmentId) {
+				throw new InvalidParameterValueException("NetworkAPI environment with environmentId " + napiEnvironmentId + " already exists in zoneId " + zoneId);
+			}
+		}
+				
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+	    NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
+	    _napiEnvironmentDao.persist(napiEnvironmentVO);
+
+	    txn.commit();
+	    return napiEnvironmentVO;
+	}
+
+	@Override
+	@DB
+	public Host addNetworkAPIHost(Long physicalNetworkId, String username, String password, String url) {
+		
+		if (username == null || username.trim().isEmpty()) {
+			throw new InvalidParameterValueException("Invalid username: " + username);
+		}
+		
+		if (password == null || password.trim().isEmpty()) {
+			throw new InvalidParameterValueException("Invalid password: " + password);
+		}
+		
+		if (url == null || url.trim().isEmpty()) {
+			throw new InvalidParameterValueException("Invalid url: " + url);
+		}
+		
 
 		// validate physical network and zone
 		// Check if physical network exists
@@ -669,36 +694,44 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		Long zoneId = pNtwk.getDataCenterId();
 
-		// now, check if environment exists in NetworkAPI
-		if (napiEnvironmentId != null) {
-			Environment environment = getEnvironment(napiEnvironmentId);
-			if (environment == null) {
-				throw new InvalidParameterValueException(
-						"Unable to find in NetworkAPI an enviroment having the specified environment id");
-			}
-		} else {
-			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
-		}
+		Map<String, String> params = new HashMap<String, String>();
+		params.put("guid", "networkapi-" + String.valueOf(zoneId));
+		params.put("zoneId", String.valueOf(zoneId));
+		params.put("name", Provider.NetworkAPI.getName());
 		
-		// Check if there is a environmnet with same id or name in this zone.
-		List<NetworkAPIEnvironmentVO> napiEnvironments = listNetworkAPIEnvironmentsFromDB(null, zoneId);
-		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
-			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
-				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in zone " + zoneId);
-			}
-			if (napiEnvironment.getNapiEnvironmentId() == napiEnvironmentId) {
-				throw new InvalidParameterValueException("NetworkAPI environment with environmentId " + napiEnvironmentId + " already exists in zoneId " + zoneId);
-			}
-		}
-		
-        Transaction txn = Transaction.currentTxn();
-        txn.start();
-        
-        NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
-        _napiEnvironmentDao.persist(napiEnvironmentVO);
+		String readTimeout = _configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		String connectTimeout = _configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		String numberOfRetries = _configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
 
-        txn.commit();
-        return napiEnvironmentVO;
+		params.put("url", url);
+		params.put("username", username);
+		params.put("password", password);
+		params.put("readTimeout", readTimeout);
+		params.put("connectTimeout", connectTimeout);
+		params.put("numberOfRetries", numberOfRetries);
+
+		Map<String, Object> hostDetails = new HashMap<String, Object>();
+		hostDetails.putAll(params);
+		
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+		try {
+			NetworkAPIResource resource = new NetworkAPIResource();
+			resource.configure(Provider.NetworkAPI.getName(), hostDetails);
+			
+			Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
+					params);
+			
+	       txn.commit();
+	       return host;
+		} catch (ConfigurationException e) {
+            txn.rollback();
+            throw new CloudRuntimeException(e);
+		}
 	}
 
 	@Override
@@ -709,16 +742,34 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkAPIEnvironmentCmd.class);
 		cmdList.add(ListNetworkApiEnvironmentsCmd.class);
 		cmdList.add(ListAllEnvironmentsFromNetworkApiCmd.class);
+		cmdList.add(RemoveNetworkAPIEnvironmentCmd.class);
+		cmdList.add(AddNetworkApiHostCmd.class);
 		return cmdList;
 	}
 	
 	@Override
-	public List<Environment> listAllEnvironmentsFromNetworkApi() {
+	public List<Environment> listAllEnvironmentsFromNetworkApi(Long physicalNetworkId) {
+		
+		// validate physical network and zone
+		// Check if physical network exists
+		PhysicalNetwork pNtwk = null;
+		if (physicalNetworkId != null) {
+			pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
+			if (pNtwk == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find a physical network having the specified physical network id");
+			}
+		} else {
+			throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
+		}
+				
+		Long zoneId = pNtwk.getDataCenterId();
+		
 		ListAllEnvironmentsFromNetworkAPICommand cmd = new ListAllEnvironmentsFromNetworkAPICommand();
 		
 		Answer answer;
 		try {
-			answer = callCommand(cmd, null);
+			answer = callCommand(cmd, zoneId);
 		} catch (ConfigurationException ex) {
 			throw new CloudRuntimeException("Error getting all environments from NetworkAPI.");
 		}
@@ -738,13 +789,13 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	 * @param environmentId
 	 * @return Return null if environment was not found.
 	 */
-	protected Environment getEnvironment(Long environmentId) {
+	protected Environment getEnvironment(Long physicaNetworkId, Long environmentId) {
 		if (environmentId == null) {
 			return null;
 		}
 		
 		Environment resultEnvironment = null;
-		for (Environment environment : listAllEnvironmentsFromNetworkApi()) {
+		for (Environment environment : listAllEnvironmentsFromNetworkApi(physicaNetworkId)) {
 			if (environmentId.equals(environment.getId())) {
 				resultEnvironment = environment;
 				break;
@@ -762,7 +813,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		Answer answer;
 		try {
-			answer = callCommand(cmd, null);
+			answer = callCommand(cmd, network.getDataCenterId());
 		} catch (ConfigurationException ex) {
 			throw new CloudRuntimeException("Error removing network from NetworkAPI.");
 		}
@@ -786,19 +837,19 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			_napiNetworkDao.remove(napiNetworkVO.getId());
 		}
 		
-		this.deallocateVlanFromNetworkAPI(napiNetworkVO.getNapiVlanId());
+		this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
 		
 		txn.commit();
 	}
 	
-	public void deallocateVlanFromNetworkAPI(Long vlanId) {
+	public void deallocateVlanFromNetworkAPI(Long zoneId, Long vlanId) {
 				
 		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 		
 		Answer answer;
 		try {
-			answer = callCommand(cmd, null);
+			answer = callCommand(cmd, zoneId);
 		} catch (ConfigurationException ex) {
 			throw new CloudRuntimeException("Error deallocating vlan from NetworkAPI.");
 		}
@@ -845,6 +896,35 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		return napiEnvironmentsVOList;
+	}
+
+	@Override
+	@DB
+	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId) {
+
+        Transaction txn = Transaction.currentTxn();
+        txn.start();
+        
+        // Check if there are any networks in this Network API environment
+        List<NetworkAPINetworkVO> associationList = _napiNetworkDao.listByEnvironmentId(napiEnvironmentId);
+        
+        if (!associationList.isEmpty()) {
+        	throw new InvalidParameterValueException("There are active networks on environment " + napiEnvironmentId + ". Please delete them before removing this environment.");
+        }
+        
+		// Retrieve napiEnvironment from DB
+		NetworkAPIEnvironmentVO napiEnvironment = _napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId);
+		
+		if (napiEnvironment == null) {
+			// No physical network/environment pair registered in the database.
+			throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and NetworkAPI environment=" + napiEnvironmentId);
+		}
+		        
+        boolean result = _napiEnvironmentDao.remove(napiEnvironment.getId());
+
+        txn.commit();
+		
+		return result;
 	}
 
 }

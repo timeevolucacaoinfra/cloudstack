@@ -56,6 +56,9 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
     @Parameter(name=ApiConstants.VLAN_ID, type=CommandType.LONG, required = true, description="VLAN ID.")
     private Long vlanId;
     
+	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in NetworkAPI")
+	private Long napiEnvironmentId;
+    
     @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
             required=true, description="the Zone ID for the network")
     private Long zoneId;
@@ -131,7 +134,7 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
         			" domainId=" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, napiEnvironmentId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);

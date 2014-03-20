@@ -1,5 +1,7 @@
 package com.globo.networkapi.dao;
 
+import java.util.List;
+
 import javax.ejb.Local;
 
 import org.springframework.stereotype.Component;
@@ -16,6 +18,7 @@ import com.globo.networkapi.NetworkAPINetworkVO;
 public class NetworkAPINetworkDaoImpl extends GenericDaoBase<NetworkAPINetworkVO, Long> implements NetworkAPINetworkDao {
 
  final SearchBuilder<NetworkAPINetworkVO> networkIdSearch;
+ final SearchBuilder<NetworkAPINetworkVO> environmentIdSearch;
 
  protected NetworkAPINetworkDaoImpl() {
      super();
@@ -23,6 +26,10 @@ public class NetworkAPINetworkDaoImpl extends GenericDaoBase<NetworkAPINetworkVO
      networkIdSearch = createSearchBuilder();
      networkIdSearch.and("network_id", networkIdSearch.entity().getNetworkId(), Op.EQ);
      networkIdSearch.done();
+     
+     environmentIdSearch = createSearchBuilder();
+     environmentIdSearch.and("napi_environment_id", environmentIdSearch.entity().getNapiEnvironmentId(), Op.EQ);
+     environmentIdSearch.done();
  }
 
  @Override
@@ -30,6 +37,13 @@ public class NetworkAPINetworkDaoImpl extends GenericDaoBase<NetworkAPINetworkVO
      SearchCriteria<NetworkAPINetworkVO> sc = networkIdSearch.create();
      sc.setParameters("network_id", networkId);
      return findOneBy(sc);
+ }
+ 
+ @Override
+ public List<NetworkAPINetworkVO> listByEnvironmentId(long napiEnvironmentId) {
+	 SearchCriteria<NetworkAPINetworkVO> sc = environmentIdSearch.create();
+	 sc.setParameters("napi_environment_id", napiEnvironmentId);
+	 return listBy(sc);
  }
 
 }

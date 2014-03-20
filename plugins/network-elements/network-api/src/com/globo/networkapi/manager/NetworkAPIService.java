@@ -13,6 +13,7 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
+import com.cloud.host.Host;
 import com.cloud.network.Network;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
@@ -60,6 +61,7 @@ public interface NetworkAPIService {
 	 * Create a new network based on existed vlanId from NetworkAPI.
 	 * 
 	 * @param vlanId Id (to the vlan number) of vlan.
+	 * @param napiEnvironmentId Id of the environment in NetworkAPI
 	 * @param zoneId
 	 * @param networkOfferingId
 	 * @param physicalNetworkId
@@ -70,7 +72,7 @@ public interface NetworkAPIService {
 	 * @throws ConcurrentOperationException
 	 * @throws InsufficientCapacityException
 	 */
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long zoneId,
+	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long napiEnvironmentId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
@@ -124,9 +126,28 @@ public interface NetworkAPIService {
 
 	/**
 	 * List all environments from NetworkAPI
+	 * @param zoneId
 	 * @return
 	 */
-	public List<Environment> listAllEnvironmentsFromNetworkApi();
+	public List<Environment> listAllEnvironmentsFromNetworkApi(Long zoneId);
 	
 	boolean canEnable(Long physicalNetworkId);
+
+	/**
+	 * Removes the relationship between physical network and NetworkAPI environment
+	 * @param physicalNetworkId
+	 * @param napiEnvironmentId
+	 * @return
+	 */
+	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId);
+
+	/**
+	 * Add Network API host details (provider) to CloudStack
+	 * @param physicalNetworkId
+	 * @param username
+	 * @param password
+	 * @param url
+	 */
+	public Host addNetworkAPIHost(Long physicalNetworkId, String username,
+			String password, String url);
 }
