@@ -1,0 +1,10 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	ALTER TABLE `cloud`.`networkapi_network_ref` ADD (napi_environment_id BIGINT UNSIGNED COMMENT 'Network API environment id');
+	CREATE INDEX 'napi_environment_index' ON `cloud`.`networkapi_network_ref` (napi_environment_id);
+"""
+
+SQL_DOWN = u"""
+	ALTER TABLE `cloud`.`networkapi_network_ref` DROP INDEX 'napi_environment_index';
+	ALTER TABLE `cloud`.`networkapi_network_ref` DROP COLUMN napi_environment_id;
+"""
