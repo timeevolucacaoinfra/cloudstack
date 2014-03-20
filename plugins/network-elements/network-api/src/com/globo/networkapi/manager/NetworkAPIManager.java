@@ -323,11 +323,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		if (_configMgr.isOfferingForVpc(ntwkOff)) {
 			throw new InvalidParameterValueException(
-					"Network offering can be used for VPC networks only");
-		}
-		if (ntwkOff.getInternalLb()) {
-			throw new InvalidParameterValueException(
-					"Internal Lb can be enabled on vpc networks only");
+					"Network offering can't be used for VPC networks");
 		}
 
 		UserContext.current().setAccountId(owner.getAccountId());
