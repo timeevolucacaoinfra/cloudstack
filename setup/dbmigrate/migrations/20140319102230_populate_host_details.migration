@@ -1,5 +1,41 @@
 #-*- coding:utf-8 -*-
 SQL_UP = u"""
+    INSERT INTO `cloud`.`host_details` (host_id, name, value)
+        SELECT
+        `cloud`.`host`.`id` AS host_id,
+        hd.name AS name,
+        hd.value AS value
+        FROM
+            (SELECT `cloud`.`host_details`.`name`, value FROM `cloud`.`host_details`, `cloud`.`host`
+                WHERE `cloud`.`host_details`.`host_id` = `cloud`.`host`.`id`
+                AND `cloud`.`host_details`.`name` = 'url'
+                AND `cloud`.`host`.`name` = 'napivlan') AS hd,
+            (SELECT id FROM `cloud`.`host` WHERE name='NetworkAPI') AS host;
+
+    INSERT INTO `cloud`.`host_details` (host_id, name, value)
+        SELECT
+        `cloud`.`host`.`id` AS host_id,
+        hd.name AS name,
+        hd.value AS value
+        FROM
+            (SELECT `cloud`.`host_details`.`name`, value FROM `cloud`.`host_details`, `cloud`.`host`
+                WHERE `cloud`.`host_details`.`host_id` = `cloud`.`host`.`id`
+                AND `cloud`.`host_details`.`name` = 'username'
+                AND `cloud`.`host`.`name` = 'napivlan') AS hd,
+            (SELECT id FROM `cloud`.`host` WHERE name='NetworkAPI') AS host;
+
+    INSERT INTO `cloud`.`host_details` (host_id, name, value)
+        SELECT
+        `cloud`.`host`.`id` AS host_id,
+        hd.name AS name,
+        hd.value AS value
+        FROM
+            (SELECT `cloud`.`host_details`.`name`, value FROM `cloud`.`host_details`, `cloud`.`host`
+                WHERE `cloud`.`host_details`.`host_id` = `cloud`.`host`.`id`
+                AND `cloud`.`host_details`.`name` = 'password'
+                AND `cloud`.`host`.`name` = 'napivlan') AS hd,
+            (SELECT id FROM `cloud`.`host` WHERE name='NetworkAPI') AS host;
+
 	INSERT INTO `cloud`.`host_details` (host_id, name, value)
 		SELECT
 		id AS host_id,
@@ -45,38 +81,13 @@ SQL_UP = u"""
 	INSERT INTO `cloud`.`host_details` (host_id, name, value)
 		SELECT
 		id AS host_id,
-		'username' AS name,
-		configuration.value AS value
-		FROM `cloud`.`configuration`, `cloud`.`host`
-		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
-		AND `cloud`.`configuration`.`name` =  'networkapi.username';
-
-	INSERT INTO `cloud`.`host_details` (host_id, name, value)
-		SELECT
-		id AS host_id,
-		'password' AS name,
-		configuration.value AS value
-		FROM `cloud`.`configuration`, `cloud`.`host`
-		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
-		AND `cloud`.`configuration`.`name` =  'networkapi.password';
-
-	INSERT INTO `cloud`.`host_details` (host_id, name, value)
-		SELECT
-		id AS host_id,
 		'numberOfRetries' AS name,
 		configuration.value AS value
 		FROM `cloud`.`configuration`, `cloud`.`host`
 		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
 		AND `cloud`.`configuration`.`name` =  'networkapi.numberofretries';
 
-	INSERT INTO `cloud`.`host_details` (host_id, name, value)
-		SELECT
-		id AS host_id,
-		'url' AS name,
-		configuration.value AS value
-		FROM `cloud`.`configuration`, `cloud`.`host`
-		WHERE `cloud`.`host`.`name` = 'NetworkAPI'
-		AND `cloud`.`configuration`.`name` =  'networkapi.url';
+
 """
 
 SQL_DOWN = u"""
