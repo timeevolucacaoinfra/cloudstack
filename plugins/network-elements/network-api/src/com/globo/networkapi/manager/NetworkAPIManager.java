@@ -171,7 +171,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException {
 
-		// FIXME Very important: Include permission checks before creating network in networkapi
+		Account caller = UserContext.current().getCaller();
+		if (accountName == null) {
+			accountName = caller.getAccountName();
+		}
+
+		Account owner = null;
+		if ((accountName != null && domainId != null) || projectId != null) {
+			owner = _accountMgr.finalizeOwner(caller, accountName, domainId,
+					projectId);
+		} else {
+			owner = caller;
+		}
 
 		DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
@@ -230,6 +241,17 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			InsufficientCapacityException {
 
 		Account caller = UserContext.current().getCaller();
+		if (accountName == null) {
+			accountName = caller.getAccountName();
+		}
+		
+		Account owner = null;
+		if ((accountName != null && domainId != null) || projectId != null) {
+			owner = _accountMgr.finalizeOwner(caller, accountName, domainId,
+					projectId);
+		} else {
+			owner = caller;
+		}
 
         // Only domain and account ACL types are supported in Action.
         if (aclType == null || !(aclType == ACLType.Domain || aclType == ACLType.Account)) {
@@ -306,14 +328,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (ntwkOff.getInternalLb()) {
 			throw new InvalidParameterValueException(
 					"Internal Lb can be enabled on vpc networks only");
-		}
-
-		Account owner = null;
-		if ((accountName != null && domainId != null) || projectId != null) {
-			owner = _accountMgr.finalizeOwner(caller, accountName, domainId,
-					projectId);
-		} else {
-			owner = caller;
 		}
 
 		UserContext.current().setAccountId(owner.getAccountId());

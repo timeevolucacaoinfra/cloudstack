@@ -1,5 +1,6 @@
 package com.globo.networkapi.manager;
 
+
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -26,12 +27,15 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.core.type.filter.TypeFilter;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
+import com.cloud.agent.api.Command;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.DataCenterVO;
@@ -39,6 +43,7 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
+import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.host.Host;
@@ -56,9 +61,13 @@ import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
 import com.cloud.server.ConfigurationServer;
+import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
+import com.cloud.user.AccountVO;
 import com.cloud.user.DomainManager;
 import com.cloud.user.UserContext;
+import com.cloud.user.UserContextInitializer;
+import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
@@ -71,6 +80,7 @@ import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
+@DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
 public class NetworkAPIManagerTest {
 
     private static long zoneId = 5L;
@@ -78,6 +88,8 @@ public class NetworkAPIManagerTest {
     private static long napiEnvironmentId = 120L;
     private static long physicalNetworkId = 200L;
     private static long napiHostId = 7L;
+    private static long domainId = 10L;
+    private AccountVO acct = null;
 	
 	@Inject
 	NetworkAPIService _napiService;
@@ -102,6 +114,9 @@ public class NetworkAPIManagerTest {
 
 	@Inject
 	ResourceManager _resourceMgr;
+	
+	@Inject
+	AccountManager _acctMgr; 
  
     @BeforeClass
     public static void setUp() throws ConfigurationException {
@@ -110,43 +125,24 @@ public class NetworkAPIManagerTest {
     @Before
     public void testSetUp() {
         ComponentContext.initComponentsLifeCycle();
-//        AccountVO acct = new AccountVO(200L);
-//        acct.setType(Account.ACCOUNT_TYPE_NORMAL);
-//        acct.setAccountName("user");
-//        acct.setDomainId(domainId);
-// 
-//        UserContext.registerContext(1, acct, null, true);
- 
-//        when(_acctMgr.finalizeOwner((Account) anyObject(), anyString(), anyLong(), anyLong())).thenReturn(acct);
-//        when(_processor.getType()).thenReturn("mock");
-//        when(_accountDao.findByIdIncludingRemoved(0L)).thenReturn(acct);
- 
-//        AffinityGroupVO group = new AffinityGroupVO("group1", "mock", "mock group", domainId, 200L);
-//        Mockito.when(_affinityGroupDao.persist(Mockito.any(AffinityGroupVO.class))).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.findById(Mockito.anyLong())).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.findByAccountAndName(Mockito.anyLong(), Mockito.anyString())).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.lockRow(Mockito.anyLong(), anyBoolean())).thenReturn(group);
-//        Mockito.when(_affinityGroupDao.expunge(Mockito.anyLong())).thenReturn(true);
-//        Mockito.when(_eventDao.persist(Mockito.any(EventVO.class))).thenReturn(new EventVO());
-    } 
- 
-//    @Test(expected = ResourceInUseException.class)
-//    public void deleteAffinityGroupInUse() throws ResourceInUseException {
-//        List<AffinityGroupVMMapVO> affinityGroupVmMap = new ArrayList<AffinityGroupVMMapVO>();
-//        AffinityGroupVMMapVO mapVO = new AffinityGroupVMMapVO(20L, 10L);
-//        affinityGroupVmMap.add(mapVO);
-//        when(_affinityGroupVMMapDao.listByAffinityGroup(20L)).thenReturn(affinityGroupVmMap);
-// 
-//        AffinityGroupVO groupVO = new AffinityGroupVO();
-//        when(_groupDao.findById(20L)).thenReturn(groupVO);
-//        when(_groupDao.lockRow(20L, true)).thenReturn(groupVO);
-// 
-//        _affinityService.deleteAffinityGroup(20L, "user", domainId, null);
-//    }
+        acct = new AccountVO(200L);
+        acct.setType(Account.ACCOUNT_TYPE_NORMAL);
+        acct.setAccountName("user");
+        acct.setDomainId(domainId);
+        
+        UserContext.registerContext(1, acct, null, true);
+        when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
+        when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
+    }
     
+    public void testTearDown() {
+    	UserContext.unregisterContext();
+    	acct = null;
+    }
+ 
     @Test
     public void revertNetworkAPICreationWhenFailureNetworkCreation() throws CloudException {
-    	
+
     	DataCenterVO dc = new DataCenterVO(0L, null, null, null, null, null, null, null, null, null, null, null, null);
     	when(_dcDao.findById(anyLong())).thenReturn(dc);
     	
@@ -170,8 +166,6 @@ public class NetworkAPIManagerTest {
     	
     	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(null);
     	
-    	UserContext.registerContext(1l, null, null, true);
-    	
     	try {
 	    	_napiService.createNetwork(networkName, networkName, zoneId, networkOfferingId, napiEnvironmentId, null, 
 	    			ACLType.Domain, null, null, null, null, true, null);
@@ -182,6 +176,19 @@ public class NetworkAPIManagerTest {
     	}
     }
     
+    @Test
+    public void checkPermissionsBeforeCreateVlanOnNetworkAPI() throws CloudException {
+    	try {
+    		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
+
+    		acct.setDomainId(domainId+1);
+        	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, null, null, domainId, null, true, null);
+        	fail();
+    	} catch (PermissionDeniedException e) {
+    		verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));
+    	}
+    }
+
     @Test(expected = InvalidParameterValueException.class)
     public void addNetworkAPIHostInvalidParameters() throws CloudException {
     	
@@ -322,6 +329,11 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public NetworkService networkService() {
     		return mock(NetworkService.class);
+    	}
+    	
+    	@Bean
+    	public UserContextInitializer userContextInitializer() {
+    		return new UserContextInitializer();
     	}
 
         public static class Library implements TypeFilter {
