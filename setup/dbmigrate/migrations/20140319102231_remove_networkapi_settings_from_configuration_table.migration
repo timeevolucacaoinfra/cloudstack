@@ -10,5 +10,14 @@ SQL_DOWN = u"""
     INSERT INTO `cloud`.`configuration` (category, instance, component, name, description) VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.username', 'Specify the username used for networkapi (if using Networkapi)');
     INSERT INTO `cloud`.`configuration` (category, instance, component, name, description) VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.password', 'Specify password for user for networkapi (if using Networkapi)');
     INSERT INTO `cloud`.`configuration` (category, instance, component, name, value, description) VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.url', 'https://networkapi.globoi.com', 'Specify base url of networkapi (if using Networkapi)');    
-
+    INSERT INTO `cloud`.`host` (id, name, uuid, status, type, private_ip_address, private_netmask, private_mac_address, storage_ip_address, storage_netmask, storage_mac_address, storage_ip_address_2, storage_mac_address_2, storage_netmask_2, cluster_id, public_ip_address, public_netmask, public_mac_address, proxy_port, data_center_id, pod_id, cpus, speed, url, fs_type, hypervisor_type, hypervisor_version, ram, resource, version, parent, total_size, capabilities, guid, available, setup, dom0_memory, last_ping, mgmt_server_id, disconnected, created, removed, update_count, resource_state, owner, lastUpdated, engine_state) VALUES (49, 'napivlan', '037f405e-8dbe-46b0-8019-926293307ff6', 'Up', 'L2Networking', '10.70.129.47', null, null, '', null, null, null, null, null, 1, null, null, null, null, 1, 1, null, null, null, null, null, null, 0, 'com.globo.networkapi.resource.NetworkAPIResource', '4.2.1', null, null, null, 'networkapi', 1, 0, 0, 1362149569, 143784429920651, '2014-03-14 23:52:30', '2014-02-20 00:30:45', null, 46, 'Enabled', null, null, 'Disabled');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1921, 49, 'podId', '1');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1922, 49, 'username', 'gcloud_prod');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1923, 49, 'clusterId', '1');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1924, 49, 'url', 'https://networkapi.globoi.com/');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1925, 49, 'name', 'napivlan');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1926, 49, 'guid', 'networkapi');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1927, 49, 'password', 'vOp5CiL3KYCvlC1mcCxatRzADShRIZlN');
+    INSERT INTO host_details (id, host_id, name, value) VALUES (1928, 49, 'zoneId', '1');
+    INSERT INTO `cloud`.`op_host` (id, sequence) VALUES (49, 1);
 """
