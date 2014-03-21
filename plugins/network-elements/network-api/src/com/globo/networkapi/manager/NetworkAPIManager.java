@@ -88,11 +88,14 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
+import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
+import com.globo.networkapi.exception.CloudstackNetworkAPIException;
 import com.globo.networkapi.model.Environment;
+import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -334,13 +337,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 
-		Answer answer = callCommand(cmd, zoneId);
-		if (answer == null || !answer.getResult()) {
-			throw new CloudRuntimeException(
-					"Unable to get information for vlan " + vlanId + " from Network API");
-		}
-		
-		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) answer;
+		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, zoneId);
 
 		long networkAddresLong = response.getNetworkAddress().toLong();
 		String networkAddress = NetUtils.long2Ip(networkAddresLong);
@@ -464,24 +461,30 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setVlanDescription(description);
 		cmd.setNetworkAPIEnvironmentId(networkAPIEnvironmentId);
 
-		Answer answer = null;
-		answer = callCommand(cmd, zoneId);
-		if (answer == null || !answer.getResult()) {
-			throw new CloudRuntimeException(
-					"Error creating VLAN in networkAPI: " + (answer == null ? "" : answer.getDetails()));
-		}
-
-		return (NetworkAPIVlanResponse) answer;
+		return (NetworkAPIVlanResponse) callCommand(cmd, zoneId);
 	}
 
 	private Answer callCommand(Command cmd, Long zoneId) {
 		
 		HostVO napiHost = getNetworkAPIHost(zoneId);
-		if (napiHost != null) {
-			return _agentMgr.easySend(napiHost.getId(), cmd);
-		} else {
-			return null;
+		if (napiHost == null) {
+			throw new CloudstackNetworkAPIException("Could not find the Network API resource");
 		}
+		
+		Answer answer = _agentMgr.easySend(napiHost.getId(), cmd);
+		if (answer == null || !answer.getResult()) {
+			
+			if (answer instanceof NetworkAPIErrorAnswer) {
+				NetworkAPIErrorAnswer napiAnswer = (NetworkAPIErrorAnswer) answer; 
+				throw new CloudstackNetworkAPIException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription());
+			} else {
+				String msg = "Error executing command " + cmd;
+				msg = answer == null ? msg : answer.getDetails();
+				throw new CloudstackNetworkAPIException(msg);
+			}
+		}
+		
+		return answer;
 	}
 	
 	private HostVO getNetworkAPIHost(Long zoneId) {
@@ -524,12 +527,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setVlanId(vlanId);
 
 		Answer answer = callCommand(cmd, network.getDataCenterId());
-		if (answer == null || !answer.getResult()) {
-			String errorDescription = answer == null ? "no description"
-					: answer.getDetails();
-			throw new CloudRuntimeException("Error getting VlanId " + vlanId
-					+ " in NetworkAPI: " + errorDescription);
-		}
 
 		NetworkAPIVlanResponse vlanResponse = (NetworkAPIVlanResponse) answer;
 		vlanResponse.getNetworkAddress();
@@ -748,12 +745,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		Answer answer = callCommand(cmd, zoneId);
 		
-		if (answer == null || !answer.getResult()) {
-			String errorDescription = answer == null ? "no description"
-					: answer.getDetails();
-			throw new CloudRuntimeException(
-					"Error getting environment list from NetworkAPI: " + errorDescription);
-		}
 		List<Environment> environments =  ((NetworkAPIAllEnvironmentResponse) answer).getEnvironmentList();
 		return environments;
 	}
@@ -778,52 +769,66 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		return resultEnvironment;
 	}
 
+	private void handleNetworkUnavaiableError(CloudstackNetworkAPIException e) {
+		if (e.getNapiCode() == 116) {
+			// If this is the return code, it means that the vlan/network no longer exists in Network API
+			// and we should continue to remove it from CloudStack
+			s_logger.warn("Inconsistency between CloudStack and Network API");
+			return;
+		} else {
+			// Otherwise, there was a different error and we should abort the operation
+			throw e;
+		}
+	}
+	
 	@Override
 	public void removeNetworkFromNetworkAPI(Network network) {
 		
-		RemoveNetworkInNetworkAPICommand cmd = new RemoveNetworkInNetworkAPICommand();
-		Long vlanId = getNapiVlanId(network.getId());
-		cmd.setVlanId(vlanId);
+		try {
+			// Make sure the VLAN is valid
+			this.getVlanInfoFromNetworkAPI(network);
 		
-		Answer answer = callCommand(cmd, network.getDataCenterId());
-		
-		if (answer == null || !answer.getResult()) {
-			String errorDescription = answer == null ? "no description"
-					: answer.getDetails();
-			throw new CloudRuntimeException(
-					"Error removing network from NetworkAPI: " + errorDescription);
+			RemoveNetworkInNetworkAPICommand cmd = new RemoveNetworkInNetworkAPICommand();
+			Long vlanId = getNapiVlanId(network.getId());
+			cmd.setVlanId(vlanId);
+
+			this.callCommand(cmd, network.getDataCenterId());
+		} catch (CloudstackNetworkAPIException e) {
+			handleNetworkUnavaiableError(e);
 		}
 	}
 	
 	@Override
+	@DB
 	public void deallocateVlanFromNetworkAPI(Network network) {
 		
 		Transaction txn = Transaction.currentTxn();
-		txn.start();
+		try {
+			txn.start();
 
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
-		if (napiNetworkVO != null) {
-			_napiNetworkDao.remove(napiNetworkVO.getId());
+			NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+			if (napiNetworkVO != null) {
+				_napiNetworkDao.remove(napiNetworkVO.getId());
+			}
+			
+			this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
+			
+			txn.commit();
+
+		} catch (CloudstackNetworkAPIException e) {
+			handleNetworkUnavaiableError(e);
+		} finally {
+			txn.rollback();
 		}
-		
-		this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
-		
-		txn.commit();
+
 	}
 	
 	public void deallocateVlanFromNetworkAPI(Long zoneId, Long vlanId) {
-				
+		
 		DeallocateVlanFromNetworkAPICommand cmd = new DeallocateVlanFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 		
-		Answer answer = callCommand(cmd, zoneId);
-		
-		if (answer == null || !answer.getResult()) {
-			String errorDescription = answer == null ? "no description"
-					: answer.getDetails();
-			throw new CloudRuntimeException(
-					"Error deallocating vlan from NetworkAPI: " + errorDescription);
-		}
+		this.callCommand(cmd, zoneId);
 	}
 	
 	@Override
@@ -890,5 +895,22 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		return result;
 	}
-
+	
+	@Override
+	public Vlan getVlanInfoFromNetworkAPI(Network network) {
+		// Get VlanInfo from NetworkAPI
+		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
+		Long vlanId = getNapiVlanId(network.getId());
+		cmd.setVlanId(vlanId);
+	
+		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, network.getDataCenterId());
+		
+		Vlan vlan = new Vlan();
+		vlan.setId(response.getVlanId());
+		vlan.setName(response.getVlanName());
+		vlan.setVlanNum(response.getVlanNum());
+		vlan.setDescription(response.getVlanDescription());
+		
+		return vlan;
+	}
 }

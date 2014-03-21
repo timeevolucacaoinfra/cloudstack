@@ -27,6 +27,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
+import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
@@ -195,7 +196,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		if (e instanceof NetworkAPIErrorCodeException) {
 			NetworkAPIErrorCodeException ex = (NetworkAPIErrorCodeException) e;
 			s_logger.error("Error accessing Network API: " + ex.getCode() + " - " + ex.getDescription(), ex);
-			return new Answer(cmd, false, ex.getCode() + " - " + ex.getDescription());
+			return new NetworkAPIErrorAnswer(cmd, ex.getCode(), ex.getDescription());
 		} else {
 			s_logger.error("Generic error accessing Network API", e);
 			return new Answer(cmd, false, e.getMessage());
@@ -291,7 +292,13 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	private NetworkAPIVlanResponse createResponse(Vlan vlan, Command cmd) {
+	private Answer createResponse(Vlan vlan, Command cmd) {
+		
+		if (vlan.getIpv4Networks().isEmpty()) {
+			// Error code 116 from Network API: 116 : VlanNaoExisteError,
+			return new NetworkAPIErrorAnswer(cmd, 116, "No networks in this VLAN");
+		}
+		
 		IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
 		
 		String vlanName = vlan.getName();

@@ -20,6 +20,7 @@ import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.model.Environment;
+import com.globo.networkapi.model.Vlan;
 
 public interface NetworkAPIService {
 
@@ -150,4 +151,11 @@ public interface NetworkAPIService {
 	 */
 	public Host addNetworkAPIHost(Long physicalNetworkId, String username,
 			String password, String url);
+	
+	/**
+	 * Retrieve VLAN info from Network API
+	 * @param network
+	 * @return
+	 */
+	public Vlan getVlanInfoFromNetworkAPI(Network network);
 }
