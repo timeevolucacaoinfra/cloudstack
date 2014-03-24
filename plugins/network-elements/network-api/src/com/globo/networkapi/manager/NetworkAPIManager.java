@@ -387,18 +387,20 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		// Delete other network related to this, except NetworkAPIGuru
 		// FIXME Improve this search
-		for (NetworkVO otherNetwork : _ntwkDao.listAll()) {
-			if (otherNetwork.getRelated() == network.getId()) {
-				if ("NetworkAPIGuru".equalsIgnoreCase(otherNetwork.getGuruName())) {
-					// FIXME Fix related
-					s_logger.info("Network with NetworkAPI found " + network.getId());
-					network = otherNetwork;
-				} else {
-					s_logger.info("Destroy network " + otherNetwork.getId() + " " + otherNetwork.getName() + " " + otherNetwork.getGuruName());
-					_ntwSvc.deleteNetwork(otherNetwork.getId());
-				}
-			}
-		}
+
+		// Not needed when DirectNetworkGuru is disconnected
+		// for (NetworkVO otherNetwork : _ntwkDao.listAll()) {
+		//	if (otherNetwork.getRelated() == network.getId()) {
+		//		if ("NetworkAPIGuru".equalsIgnoreCase(otherNetwork.getGuruName())) {
+		//			// FIXME Fix related
+		//			s_logger.info("Network with NetworkAPI found " + network.getId());
+		//			network = otherNetwork;
+		//		} else {
+		//			s_logger.info("Destroy network " + otherNetwork.getId() + " " + otherNetwork.getName() + " " + otherNetwork.getGuruName());
+		//			_ntwSvc.deleteNetwork(otherNetwork.getId());
+		//		}
+		//	}
+		// }
 
 		// Save relashionship with napi and network
 		NetworkAPINetworkVO napiNetworkVO = new NetworkAPINetworkVO(vlanId,
