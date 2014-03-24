@@ -61,6 +61,9 @@ public class NetworkAPIGuruTest {
 	NetworkAPIGuru _napiGuru;
 	
 	@Inject
+	NetworkAPIService _napiService;
+	
+	@Inject
 	AccountManager _acctMgr; 
 	
     @BeforeClass
