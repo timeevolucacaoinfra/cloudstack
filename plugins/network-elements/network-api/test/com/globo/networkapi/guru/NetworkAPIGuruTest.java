@@ -1,5 +1,6 @@
 package com.globo.networkapi.guru;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -27,7 +28,16 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
+import com.cloud.configuration.dao.ConfigurationDao;
+import com.cloud.dc.dao.DataCenterDao;
+import com.cloud.dc.dao.VlanDao;
 import com.cloud.exception.CloudException;
+import com.cloud.network.NetworkManager;
+import com.cloud.network.NetworkModel;
+import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.NetworkDao;
+import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
@@ -35,6 +45,8 @@ import com.cloud.user.UserContext;
 import com.cloud.user.UserContextInitializer;
 import com.cloud.user.UserVO;
 import com.cloud.utils.component.ComponentContext;
+import com.cloud.vm.dao.NicDao;
+import com.globo.networkapi.manager.NetworkAPIService;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -83,6 +95,59 @@ public class NetworkAPIGuruTest {
     @Configuration
     @ComponentScan(basePackageClasses = {NetworkAPIGuru.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
+    	
+    	@Bean
+    	public NetworkAPIGuru networkAPIGuru() {
+    		return new NetworkAPIGuru();
+    	}
+    	@Bean
+    	public NetworkManager networkManager() {
+    		return mock(NetworkManager.class);
+    	}
+    	@Bean
+    	public DataCenterDao dataCenterDao() {
+    		return mock(DataCenterDao.class);
+    	}
+    	@Bean
+    	public VlanDao vlanDao() {
+    		return mock(VlanDao.class);
+    	}
+    	@Bean
+    	public NicDao nicDao() {
+    		return mock(NicDao.class);
+    	}
+    	@Bean
+    	public ConfigurationDao configurationDao() {
+    		return mock(ConfigurationDao.class);
+    	}
+    	@Bean
+    	public NetworkDao networkDao() {
+    		return mock(NetworkDao.class);
+    	}
+    	@Bean
+    	public IPAddressDao ipAddressDao() {
+    		return mock(IPAddressDao.class);
+    	}
+    	@Bean
+    	public PhysicalNetworkDao physicalNetworkDao() {
+    		return mock(PhysicalNetworkDao.class);
+    	}
+    	@Bean
+    	public ConfigurationServer configurationServer() {
+    		return mock(ConfigurationServer.class);
+    	}
+    	@Bean
+    	public NetworkAPIService networkAPIService() {
+    		return mock(NetworkAPIService.class);
+    	}
+    	@Bean
+    	public NetworkModel networkModel() {
+    		return mock(NetworkModel.class);
+    	}
+    	@Bean
+    	public AccountManager accountManager() {
+    		return mock(AccountManager.class);
+    	}
     	@Bean
     	public UserContextInitializer userContextInitializer() {
     		return new UserContextInitializer();
