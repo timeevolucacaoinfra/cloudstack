@@ -818,9 +818,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			txn.commit();
 
 		} catch (CloudstackNetworkAPIException e) {
-			handleNetworkUnavaiableError(e);
-		} finally {
 			txn.rollback();
+			handleNetworkUnavaiableError(e);
 		}
 
 	}
