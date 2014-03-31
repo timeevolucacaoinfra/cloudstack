@@ -72,5 +72,10 @@
 	<servlet-mapping>   
          <servlet-name>registerCompleteServlet</servlet-name>   
          <url-pattern>/mycloud/complete</url-pattern> 
-    </servlet-mapping>
+  </servlet-mapping>
+
+  <session-config>
+        <session-timeout>60</session-timeout>
+  </session-config>
+
 </web-app>

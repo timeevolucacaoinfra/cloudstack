@@ -131,28 +131,20 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 
 	@Override
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
+
+		s_logger.debug("Removing networks from NetworkAPI");
+		_networkAPIService.removeNetworkFromNetworkAPI(profile);
+	
 		s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
-		s_logger.warn("Removing Vlan from equipment (nothing to do now)");
 		super.shutdown(profile, offering);
 	}
 
 	@Override
 	public boolean trash(Network network, NetworkOffering offering, Account owner) {
-		// FIXME: Move this code to shutdown
-		try {
-			_networkAPIService.removeNetworkFromNetworkAPI(network);
-		} catch (Exception e) {
-			// FIXME
-			s_logger.debug("Exception when removing network from NetworkAPI", e);
-		}
-
-		s_logger.debug("Here we should release VLAN networks from NetworkAPI");
-		try {
-			_networkAPIService.deallocateVlanFromNetworkAPI(network);
-		} catch (Exception e) {
-			// FIXME
-			s_logger.debug("Exception when deallocating vlan from NetworkAPI", e);
-		}
+		
+		s_logger.debug("Deallocating VLAN networks from NetworkAPI");
+		_networkAPIService.deallocateVlanFromNetworkAPI(network);
+		
 		s_logger.debug("VLAN networks released. Passing on to GuestNetworkGuru to trash network " + network.getName());
 		return super.trash(network, offering, owner);
 	}

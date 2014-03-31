@@ -1,7 +1,8 @@
 package com.globo.networkapi.resource;
 
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.cloud.agent.api.Answer;
-import com.globo.networkapi.RequestProcessor;
 import com.globo.networkapi.api.VlanAPI;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
@@ -50,7 +50,6 @@ public class NetworkAPIResourceTest {
 		// params.putAll(cfg);
 		// _resource.configure("networkapi", params);
 	}
-
 
 	@Test
 	public void testValidateNicReturnsAnswerResultTrue() throws Exception {

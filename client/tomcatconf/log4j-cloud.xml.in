@@ -67,12 +67,11 @@ under the License.
    <!-- ============================== -->
 
    <appender name="SYSLOG" class="org.apache.log4j.net.SyslogAppender">
-      <param name="Threshold" value="DEBUG"/>
       <param name="SyslogHost" value="localhost"/>
       <param name="Header" value="true"/>
       <param name="Facility" value="LOCAL2"/>
-      <layout class="org.apache.log4j.PatternLayout">
-         <param name="ConversionPattern" value="cloudstack [%c] %m%n"/>
+      <layout class="com.globo.log4j.SyslogLayout">
+         <param name="tag" value="cloudstack" />
       </layout>
   </appender>
 
@@ -80,15 +79,16 @@ under the License.
    <!-- Append alerts to the syslog if it is configured -->
    <!-- ============================== -->
 
-   <appender name="ALERTSYSLOG" class="org.apache.cloudstack.syslog.AlertsSyslogAppender">
+<!--
+    <appender name="ALERTSYSLOG" class="org.apache.cloudstack.syslog.AlertsSyslogAppender">
       <param name="Threshold" value="WARN"/>
-      <param name="SyslogHosts" value=""/>
+      <param name="SyslogHosts" value="localhost"/>
       <param name="Facility" value="LOCAL6"/>
-      <layout class="org.apache.log4j.PatternLayout">
-         <param name="ConversionPattern" value="%-5p [%c{3}] (%t:%x) %m%n"/>
+      <layout class="com.globo.log4j.SyslogLayout">
+        <param name="ConversionPattern" value="%-5p [%c{3}] (%t:%x) %m%n"/>
       </layout>
    </appender>
-
+ -->
    <!-- ============================== -->
    <!-- send alert warnings+ as the SNMP trap if it is configured! -->
    <!-- ============================== -->
@@ -192,7 +192,7 @@ under the License.
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
       <appender-ref ref="SNMP"/>
-      <appender-ref ref="ALERTSYSLOG"/>
+      <!-- <appender-ref ref="ALERTSYSLOG"/> -->
    </logger>
 
    <!-- ======================= -->

@@ -105,6 +105,11 @@
       <artifactId>cloud-framework-events</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.globo.log4j</groupId>
+      <artifactId>logging-extensions</artifactId>
+      <version>0.0.1</version>
+    </dependency>
   </dependencies>
   <build>
     <defaultGoal>install</defaultGoal>

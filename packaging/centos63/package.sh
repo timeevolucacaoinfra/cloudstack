@@ -30,7 +30,15 @@ function packaging() {
 	tag_from_arg=$1
 	
 	echo "Getting last commits from git..."
-	git pull > /dev/null 2>&1
+	if git checkout master; then
+		if ! git pull ; then
+			echo "Git pull failed, please check it!"
+			exit 1
+		fi
+	else
+		exit 1
+	fi
+
 	
 	echo "Cheking out to tag: ${tag_from_arg}"
 	git checkout $tag_from_arg > /dev/null 2>&1
@@ -39,6 +47,7 @@ function packaging() {
 
 	source ~/.virtualenvs/cloudstack/bin/activate
 
+	echo "Getting version..."
 	VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
 	[[ "$tag_version" != "$VERSION" ]] && echo "Tag parameter version (${tag_version}) is not the same as git tag version (${VERSION}), fix it!" && exit 1
 
