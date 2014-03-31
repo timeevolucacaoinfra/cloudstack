@@ -16,8 +16,10 @@
 // under the License.
 package com.globo.dnsapi.element;
 
+import com.cloud.host.Host;
 import com.cloud.utils.component.PluggableService;
 
 public interface DnsAPIElementService extends PluggableService {
 
+	public Host addDNSAPIHost(Long pNtwkId, String username, String password, String url);
 }

@@ -43,7 +43,6 @@
       </snapshots>
     </repository>
   </repositories>
-  <!-- 
   <dependencies>
     <dependency>
       <groupId>com.globo.evolucaoinfra</groupId>
@@ -51,5 +50,4 @@
       <version>0.0.1</version>
     </dependency>
   </dependencies>
-  -->
 </project>

@@ -5701,6 +5701,7 @@
                                         },
                                         password: {
                                             label: 'Password',
+                                            isPassword: true,
                                             validation: {
                                                 required: true
                                             }
@@ -5894,14 +5895,27 @@
                                 label: 'DNS API Configuration',
                                 createForm: {
                                     title: 'DNS API Configuration',
-                                    preFilter: function(args) {}, // TODO What is this?
+                                    preFilter: function(args) {},
                                     fields: {
-                                        name: {
-                                            label: 'Name',
+                                        username: {
+                                            label: 'Username',
                                             validation: {
                                                 required: true
                                             }
                                         },
+                                        password: {
+                                            label: 'Password',
+                                            isPassword: true,
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        url: {
+                                            label: 'URL',
+                                            validation: {
+                                                required: true
+                                            }
+                                        }
                                     }
                                 },
                                 action: function(args) {
@@ -5924,7 +5938,7 @@
                                                                 clearInterval(addDnsAPIProviderIntervalID);
                                                                 if (result.jobstatus == 1) {
                                                                     nspMap["DnsAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
-                                                                    // addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment");
+                                                                    addDnsApiHost(args, selectedPhysicalNetworkObj, "addDnsApiHost", "adddnsapihostresponse");
                                                                 } else if (result.jobstatus == 2) {
                                                                     alert("addNetworkServiceProvider&name=DnsAPI failed. Error: " + _s(result.jobresult.errortext));
                                                                 }
@@ -5939,7 +5953,7 @@
                                             }
                                         });
                                     } else {
-                                        // addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment")
+                                        addDnsApiHost(args, selectedPhysicalNetworkObj, "addDnsApiHost", "adddnsapihostresponse");
                                     }
                                 },
                                 messages: {
@@ -16205,6 +16219,28 @@
                         getUpdatedItem: function(json) {
                             $(window).trigger('cloudStack.fullRefresh');
                         }
+                    }
+                });
+            }
+        });
+    }
+
+    function addDnsApiHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&username=" + todb(args.data.username));
+        array1.push("&password=" + todb(args.data.password));
+        array1.push("&url=" + todb(args.data.url));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
                     }
                 });
             }

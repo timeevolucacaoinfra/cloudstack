@@ -686,3 +686,6 @@ addNetworkApiHost=1
 listNetworkApiEnvironments=15
 removeNetworkAPIEnvironment=1
 listAllEnvironmentsFromNetworkApi=1
+
+### DNS API commands
+addDnsApiHost=1
