@@ -34,6 +34,8 @@ import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.StartupCommand;
+import com.cloud.dc.DataCenter;
+import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -65,8 +67,16 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.dnsapi.api.AddDnsApiHostCmd;
+import com.globo.dnsapi.commands.CreateDomainCommand;
+import com.globo.dnsapi.commands.CreateReverseDomainCommand;
+import com.globo.dnsapi.commands.ListDomainCommand;
+import com.globo.dnsapi.commands.ListReverseDomainCommand;
 import com.globo.dnsapi.commands.SignInCommand;
-import com.globo.dnsapi.resource.DNSAPIResource;
+import com.globo.dnsapi.model.Domain;
+import com.globo.dnsapi.resource.DnsAPIResource;
+import com.globo.dnsapi.response.DnsAPIDomainListResponse;
+import com.globo.networkapi.NetworkAPINetworkVO;
+import com.globo.networkapi.dao.NetworkAPINetworkDao;
 
 @Component
 @Local(NetworkElement.class)
@@ -76,9 +86,20 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	
 	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
 	
+	// FIXME These configurations should be global options
+	private static final long DOMAIN_TEMPLATE_ID = 1; // Default
+	private static final String DOMAIN_SUFFIX = "cp.globoi.com"; // Default
+	
+	private static final String AUTHORITY_TYPE = "M";
+	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
+	
 	// DAOs
 	@Inject
+	DataCenterDao _dcDao;
+	@Inject
 	HostDao _hostDao;
+	@Inject
+	NetworkAPINetworkDao _napiNetworkDao;
 	@Inject
 	PhysicalNetworkDao _physicalNetworkDao;
 	
@@ -112,6 +133,46 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
     InsufficientCapacityException {
     	s_logger.debug("Entering implement method for DnsAPI");
+    	Long zoneId = network.getDataCenterId();
+    	DataCenter zone = _dcDao.findById(zoneId);
+		if (zone == null) {
+			throw new CloudRuntimeException(
+					"Could not find zone associated to this network");
+		}
+
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+		if (napiNetworkVO == null) {
+			throw new CloudRuntimeException("Could not find VLAN associated to this network");
+		}
+		
+		// domainName is of form zoneName-vlanId.domainSuffix
+    	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + DOMAIN_SUFFIX;
+    	domainName = domainName.toLowerCase();
+    	s_logger.debug("Creating domain " + domainName);
+    	
+    	// Check if domain already exists
+    	ListDomainCommand cmdList = new ListDomainCommand(domainName);
+    	Answer answerList = callCommand(cmdList, zoneId);
+    	List<Domain> domainList = ((DnsAPIDomainListResponse) answerList).getDomainList();
+    	if (domainList.size() == 0) {
+    		// Doesn't exist yet, create it
+        	CreateDomainCommand cmdCreate = new CreateDomainCommand(domainName, DOMAIN_TEMPLATE_ID, AUTHORITY_TYPE);
+        	callCommand(cmdCreate, zoneId);
+    	}
+    	
+    	String[] octets = network.getCidr().split("\\/")[0].split("\\.");
+    	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + REVERSE_DOMAIN_SUFFIX;
+    	s_logger.debug("Creating reverse domain " + reverseDomainName);
+    	
+    	// Check if reverse domain already exists
+    	ListReverseDomainCommand cmdListReverse = new ListReverseDomainCommand(reverseDomainName);
+    	Answer answerListReverse = callCommand(cmdListReverse, zoneId);
+    	List<Domain> domainListReverse = ((DnsAPIDomainListResponse) answerListReverse).getDomainList();
+    	if (domainListReverse.size() == 0) {
+    		// Doesn't exist yet, create it
+        	CreateReverseDomainCommand cmdReverse = new CreateReverseDomainCommand(reverseDomainName, DOMAIN_TEMPLATE_ID, AUTHORITY_TYPE);
+        	callCommand(cmdReverse, zoneId);    		
+    	}
         return true;
     }
 
@@ -120,10 +181,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     ResourceUnavailableException, InsufficientCapacityException {
         // signal to the dns server that this vm is up and running and set the ip address to hostname mapping.
     	s_logger.debug("Entering prepare method for DnsAPI");
-    	vm.getHostName();
-        nic.getIp4Address();
-        nic.getIp6Address();
-        return true;
+    	return true;
     }
 
     @Override
@@ -277,7 +335,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		txn.start();
 
 		try {
-			DNSAPIResource resource = new DNSAPIResource();
+			DnsAPIResource resource = new DnsAPIResource();
 			resource.configure(Provider.DnsAPI.getName(), hostDetails);
 			
 			Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),

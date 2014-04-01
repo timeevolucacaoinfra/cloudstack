@@ -1,5 +1,6 @@
 package com.globo.dnsapi.resource;
 
+import java.util.List;
 import java.util.Map;
 
 import javax.naming.ConfigurationException;
@@ -19,12 +20,19 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
+import com.globo.dnsapi.commands.CreateDomainCommand;
+import com.globo.dnsapi.commands.CreateReverseDomainCommand;
+import com.globo.dnsapi.commands.ListDomainCommand;
+import com.globo.dnsapi.commands.ListReverseDomainCommand;
+import com.globo.dnsapi.commands.RemoveDomainCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.exception.DNSAPIException;
 import com.globo.dnsapi.http.HttpJsonRequestProcessor;
 import com.globo.dnsapi.model.Authentication;
+import com.globo.dnsapi.model.Domain;
+import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 
-public class DNSAPIResource extends ManagerBase implements ServerResource {
+public class DnsAPIResource extends ManagerBase implements ServerResource {
 	private String _zoneId;
 	
 	private String _guid;
@@ -37,11 +45,9 @@ public class DNSAPIResource extends ManagerBase implements ServerResource {
 	
 	private String _password;
 	
-	private String _token = null;
-	
 	protected HttpJsonRequestProcessor _dnsapi;
 	
-	private static final Logger s_logger = Logger.getLogger(DNSAPIResource.class);
+	private static final Logger s_logger = Logger.getLogger(DnsAPIResource.class);
 
 	@Override
 	public boolean configure(String name, Map<String, Object> params)
@@ -107,7 +113,7 @@ public class DNSAPIResource extends ManagerBase implements ServerResource {
 		cmd.setPod("");
 		cmd.setPrivateIpAddress("");
 		cmd.setStorageIpAddress("");
-		cmd.setVersion(DNSAPIResource.class.getPackage().getImplementationVersion());
+		cmd.setVersion(DnsAPIResource.class.getPackage().getImplementationVersion());
 		return new StartupCommand[] {cmd};
 	}
 
@@ -139,6 +145,16 @@ public class DNSAPIResource extends ManagerBase implements ServerResource {
 			return new MaintainAnswer((MaintainCommand) cmd);
 		} else if (cmd instanceof SignInCommand) {
 			return execute((SignInCommand) cmd);
+		} else if (cmd instanceof CreateDomainCommand) {
+			return execute((CreateDomainCommand) cmd);
+		} else if (cmd instanceof RemoveDomainCommand) {
+			return execute((RemoveDomainCommand) cmd);
+		} else if (cmd instanceof CreateReverseDomainCommand) {
+			return execute((CreateReverseDomainCommand) cmd);
+		} else if (cmd instanceof ListDomainCommand) {
+			return execute((ListDomainCommand) cmd);
+		} else if (cmd instanceof ListReverseDomainCommand) {
+			return execute((ListReverseDomainCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -147,11 +163,73 @@ public class DNSAPIResource extends ManagerBase implements ServerResource {
 		try {
 			Authentication auth = _dnsapi.getAuthAPI().signIn(cmd.getEmail(), cmd.getPassword());
 			if (auth != null) {
-				_token = auth.getToken();
-				return new Answer(cmd);
+				return new Answer(cmd, true, "Signed in successfully");
 			} else {
 				return new Answer(cmd, false, "Unable to sign in on DNS API");
 			}
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(CreateDomainCommand cmd) {
+		try {
+			Domain domain = _dnsapi.getDomainAPI().createDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
+			if (domain != null) {
+				return new Answer(cmd, true, "Domain created: " + domain.getName());
+			} else {
+				return new Answer(cmd, false, "Unable to create domain in DNS API");
+			}
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(RemoveDomainCommand cmd) {
+		try {
+			_dnsapi.getDomainAPI().removeDomain(cmd.getDomainId());
+			return new Answer(cmd, true, "Domain removed");
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(CreateReverseDomainCommand cmd) {
+		try {
+			Domain domain = _dnsapi.getDomainAPI().createReverseDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
+			if (domain != null) {
+				return new Answer(cmd, true, "Reverse Domain created: " + domain.getName());
+			} else {
+				return new Answer(cmd, false, "Unable to create reverse domain in DNS API");
+			}
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(ListDomainCommand cmd) {
+		try {
+			List<Domain> result;
+			if (cmd.getQuery() == null) {
+				result = _dnsapi.getDomainAPI().listAll();
+			} else {
+				result = _dnsapi.getDomainAPI().listByQuery(cmd.getQuery());
+			}
+			return new DnsAPIDomainListResponse(cmd, result);
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(ListReverseDomainCommand cmd) {
+		try {
+			List<Domain> result;
+			if (cmd.getQuery() == null) {
+				result = _dnsapi.getDomainAPI().listAllReverse();
+			} else {
+				result = _dnsapi.getDomainAPI().listReverseByQuery(cmd.getQuery());
+			}
+			return new DnsAPIDomainListResponse(cmd, result);
 		} catch (DNSAPIException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
