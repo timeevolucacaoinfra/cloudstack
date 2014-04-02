@@ -55,6 +55,7 @@
   <bean id="DnsAPIElement" class="com.globo.dnsapi.element.DnsAPIElement">
     <property name="name" value="DnsAPI"/>
   </bean>
+  <bean id="DnsAPINetworkDao" class="com.globo.dnsapi.dao.DnsAPINetworkDaoImpl" />
 
   <!--
     NetworkAPI components

@@ -22,15 +22,19 @@ import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.dnsapi.commands.CreateDomainCommand;
 import com.globo.dnsapi.commands.CreateReverseDomainCommand;
+import com.globo.dnsapi.commands.GetDomainInfoCommand;
+import com.globo.dnsapi.commands.GetReverseDomainInfoCommand;
 import com.globo.dnsapi.commands.ListDomainCommand;
 import com.globo.dnsapi.commands.ListReverseDomainCommand;
 import com.globo.dnsapi.commands.RemoveDomainCommand;
+import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.exception.DNSAPIException;
 import com.globo.dnsapi.http.HttpJsonRequestProcessor;
 import com.globo.dnsapi.model.Authentication;
 import com.globo.dnsapi.model.Domain;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
+import com.globo.dnsapi.response.DnsAPIDomainResponse;
 
 public class DnsAPIResource extends ManagerBase implements ServerResource {
 	private String _zoneId;
@@ -149,12 +153,18 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			return execute((CreateDomainCommand) cmd);
 		} else if (cmd instanceof RemoveDomainCommand) {
 			return execute((RemoveDomainCommand) cmd);
+		} else if (cmd instanceof RemoveReverseDomainCommand) {
+			return execute((RemoveReverseDomainCommand) cmd);
 		} else if (cmd instanceof CreateReverseDomainCommand) {
 			return execute((CreateReverseDomainCommand) cmd);
 		} else if (cmd instanceof ListDomainCommand) {
 			return execute((ListDomainCommand) cmd);
 		} else if (cmd instanceof ListReverseDomainCommand) {
 			return execute((ListReverseDomainCommand) cmd);
+		} else if (cmd instanceof GetDomainInfoCommand) {
+			return execute((GetDomainInfoCommand) cmd);
+		} else if (cmd instanceof GetReverseDomainInfoCommand) {
+			return execute((GetReverseDomainInfoCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -176,7 +186,7 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		try {
 			Domain domain = _dnsapi.getDomainAPI().createDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
 			if (domain != null) {
-				return new Answer(cmd, true, "Domain created: " + domain.getName());
+				return new DnsAPIDomainResponse(cmd, domain);
 			} else {
 				return new Answer(cmd, false, "Unable to create domain in DNS API");
 			}
@@ -194,11 +204,20 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
+	public Answer execute(RemoveReverseDomainCommand cmd) {
+		try {
+			_dnsapi.getDomainAPI().removeReverseDomain(cmd.getReverseDomainId());
+			return new Answer(cmd, true, "Reverse domain removed");
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
 	public Answer execute(CreateReverseDomainCommand cmd) {
 		try {
-			Domain domain = _dnsapi.getDomainAPI().createReverseDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
-			if (domain != null) {
-				return new Answer(cmd, true, "Reverse Domain created: " + domain.getName());
+			Domain reverseDomain = _dnsapi.getDomainAPI().createReverseDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
+			if (reverseDomain != null) {
+				return new DnsAPIDomainResponse(cmd, reverseDomain);
 			} else {
 				return new Answer(cmd, false, "Unable to create reverse domain in DNS API");
 			}
@@ -230,6 +249,24 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 				result = _dnsapi.getDomainAPI().listReverseByQuery(cmd.getQuery());
 			}
 			return new DnsAPIDomainListResponse(cmd, result);
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(GetDomainInfoCommand cmd) {
+		try {
+			Domain domain = _dnsapi.getDomainAPI().getById(cmd.getDomainId());
+			return new DnsAPIDomainResponse(cmd, domain);
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(GetReverseDomainInfoCommand cmd) {
+		try {
+			Domain domainReverse = _dnsapi.getDomainAPI().getReverseById(cmd.getReverseDomainId());
+			return new DnsAPIDomainResponse(cmd, domainReverse);
 		} catch (DNSAPIException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}

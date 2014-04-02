@@ -66,15 +66,22 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.globo.dnsapi.DnsAPINetworkVO;
 import com.globo.dnsapi.api.AddDnsApiHostCmd;
 import com.globo.dnsapi.commands.CreateDomainCommand;
 import com.globo.dnsapi.commands.CreateReverseDomainCommand;
+import com.globo.dnsapi.commands.GetDomainInfoCommand;
+import com.globo.dnsapi.commands.GetReverseDomainInfoCommand;
 import com.globo.dnsapi.commands.ListDomainCommand;
 import com.globo.dnsapi.commands.ListReverseDomainCommand;
+import com.globo.dnsapi.commands.RemoveDomainCommand;
+import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.SignInCommand;
+import com.globo.dnsapi.dao.DnsAPINetworkDao;
 import com.globo.dnsapi.model.Domain;
 import com.globo.dnsapi.resource.DnsAPIResource;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
+import com.globo.dnsapi.response.DnsAPIDomainResponse;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 
@@ -96,6 +103,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	// DAOs
 	@Inject
 	DataCenterDao _dcDao;
+	@Inject
+	DnsAPINetworkDao _dnsapiNetworkDao;
 	@Inject
 	HostDao _hostDao;
 	@Inject
@@ -130,6 +139,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     }
 
     @Override
+    @DB
     public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
     InsufficientCapacityException {
     	s_logger.debug("Entering implement method for DnsAPI");
@@ -145,6 +155,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			throw new CloudRuntimeException("Could not find VLAN associated to this network");
 		}
 		
+		/* Create new domain in DNS API */
 		// domainName is of form zoneName-vlanId.domainSuffix
     	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + DOMAIN_SUFFIX;
     	domainName = domainName.toLowerCase();
@@ -154,25 +165,48 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	ListDomainCommand cmdList = new ListDomainCommand(domainName);
     	Answer answerList = callCommand(cmdList, zoneId);
     	List<Domain> domainList = ((DnsAPIDomainListResponse) answerList).getDomainList();
+    	Domain createdDomain = null;
     	if (domainList.size() == 0) {
     		// Doesn't exist yet, create it
         	CreateDomainCommand cmdCreate = new CreateDomainCommand(domainName, DOMAIN_TEMPLATE_ID, AUTHORITY_TYPE);
-        	callCommand(cmdCreate, zoneId);
+        	Answer answerCreateDomain = callCommand(cmdCreate, zoneId);
+        	createdDomain = ((DnsAPIDomainResponse) answerCreateDomain).getDomain();
+    	} else if (domainList.size() == 1) {
+    		createdDomain = domainList.get(0);
     	}
     	
     	String[] octets = network.getCidr().split("\\/")[0].split("\\.");
     	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + REVERSE_DOMAIN_SUFFIX;
     	s_logger.debug("Creating reverse domain " + reverseDomainName);
-    	
+
+		/* Create new reverse domain in DNS API */
     	// Check if reverse domain already exists
     	ListReverseDomainCommand cmdListReverse = new ListReverseDomainCommand(reverseDomainName);
     	Answer answerListReverse = callCommand(cmdListReverse, zoneId);
     	List<Domain> domainListReverse = ((DnsAPIDomainListResponse) answerListReverse).getDomainList();
+    	Domain reverseDomain = null;
     	if (domainListReverse.size() == 0) {
     		// Doesn't exist yet, create it
         	CreateReverseDomainCommand cmdReverse = new CreateReverseDomainCommand(reverseDomainName, DOMAIN_TEMPLATE_ID, AUTHORITY_TYPE);
-        	callCommand(cmdReverse, zoneId);    		
+        	Answer answerCreateReverseDomain = callCommand(cmdReverse, zoneId);
+        	reverseDomain = ((DnsAPIDomainResponse) answerCreateReverseDomain).getDomain();
+    	} else if (domainListReverse.size() == 1) {
+    		reverseDomain = domainListReverse.get(0);
     	}
+    	
+    	/* Save in the database */
+    	Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
+    	DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
+    	if (dnsapiNetworkVO == null) {
+    		// Entry in mapping table doesn't exist yet, create it
+    		dnsapiNetworkVO = new DnsAPINetworkVO(network.getId(), createdDomain.getId(), reverseDomain.getId());
+    		_dnsapiNetworkDao.persist(dnsapiNetworkVO);
+    	}
+    	
+    	txn.commit();
+    	
         return true;
     }
 
@@ -201,9 +235,62 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     }
 
     @Override
+    @DB
     public boolean destroy(Network network, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering destroy method for DnsAPI");
-    	return true;
+    	Long zoneId = network.getDataCenterId();
+    	DataCenter zone = _dcDao.findById(zoneId);
+		if (zone == null) {
+			throw new CloudRuntimeException(
+					"Could not find zone associated to this network");
+		}
+
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
+		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
+		if (dnsapiNetworkVO == null) {
+			// Mapping doesn't exist, won't be able to remove from DNS API
+			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
+		}
+
+		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
+		    	
+		/* Remove domain from DNS API */
+    	// Check if domain exists
+    	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
+    	Answer answerInfo = callCommand(cmdInfo, zoneId);
+    	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
+    	if (domain == null) {
+    		// Domain doesn't exist in DNS API
+    		// Do nothing, continue
+    	} else {
+    		// Remove domain
+    		RemoveDomainCommand cmdRemove = new RemoveDomainCommand(domainId);
+    		callCommand(cmdRemove, zoneId);
+    	}
+    	
+    	/* Remove reverse domain from DNS API */
+    	// Check if reverse domain exists
+    	GetReverseDomainInfoCommand cmdInfoReverse = new GetReverseDomainInfoCommand(reverseDomainId);
+    	Answer answerInfoReverse = callCommand(cmdInfoReverse, zoneId);
+    	Domain domainReverse = ((DnsAPIDomainResponse) answerInfoReverse).getDomain();
+    	if (domainReverse == null) {
+    		// Domain doesn't exist in DNS API
+    		// Do nothing, continue
+    	} else {
+    		// Remove reverse domain
+    		RemoveReverseDomainCommand cmdRemoveReverse = new RemoveReverseDomainCommand(reverseDomainId);
+    		callCommand(cmdRemoveReverse, zoneId);
+    	}
+    	
+    	/* Remove entry in mapping table */
+    	_dnsapiNetworkDao.remove(dnsapiNetworkVO.getId());
+    	
+    	txn.commit();
+    	
+        return true;
     }
 
     @Override

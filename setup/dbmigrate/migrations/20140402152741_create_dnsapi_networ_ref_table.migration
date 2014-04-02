@@ -1,0 +1,20 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u”””
+	CREATE TABLE `cloud`.`dnsapi_network_ref` (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, 
+		network_id BIGINT UNSIGNED NOT NULL, 
+		dnsapi_domain_id BIGINT UNSIGNED NOT NULL, 
+		dnsapi_reverse_domain_id BIGINT UNSIGNED NOT NULL, 
+		PRIMARY KEY (id), 
+		INDEX dnsapi_network_ref_fk1 (network_id), 
+		INDEX dnsapi_network_ref_ix2 (dnsapi_domain_id), 
+		INDEX dnsapi_network_ref_ix3 (dnsapi_reverse_domain_id)) 
+	ENGINE=InnoDB 
+	DEFAULT CHARSET=utf8;
+
+	ALTER TABLE `cloud`.`dnsapi_network_ref` ADD CONSTRAINT dnsapi_network_ref_fk1 FOREIGN KEY (network_id) 
+		REFERENCES networks (id) ON DELETE CASCADE ON UPDATE CASCADE;
+“””
+
+SQL_DOWN = u”””
+	DROP TABLE `cloud`.`dnsapi_network_ref`;
+“””
