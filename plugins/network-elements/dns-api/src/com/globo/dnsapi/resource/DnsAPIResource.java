@@ -21,20 +21,27 @@ import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.dnsapi.commands.CreateDomainCommand;
+import com.globo.dnsapi.commands.CreateRecordCommand;
 import com.globo.dnsapi.commands.CreateReverseDomainCommand;
 import com.globo.dnsapi.commands.GetDomainInfoCommand;
+import com.globo.dnsapi.commands.GetRecordInfoCommand;
 import com.globo.dnsapi.commands.GetReverseDomainInfoCommand;
 import com.globo.dnsapi.commands.ListDomainCommand;
+import com.globo.dnsapi.commands.ListRecordCommand;
 import com.globo.dnsapi.commands.ListReverseDomainCommand;
 import com.globo.dnsapi.commands.RemoveDomainCommand;
+import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.exception.DNSAPIException;
 import com.globo.dnsapi.http.HttpJsonRequestProcessor;
 import com.globo.dnsapi.model.Authentication;
 import com.globo.dnsapi.model.Domain;
+import com.globo.dnsapi.model.Record;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 import com.globo.dnsapi.response.DnsAPIDomainResponse;
+import com.globo.dnsapi.response.DnsAPIRecordListResponse;
+import com.globo.dnsapi.response.DnsAPIRecordResponse;
 
 public class DnsAPIResource extends ManagerBase implements ServerResource {
 	private String _zoneId;
@@ -165,6 +172,14 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			return execute((GetDomainInfoCommand) cmd);
 		} else if (cmd instanceof GetReverseDomainInfoCommand) {
 			return execute((GetReverseDomainInfoCommand) cmd);
+		} else if (cmd instanceof ListRecordCommand) {
+			return execute((ListRecordCommand) cmd);
+		} else if (cmd instanceof CreateRecordCommand) {
+			return execute((CreateRecordCommand) cmd);
+		} else if (cmd instanceof GetRecordInfoCommand) {
+			return execute((GetRecordInfoCommand) cmd);
+		} else if (cmd instanceof RemoveRecordCommand) {
+			return execute((RemoveRecordCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -267,6 +282,51 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		try {
 			Domain domainReverse = _dnsapi.getDomainAPI().getReverseById(cmd.getReverseDomainId());
 			return new DnsAPIDomainResponse(cmd, domainReverse);
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(ListRecordCommand cmd) {
+		try {
+			List<Record> result;
+			if (cmd.getQuery() == null) {
+				result = _dnsapi.getRecordAPI().listAll(cmd.getDomainId());
+			} else {
+				result = _dnsapi.getRecordAPI().listByQuery(cmd.getDomainId(), cmd.getQuery());
+			}
+			return new DnsAPIRecordListResponse(cmd, result);
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(CreateRecordCommand cmd) {
+		try {
+			Record record = _dnsapi.getRecordAPI().createRecord(cmd.getDomainId(), cmd.getName(), cmd.getContent(), cmd.getType());
+			if (record != null) {
+				return new DnsAPIRecordResponse(cmd, record);
+			} else {
+				return new Answer(cmd, false, "Unable to create record in DNS API");
+			}
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(GetRecordInfoCommand cmd) {
+		try {
+			Record record = _dnsapi.getRecordAPI().getById(cmd.getRecordId());
+			return new DnsAPIRecordResponse(cmd, record);
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(RemoveRecordCommand cmd) {
+		try {
+			_dnsapi.getRecordAPI().removeRecord(cmd.getRecordId());
+			return new Answer(cmd, true, "Record removed");
 		} catch (DNSAPIException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}

@@ -69,21 +69,30 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.dnsapi.DnsAPINetworkVO;
+import com.globo.dnsapi.DnsAPIVMVO;
 import com.globo.dnsapi.api.AddDnsApiHostCmd;
 import com.globo.dnsapi.commands.CreateDomainCommand;
+import com.globo.dnsapi.commands.CreateRecordCommand;
 import com.globo.dnsapi.commands.CreateReverseDomainCommand;
 import com.globo.dnsapi.commands.GetDomainInfoCommand;
+import com.globo.dnsapi.commands.GetRecordInfoCommand;
 import com.globo.dnsapi.commands.GetReverseDomainInfoCommand;
 import com.globo.dnsapi.commands.ListDomainCommand;
+import com.globo.dnsapi.commands.ListRecordCommand;
 import com.globo.dnsapi.commands.ListReverseDomainCommand;
 import com.globo.dnsapi.commands.RemoveDomainCommand;
+import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
+import com.globo.dnsapi.dao.DnsAPIVMDao;
 import com.globo.dnsapi.model.Domain;
+import com.globo.dnsapi.model.Record;
 import com.globo.dnsapi.resource.DnsAPIResource;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 import com.globo.dnsapi.response.DnsAPIDomainResponse;
+import com.globo.dnsapi.response.DnsAPIRecordListResponse;
+import com.globo.dnsapi.response.DnsAPIRecordResponse;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 
@@ -97,11 +106,16 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	
 	private static final String AUTHORITY_TYPE = "M";
 	
+	private static final String RECORD_TYPE = "A";
+	private static final String REVERSE_RECORD_TYPE = "PTR";
+	
 	// DAOs
 	@Inject
 	DataCenterDao _dcDao;
 	@Inject
 	DnsAPINetworkDao _dnsapiNetworkDao;
+	@Inject
+	DnsAPIVMDao _dnsapiVmDao;
 	@Inject
 	HostDao _hostDao;
 	@Inject
@@ -220,18 +234,147 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     @Override
     public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
     ResourceUnavailableException, InsufficientCapacityException {
-        // signal to the dns server that this vm is up and running and set the ip address to hostname mapping.
     	s_logger.debug("Entering prepare method for DnsAPI");
+    	
+    	if (vm.getType() != VirtualMachine.Type.User) {
+    		// We create DNS API mapping only for User VMs
+    		return true;
+    	}
+    	
+    	Long zoneId = network.getDataCenterId();
+    	DataCenter zone = _dcDao.findById(zoneId);
+		if (zone == null) {
+			throw new CloudRuntimeException(
+					"Could not find zone associated to this network");
+		}
+		
+		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
+		if (dnsapiNetworkVO == null) {
+			// Mapping doesn't exist, won't be able to remove from DNS API
+			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
+		}
+
+		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+
+		/* Create new A record in DNS API */
+		String recordName = (vm.getHostName() != null ? vm.getHostName() : vm.getUuid());
+    	
+    	// Check if record already exists
+    	ListRecordCommand cmdList = new ListRecordCommand(domainId, recordName);
+    	Answer answerList = callCommand(cmdList, zoneId);
+    	List<Record> recordList = ((DnsAPIRecordListResponse) answerList).getRecordList();
+    	Record createdRecord = null;
+    	if (recordList.size() == 0) {
+    		// Doesn't exist yet, create it
+        	CreateRecordCommand cmdCreate = new CreateRecordCommand(domainId, recordName, nic.getIp4Address(), RECORD_TYPE);
+        	Answer answerCreateRecord = callCommand(cmdCreate, zoneId);
+        	createdRecord = ((DnsAPIRecordResponse) answerCreateRecord).getRecord();
+    	}
+    	
+    	
+		/* Create new PTR record in DNS API */
+    	String[] octets = nic.getIp4Address().split("\\.");
+		String reverseRecordName = octets[3];
+		
+    	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
+    	Answer answerInfo = callCommand(cmdInfo, zoneId);
+    	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
+    	if (domain == null) {
+    		// Domain doesn't exist in DNS API
+    		throw new CloudRuntimeException("Could not get Domain info from DNS API");
+    	}
+    	
+		String reverseRecordContent = vm.getHostName() + "." + domain.getName();
+    	
+    	// Check if reverse record already exists
+    	cmdList = new ListRecordCommand(domainId, reverseRecordName);
+    	answerList = callCommand(cmdList, zoneId);
+    	recordList = ((DnsAPIRecordListResponse) answerList).getRecordList();
+    	Record createdReverseRecord = null;
+    	if (recordList.size() == 0) {
+    		// Doesn't exist yet, create it
+        	CreateRecordCommand cmdCreateReverse = new CreateRecordCommand(domainId, reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE);
+        	Answer answerCreateReverseRecord = callCommand(cmdCreateReverse, zoneId);
+        	createdReverseRecord = ((DnsAPIRecordResponse) answerCreateReverseRecord).getRecord();
+    	}
+    	
+    	/* Save in the database */
+    	Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
+    	DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
+    	if (dnsapiVMVO == null) {
+    		// Entry in mapping table doesn't exist yet, create it
+    		dnsapiVMVO = new DnsAPIVMVO(vm.getId(), createdRecord.getId(), createdReverseRecord.getId());
+    		_dnsapiVmDao.persist(dnsapiVMVO);
+    	}
+    	
+    	txn.commit();
+
     	return true;
     }
 
     @Override
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
-    	vm.getHostName();
-        nic.getIp4Address();
-        nic.getIp6Address();
-        // signal to the dns server that the vm is being shutdown and remove the mapping.
+    	
+    	if (vm.getType() != VirtualMachine.Type.User) {
+    		// We handle only User VMs
+    		return true;
+    	}
+    	
+    	Long zoneId = network.getDataCenterId();
+    	DataCenter zone = _dcDao.findById(zoneId);
+		if (zone == null) {
+			throw new CloudRuntimeException(
+					"Could not find zone associated to this network");
+		}
+
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
+		DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
+		if (dnsapiVMVO == null) {
+			// Mapping doesn't exist, won't be able to remove from DNS API
+			throw new CloudRuntimeException("Could not find DNS mapping for VM " + vm.getId());
+		}
+
+		long recordId = dnsapiVMVO.getDnsapiRecordId();
+		long reverseRecordId = dnsapiVMVO.getDnsapiReverseRecordId();
+		    	
+		/* Remove record from DNS API */
+    	// Check if record exists
+    	GetRecordInfoCommand cmdInfo = new GetRecordInfoCommand(recordId);
+    	Answer answerInfo = callCommand(cmdInfo, zoneId);
+    	Record record = ((DnsAPIRecordResponse) answerInfo).getRecord();
+    	if (record == null) {
+    		// Record doesn't exist in DNS API
+    		// Do nothing, continue
+    	} else {
+    		// Remove record
+    		RemoveRecordCommand cmdRemove = new RemoveRecordCommand(recordId);
+    		callCommand(cmdRemove, zoneId);
+    	}
+    	
+    	/* Remove reverse record from DNS API */
+    	// Check if reverse record exists
+    	GetRecordInfoCommand cmdInfoReverse = new GetRecordInfoCommand(reverseRecordId);
+    	Answer answerInfoReverse = callCommand(cmdInfoReverse, zoneId);
+    	Record recordReverse = ((DnsAPIRecordResponse) answerInfoReverse).getRecord();
+    	if (recordReverse == null) {
+    		// Reverse record doesn't exist in DNS API
+    		// Do nothing, continue
+    	} else {
+    		// Remove reverse record
+    		RemoveRecordCommand cmdRemoveReverse = new RemoveRecordCommand(reverseRecordId);
+    		callCommand(cmdRemoveReverse, zoneId);
+    	}
+    	
+    	/* Remove entry from mapping table */
+    	_dnsapiVmDao.remove(dnsapiVMVO.getId());
+    	
+    	txn.commit();
+    	
         return true;
     }
 
@@ -292,7 +435,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     		callCommand(cmdRemoveReverse, zoneId);
     	}
     	
-    	/* Remove entry in mapping table */
+    	/* Remove entry from mapping table */
     	_dnsapiNetworkDao.remove(dnsapiNetworkVO.getId());
     	
     	txn.commit();
