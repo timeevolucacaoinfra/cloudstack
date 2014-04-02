@@ -315,6 +315,11 @@ public enum Config {
     NetworkAPIReadTimeout("Network", ManagementServer.class, String.class, "networkapi.readtimeout", "120000", "Networkapi read timeout (in milliseconds)", null),
     NetworkAPINumberOfRetries("Network", ManagementServer.class, String.class, "networkapi.numberofretries", "0", "Networkapi number of retries", null),
     
+    // DNS API
+    DNSAPIDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.domain.suffix", "cp.globoi.com", "Domain suffix for all domains created in DNS API", null),
+    DNSAPIReverseDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.reverse.domain.suffix", "in-addr.arpa", "Reverse domain suffix for all reverse domains created in DNS API", null),
+    DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null),
+    
     // KVM
     KvmPublicNetwork("Hidden", ManagementServer.class, String.class, "kvm.public.network.device", null, "Specify the public bridge on host for public network", null),
     KvmPrivateNetwork("Hidden", ManagementServer.class, String.class, "kvm.private.network.device", null, "Specify the private bridge on host for private network", null),

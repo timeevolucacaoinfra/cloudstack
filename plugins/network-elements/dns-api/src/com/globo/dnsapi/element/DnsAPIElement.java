@@ -34,6 +34,7 @@ import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.StartupCommand;
+import com.cloud.configuration.Config;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
@@ -58,6 +59,7 @@ import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ResourceStateAdapter;
 import com.cloud.resource.ServerResource;
 import com.cloud.resource.UnableDeleteHostException;
+import com.cloud.server.ConfigurationServer;
 import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
@@ -93,12 +95,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	
 	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
 	
-	// FIXME These configurations should be global options
-	private static final long DOMAIN_TEMPLATE_ID = 1; // Default
-	private static final String DOMAIN_SUFFIX = "cp.globoi.com"; // Default
-	
 	private static final String AUTHORITY_TYPE = "M";
-	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
 	
 	// DAOs
 	@Inject
@@ -117,6 +114,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	AgentManager _agentMgr;
 	@Inject
 	ResourceManager _resourceMgr;
+	@Inject
+	ConfigurationServer _configServer;
 	
     public DnsAPIElement() {
 
@@ -155,9 +154,17 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			throw new CloudRuntimeException("Could not find VLAN associated to this network");
 		}
 		
+		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		String reverseDomainSuffix = _configServer.getConfigValue(Config.DNSAPIReverseDomainSuffix.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		Long templateId = Long.valueOf(_configServer.getConfigValue(Config.DNSAPITemplateId.key(),
+				Config.ConfigurationParameterScope.global.name(), null));
+		
+		
 		/* Create new domain in DNS API */
 		// domainName is of form zoneName-vlanId.domainSuffix
-    	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + DOMAIN_SUFFIX;
+    	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + domainSuffix;
     	domainName = domainName.toLowerCase();
     	s_logger.debug("Creating domain " + domainName);
     	
@@ -168,7 +175,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	Domain createdDomain = null;
     	if (domainList.size() == 0) {
     		// Doesn't exist yet, create it
-        	CreateDomainCommand cmdCreate = new CreateDomainCommand(domainName, DOMAIN_TEMPLATE_ID, AUTHORITY_TYPE);
+        	CreateDomainCommand cmdCreate = new CreateDomainCommand(domainName, templateId, AUTHORITY_TYPE);
         	Answer answerCreateDomain = callCommand(cmdCreate, zoneId);
         	createdDomain = ((DnsAPIDomainResponse) answerCreateDomain).getDomain();
     	} else if (domainList.size() == 1) {
@@ -176,7 +183,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
     	
     	String[] octets = network.getCidr().split("\\/")[0].split("\\.");
-    	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + REVERSE_DOMAIN_SUFFIX;
+    	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + reverseDomainSuffix;
     	s_logger.debug("Creating reverse domain " + reverseDomainName);
 
 		/* Create new reverse domain in DNS API */
@@ -187,7 +194,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	Domain reverseDomain = null;
     	if (domainListReverse.size() == 0) {
     		// Doesn't exist yet, create it
-        	CreateReverseDomainCommand cmdReverse = new CreateReverseDomainCommand(reverseDomainName, DOMAIN_TEMPLATE_ID, AUTHORITY_TYPE);
+        	CreateReverseDomainCommand cmdReverse = new CreateReverseDomainCommand(reverseDomainName, templateId, AUTHORITY_TYPE);
         	Answer answerCreateReverseDomain = callCommand(cmdReverse, zoneId);
         	reverseDomain = ((DnsAPIDomainResponse) answerCreateReverseDomain).getDomain();
     	} else if (domainListReverse.size() == 1) {
