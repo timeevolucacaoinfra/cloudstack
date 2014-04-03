@@ -83,14 +83,17 @@ import com.globo.dnsapi.commands.ListReverseDomainCommand;
 import com.globo.dnsapi.commands.RemoveDomainCommand;
 import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
+import com.globo.dnsapi.commands.ScheduleExportCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
 import com.globo.dnsapi.dao.DnsAPIVMDao;
 import com.globo.dnsapi.model.Domain;
+import com.globo.dnsapi.model.Export;
 import com.globo.dnsapi.model.Record;
 import com.globo.dnsapi.resource.DnsAPIResource;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 import com.globo.dnsapi.response.DnsAPIDomainResponse;
+import com.globo.dnsapi.response.DnsAPIExportResponse;
 import com.globo.dnsapi.response.DnsAPIRecordListResponse;
 import com.globo.dnsapi.response.DnsAPIRecordResponse;
 import com.globo.networkapi.NetworkAPINetworkVO;
@@ -215,6 +218,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     		reverseDomain = domainListReverse.get(0);
     	}
     	
+    	/* Export changes to Bind in DNS API */
+    	this.scheduleBindExport(zoneId);
+
     	/* Save in the database */
     	Transaction txn = Transaction.currentTxn();
 		txn.start();
@@ -232,6 +238,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     }
 
     @Override
+    @DB
     public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
     ResourceUnavailableException, InsufficientCapacityException {
     	s_logger.debug("Entering prepare method for DnsAPI");
@@ -250,11 +257,12 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		
 		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
 		if (dnsapiNetworkVO == null) {
-			// Mapping doesn't exist, won't be able to remove from DNS API
+			// Mapping doesn't exist, won't be able to create a record in DNS API
 			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
 		}
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 
 		/* Create new A record in DNS API */
 		String recordName = (vm.getHostName() != null ? vm.getHostName() : vm.getUuid());
@@ -287,16 +295,19 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		String reverseRecordContent = vm.getHostName() + "." + domain.getName();
     	
     	// Check if reverse record already exists
-    	cmdList = new ListRecordCommand(domainId, reverseRecordName);
+    	cmdList = new ListRecordCommand(reverseDomainId, reverseRecordName);
     	answerList = callCommand(cmdList, zoneId);
     	recordList = ((DnsAPIRecordListResponse) answerList).getRecordList();
     	Record createdReverseRecord = null;
     	if (recordList.size() == 0) {
     		// Doesn't exist yet, create it
-        	CreateRecordCommand cmdCreateReverse = new CreateRecordCommand(domainId, reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE);
+        	CreateRecordCommand cmdCreateReverse = new CreateRecordCommand(reverseDomainId, reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE);
         	Answer answerCreateReverseRecord = callCommand(cmdCreateReverse, zoneId);
         	createdReverseRecord = ((DnsAPIRecordResponse) answerCreateReverseRecord).getRecord();
     	}
+    	
+    	/* Export changes to Bind in DNS API */
+    	this.scheduleBindExport(zoneId);
     	
     	/* Save in the database */
     	Transaction txn = Transaction.currentTxn();
@@ -315,6 +326,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     }
 
     @Override
+    @DB
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
     	
@@ -369,6 +381,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     		RemoveRecordCommand cmdRemoveReverse = new RemoveRecordCommand(reverseRecordId);
     		callCommand(cmdRemoveReverse, zoneId);
     	}
+    	
+    	/* Export changes to Bind in DNS API */
+    	this.scheduleBindExport(zoneId);
     	
     	/* Remove entry from mapping table */
     	_dnsapiVmDao.remove(dnsapiVMVO.getId());
@@ -434,6 +449,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     		RemoveReverseDomainCommand cmdRemoveReverse = new RemoveReverseDomainCommand(reverseDomainId);
     		callCommand(cmdRemoveReverse, zoneId);
     	}
+    	
+    	/* Export changes to Bind in DNS API */
+    	this.scheduleBindExport(zoneId);
     	
     	/* Remove entry from mapping table */
     	_dnsapiNetworkDao.remove(dnsapiNetworkVO.getId());
@@ -592,6 +610,15 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			txn.rollback();
 			throw new CloudRuntimeException(e);
 		}
+	}
+	
+	private void scheduleBindExport(Long zoneId) {
+    	ScheduleExportCommand cmdExport = new ScheduleExportCommand();
+    	Answer answerExport = callCommand(cmdExport, zoneId);
+    	Export export = ((DnsAPIExportResponse) answerExport).getExport();
+    	if (export != null) {
+    		s_logger.debug(export.getResult());
+    	}
 	}
 
 }

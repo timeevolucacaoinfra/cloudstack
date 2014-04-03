@@ -32,14 +32,17 @@ import com.globo.dnsapi.commands.ListReverseDomainCommand;
 import com.globo.dnsapi.commands.RemoveDomainCommand;
 import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
+import com.globo.dnsapi.commands.ScheduleExportCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.exception.DNSAPIException;
 import com.globo.dnsapi.http.HttpJsonRequestProcessor;
 import com.globo.dnsapi.model.Authentication;
 import com.globo.dnsapi.model.Domain;
+import com.globo.dnsapi.model.Export;
 import com.globo.dnsapi.model.Record;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 import com.globo.dnsapi.response.DnsAPIDomainResponse;
+import com.globo.dnsapi.response.DnsAPIExportResponse;
 import com.globo.dnsapi.response.DnsAPIRecordListResponse;
 import com.globo.dnsapi.response.DnsAPIRecordResponse;
 
@@ -180,6 +183,8 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			return execute((GetRecordInfoCommand) cmd);
 		} else if (cmd instanceof RemoveRecordCommand) {
 			return execute((RemoveRecordCommand) cmd);
+		} else if (cmd instanceof ScheduleExportCommand) {
+			return execute((ScheduleExportCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -327,6 +332,19 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		try {
 			_dnsapi.getRecordAPI().removeRecord(cmd.getRecordId());
 			return new Answer(cmd, true, "Record removed");
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(ScheduleExportCommand cmd) {
+		try {
+			Export export = _dnsapi.getExportAPI().scheduleExport();
+			if (export != null) {
+				return new DnsAPIExportResponse(cmd, export);
+			} else {
+				return new Answer(cmd, false, "Unable to schedule export in DNS API");
+			}
 		} catch (DNSAPIException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
