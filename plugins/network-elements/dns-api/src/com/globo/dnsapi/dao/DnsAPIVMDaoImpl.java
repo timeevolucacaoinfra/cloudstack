@@ -21,14 +21,14 @@ public class DnsAPIVMDaoImpl extends GenericDaoBase<DnsAPIVMVO, Long> implements
 		super();
 
 		vmIdSearch = createSearchBuilder();
-		vmIdSearch.and("vm_id", vmIdSearch.entity().getVMId(), Op.EQ);
+		vmIdSearch.and("vmId", vmIdSearch.entity().getVMId(), Op.EQ);
 		vmIdSearch.done();
      }
 
 	@Override
 	public DnsAPIVMVO findByVMId(long vmId) {
 		SearchCriteria<DnsAPIVMVO> sc = vmIdSearch.create();
-		sc.setParameters("vm_id", vmId);
+		sc.setParameters("vmId", vmId);
 		return findOneBy(sc);
 	}
  

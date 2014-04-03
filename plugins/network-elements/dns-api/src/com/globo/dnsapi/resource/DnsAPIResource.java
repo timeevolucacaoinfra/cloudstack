@@ -34,6 +34,7 @@ import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.ScheduleExportCommand;
 import com.globo.dnsapi.commands.SignInCommand;
+import com.globo.dnsapi.commands.UpdateRecordCommand;
 import com.globo.dnsapi.exception.DNSAPIException;
 import com.globo.dnsapi.http.HttpJsonRequestProcessor;
 import com.globo.dnsapi.model.Authentication;
@@ -185,6 +186,8 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			return execute((RemoveRecordCommand) cmd);
 		} else if (cmd instanceof ScheduleExportCommand) {
 			return execute((ScheduleExportCommand) cmd);
+		} else if (cmd instanceof UpdateRecordCommand) {
+			return execute((UpdateRecordCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -313,6 +316,20 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 				return new DnsAPIRecordResponse(cmd, record);
 			} else {
 				return new Answer(cmd, false, "Unable to create record in DNS API");
+			}
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
+	public Answer execute(UpdateRecordCommand cmd) {
+		try {
+			_dnsapi.getRecordAPI().updateRecord(cmd.getRecordId(), cmd.getDomainId(), cmd.getName(), cmd.getContent());
+			Record record = _dnsapi.getRecordAPI().getById(cmd.getRecordId());
+			if (record != null) {
+				return new DnsAPIRecordResponse(cmd, record);
+			} else {
+				return new Answer(cmd, false, "Unable to update record in DNS API");
 			}
 		} catch (DNSAPIException e) {
 			return new Answer(cmd, false, e.getMessage());

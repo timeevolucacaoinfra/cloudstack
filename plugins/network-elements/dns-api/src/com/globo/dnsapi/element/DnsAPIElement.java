@@ -85,6 +85,7 @@ import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.ScheduleExportCommand;
 import com.globo.dnsapi.commands.SignInCommand;
+import com.globo.dnsapi.commands.UpdateRecordCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
 import com.globo.dnsapi.dao.DnsAPIVMDao;
 import com.globo.dnsapi.model.Domain;
@@ -174,65 +175,26 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
 		String reverseDomainSuffix = _configServer.getConfigValue(Config.DNSAPIReverseDomainSuffix.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		Long templateId = Long.valueOf(_configServer.getConfigValue(Config.DNSAPITemplateId.key(),
-				Config.ConfigurationParameterScope.global.name(), null));
-		
+				Config.ConfigurationParameterScope.global.name(), null);		
 		
 		/* Create new domain in DNS API */
 		// domainName is of form zoneName-vlanId.domainSuffix
     	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + domainSuffix;
     	domainName = domainName.toLowerCase();
     	s_logger.debug("Creating domain " + domainName);
+    	Domain createdDomain = this.getOrCreateDomain(zoneId, domainName, false);
     	
-    	// Check if domain already exists
-    	ListDomainCommand cmdList = new ListDomainCommand(domainName);
-    	Answer answerList = callCommand(cmdList, zoneId);
-    	List<Domain> domainList = ((DnsAPIDomainListResponse) answerList).getDomainList();
-    	Domain createdDomain = null;
-    	if (domainList.size() == 0) {
-    		// Doesn't exist yet, create it
-        	CreateDomainCommand cmdCreate = new CreateDomainCommand(domainName, templateId, AUTHORITY_TYPE);
-        	Answer answerCreateDomain = callCommand(cmdCreate, zoneId);
-        	createdDomain = ((DnsAPIDomainResponse) answerCreateDomain).getDomain();
-    	} else if (domainList.size() == 1) {
-    		createdDomain = domainList.get(0);
-    	}
-    	
+    	/* Create new reverse domain in DNS API */
     	String[] octets = network.getCidr().split("\\/")[0].split("\\.");
     	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + reverseDomainSuffix;
     	s_logger.debug("Creating reverse domain " + reverseDomainName);
-
-		/* Create new reverse domain in DNS API */
-    	// Check if reverse domain already exists
-    	ListReverseDomainCommand cmdListReverse = new ListReverseDomainCommand(reverseDomainName);
-    	Answer answerListReverse = callCommand(cmdListReverse, zoneId);
-    	List<Domain> domainListReverse = ((DnsAPIDomainListResponse) answerListReverse).getDomainList();
-    	Domain reverseDomain = null;
-    	if (domainListReverse.size() == 0) {
-    		// Doesn't exist yet, create it
-        	CreateReverseDomainCommand cmdReverse = new CreateReverseDomainCommand(reverseDomainName, templateId, AUTHORITY_TYPE);
-        	Answer answerCreateReverseDomain = callCommand(cmdReverse, zoneId);
-        	reverseDomain = ((DnsAPIDomainResponse) answerCreateReverseDomain).getDomain();
-    	} else if (domainListReverse.size() == 1) {
-    		reverseDomain = domainListReverse.get(0);
-    	}
+    	Domain reverseDomain = this.getOrCreateDomain(zoneId, reverseDomainName, true);
     	
     	/* Export changes to Bind in DNS API */
     	this.scheduleBindExport(zoneId);
 
     	/* Save in the database */
-    	Transaction txn = Transaction.currentTxn();
-		txn.start();
-		
-    	DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
-    	if (dnsapiNetworkVO == null) {
-    		// Entry in mapping table doesn't exist yet, create it
-    		dnsapiNetworkVO = new DnsAPINetworkVO(network.getId(), createdDomain.getId(), reverseDomain.getId());
-    		_dnsapiNetworkDao.persist(dnsapiNetworkVO);
-    	}
-    	
-    	txn.commit();
+    	this.saveDomainDB(network, createdDomain, reverseDomain);
     	
         return true;
     }
@@ -255,35 +217,17 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 					"Could not find zone associated to this network");
 		}
 		
-		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
-		if (dnsapiNetworkVO == null) {
-			// Mapping doesn't exist, won't be able to create a record in DNS API
-			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
-		}
+		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
-
+		
 		/* Create new A record in DNS API */
 		String recordName = (vm.getHostName() != null ? vm.getHostName() : vm.getUuid());
-    	
-    	// Check if record already exists
-    	ListRecordCommand cmdList = new ListRecordCommand(domainId, recordName);
-    	Answer answerList = callCommand(cmdList, zoneId);
-    	List<Record> recordList = ((DnsAPIRecordListResponse) answerList).getRecordList();
-    	Record createdRecord = null;
-    	if (recordList.size() == 0) {
-    		// Doesn't exist yet, create it
-        	CreateRecordCommand cmdCreate = new CreateRecordCommand(domainId, recordName, nic.getIp4Address(), RECORD_TYPE);
-        	Answer answerCreateRecord = callCommand(cmdCreate, zoneId);
-        	createdRecord = ((DnsAPIRecordResponse) answerCreateRecord).getRecord();
-    	}
-    	
+    	Record createdRecord = this.createOrUpdateRecord(zoneId, domainId, recordName, nic.getIp4Address(), false);
     	
 		/* Create new PTR record in DNS API */
-    	String[] octets = nic.getIp4Address().split("\\.");
-		String reverseRecordName = octets[3];
-		
+		// Need domain name for full reverse record content
     	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
     	Answer answerInfo = callCommand(cmdInfo, zoneId);
     	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
@@ -292,35 +236,17 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     		throw new CloudRuntimeException("Could not get Domain info from DNS API");
     	}
     	
+    	String[] octets = nic.getIp4Address().split("\\.");
+		String reverseRecordName = octets[3];    	
 		String reverseRecordContent = vm.getHostName() + "." + domain.getName();
     	
-    	// Check if reverse record already exists
-    	cmdList = new ListRecordCommand(reverseDomainId, reverseRecordName);
-    	answerList = callCommand(cmdList, zoneId);
-    	recordList = ((DnsAPIRecordListResponse) answerList).getRecordList();
-    	Record createdReverseRecord = null;
-    	if (recordList.size() == 0) {
-    		// Doesn't exist yet, create it
-        	CreateRecordCommand cmdCreateReverse = new CreateRecordCommand(reverseDomainId, reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE);
-        	Answer answerCreateReverseRecord = callCommand(cmdCreateReverse, zoneId);
-        	createdReverseRecord = ((DnsAPIRecordResponse) answerCreateReverseRecord).getRecord();
-    	}
-    	
+		Record createdReverseRecord = this.createOrUpdateRecord(zoneId, reverseDomainId, reverseRecordName, reverseRecordContent, true);
+		
     	/* Export changes to Bind in DNS API */
     	this.scheduleBindExport(zoneId);
     	
     	/* Save in the database */
-    	Transaction txn = Transaction.currentTxn();
-		txn.start();
-		
-    	DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
-    	if (dnsapiVMVO == null) {
-    		// Entry in mapping table doesn't exist yet, create it
-    		dnsapiVMVO = new DnsAPIVMVO(vm.getId(), createdRecord.getId(), createdReverseRecord.getId());
-    		_dnsapiVmDao.persist(dnsapiVMVO);
-    	}
-    	
-    	txn.commit();
+    	this.saveRecordDB(vm, createdRecord, createdReverseRecord);
 
     	return true;
     }
@@ -345,43 +271,17 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
-		DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
-		if (dnsapiVMVO == null) {
-			// Mapping doesn't exist, won't be able to remove from DNS API
-			throw new CloudRuntimeException("Could not find DNS mapping for VM " + vm.getId());
-		}
+		DnsAPIVMVO dnsapiVMVO = this.getDnsAPIVMVO(vm); 
 
 		long recordId = dnsapiVMVO.getDnsapiRecordId();
 		long reverseRecordId = dnsapiVMVO.getDnsapiReverseRecordId();
-		    	
+		
 		/* Remove record from DNS API */
-    	// Check if record exists
-    	GetRecordInfoCommand cmdInfo = new GetRecordInfoCommand(recordId);
-    	Answer answerInfo = callCommand(cmdInfo, zoneId);
-    	Record record = ((DnsAPIRecordResponse) answerInfo).getRecord();
-    	if (record == null) {
-    		// Record doesn't exist in DNS API
-    		// Do nothing, continue
-    	} else {
-    		// Remove record
-    		RemoveRecordCommand cmdRemove = new RemoveRecordCommand(recordId);
-    		callCommand(cmdRemove, zoneId);
-    	}
+		this.removeRecord(zoneId, recordId);
     	
     	/* Remove reverse record from DNS API */
-    	// Check if reverse record exists
-    	GetRecordInfoCommand cmdInfoReverse = new GetRecordInfoCommand(reverseRecordId);
-    	Answer answerInfoReverse = callCommand(cmdInfoReverse, zoneId);
-    	Record recordReverse = ((DnsAPIRecordResponse) answerInfoReverse).getRecord();
-    	if (recordReverse == null) {
-    		// Reverse record doesn't exist in DNS API
-    		// Do nothing, continue
-    	} else {
-    		// Remove reverse record
-    		RemoveRecordCommand cmdRemoveReverse = new RemoveRecordCommand(reverseRecordId);
-    		callCommand(cmdRemoveReverse, zoneId);
-    	}
-    	
+		this.removeRecord(zoneId, reverseRecordId);
+		
     	/* Export changes to Bind in DNS API */
     	this.scheduleBindExport(zoneId);
     	
@@ -413,43 +313,17 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
-		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
-		if (dnsapiNetworkVO == null) {
-			// Mapping doesn't exist, won't be able to remove from DNS API
-			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
-		}
+		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 		    	
 		/* Remove domain from DNS API */
-    	// Check if domain exists
-    	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
-    	Answer answerInfo = callCommand(cmdInfo, zoneId);
-    	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
-    	if (domain == null) {
-    		// Domain doesn't exist in DNS API
-    		// Do nothing, continue
-    	} else {
-    		// Remove domain
-    		RemoveDomainCommand cmdRemove = new RemoveDomainCommand(domainId);
-    		callCommand(cmdRemove, zoneId);
-    	}
+		this.removeDomain(zoneId, domainId, false);
     	
     	/* Remove reverse domain from DNS API */
-    	// Check if reverse domain exists
-    	GetReverseDomainInfoCommand cmdInfoReverse = new GetReverseDomainInfoCommand(reverseDomainId);
-    	Answer answerInfoReverse = callCommand(cmdInfoReverse, zoneId);
-    	Domain domainReverse = ((DnsAPIDomainResponse) answerInfoReverse).getDomain();
-    	if (domainReverse == null) {
-    		// Domain doesn't exist in DNS API
-    		// Do nothing, continue
-    	} else {
-    		// Remove reverse domain
-    		RemoveReverseDomainCommand cmdRemoveReverse = new RemoveReverseDomainCommand(reverseDomainId);
-    		callCommand(cmdRemoveReverse, zoneId);
-    	}
-    	
+		this.removeDomain(zoneId, reverseDomainId, true);
+		
     	/* Export changes to Bind in DNS API */
     	this.scheduleBindExport(zoneId);
     	
@@ -491,7 +365,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	@Override
 	public HostVO createHostVOForConnectedAgent(HostVO host,
 			StartupCommand[] cmd) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -610,6 +483,173 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			txn.rollback();
 			throw new CloudRuntimeException(e);
 		}
+	}
+	
+	private DnsAPINetworkVO getDnsAPINetworkVO(Network network) {
+		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
+		if (dnsapiNetworkVO == null) {
+			// Mapping doesn't exist, won't be able to create a record in DNS API
+			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
+		}
+		return dnsapiNetworkVO;
+	}
+	
+	private DnsAPIVMVO getDnsAPIVMVO(VirtualMachineProfile<? extends VirtualMachine> vm) {
+		DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
+		if (dnsapiVMVO == null) {
+			// Mapping doesn't exist, won't be able to remove from DNS API
+			throw new CloudRuntimeException("Could not find DNS mapping for VM " + vm.getId());
+		}
+		return dnsapiVMVO;
+	}
+	
+	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
+		Long templateId = Long.valueOf(_configServer.getConfigValue(Config.DNSAPITemplateId.key(),
+				Config.ConfigurationParameterScope.global.name(), null));
+
+    	// Check if domain already exists
+    	Command cmdList;
+    	if (reverse) {
+    		cmdList = new ListReverseDomainCommand(domainName);
+    	} else {
+    		cmdList = new ListDomainCommand(domainName);
+    	}
+    	Answer answerList = callCommand(cmdList, zoneId);
+    	List<Domain> domainList = ((DnsAPIDomainListResponse) answerList).getDomainList();
+    	if (domainList.size() == 0) {
+    		// Doesn't exist yet, create it
+    		Command cmdCreate;
+    		if (reverse) {
+    			cmdCreate = new CreateReverseDomainCommand(domainName, templateId, AUTHORITY_TYPE);
+    		} else {
+    			cmdCreate = new CreateDomainCommand(domainName, templateId, AUTHORITY_TYPE);
+    		}
+        	Answer answerCreateDomain = callCommand(cmdCreate, zoneId);
+        	return ((DnsAPIDomainResponse) answerCreateDomain).getDomain();
+    	} else if (domainList.size() == 1) {
+    		return domainList.get(0);
+    	} else {
+    		throw new CloudRuntimeException("Multiple domains already exist in DNS API");
+    	}
+	}
+		
+	private void removeDomain(Long zoneId, Long domainId, boolean reverse) {
+    	// Check if domain exists
+		Command cmdInfo;
+		if (reverse) {
+			cmdInfo = new GetReverseDomainInfoCommand(domainId);
+		} else {
+			cmdInfo = new GetDomainInfoCommand(domainId);
+		}
+    	Answer answerInfo = callCommand(cmdInfo, zoneId);
+    	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
+    	if (domain == null) {
+    		// Domain doesn't exist in DNS API
+    		// Do nothing, continue
+    	} else {
+    		// Remove domain
+    		Command cmdRemove;
+    		if (reverse) {
+    			cmdRemove = new RemoveReverseDomainCommand(domainId);
+    		} else {
+    			cmdRemove = new RemoveDomainCommand(domainId);
+    		}
+    		callCommand(cmdRemove, zoneId);
+    	}
+	}
+		
+	private void saveDomainDB(Network network, Domain createdDomain, Domain reverseDomain) {
+    	Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
+    	DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
+    	if (dnsapiNetworkVO == null) {
+    		// Entry in mapping table doesn't exist yet, create it
+    		dnsapiNetworkVO = new DnsAPINetworkVO(network.getId(), createdDomain.getId(), reverseDomain.getId());
+    		_dnsapiNetworkDao.persist(dnsapiNetworkVO);
+    	} else {
+    		// An entry already exists
+    		if (dnsapiNetworkVO.getNetworkId() == network.getId() && dnsapiNetworkVO.getDnsapiDomainId() == createdDomain.getId() && dnsapiNetworkVO.getDnsapiReverseDomainId() == reverseDomain.getId()) {
+    			// All the same, entry already exists, nothing to do
+    			return;
+    		} else {
+    			// Outdated info, update it
+    			DnsAPINetworkVO newDnsapiNetworkVO = new DnsAPINetworkVO(network.getId(), createdDomain.getId(), reverseDomain.getId());
+    			_dnsapiNetworkDao.update(dnsapiNetworkVO.getId(), newDnsapiNetworkVO);
+    		}
+    	}
+    	
+    	txn.commit();
+	}
+	
+	private Record createOrUpdateRecord(Long zoneId, long domainId, String name, String content, boolean reverse) {
+		// Check if record already exists
+		ListRecordCommand cmdList;
+		if (reverse) {
+			cmdList = new ListRecordCommand(domainId, content);
+		} else {
+			cmdList = new ListRecordCommand(domainId, name);
+		}
+		Answer answerList = callCommand(cmdList, zoneId);
+		List<Record> recordList = ((DnsAPIRecordListResponse) answerList).getRecordList();
+		Command cmd;
+		if (recordList.size() == 0) {
+    		// Doesn't exist yet, create it
+			if (reverse) {
+	        	cmd = new CreateRecordCommand(domainId, name, content, REVERSE_RECORD_TYPE); // Reverse record
+			} else {
+	        	cmd = new CreateRecordCommand(domainId, name, content, RECORD_TYPE); // Regular record
+	    	}
+		} else if (recordList.size() == 1) {
+			// Record already exists, we should update it with newer info
+			if (reverse) {
+				cmd = new UpdateRecordCommand(domainId, recordList.get(0).getId(), name, content, REVERSE_RECORD_TYPE);
+			} else {
+				cmd = new UpdateRecordCommand(domainId, recordList.get(0).getId(), name, content, RECORD_TYPE);
+			}
+		} else {
+			throw new CloudRuntimeException("Multiple records in DNS API");
+		}
+    	Answer answerCreateRecord = callCommand(cmd, zoneId);
+    	return ((DnsAPIRecordResponse) answerCreateRecord).getRecord();
+	}
+	
+	private void removeRecord(Long zoneId, Long recordId) {
+    	// Check if record exists
+    	GetRecordInfoCommand cmdInfo = new GetRecordInfoCommand(recordId);
+    	Answer answerInfo = callCommand(cmdInfo, zoneId);
+    	Record record = ((DnsAPIRecordResponse) answerInfo).getRecord();
+    	if (record == null) {
+    		// Record doesn't exist in DNS API
+    		// Do nothing, continue
+    	} else {
+    		// Remove record
+    		RemoveRecordCommand cmdRemove = new RemoveRecordCommand(recordId);
+    		callCommand(cmdRemove, zoneId);
+    	}
+	}
+	
+	private void saveRecordDB(VirtualMachineProfile<? extends VirtualMachine> vm, Record createdRecord, Record createdReverseRecord) {
+    	Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
+    	DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
+    	if (dnsapiVMVO == null) {
+    		// Entry in mapping table doesn't exist yet, create it
+    		dnsapiVMVO = new DnsAPIVMVO(vm.getId(), createdRecord.getId(), createdReverseRecord.getId());
+    		_dnsapiVmDao.persist(dnsapiVMVO);
+    	} else {
+    		// An entry already exists
+    		if (dnsapiVMVO.getVMId() == vm.getId() && dnsapiVMVO.getDnsapiRecordId() == createdRecord.getId() && dnsapiVMVO.getDnsapiReverseRecordId() == createdReverseRecord.getId()) {
+    			// All the same, entry already exists, nothing to do
+    			return;
+    		} else {
+    			// Outdated info, update it
+    			DnsAPIVMVO newDnsapiVMVO = new DnsAPIVMVO(vm.getId(), createdRecord.getId(), createdReverseRecord.getId());
+    			_dnsapiVmDao.update(dnsapiVMVO.getId(), newDnsapiVMVO);
+    		}
+    	}
+    	txn.commit();
 	}
 	
 	private void scheduleBindExport(Long zoneId) {
