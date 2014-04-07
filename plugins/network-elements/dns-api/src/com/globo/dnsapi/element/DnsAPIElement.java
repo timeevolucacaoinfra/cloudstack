@@ -177,6 +177,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		String reverseDomainSuffix = _configServer.getConfigValue(Config.DNSAPIReverseDomainSuffix.key(),
 				Config.ConfigurationParameterScope.global.name(), null);		
 		
+		this.signIn(zoneId, null, null);
+		
 		/* Create new domain in DNS API */
 		// domainName is of form zoneName-vlanId.domainSuffix
     	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + domainSuffix;
@@ -218,9 +220,14 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		}
 		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
+		if (dnsapiNetworkVO == null) {
+			throw new CloudRuntimeException("Could not obtain DNS mapping");
+		}
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
+		
+		this.signIn(zoneId, null, null);
 		
 		/* Create new A record in DNS API */
 		String recordName = (vm.getHostName() != null ? vm.getHostName() : vm.getUuid());
@@ -271,10 +278,15 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
-		DnsAPIVMVO dnsapiVMVO = this.getDnsAPIVMVO(vm); 
+		DnsAPIVMVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
+		if (dnsapiVMVO == null) {
+			throw new CloudRuntimeException("Could not obtain DNS mapping for this VM");
+		}
 
 		long recordId = dnsapiVMVO.getDnsapiRecordId();
 		long reverseRecordId = dnsapiVMVO.getDnsapiReverseRecordId();
+		
+		this.signIn(zoneId, null, null);
 		
 		/* Remove record from DNS API */
 		this.removeRecord(zoneId, recordId);
@@ -314,10 +326,15 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		txn.start();
 		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
+		if (dnsapiNetworkVO == null) {
+			throw new CloudRuntimeException("Could not obtain DNS mapping");
+		}
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 		    	
+		this.signIn(zoneId, null, null);
+		
 		/* Remove domain from DNS API */
 		this.removeDomain(zoneId, domainId, false);
     	
@@ -469,12 +486,11 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
 					params);
 			
-			if (host != null) {
-				SignInCommand cmd = new SignInCommand(username, password);
-				callCommand(cmd, zoneId);
-			} else {
+			if (host == null) {
 				throw new CloudRuntimeException("Failed to add DNS API host");
 			}
+			
+			// this.signIn(zoneId, username, password);
 			
 			txn.commit();
 			
@@ -485,21 +501,32 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		}
 	}
 	
-	private DnsAPINetworkVO getDnsAPINetworkVO(Network network) {
-		DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
-		if (dnsapiNetworkVO == null) {
-			// Mapping doesn't exist, won't be able to create a record in DNS API
-			throw new CloudRuntimeException("Could not find DNS mapping for network " + network.getName());
+	private void signIn(long zoneId, String username, String password) {
+	
+		if (username == null || password == null) {
+			HostVO dnsAPIHost = this.getDnsAPIHost(zoneId);
+			_hostDao.loadDetails(dnsAPIHost);
+			username = dnsAPIHost.getDetail("username");
+			password = dnsAPIHost.getDetail("password");
 		}
-		return dnsapiNetworkVO;
+		
+		SignInCommand cmd = new SignInCommand(username, password);
+		callCommand(cmd, zoneId);
+	}
+
+	private DnsAPINetworkVO getDnsAPINetworkVO(Network network) {
+		return _dnsapiNetworkDao.findByNetworkId(network.getId());
 	}
 	
 	private DnsAPIVMVO getDnsAPIVMVO(VirtualMachineProfile<? extends VirtualMachine> vm) {
 		DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
-		if (dnsapiVMVO == null) {
-			// Mapping doesn't exist, won't be able to remove from DNS API
-			throw new CloudRuntimeException("Could not find DNS mapping for VM " + vm.getId());
+		
+		// FIXME This is a workaround for wrong SQL being generated
+		// and returning wrong results
+		if (dnsapiVMVO != null && dnsapiVMVO.getVMId() != vm.getId()) {
+			return null;
 		}
+		
 		return dnsapiVMVO;
 	}
 	
@@ -633,20 +660,23 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
-    	DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
+		long vmId = vm.getId();
+    	DnsAPIVMVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
     	if (dnsapiVMVO == null) {
     		// Entry in mapping table doesn't exist yet, create it
-    		dnsapiVMVO = new DnsAPIVMVO(vm.getId(), createdRecord.getId(), createdReverseRecord.getId());
+    		dnsapiVMVO = new DnsAPIVMVO(vmId, createdRecord.getId(), createdReverseRecord.getId());
     		_dnsapiVmDao.persist(dnsapiVMVO);
     	} else {
     		// An entry already exists
-    		if (dnsapiVMVO.getVMId() == vm.getId() && dnsapiVMVO.getDnsapiRecordId() == createdRecord.getId() && dnsapiVMVO.getDnsapiReverseRecordId() == createdReverseRecord.getId()) {
+    		if (dnsapiVMVO.getVMId() == vmId && dnsapiVMVO.getDnsapiRecordId() == createdRecord.getId() && dnsapiVMVO.getDnsapiReverseRecordId() == createdReverseRecord.getId()) {
     			// All the same, entry already exists, nothing to do
     			return;
     		} else {
     			// Outdated info, update it
-    			DnsAPIVMVO newDnsapiVMVO = new DnsAPIVMVO(vm.getId(), createdRecord.getId(), createdReverseRecord.getId());
-    			_dnsapiVmDao.update(dnsapiVMVO.getId(), newDnsapiVMVO);
+    			dnsapiVMVO.setVMId(vmId);
+    			dnsapiVMVO.setDnsapiRecordId(createdRecord.getId());
+    			dnsapiVMVO.setDnsapiReverseRecordId(createdReverseRecord.getId());
+    			_dnsapiVmDao.update(dnsapiVMVO.getId(), dnsapiVMVO);
     		}
     	}
     	txn.commit();

@@ -53,19 +53,32 @@ public class DnsAPIVMVO implements InternalIdentity {
 		this.dnsapiReverseRecordId = dnsapiReverseRecordId;
 	}
 
+	@Override
 	public long getId() {
 		return id;
 	}
 
 	public long getVMId() {
-		return this.vmId;
+		return vmId;
+	}
+	
+	public void setVMId(long vmId) {
+		this.vmId = vmId;
 	}
 	
 	public long getDnsapiRecordId() {
-		return this.dnsapiRecordId;
+		return dnsapiRecordId;
+	}
+	
+	public void setDnsapiRecordId(long dnsapiRecordId) {
+		this.dnsapiRecordId = dnsapiRecordId;
 	}
 	
 	public long getDnsapiReverseRecordId() {
-		return this.dnsapiReverseRecordId;
+		return dnsapiReverseRecordId;
+	}
+	
+	public void setDnsapiReverseRecordId(long dnsapiReverseRecordId) {
+		this.dnsapiReverseRecordId = dnsapiReverseRecordId;
 	}
 }
