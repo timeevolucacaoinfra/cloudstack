@@ -69,7 +69,7 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.dnsapi.DnsAPINetworkVO;
-import com.globo.dnsapi.DnsAPIVMVO;
+import com.globo.dnsapi.DnsAPIVirtualMachineVO;
 import com.globo.dnsapi.api.AddDnsApiHostCmd;
 import com.globo.dnsapi.commands.CreateDomainCommand;
 import com.globo.dnsapi.commands.CreateRecordCommand;
@@ -87,7 +87,7 @@ import com.globo.dnsapi.commands.ScheduleExportCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.commands.UpdateRecordCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
-import com.globo.dnsapi.dao.DnsAPIVMDao;
+import com.globo.dnsapi.dao.DnsAPIVirtualMachineDao;
 import com.globo.dnsapi.model.Domain;
 import com.globo.dnsapi.model.Export;
 import com.globo.dnsapi.model.Record;
@@ -119,7 +119,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	@Inject
 	DnsAPINetworkDao _dnsapiNetworkDao;
 	@Inject
-	DnsAPIVMDao _dnsapiVmDao;
+	DnsAPIVirtualMachineDao _dnsapiVmDao;
 	@Inject
 	HostDao _hostDao;
 	@Inject
@@ -278,7 +278,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
-		DnsAPIVMVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
+		DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
 		if (dnsapiVMVO == null) {
 			throw new CloudRuntimeException("Could not obtain DNS mapping for this VM");
 		}
@@ -518,12 +518,12 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		return _dnsapiNetworkDao.findByNetworkId(network.getId());
 	}
 	
-	private DnsAPIVMVO getDnsAPIVMVO(VirtualMachineProfile<? extends VirtualMachine> vm) {
-		DnsAPIVMVO dnsapiVMVO = _dnsapiVmDao.findByVMId(vm.getId());
+	private DnsAPIVirtualMachineVO getDnsAPIVMVO(VirtualMachineProfile<? extends VirtualMachine> vm) {
+		DnsAPIVirtualMachineVO dnsapiVMVO = _dnsapiVmDao.findByVirtualMachineId(vm.getId());
 		
 		// FIXME This is a workaround for wrong SQL being generated
 		// and returning wrong results
-		if (dnsapiVMVO != null && dnsapiVMVO.getVMId() != vm.getId()) {
+		if (dnsapiVMVO != null && dnsapiVMVO.getVirtualMachineId() != vm.getId()) {
 			return null;
 		}
 		
@@ -661,19 +661,19 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		txn.start();
 		
 		long vmId = vm.getId();
-    	DnsAPIVMVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
+    	DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
     	if (dnsapiVMVO == null) {
     		// Entry in mapping table doesn't exist yet, create it
-    		dnsapiVMVO = new DnsAPIVMVO(vmId, createdRecord.getId(), createdReverseRecord.getId());
+    		dnsapiVMVO = new DnsAPIVirtualMachineVO(vmId, createdRecord.getId(), createdReverseRecord.getId());
     		_dnsapiVmDao.persist(dnsapiVMVO);
     	} else {
     		// An entry already exists
-    		if (dnsapiVMVO.getVMId() == vmId && dnsapiVMVO.getDnsapiRecordId() == createdRecord.getId() && dnsapiVMVO.getDnsapiReverseRecordId() == createdReverseRecord.getId()) {
+    		if (dnsapiVMVO.getVirtualMachineId() == vmId && dnsapiVMVO.getDnsapiRecordId() == createdRecord.getId() && dnsapiVMVO.getDnsapiReverseRecordId() == createdReverseRecord.getId()) {
     			// All the same, entry already exists, nothing to do
     			return;
     		} else {
     			// Outdated info, update it
-    			dnsapiVMVO.setVMId(vmId);
+    			dnsapiVMVO.setVirtualMachineId(vmId);
     			dnsapiVMVO.setDnsapiRecordId(createdRecord.getId());
     			dnsapiVMVO.setDnsapiReverseRecordId(createdReverseRecord.getId());
     			_dnsapiVmDao.update(dnsapiVMVO.getId(), dnsapiVMVO);

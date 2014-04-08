@@ -28,26 +28,26 @@ import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
 @Table(name = "dnsapi_vm_ref")
-public class DnsAPIVMVO implements InternalIdentity {
+public class DnsAPIVirtualMachineVO implements InternalIdentity {
 
 	@Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name="id")
 	private long id;
 
-	@Column(name = "vm_id")
-	private long vmId;
+	@Column(name="vm_id")
+	private Long vmId;
 	
-	@Column(name = "dnsapi_record_id")
-	private long dnsapiRecordId;
+	@Column(name="dnsapi_record_id")
+	private Long dnsapiRecordId;
 	
-	@Column(name = "dnsapi_reverse_record_id")
-	private long dnsapiReverseRecordId;
+	@Column(name="dnsapi_reverse_record_id")
+	private Long dnsapiReverseRecordId;
 
-	public DnsAPIVMVO() {
+	public DnsAPIVirtualMachineVO() {
 	}
 
-	public DnsAPIVMVO(long vmId, long dnsapiRecordId, long dnsapiReverseRecordId) {
+	public DnsAPIVirtualMachineVO(Long vmId, Long dnsapiRecordId, Long dnsapiReverseRecordId) {
 		this.vmId = vmId;
 		this.dnsapiRecordId = dnsapiRecordId;
 		this.dnsapiReverseRecordId = dnsapiReverseRecordId;
@@ -58,27 +58,27 @@ public class DnsAPIVMVO implements InternalIdentity {
 		return id;
 	}
 
-	public long getVMId() {
+	public Long getVirtualMachineId() {
 		return vmId;
 	}
 	
-	public void setVMId(long vmId) {
+	public void setVirtualMachineId(Long vmId) {
 		this.vmId = vmId;
 	}
 	
-	public long getDnsapiRecordId() {
+	public Long getDnsapiRecordId() {
 		return dnsapiRecordId;
 	}
 	
-	public void setDnsapiRecordId(long dnsapiRecordId) {
+	public void setDnsapiRecordId(Long dnsapiRecordId) {
 		this.dnsapiRecordId = dnsapiRecordId;
 	}
 	
-	public long getDnsapiReverseRecordId() {
+	public Long getDnsapiReverseRecordId() {
 		return dnsapiReverseRecordId;
 	}
 	
-	public void setDnsapiReverseRecordId(long dnsapiReverseRecordId) {
+	public void setDnsapiReverseRecordId(Long dnsapiReverseRecordId) {
 		this.dnsapiReverseRecordId = dnsapiReverseRecordId;
 	}
 }
