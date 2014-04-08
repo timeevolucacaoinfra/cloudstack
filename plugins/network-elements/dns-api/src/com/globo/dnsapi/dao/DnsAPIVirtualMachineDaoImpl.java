@@ -26,7 +26,8 @@ public class DnsAPIVirtualMachineDaoImpl extends GenericDaoBase<DnsAPIVirtualMac
 	@Override
 	public DnsAPIVirtualMachineVO findByVirtualMachineId(Long vmId) {
 		SearchCriteria<DnsAPIVirtualMachineVO> sc = VmSearch.create();
-		sc.setParameters("vmId", vmId);
+		sc.addAnd("vmId", Op.EQ, vmId);
+//		sc.setParameters("vmId", vmId);
 		return findOneBy(sc);
 	}
 }

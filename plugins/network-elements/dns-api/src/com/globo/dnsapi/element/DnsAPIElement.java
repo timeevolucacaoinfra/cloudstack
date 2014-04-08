@@ -519,15 +519,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	}
 	
 	private DnsAPIVirtualMachineVO getDnsAPIVMVO(VirtualMachineProfile<? extends VirtualMachine> vm) {
-		DnsAPIVirtualMachineVO dnsapiVMVO = _dnsapiVmDao.findByVirtualMachineId(vm.getId());
-		
-		// FIXME This is a workaround for wrong SQL being generated
-		// and returning wrong results
-		if (dnsapiVMVO != null && dnsapiVMVO.getVirtualMachineId() != vm.getId()) {
-			return null;
-		}
-		
-		return dnsapiVMVO;
+		return _dnsapiVmDao.findByVirtualMachineId(vm.getId());
 	}
 	
 	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
