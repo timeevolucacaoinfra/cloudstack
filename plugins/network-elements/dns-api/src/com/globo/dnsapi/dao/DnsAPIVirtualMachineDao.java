@@ -5,6 +5,6 @@ import com.globo.dnsapi.DnsAPIVirtualMachineVO;
 
 public interface DnsAPIVirtualMachineDao extends GenericDao<DnsAPIVirtualMachineVO, Long> {
 	
-	public DnsAPIVirtualMachineVO findByVirtualMachineId(Long vmId);
+	public DnsAPIVirtualMachineVO findByVirtualMachineIdAndDomainId(Long vmId, Long dnsapiDomainId);
 
 }

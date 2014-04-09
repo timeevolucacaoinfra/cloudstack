@@ -37,27 +37,27 @@ public class DnsAPIVirtualMachineVO implements InternalIdentity {
 
 	@Column(name="vm_id")
 	private Long vmId;
+
+	@Column(name="dnsapi_domain_id")
+	private Long dnsapiDomainId;
 	
 	@Column(name="dnsapi_record_id")
 	private Long dnsapiRecordId;
-	
-	@Column(name="dnsapi_reverse_record_id")
-	private Long dnsapiReverseRecordId;
 
 	public DnsAPIVirtualMachineVO() {
 	}
 
-	public DnsAPIVirtualMachineVO(Long vmId, Long dnsapiRecordId, Long dnsapiReverseRecordId) {
+	public DnsAPIVirtualMachineVO(Long vmId, Long dnsapiDomainId, Long dnsapiRecordId) {
 		this.vmId = vmId;
+		this.dnsapiDomainId = dnsapiDomainId;
 		this.dnsapiRecordId = dnsapiRecordId;
-		this.dnsapiReverseRecordId = dnsapiReverseRecordId;
 	}
 
 	@Override
 	public long getId() {
 		return id;
 	}
-
+	
 	public Long getVirtualMachineId() {
 		return vmId;
 	}
@@ -66,19 +66,19 @@ public class DnsAPIVirtualMachineVO implements InternalIdentity {
 		this.vmId = vmId;
 	}
 	
+	public Long getDnsapiDomainId() {
+		return dnsapiDomainId;
+	}
+	
+	public void setDnsapiDomainId(Long dnsapiDomainId) {
+		this.dnsapiDomainId = dnsapiDomainId;
+	}
+
 	public Long getDnsapiRecordId() {
 		return dnsapiRecordId;
 	}
 	
 	public void setDnsapiRecordId(Long dnsapiRecordId) {
 		this.dnsapiRecordId = dnsapiRecordId;
-	}
-	
-	public Long getDnsapiReverseRecordId() {
-		return dnsapiReverseRecordId;
-	}
-	
-	public void setDnsapiReverseRecordId(Long dnsapiReverseRecordId) {
-		this.dnsapiReverseRecordId = dnsapiReverseRecordId;
-	}
+	}	
 }

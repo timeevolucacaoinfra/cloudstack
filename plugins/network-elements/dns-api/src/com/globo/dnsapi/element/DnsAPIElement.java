@@ -221,7 +221,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 		if (dnsapiNetworkVO == null) {
-			throw new CloudRuntimeException("Could not obtain DNS mapping");
+			throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
 		}
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
@@ -253,7 +253,10 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	this.scheduleBindExport(zoneId);
     	
     	/* Save in the database */
-    	this.saveRecordDB(vm, createdRecord, createdReverseRecord);
+    	// Save domain record
+    	this.saveRecordDB(vm, domainId, createdRecord);
+    	// Save reverse domain record
+    	this.saveRecordDB(vm, reverseDomainId, createdReverseRecord);
 
     	return true;
     }
@@ -274,17 +277,26 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
+		
+		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
+		if (dnsapiNetworkVO == null) {
+			throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
+		}
+
+		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 
 		Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
-		DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
-		if (dnsapiVMVO == null) {
+		DnsAPIVirtualMachineVO dnsapiVirtualMachineVODomain = this.getDnsAPIVirtualMachineVO(vm.getId(), domainId);
+		DnsAPIVirtualMachineVO dnsapiVirtualMachineVOReverseDomain = this.getDnsAPIVirtualMachineVO(vm.getId(), reverseDomainId);
+		if (dnsapiVirtualMachineVODomain == null || dnsapiVirtualMachineVOReverseDomain == null) {
 			throw new CloudRuntimeException("Could not obtain DNS mapping for this VM");
 		}
 
-		long recordId = dnsapiVMVO.getDnsapiRecordId();
-		long reverseRecordId = dnsapiVMVO.getDnsapiReverseRecordId();
+		long recordId = dnsapiVirtualMachineVODomain.getDnsapiRecordId();
+		long reverseRecordId = dnsapiVirtualMachineVOReverseDomain.getDnsapiRecordId();
 		
 		this.signIn(zoneId, null, null);
 		
@@ -297,8 +309,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	/* Export changes to Bind in DNS API */
     	this.scheduleBindExport(zoneId);
     	
-    	/* Remove entry from mapping table */
-    	_dnsapiVmDao.remove(dnsapiVMVO.getId());
+    	/* Remove entries from mapping table */
+    	_dnsapiVmDao.remove(dnsapiVirtualMachineVODomain.getId());
+    	_dnsapiVmDao.remove(dnsapiVirtualMachineVOReverseDomain.getId());
     	
     	txn.commit();
     	
@@ -518,8 +531,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		return _dnsapiNetworkDao.findByNetworkId(network.getId());
 	}
 	
-	private DnsAPIVirtualMachineVO getDnsAPIVMVO(VirtualMachineProfile<? extends VirtualMachine> vm) {
-		return _dnsapiVmDao.findByVirtualMachineId(vm.getId());
+	private DnsAPIVirtualMachineVO getDnsAPIVirtualMachineVO(long vmId, Long domainId) {
+		return _dnsapiVmDao.findByVirtualMachineIdAndDomainId(vmId, domainId);
 	}
 	
 	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
@@ -648,26 +661,26 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
 	}
 	
-	private void saveRecordDB(VirtualMachineProfile<? extends VirtualMachine> vm, Record createdRecord, Record createdReverseRecord) {
+	private void saveRecordDB(VirtualMachineProfile<? extends VirtualMachine> vm, Long domainId, Record record) {
     	Transaction txn = Transaction.currentTxn();
 		txn.start();
 		
 		long vmId = vm.getId();
-    	DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVMVO(vm);
+    	DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVirtualMachineVO(vmId, domainId);
     	if (dnsapiVMVO == null) {
     		// Entry in mapping table doesn't exist yet, create it
-    		dnsapiVMVO = new DnsAPIVirtualMachineVO(vmId, createdRecord.getId(), createdReverseRecord.getId());
+    		dnsapiVMVO = new DnsAPIVirtualMachineVO(vmId, domainId, record.getId());
     		_dnsapiVmDao.persist(dnsapiVMVO);
     	} else {
     		// An entry already exists
-    		if (dnsapiVMVO.getVirtualMachineId() == vmId && dnsapiVMVO.getDnsapiRecordId() == createdRecord.getId() && dnsapiVMVO.getDnsapiReverseRecordId() == createdReverseRecord.getId()) {
+    		// Check if it needs to be updated
+    		if (dnsapiVMVO.getVirtualMachineId() == vmId && dnsapiVMVO.getDnsapiRecordId() == record.getId()) {
     			// All the same, entry already exists, nothing to do
     			return;
     		} else {
     			// Outdated info, update it
     			dnsapiVMVO.setVirtualMachineId(vmId);
-    			dnsapiVMVO.setDnsapiRecordId(createdRecord.getId());
-    			dnsapiVMVO.setDnsapiReverseRecordId(createdReverseRecord.getId());
+    			dnsapiVMVO.setDnsapiRecordId(record.getId());
     			_dnsapiVmDao.update(dnsapiVMVO.getId(), dnsapiVMVO);
     		}
     	}

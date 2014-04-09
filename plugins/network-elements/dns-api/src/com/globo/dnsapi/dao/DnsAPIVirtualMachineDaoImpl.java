@@ -15,19 +15,22 @@ import com.globo.dnsapi.DnsAPIVirtualMachineVO;
 @Local(value=DnsAPIVirtualMachineDao.class) @DB(txn=false)
 public class DnsAPIVirtualMachineDaoImpl extends GenericDaoBase<DnsAPIVirtualMachineVO, Long> implements DnsAPIVirtualMachineDao {
 	
-	protected final SearchBuilder<DnsAPIVirtualMachineVO> VmSearch;
+	protected final SearchBuilder<DnsAPIVirtualMachineVO> VmAndDomainSearch;
 	
 	public DnsAPIVirtualMachineDaoImpl() {
-		VmSearch = createSearchBuilder();
-		VmSearch.and("vmId", VmSearch.entity().getVirtualMachineId(), Op.EQ);
-		VmSearch.done();
+		VmAndDomainSearch = createSearchBuilder();
+		VmAndDomainSearch.and("vmId", VmAndDomainSearch.entity().getVirtualMachineId(), Op.EQ);
+		VmAndDomainSearch.and("domainId", VmAndDomainSearch.entity().getDnsapiDomainId(), Op.EQ);
+		VmAndDomainSearch.done();
 	}
 	
 	@Override
-	public DnsAPIVirtualMachineVO findByVirtualMachineId(Long vmId) {
-		SearchCriteria<DnsAPIVirtualMachineVO> sc = VmSearch.create();
+	public DnsAPIVirtualMachineVO findByVirtualMachineIdAndDomainId(Long vmId, Long dnsapiDomainId) {
+		SearchCriteria<DnsAPIVirtualMachineVO> sc = VmAndDomainSearch.create();
 		sc.addAnd("vmId", Op.EQ, vmId);
+//		sc.addAnd("domainId", Op.EQ, dnsapiDomainId);
 //		sc.setParameters("vmId", vmId);
+		sc.setParameters("domainId", dnsapiDomainId);
 		return findOneBy(sc);
 	}
 }
