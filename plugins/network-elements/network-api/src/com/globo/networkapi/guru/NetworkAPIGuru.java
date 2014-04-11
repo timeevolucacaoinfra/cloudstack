@@ -56,12 +56,14 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			NetworkType networkType, PhysicalNetwork physicalNetwork) {
 		
         if (isMyNetworkType(networkType)
+                && offering.getGuestType() == Network.GuestType.Shared
                 && isMyTrafficType(offering.getTrafficType()) 
                 && isMyIsolationMethod(physicalNetwork)) {
 
         	if (_networkModel.isProviderEnabledInZone(physicalNetwork.getDataCenterId(), Provider.NetworkAPI.getName())) {
         		s_logger.debug("NetworkAPI can handle this network"
         				+ " with traffic type " + offering.getTrafficType()
+        				+ " guest type " + Network.GuestType.Shared
         				+ " network type " + networkType 
         				+ " and physical network " + physicalNetwork);
         		return true;
@@ -71,7 +73,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
         	}
         } else {
             s_logger.debug("We only take care of "
-            		+ getSupportedTrafficType() + " networks"
+            		+ getSupportedTrafficType() + " " + Network.GuestType.Shared + " networks"
             		+ " with isolation method " + getIsolationMethods()
             		+ " and zone of type " + getSupportedNetworkType());
             return false;
