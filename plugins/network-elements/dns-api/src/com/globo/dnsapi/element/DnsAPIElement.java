@@ -52,6 +52,8 @@ import com.cloud.network.Network.Provider;
 import com.cloud.network.Network.Service;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
+import com.cloud.network.dao.NetworkDao;
+import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.offering.NetworkOffering;
@@ -97,8 +99,6 @@ import com.globo.dnsapi.response.DnsAPIDomainResponse;
 import com.globo.dnsapi.response.DnsAPIExportResponse;
 import com.globo.dnsapi.response.DnsAPIRecordListResponse;
 import com.globo.dnsapi.response.DnsAPIRecordResponse;
-import com.globo.networkapi.NetworkAPINetworkVO;
-import com.globo.networkapi.dao.NetworkAPINetworkDao;
 
 @Component
 @Local(NetworkElement.class)
@@ -123,7 +123,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	@Inject
 	HostDao _hostDao;
 	@Inject
-	NetworkAPINetworkDao _napiNetworkDao;
+	NetworkDao _networkDao;
 	@Inject
 	PhysicalNetworkDao _physicalNetworkDao;
 	
@@ -166,11 +166,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
-
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
-		if (napiNetworkVO == null) {
-			throw new CloudRuntimeException("Could not find VLAN associated to this network");
-		}
 		
 		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
@@ -180,9 +175,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		this.signIn(zoneId, null, null);
 		
 		/* Create new domain in DNS API */
-		// domainName is of form zoneName-vlanId.domainSuffix
-    	String domainName = zone.getName() + "-" + napiNetworkVO.getNapiVlanId() + "." + domainSuffix;
-    	domainName = domainName.toLowerCase();
+		// domainName is of form zoneName-vlanNum.domainSuffix
+    	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + "." + domainSuffix).toLowerCase();
     	s_logger.debug("Creating domain " + domainName);
     	Domain createdDomain = this.getOrCreateDomain(zoneId, domainName, false);
     	
@@ -197,6 +191,11 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
     	/* Save in the database */
     	this.saveDomainDB(network, createdDomain, reverseDomain);
+    	
+    	/* Update domain suffix in Network object */
+    	NetworkVO networkVO = _networkDao.findById(network.getId());
+    	networkVO.setNetworkDomain(domainSuffix);
+    	_networkDao.update(network.getId(), networkVO);
     	
         return true;
     }

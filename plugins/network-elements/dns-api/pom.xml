@@ -49,10 +49,5 @@
       <artifactId>dnsapi-client-java</artifactId>
       <version>0.0.2</version>
     </dependency>
-    <dependency>
-	  <groupId>org.apache.cloudstack</groupId>
-      <artifactId>cloud-plugin-network-networkapi</artifactId>
-      <version>4.2.1</version>
-    </dependency>
   </dependencies>
 </project>
