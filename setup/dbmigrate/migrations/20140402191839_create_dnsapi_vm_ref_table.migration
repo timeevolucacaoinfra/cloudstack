@@ -1,5 +1,5 @@
 #-*- coding:utf-8 -*-
-SQL_UP = u”””
+SQL_UP = u"""
 	CREATE TABLE `cloud`.`dnsapi_vm_ref` (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         vm_id BIGINT UNSIGNED NOT NULL,
 	dnsapi_domain_id BIGINT UNSIGNED NOT NULL,
@@ -11,8 +11,8 @@ SQL_UP = u”””
 	INDEX dnsapi_vm_ref_ix3 (dnsapi_record_id)
     )
     ENGINE=InnoDB DEFAULT CHARSET=utf8
-“””
+"""
 
-SQL_DOWN = u”””
+SQL_DOWN = u"""
 	DROP TABLE `cloud`.`dnsapi_vm_ref`;
-“””
+"""
