@@ -86,7 +86,6 @@ import com.globo.dnsapi.commands.RemoveDomainCommand;
 import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.ScheduleExportCommand;
-import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.commands.UpdateRecordCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
 import com.globo.dnsapi.dao.DnsAPIVirtualMachineDao;
@@ -172,8 +171,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		String reverseDomainSuffix = _configServer.getConfigValue(Config.DNSAPIReverseDomainSuffix.key(),
 				Config.ConfigurationParameterScope.global.name(), null);		
 		
-		this.signIn(zoneId, null, null);
-		
 		/* Create new domain in DNS API */
 		// domainName is of form zoneName-vlanNum.domainSuffix
     	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + "." + domainSuffix).toLowerCase();
@@ -225,8 +222,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
-		
-		this.signIn(zoneId, null, null);
 		
 		/* Create new A record in DNS API */
 		String recordName = (vm.getHostName() != null ? vm.getHostName() : vm.getUuid());
@@ -297,8 +292,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		long recordId = dnsapiVirtualMachineVODomain.getDnsapiRecordId();
 		long reverseRecordId = dnsapiVirtualMachineVOReverseDomain.getDnsapiRecordId();
 		
-		this.signIn(zoneId, null, null);
-		
 		/* Remove record from DNS API */
 		this.removeRecord(zoneId, recordId);
     	
@@ -345,8 +338,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 		    	
-		this.signIn(zoneId, null, null);
-		
 		/* Remove domain from DNS API */
 		this.removeDomain(zoneId, domainId, false);
     	
@@ -513,19 +504,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		}
 	}
 	
-	private void signIn(long zoneId, String username, String password) {
-	
-		if (username == null || password == null) {
-			HostVO dnsAPIHost = this.getDnsAPIHost(zoneId);
-			_hostDao.loadDetails(dnsAPIHost);
-			username = dnsAPIHost.getDetail("username");
-			password = dnsAPIHost.getDetail("password");
-		}
-		
-		SignInCommand cmd = new SignInCommand(username, password);
-		callCommand(cmd, zoneId);
-	}
-
 	private DnsAPINetworkVO getDnsAPINetworkVO(Network network) {
 		return _dnsapiNetworkDao.findByNetworkId(network.getId());
 	}
