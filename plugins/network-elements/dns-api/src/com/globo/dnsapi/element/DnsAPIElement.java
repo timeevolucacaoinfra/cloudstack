@@ -86,6 +86,7 @@ import com.globo.dnsapi.commands.RemoveDomainCommand;
 import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.ScheduleExportCommand;
+import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.commands.UpdateRecordCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
 import com.globo.dnsapi.dao.DnsAPIVirtualMachineDao;
@@ -499,7 +500,13 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 				throw new CloudRuntimeException("Failed to add DNS API host");
 			}
 			
-			// this.signIn(zoneId, username, password);
+			// Validate username and password by logging in
+			SignInCommand cmd = new SignInCommand(username, password);
+			Answer answer = callCommand(cmd, zoneId);
+			if (answer == null || !answer.getResult()) {
+				// Could not sign in on DNS API
+				throw new ConfigurationException("Could not sign in on DNS API. Please verify URL, username and password.");
+			}
 			
 			txn.commit();
 			
