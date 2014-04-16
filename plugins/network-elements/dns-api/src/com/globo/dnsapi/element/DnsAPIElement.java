@@ -156,6 +156,10 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
         return Provider.DnsAPI;
     }
     
+    protected boolean isTypeSupported(VirtualMachine.Type type) {
+    	return type == VirtualMachine.Type.User || type == VirtualMachine.Type.ConsoleProxy || type == VirtualMachine.Type.DomainRouter;
+    }
+    
     protected void setupNetworkDomain(Network network, DataCenter zone) {
     	
     	if (network.getNetworkDomain() == null || network.getNetworkDomain().isEmpty()) {
@@ -231,7 +235,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     ResourceUnavailableException, InsufficientCapacityException {
     	s_logger.debug("Entering prepare method for DnsAPI");
     	
-    	if (vm.getType() != VirtualMachine.Type.User && vm.getType() != VirtualMachine.Type.ConsoleProxy && vm.getType() != VirtualMachine.Type.DomainRouter) {
+    	if (isTypeSupported(vm.getType())) {
     		// We create DNS API mapping only for User VMs
     		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
     		return true;
@@ -292,8 +296,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
     	
-    	if (vm.getType() != VirtualMachine.Type.User) {
-    		// We handle only User VMs
+    	if (isTypeSupported(vm.getType())) {
+    		// We create DNS API mapping only for User VMs
+    		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
     		return true;
     	}
     	
