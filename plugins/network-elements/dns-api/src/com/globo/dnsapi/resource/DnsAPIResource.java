@@ -35,7 +35,9 @@ import com.globo.dnsapi.commands.RemoveDomainCommand;
 import com.globo.dnsapi.commands.RemoveRecordCommand;
 import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.ScheduleExportCommand;
+import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.commands.UpdateRecordCommand;
+import com.globo.dnsapi.model.Authentication;
 import com.globo.dnsapi.model.Domain;
 import com.globo.dnsapi.model.Export;
 import com.globo.dnsapi.model.Record;
@@ -156,6 +158,8 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			return new ReadyAnswer((ReadyCommand) cmd);
 		} else if (cmd instanceof MaintainCommand) {
 			return new MaintainAnswer((MaintainCommand) cmd);
+		} else if (cmd instanceof SignInCommand) {
+			return execute((SignInCommand) cmd);
 		} else if (cmd instanceof CreateDomainCommand) {
 			return execute((CreateDomainCommand) cmd);
 		} else if (cmd instanceof RemoveDomainCommand) {
@@ -186,6 +190,19 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			return execute((UpdateRecordCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
+	}
+	
+	public Answer execute(SignInCommand cmd) {
+		try {
+			Authentication auth = _dnsapi.getAuthAPI().signIn(cmd.getEmail(), cmd.getPassword());
+			if (auth != null) {
+				return new Answer(cmd, true, "Signed in successfully");
+			} else {
+				return new Answer(cmd, false, "Unable to sign in on DNS API");
+			}
+		} catch (DNSAPIException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
 	}
 	
 	public Answer execute(CreateDomainCommand cmd) {
