@@ -147,6 +147,10 @@ under the License.
    <category name="com.globo.networkapi">
       <priority value="TRACE"/>
    </category>
+   
+   <category name="com.globo.dnsapi">
+      <priority value="TRACE"/>
+   </category>
 
    <category name="org">
       <priority value="INFO"/>

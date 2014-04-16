@@ -169,10 +169,13 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
 		String reverseDomainSuffix = _configServer.getConfigValue(Config.DNSAPIReverseDomainSuffix.key(),
-				Config.ConfigurationParameterScope.global.name(), null);		
+				Config.ConfigurationParameterScope.global.name(), null);
+		if (domainSuffix == null || reverseDomainSuffix == null) {
+			throw new CloudRuntimeException("Domain suffix is not set up in the global configs");
+		}
 		
 		/* Create new domain in DNS API */
-		// domainName is of form zoneName-vlanNum.domainSuffix
+		// domainName is of form 'zoneName-vlanNum.domainSuffix'
     	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + "." + domainSuffix).toLowerCase();
     	s_logger.debug("Creating domain " + domainName);
     	Domain createdDomain = this.getOrCreateDomain(zoneId, domainName, false);
@@ -274,7 +277,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 		if (dnsapiNetworkVO == null) {
-			throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
+			// Don't have mapping for domain anymore, should let Cloudstack clean everything up
+			return true;
 		}
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
@@ -286,7 +290,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		DnsAPIVirtualMachineVO dnsapiVirtualMachineVODomain = this.getDnsAPIVirtualMachineVO(vm.getId(), domainId);
 		DnsAPIVirtualMachineVO dnsapiVirtualMachineVOReverseDomain = this.getDnsAPIVirtualMachineVO(vm.getId(), reverseDomainId);
 		if (dnsapiVirtualMachineVODomain == null || dnsapiVirtualMachineVOReverseDomain == null) {
-			throw new CloudRuntimeException("Could not obtain DNS mapping for this VM");
+			// Don't have mapping for VMs anymore, should let Cloudstack clean everything up
+			return true;
 		}
 
 		long recordId = dnsapiVirtualMachineVODomain.getDnsapiRecordId();
@@ -332,7 +337,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 		if (dnsapiNetworkVO == null) {
-			throw new CloudRuntimeException("Could not obtain DNS mapping");
+			// Don't have mapping for domain anymore, should let Cloudstack clean everything up
+			return true;
 		}
 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
@@ -515,6 +521,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
 		Long templateId = Long.valueOf(_configServer.getConfigValue(Config.DNSAPITemplateId.key(),
 				Config.ConfigurationParameterScope.global.name(), null));
+		if (templateId == null) {
+			throw new CloudRuntimeException("TemplateId for domain is not set up in the global configs");
+		}
 
     	// Check if domain already exists
     	Command cmdList;

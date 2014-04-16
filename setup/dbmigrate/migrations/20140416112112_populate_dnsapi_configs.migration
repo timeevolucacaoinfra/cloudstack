@@ -1,0 +1,18 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'dnsapi.domain.templateid', '1', 'Template id to be used when creating domains in DNS API');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'dnsapi.global.domain.suffix', 'cp.globoi.com', 'Domain suffix for all domains created in DNS API');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'dnsapi.global.reverse.domain.suffix', 'in-addr.arpa', 'Reverse domain suffix for all reverse domains created in DNS API');
+"""
+
+SQL_DOWN = u"""
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'dnsapi.domain.templateid';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'dnsapi.global.domain.suffix';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'dnsapi.global.reverse.domain.suffix';
+"""
