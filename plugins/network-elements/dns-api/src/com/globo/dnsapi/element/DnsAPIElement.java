@@ -111,6 +111,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	
 	private static final String RECORD_TYPE = "A";
 	private static final String REVERSE_RECORD_TYPE = "PTR";
+	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
 	
 	// DAOs
 	@Inject
@@ -153,12 +154,32 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     public Provider getProvider() {
         return Provider.DnsAPI;
     }
-
-    @Override
+    
+    protected void setupNetworkDomain(Network network, DataCenter zone) {
+    	
+    	if (network.getNetworkDomain() == null || network.getNetworkDomain().isEmpty()) {
+    		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
+    				Config.ConfigurationParameterScope.global.name(), null);
+    		/* Create new domain in DNS API */
+    		// domainName is of form 'zoneName-vlanNum.domainSuffix'
+    		if (domainSuffix == null) {
+    			domainSuffix = "";
+    		} else if (!domainSuffix.startsWith(".")) {
+    			domainSuffix = "." + domainSuffix;
+    		}
+        	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + domainSuffix).toLowerCase();
+        	/* Update domain suffix in Network object */
+//        	NetworkVO networkVO = _networkDao.findById(network.getId());
+        	// Network object is reused between all services. So, I can't change only in database
+        	NetworkVO networkVO = (NetworkVO) network;
+        	networkVO.setNetworkDomain(domainName);
+        	_networkDao.update(network.getId(), networkVO);
+    	}
+    }
+    
     @DB
-    public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
-    InsufficientCapacityException {
-    	s_logger.debug("Entering implement method for DnsAPI");
+    protected Domain setupDomainAndReverseDomain(Network network) {
+
     	Long zoneId = network.getDataCenterId();
     	DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
@@ -166,37 +187,40 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 					"Could not find zone associated to this network");
 		}
 		
-		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String reverseDomainSuffix = _configServer.getConfigValue(Config.DNSAPIReverseDomainSuffix.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		if (domainSuffix == null || reverseDomainSuffix == null) {
-			throw new CloudRuntimeException("Domain suffix is not set up in the global configs");
-		}
-		
-		/* Create new domain in DNS API */
-		// domainName is of form 'zoneName-vlanNum.domainSuffix'
-    	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + "." + domainSuffix).toLowerCase();
-    	s_logger.debug("Creating domain " + domainName);
-    	Domain createdDomain = this.getOrCreateDomain(zoneId, domainName, false);
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+    	setupNetworkDomain(network, zone);
     	
+    	s_logger.debug("Creating domain " + network.getNetworkDomain() + " for network " + network);
+    	Domain domain = this.getOrCreateDomain(zone.getId(), network.getNetworkDomain(), false);
+
     	/* Create new reverse domain in DNS API */
     	String[] octets = network.getCidr().split("\\/")[0].split("\\.");
-    	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + reverseDomainSuffix;
+    	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + REVERSE_DOMAIN_SUFFIX;
     	s_logger.debug("Creating reverse domain " + reverseDomainName);
-    	Domain reverseDomain = this.getOrCreateDomain(zoneId, reverseDomainName, true);
+    	Domain reverseDomain = this.getOrCreateDomain(zone.getId(), reverseDomainName, true);
+    	
+    	/* Save in the database */
+    	this.saveDomainDB(network, domain, reverseDomain);
     	
     	/* Export changes to Bind in DNS API */
-    	this.scheduleBindExport(zoneId);
+    	txn.commit();
 
-    	/* Save in the database */
-    	this.saveDomainDB(network, createdDomain, reverseDomain);
-    	
-    	/* Update domain suffix in Network object */
-    	NetworkVO networkVO = _networkDao.findById(network.getId());
-    	networkVO.setNetworkDomain(domainSuffix);
-    	_networkDao.update(network.getId(), networkVO);
-    	
+    	this.scheduleBindExport(network.getDataCenterId());
+
+    	return domain;
+    }
+
+    @Override
+    @DB
+    public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
+    InsufficientCapacityException {
+    	s_logger.debug("Entering implement method for DnsAPI");
+		// Configure network domain
+		setupDomainAndReverseDomain(network);
+
+    	// FIXME If export fail????
         return true;
     }
 
@@ -206,8 +230,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     ResourceUnavailableException, InsufficientCapacityException {
     	s_logger.debug("Entering prepare method for DnsAPI");
     	
-    	if (vm.getType() != VirtualMachine.Type.User) {
+    	if (vm.getType() != VirtualMachine.Type.User && vm.getType() != VirtualMachine.Type.ConsoleProxy && vm.getType() != VirtualMachine.Type.DomainRouter) {
     		// We create DNS API mapping only for User VMs
+    		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
     		return true;
     	}
     	
@@ -218,6 +243,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 					"Could not find zone associated to this network");
 		}
 		
+		// VirtualRouter is created before implement method was called.
+		setupDomainAndReverseDomain(network);
+		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 		if (dnsapiNetworkVO == null) {
 			throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
@@ -227,7 +255,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 		
 		/* Create new A record in DNS API */
-		String recordName = (vm.getHostName() != null ? vm.getHostName() : vm.getUuid());
+		String recordName = vm.getHostName().toLowerCase();
     	Record createdRecord = this.createOrUpdateRecord(zoneId, domainId, recordName, nic.getIp4Address(), false);
     	
 		/* Create new PTR record in DNS API */
@@ -241,8 +269,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
     	
     	String[] octets = nic.getIp4Address().split("\\.");
-		String reverseRecordName = octets[3];    	
-		String reverseRecordContent = vm.getHostName() + "." + domain.getName();
+		String reverseRecordName = octets[3];
+		String reverseRecordContent = recordName + "." + domain.getName();
     	
 		Record createdReverseRecord = this.createOrUpdateRecord(zoneId, reverseDomainId, reverseRecordName, reverseRecordContent, true);
 		

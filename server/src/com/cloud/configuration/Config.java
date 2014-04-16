@@ -317,7 +317,6 @@ public enum Config {
     
     // DNS API
     DNSAPIDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.domain.suffix", "cp.globoi.com", "Domain suffix for all domains created in DNS API", null),
-    DNSAPIReverseDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.reverse.domain.suffix", "in-addr.arpa", "Reverse domain suffix for all reverse domains created in DNS API", null),
     DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null),
     
     // KVM
