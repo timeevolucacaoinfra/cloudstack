@@ -235,10 +235,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     ResourceUnavailableException, InsufficientCapacityException {
     	s_logger.debug("Entering prepare method for DnsAPI");
     	
-    	if (isTypeSupported(vm.getType())) {
-    		// We create DNS API mapping only for User VMs
+    	if (!isTypeSupported(vm.getType())) {
     		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
-    		return true;
+    		return false;
     	}
     	
     	Long zoneId = network.getDataCenterId();
@@ -260,7 +259,14 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 		
 		/* Create new A record in DNS API */
-		String recordName = vm.getHostName().toLowerCase();
+		// We allow only lower case names in DNS, so force lower case names for VMs
+		String vmName = vm.getHostName();
+		String vmNameLowerCase = vmName.toLowerCase();
+		if (!vmName.equals(vmNameLowerCase)) {
+			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits.");
+		}
+		
+		String recordName = vmNameLowerCase;
     	Record createdRecord = this.createOrUpdateRecord(zoneId, domainId, recordName, nic.getIp4Address(), false);
     	
 		/* Create new PTR record in DNS API */
@@ -296,10 +302,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
     	
-    	if (isTypeSupported(vm.getType())) {
-    		// We create DNS API mapping only for User VMs
+    	if (!isTypeSupported(vm.getType())) {
     		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
-    		return true;
+    		return false;
     	}
     	
     	Long zoneId = network.getDataCenterId();
