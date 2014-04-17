@@ -162,17 +162,19 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     
     protected void setupNetworkDomain(Network network, DataCenter zone) {
     	
-    	if (network.getNetworkDomain() == null || network.getNetworkDomain().isEmpty()) {
-    		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
-    				Config.ConfigurationParameterScope.global.name(), null);
-    		/* Create new domain in DNS API */
-    		// domainName is of form 'zoneName-vlanNum.domainSuffix'
-    		if (domainSuffix == null) {
-    			domainSuffix = "";
-    		} else if (!domainSuffix.startsWith(".")) {
-    			domainSuffix = "." + domainSuffix;
-    		}
-        	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + domainSuffix).toLowerCase();
+		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		/* Create new domain in DNS API */
+		// domainName is of form 'zoneName-vlanNum.domainSuffix'
+		if (domainSuffix == null) {
+			domainSuffix = "";
+		} else if (!domainSuffix.startsWith(".")) {
+			domainSuffix = "." + domainSuffix;
+		}
+    	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + domainSuffix).toLowerCase();
+
+    	if (!domainName.equals(network.getNetworkDomain())) {
+    		s_logger.info("Chaging network domain name to " + domainName + " of network " + network);
         	/* Update domain suffix in Network object */
 //        	NetworkVO networkVO = _networkDao.findById(network.getId());
         	// Network object is reused between all services. So, I can't change only in database
@@ -212,8 +214,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	/* Export changes to Bind in DNS API */
     	txn.commit();
 
-    	this.scheduleBindExport(network.getDataCenterId());
-
     	return domain;
     }
 
@@ -226,6 +226,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		setupDomainAndReverseDomain(network);
 
     	// FIXME If export fail????
+    	this.scheduleBindExport(network.getDataCenterId());
         return true;
     }
 
