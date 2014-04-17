@@ -156,19 +156,25 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
         return Provider.DnsAPI;
     }
     
+    protected boolean isTypeSupported(VirtualMachine.Type type) {
+    	return type == VirtualMachine.Type.User || type == VirtualMachine.Type.ConsoleProxy || type == VirtualMachine.Type.DomainRouter;
+    }
+    
     protected void setupNetworkDomain(Network network, DataCenter zone) {
     	
-    	if (network.getNetworkDomain() == null || network.getNetworkDomain().isEmpty()) {
-    		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
-    				Config.ConfigurationParameterScope.global.name(), null);
-    		/* Create new domain in DNS API */
-    		// domainName is of form 'zoneName-vlanNum.domainSuffix'
-    		if (domainSuffix == null) {
-    			domainSuffix = "";
-    		} else if (!domainSuffix.startsWith(".")) {
-    			domainSuffix = "." + domainSuffix;
-    		}
-        	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + domainSuffix).toLowerCase();
+		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		/* Create new domain in DNS API */
+		// domainName is of form 'zoneName-vlanNum.domainSuffix'
+		if (domainSuffix == null) {
+			domainSuffix = "";
+		} else if (!domainSuffix.startsWith(".")) {
+			domainSuffix = "." + domainSuffix;
+		}
+    	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + domainSuffix).toLowerCase();
+
+    	if (!domainName.equals(network.getNetworkDomain())) {
+    		s_logger.info("Chaging network domain name to " + domainName + " of network " + network);
         	/* Update domain suffix in Network object */
 //        	NetworkVO networkVO = _networkDao.findById(network.getId());
         	// Network object is reused between all services. So, I can't change only in database
@@ -208,8 +214,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	/* Export changes to Bind in DNS API */
     	txn.commit();
 
-    	this.scheduleBindExport(network.getDataCenterId());
-
     	return domain;
     }
 
@@ -222,6 +226,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		setupDomainAndReverseDomain(network);
 
     	// FIXME If export fail????
+    	this.scheduleBindExport(network.getDataCenterId());
         return true;
     }
 
@@ -231,10 +236,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     ResourceUnavailableException, InsufficientCapacityException {
     	s_logger.debug("Entering prepare method for DnsAPI");
     	
-    	if (vm.getType() != VirtualMachine.Type.User && vm.getType() != VirtualMachine.Type.ConsoleProxy && vm.getType() != VirtualMachine.Type.DomainRouter) {
-    		// We create DNS API mapping only for User VMs
+    	if (!isTypeSupported(vm.getType())) {
     		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
-    		return true;
+    		return false;
     	}
     	
     	Long zoneId = network.getDataCenterId();
@@ -256,7 +260,14 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 		
 		/* Create new A record in DNS API */
-		String recordName = vm.getHostName().toLowerCase();
+		// We allow only lower case names in DNS, so force lower case names for VMs
+		String vmName = vm.getHostName();
+		String vmNameLowerCase = vmName.toLowerCase();
+		if (!vmName.equals(vmNameLowerCase)) {
+			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits.");
+		}
+		
+		String recordName = vmNameLowerCase;
     	Record createdRecord = this.createOrUpdateRecord(zoneId, domainId, recordName, nic.getIp4Address(), false);
     	
 		/* Create new PTR record in DNS API */
@@ -292,9 +303,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
     	
-    	if (vm.getType() != VirtualMachine.Type.User) {
-    		// We handle only User VMs
-    		return true;
+    	if (!isTypeSupported(vm.getType())) {
+    		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
+    		return false;
     	}
     	
     	Long zoneId = network.getDataCenterId();

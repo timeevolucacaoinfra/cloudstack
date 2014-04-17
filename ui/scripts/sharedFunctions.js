@@ -1313,6 +1313,14 @@ cloudStack.validate = {
             cloudStack.dialog.notice({
                 message: 'message.validate.instance.name'
             });
+
+        // Only lower case letters for DNS (DNSAPI)
+        if (args.toLowerCase() !== args) {
+            cloudStack.dialog.notice({
+                message: 'Only lower case letters!'
+            });
+            return false;
+        }
         return b;
     }
 }
