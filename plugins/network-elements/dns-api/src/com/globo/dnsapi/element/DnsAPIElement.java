@@ -160,7 +160,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	return type == VirtualMachine.Type.User || type == VirtualMachine.Type.ConsoleProxy || type == VirtualMachine.Type.DomainRouter;
     }
     
-    protected void setupNetworkDomain(Network network, DataCenter zone) {
+    private void setupNetworkDomain(Network network, DataCenter zone) {
     	
 		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
@@ -184,19 +184,14 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
     }
     
-    @DB
     protected Domain setupDomainAndReverseDomain(Network network) {
-
-    	Long zoneId = network.getDataCenterId();
+		Long zoneId = network.getDataCenterId();
     	DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
 		
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
-
     	setupNetworkDomain(network, zone);
     	
     	s_logger.debug("Creating domain " + network.getNetworkDomain() + " for network " + network);
@@ -211,9 +206,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	/* Save in the database */
     	this.saveDomainDB(network, domain, reverseDomain);
     	
-    	/* Export changes to Bind in DNS API */
-    	txn.commit();
-
     	return domain;
     }
 
@@ -221,12 +213,16 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     @DB
     public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
     InsufficientCapacityException {
-    	s_logger.debug("Entering implement method for DnsAPI");
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
 		// Configure network domain
 		setupDomainAndReverseDomain(network);
 
-    	// FIXME If export fail????
+    	/* Export changes to Bind in DNS API */
     	this.scheduleBindExport(network.getDataCenterId());
+
+    	txn.commit();
         return true;
     }
 
@@ -234,7 +230,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     @DB
     public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
     ResourceUnavailableException, InsufficientCapacityException {
-    	s_logger.debug("Entering prepare method for DnsAPI");
     	
     	if (!isTypeSupported(vm.getType())) {
     		s_logger.info("DNSAPI only manage records for VMs of type User, ConsoleProxy and DomainRouter. VM " + vm + " is " + vm.getType());
@@ -248,6 +243,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 					"Could not find zone associated to this network");
 		}
 		
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
 		// VirtualRouter is created before implement method was called.
 		setupDomainAndReverseDomain(network);
 		
@@ -286,15 +284,16 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	
 		Record createdReverseRecord = this.createOrUpdateRecord(zoneId, reverseDomainId, reverseRecordName, reverseRecordContent, true);
 		
-    	/* Export changes to Bind in DNS API */
-    	this.scheduleBindExport(zoneId);
-    	
     	/* Save in the database */
     	// Save domain record
     	this.saveRecordDB(vm, domainId, createdRecord);
     	// Save reverse domain record
     	this.saveRecordDB(vm, reverseDomainId, createdReverseRecord);
 
+    	/* Export changes to Bind in DNS API */
+    	this.scheduleBindExport(zoneId);
+    	
+    	txn.commit();
     	return true;
     }
 
@@ -315,6 +314,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 					"Could not find zone associated to this network");
 		}
 		
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+		
 		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 		if (dnsapiNetworkVO == null) {
 			// Don't have mapping for domain anymore, should let Cloudstack clean everything up
@@ -324,9 +326,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
 		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
-		
 		DnsAPIVirtualMachineVO dnsapiVirtualMachineVODomain = this.getDnsAPIVirtualMachineVO(vm.getId(), domainId);
 		DnsAPIVirtualMachineVO dnsapiVirtualMachineVOReverseDomain = this.getDnsAPIVirtualMachineVO(vm.getId(), reverseDomainId);
 		if (dnsapiVirtualMachineVODomain == null || dnsapiVirtualMachineVOReverseDomain == null) {
@@ -551,7 +550,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			
 			return host;
 		} catch (ConfigurationException e) {
-			txn.rollback();
 			throw new CloudRuntimeException(e);
 		}
 	}
@@ -623,8 +621,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	}
 		
 	private void saveDomainDB(Network network, Domain createdDomain, Domain reverseDomain) {
-    	Transaction txn = Transaction.currentTxn();
-		txn.start();
 		
     	DnsAPINetworkVO dnsapiNetworkVO = _dnsapiNetworkDao.findByNetworkId(network.getId());
     	if (dnsapiNetworkVO == null) {
@@ -642,8 +638,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     			_dnsapiNetworkDao.update(dnsapiNetworkVO.getId(), newDnsapiNetworkVO);
     		}
     	}
-    	
-    	txn.commit();
 	}
 	
 	private Record createOrUpdateRecord(Long zoneId, long domainId, String name, String content, boolean reverse) {
@@ -693,9 +687,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
 	}
 	
-	private void saveRecordDB(VirtualMachineProfile<? extends VirtualMachine> vm, Long domainId, Record record) {
-    	Transaction txn = Transaction.currentTxn();
-		txn.start();
+	protected void saveRecordDB(VirtualMachineProfile<? extends VirtualMachine> vm, Long domainId, Record record) {
 		
 		long vmId = vm.getId();
     	DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVirtualMachineVO(vmId, domainId);
@@ -716,16 +708,20 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     			_dnsapiVmDao.update(dnsapiVMVO.getId(), dnsapiVMVO);
     		}
     	}
-    	txn.commit();
 	}
 	
 	private void scheduleBindExport(Long zoneId) {
-    	ScheduleExportCommand cmdExport = new ScheduleExportCommand();
-    	Answer answerExport = callCommand(cmdExport, zoneId);
-    	Export export = ((DnsAPIExportResponse) answerExport).getExport();
-    	if (export != null) {
-    		s_logger.debug(export.getResult());
-    	}
+		try {
+			ScheduleExportCommand cmdExport = new ScheduleExportCommand();
+	    	Answer answerExport = callCommand(cmdExport, zoneId);
+	    	Export export = ((DnsAPIExportResponse) answerExport).getExport();
+	    	if (export != null) {
+	    		s_logger.debug(export.getResult());
+	    	}
+		} catch (CloudRuntimeException e) {
+			// fail on export never rollback transaction
+			s_logger.warn("Error schedule DNSAPI to export. Hosts will delay to appear in DNS", e);
+		}
 	}
 
 }
