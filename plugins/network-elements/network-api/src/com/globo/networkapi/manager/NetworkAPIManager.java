@@ -811,9 +811,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
 			if (napiNetworkVO != null) {
 				_napiNetworkDao.remove(napiNetworkVO.getId());
+				this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
 			}
-			
-			this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
 			
 			txn.commit();
 
