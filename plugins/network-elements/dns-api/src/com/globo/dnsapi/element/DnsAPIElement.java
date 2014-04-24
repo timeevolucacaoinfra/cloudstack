@@ -261,8 +261,8 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		// We allow only lower case names in DNS, so force lower case names for VMs
 		String vmName = vm.getHostName();
 		String vmNameLowerCase = vmName.toLowerCase();
-		if (!vmName.equals(vmNameLowerCase)) {
-			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits.");
+		if (!vmName.equals(vmNameLowerCase) && vm.getType() == VirtualMachine.Type.User) {
+			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
 		}
 		
 		String recordName = vmNameLowerCase;
