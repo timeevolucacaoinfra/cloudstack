@@ -1,4 +1,5 @@
 import MySQLdb
+import sys
 from dnsapi import DNSAPI
 
 
@@ -27,17 +28,26 @@ def selectVMNameDB(vm_id):
 	return sql
 
 def updateDNSAPIRecordMapping(vm_id, domain_id, record_id):
-	sql = "UPDATE cloud.dnsapi_vm_ref SET dnsapi_record_id=" + record_id + " WHERE vm_id=" + vm_id + " AND dnsapi_domain_id=" + domain_id + ";"
+	sql = "UPDATE cloud.dnsapi_vm_ref SET dnsapi_record_id=%s WHERE vm_id=%s AND dnsapi_domain_id=%s;" % (record_id, vm_id, domain_id)
 	return sql
 
 
+if (len(sys.argv) != 5):
+	print "Usage: python sync_dnsapi.py DBURL DBUSERNAME DBPASSWORD NETW_OFF_ID"
+	exit()
+
 # Setup database
-db = MySQLdb.connect("dbURL", "username", "password", "db")
+dburl = sys.argv[1]
+dbusername = sys.argv[2]
+dbpassword = sys.argv[3]
+print "Connecting to database '%s' with username '%s' and password '%s'" % (dburl, dbusername, dbpassword)
+db = MySQLdb.connect(dburl, dbusername, dbpassword, "")
 cursor = db.cursor()
 
 dnsapi = DNSAPI()
 
-network_offering_id = "18"
+print "Using network offering %s" % sys.argv[4]
+network_offering_id = sys.argv[4]
 try:
 	cursor.execute(selectNetworks(network_offering_id))
 	networks = cursor.fetchall()
@@ -85,38 +95,58 @@ for network in networks:
  	except:
  		print "Unable to list reverse records from database"
 
-# 	dnsapi_records = listDNSAPIRecords(domain.id)
-# 	dnsapi_reverse_records = listDNSAPIRecords(reverse_domain.id)
 
-# 	for record in records:
-# 		vm_name = selectVMNameDB(record.vm_id)
+ 	dnsapi_records = dnsapi.list_records_by_domain(domain_id, 'a')
+ 	dnsapi_reverse_records = dnsapi.list_records_by_domain(reverse_domain_id, 'ptr')
 
-# 		for dnsapi_record in dnsapi_records:
-# 			if (vm_name != dnsapi_record.a.name):
-# 				continue
+ 	for record in records:
+ 		try:
+ 			cursor.execute(selectVMNameDB(str(record[1])))
+ 			vm_name = cursor.fetchone()[0].lower()
+ 		except:
+ 			print "Unable to retrieve virtual machine name for id %s" % record[1]
 
-# 			if (dnsapi_record.a.id == record.dnsapi_record_id):
-# 				# Tudo OK.
-# 				continue
-# 			else:
-# 				# Corrigir mapping
-# 				updateDNSAPIRecordMapping(record.vm_id, record.dnsapi_domain_id, dnsapi_record.a.id)
+	 	for dnsapi_record in dnsapi_records:
+			if (vm_name != dnsapi_record['a']['name']):
+				continue
+
+			if (dnsapi_record['a']['id'] == record[3]):
+				# Everything OK.
+				continue
+			else:
+				# Fix mapping
+				try:
+					cursor.execute(updateDNSAPIRecordMapping(str(record[1]), str(record[2]), str(dnsapi_record['a']['id'])))
+					db.commit()
+				except:
+					db.rollback()
+					print "Unable to update record mapping"
 
 
-# 	for reverse_record in reverse_records:
-# 		vm_name = selectVMNameDB(record.vm_id)
-# 		vm_name = vm_name + "." + network_domain
+ 	for reverse_record in reverse_records:
+ 		try:
+ 			cursor.execute(selectVMNameDB(str(record[1])))
+ 			vm_name = cursor.fetchone()[0].lower()
+	 		vm_name = vm_name + "." + network_domain
+	 	except:
+	 		print "Unable to retrieve virtual machine name for id %s" % reverse_record[1]
 
-# 		for dnsapi_reverse_record in dnsapi_reverse_records:
-# 			if (vm_name != dnsapi_reverse_record.ptr.content):
-# 				continue
+ 		for dnsapi_reverse_record in dnsapi_reverse_records:
+ 			if (vm_name != dnsapi_reverse_record['ptr']['content']):
+ 				continue
 
-# 			if (dnsapi_reverse_record.ptr.id == reverse_record.dnsapi_record_id):
-# 				# Tudo OK.
-# 				continue
-# 			else:
-# 				# Corrigir mapping
-# 				updateDNSAPIRecordMapping(reverse_record.vm_id, reverse_record.dnsapi_domain_id, dnsapi_reverse_record.ptr.id)
+ 			if (dnsapi_reverse_record['ptr']['id'] == reverse_record[3]):
+ 				# Everything OK.
+ 				continue
+ 			else:
+ 				# Fix mapping
+ 				try:
+ 					cursor.execute(updateDNSAPIRecordMapping(str(reverse_record[1]), str(reverse_record[2]), str(dnsapi_reverse_record['ptr']['id'])))
+ 					db.commit()
+ 				except:
+ 					db.rollback()
+ 					print "Unable to update reverse record mapping"
+ 				
 
 
 db.close()

@@ -17,9 +17,9 @@ FAKE = False  # False habilita, True desliga
 class DNSAPI(object):
 
     def __init__(self):
-        self.base_url = "url"
-        self.username = "username" 
-        self.password = "password"
+        self.base_url = ""
+        self.username = ""
+        self.password = ""
         self.token = None
 
     def __request(self, method, path, data=None, use_token=True, retry=True):
@@ -150,6 +150,18 @@ class DNSAPI(object):
             return record[0][str(record_type.lower())].get('id')
         else:
             return None
+
+    def list_records_by_domain(self, domain_id, record_type='A'):
+        """ List os registros de um dominio """
+        if domain_id is not None:
+            records = self.__request(GET, '/domains/' + str(domain_id) + '/records.json')
+
+        return_list = []
+        for record in records:
+            if (record.keys()[0] == str(record_type.lower())):
+                return_list.append(record)
+        return return_list
+
 
     def create_record(self, name, content, record_type="A", domain_id=None):
         if FAKE:
