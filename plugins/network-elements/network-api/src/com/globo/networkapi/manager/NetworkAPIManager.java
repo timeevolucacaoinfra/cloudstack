@@ -175,9 +175,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			ConcurrentOperationException, InsufficientCapacityException {
 
 		Account caller = UserContext.current().getCaller();
-		if (accountName == null) {
-			accountName = caller.getAccountName();
-		}
 
 		Account owner = null;
 		if ((accountName != null && domainId != null) || projectId != null) {
@@ -244,9 +241,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			InsufficientCapacityException {
 
 		Account caller = UserContext.current().getCaller();
-		if (accountName == null) {
-			accountName = caller.getAccountName();
-		}
 		
 		Account owner = null;
 		if ((accountName != null && domainId != null) || projectId != null) {
