@@ -120,6 +120,14 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 		_networkAPIService.validateNic(nic, vm, network, dest);
 
 		super.reserve(nic, network, vm, dest, context);
+		
+		// FIXME Remove try/catch as soon as everything works
+		try {
+			s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
+			_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
+		} catch (Exception e) {
+			s_logger.warn("Exception when registering NIC in Network API", e);
+		}
 	}
 
 	@Override

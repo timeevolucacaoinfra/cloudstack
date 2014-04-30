@@ -28,13 +28,16 @@ import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
+import com.globo.networkapi.commands.RegisterNicInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
 import com.globo.networkapi.exception.NetworkAPIException;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
+import com.globo.networkapi.model.Equipment;
 import com.globo.networkapi.model.IPv4Network;
+import com.globo.networkapi.model.Ip;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -57,6 +60,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
 	
 	private static final long NETWORK_TYPE = 6; // Rede invalida de equipamentos
+	
+	private static final Long EQUIPMENT_TYPE = 10L;
+	private static final Long EQUIPMENT_MODEL = 18L;
+	
 
 	@Override
 	public boolean configure(String name, Map<String, Object> params)
@@ -188,6 +195,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((RemoveNetworkInNetworkAPICommand) cmd);
 		} else if (cmd instanceof DeallocateVlanFromNetworkAPICommand) {
 			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof RegisterNicInNetworkAPICommand) {
+			return execute((RegisterNicInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -287,6 +296,50 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			_napi.getVlanAPI().deallocate(cmd.getVlanId());
 			return new Answer(cmd, true, "Vlan deallocated");
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+	
+	public Answer execute(RegisterNicInNetworkAPICommand cmd) {
+		try {
+			List<Equipment> equipList = _napi.getEquipmentAPI().listByName(cmd.getVmName());
+			if (equipList == null) {
+				return new Answer(cmd, false, "Could not retrieve equipment list from Network API");
+			}
+			
+			Equipment equipment;
+			if (equipList.size() == 0) {
+				// Equipment (VM) does not exist, create it
+				equipment = _napi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, EQUIPMENT_MODEL, cmd.getEquipmentGroup());
+			} else if (equipList.size() == 1){
+				equipment = equipList.get(0);
+			} else {
+				// There should not be multiple equipments with the same name!
+				return new Answer(cmd, false, "Multiple equipments with this VM name!");
+			}
+			
+			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
+			
+			// Make sure this vlan has one IPv4 network associated to it
+			if (vlan.getIpv4Networks().size() == 0) {
+				return new Answer(cmd, false, "No IPv4 networks in this vlan");
+			} else if (vlan.getIpv4Networks().size() > 1) {
+				return new Answer(cmd, false, "Multiple IPv4 networks in this vlan");
+			}
+			Long networkId = vlan.getIpv4Networks().get(0).getId();
+			
+			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+			if (ip == null) {
+				// Doesn't exist, create it
+				ip = _napi.getIpAPI().saveIpv4(cmd.getNicIp(), equipment.getId(), cmd.getNicDescription(), networkId);
+			}
+			
+			if (ip == null) {
+				return new Answer(cmd, false, "Could not register NIC in Network API");
+			}
+			
+			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " registered successfully in Network API");
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
 		}

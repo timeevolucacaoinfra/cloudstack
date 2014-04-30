@@ -314,6 +314,7 @@ public enum Config {
     NetworkAPIConnectionTimeout("Network", ManagementServer.class, String.class, "networkapi.connectiontimeout", "120000", "Networkapi connection timeout (in milliseconds)", null),
     NetworkAPIReadTimeout("Network", ManagementServer.class, String.class, "networkapi.readtimeout", "120000", "Networkapi read timeout (in milliseconds)", null),
     NetworkAPINumberOfRetries("Network", ManagementServer.class, String.class, "networkapi.numberofretries", "0", "Networkapi number of retries", null),
+    NetworkAPIVMEquipmentGroup("Network", ManagementServer.class, Integer.class, "networkapi.vm.equipmentgroup", "", "Equipment group to be used when registering a VM NIC in Network API", null),
     
     // DNS API
     DNSAPIDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.domain.suffix", "cp.globoi.com", "Domain suffix for all domains created in DNS API", null),

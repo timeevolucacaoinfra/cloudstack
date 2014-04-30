@@ -89,6 +89,7 @@ import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
+import com.globo.networkapi.commands.RegisterNicInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
@@ -906,5 +907,39 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		vlan.setDescription(response.getVlanDescription());
 		
 		return vlan;
+	}
+	
+	@Override
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
+		
+		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
+		if (vm == null || nic == null || network == null) {
+			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
+		}
+		
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+		if (napiNetworkVO == null) {
+			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
+		}
+		
+		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVMEquipmentGroup.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		if (equipmentGroup == null) {
+			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
+		}
+		
+		RegisterNicInNetworkAPICommand cmd = new RegisterNicInNetworkAPICommand();
+		cmd.setNicIp(nic.getIp4Address());
+		cmd.setNicDescription("eth" + nic.getDeviceId());
+		cmd.setVmName(vm.getHostName());
+		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
+		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+		cmd.setEquipmentGroup(Long.valueOf(equipmentGroup));
+		
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
 	}
 }

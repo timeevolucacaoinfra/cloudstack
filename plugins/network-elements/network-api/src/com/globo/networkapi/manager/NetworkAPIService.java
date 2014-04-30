@@ -158,4 +158,13 @@ public interface NetworkAPIService {
 	 * @return
 	 */
 	public Vlan getVlanInfoFromNetworkAPI(Network network);
+
+	/**
+	 * Register VM NIC in Network API
+	 * @param nic
+	 * @param vm
+	 * @param network
+	 * @return
+	 */
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
 }
