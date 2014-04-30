@@ -191,7 +191,7 @@ public class NetworkAPIManagerTest {
     @Test
     public void checkPermissionsBeforeCreateVlanOnNetworkAPI() throws CloudException {
     	try {
-    		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
+    		when(_acctMgr.finalizeOwner(eq(acct), null, eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
 
     		acct.setDomainId(domainId+1);
         	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, null, null, domainId, null, true, null);
