@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMapOf;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -65,7 +66,6 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
-import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
@@ -191,7 +191,7 @@ public class NetworkAPIManagerTest {
     @Test
     public void checkPermissionsBeforeCreateVlanOnNetworkAPI() throws CloudException {
     	try {
-    		when(_acctMgr.finalizeOwner(eq(acct), null, eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
+    		when(_acctMgr.finalizeOwner(eq(acct), anyString(), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
 
     		acct.setDomainId(domainId+1);
         	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, null, null, domainId, null, true, null);
