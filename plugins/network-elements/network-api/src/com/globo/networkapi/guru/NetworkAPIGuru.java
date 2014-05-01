@@ -136,6 +136,12 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			String reservationId) {
 		s_logger.debug("Asking GuestNetworkGuru to release NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
+		Network network = _networkDao.findById(nic.getNetworkId());
+		try {
+			_networkAPIService.deregisterNicInNetworkAPI(nic, vm, network);
+		} catch (Exception e) {
+			s_logger.warn("Exception when deregistering NIC in Network API", e);
+		}
 		return super.release(nic, vm, reservationId);
 	}
 

@@ -25,6 +25,7 @@ import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
+import com.globo.networkapi.commands.DeregisterNicInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
@@ -197,6 +198,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
 		} else if (cmd instanceof RegisterNicInNetworkAPICommand) {
 			return execute((RegisterNicInNetworkAPICommand) cmd);
+		} else if (cmd instanceof DeregisterNicInNetworkAPICommand) {
+			return execute((DeregisterNicInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -303,20 +306,11 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	public Answer execute(RegisterNicInNetworkAPICommand cmd) {
 		try {
-			List<Equipment> equipList = _napi.getEquipmentAPI().listByName(cmd.getVmName());
-			if (equipList == null) {
-				return new Answer(cmd, false, "Could not retrieve equipment list from Network API");
-			}
-			
-			Equipment equipment;
-			if (equipList.size() == 0) {
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
+			if (equipment == null) {
+				s_logger.info("Registering virtualmachine " + cmd.getVmName() + " in networkapi");
 				// Equipment (VM) does not exist, create it
-				equipment = _napi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, EQUIPMENT_MODEL, cmd.getEquipmentGroup());
-			} else if (equipList.size() == 1){
-				equipment = equipList.get(0);
-			} else {
-				// There should not be multiple equipments with the same name!
-				return new Answer(cmd, false, "Multiple equipments with this VM name!");
+				equipment = _napi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, EQUIPMENT_MODEL, cmd.getEquipmentGroupId());
 			}
 			
 			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
@@ -333,6 +327,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			if (ip == null) {
 				// Doesn't exist, create it
 				ip = _napi.getIpAPI().saveIpv4(cmd.getNicIp(), equipment.getId(), cmd.getNicDescription(), networkId);
+//			} else if (!ip.getEquipamentos().contains(cmd.getVmName())) {
+//				 FIXME Insert IP in equipment
 			}
 			
 			if (ip == null) {
@@ -344,7 +340,40 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return handleNetworkAPIException(cmd, e);
 		}
 	}
-	
+
+	public Answer execute(DeregisterNicInNetworkAPICommand cmd) {
+		try {
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
+			if (equipment == null) {
+				s_logger.warn("VM was removed in NetworkAPI before be destroyed in Cloudstack. This is not a problem, but is a inconsistency: VM UUID " + cmd.getVmName());
+				return new Answer(cmd);
+			}
+			
+			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+			if (ip == null) {
+				// Doesn't exist, ignore
+				s_logger.warn("IP was removed from NetworkAPI before be destroyed in Cloudstack. This is not a problem, but is a inconsistency: IP " + cmd.getNicIp());
+			} else {
+				ip = _napi.getIpAPI().getIpv4(ip.getId());
+				if (ip.getEquipamentos().isEmpty() || (ip.getEquipamentos().contains(cmd.getVmName().toUpperCase()) && ip.getEquipamentos().size() == 1)) {
+					// this ip is only for this equipment.
+					_napi.getIpAPI().deleteIpv4(ip.getId());
+				} else {
+					// There is others equipments associated with this ip. Remove association between ip and equipment
+					// FIXME
+					// _napi.getEquipmentAPI().remove_ip(equipment.getId(), ip.getId());
+				}
+			}
+			
+			// if there is no more ips in equipment, remove it.
+//			equipment.find_ips_by_equip			
+			
+			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in Network API");
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+
 	private Answer createResponse(Vlan vlan, Command cmd) {
 		
 		if (vlan.getIpv4Networks().isEmpty()) {
