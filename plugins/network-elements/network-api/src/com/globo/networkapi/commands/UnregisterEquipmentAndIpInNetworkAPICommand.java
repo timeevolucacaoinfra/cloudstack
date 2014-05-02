@@ -2,7 +2,7 @@ package com.globo.networkapi.commands;
 
 import com.cloud.agent.api.Command;
 
-public class DeregisterNicInNetworkAPICommand extends Command {
+public class UnregisterEquipmentAndIpInNetworkAPICommand extends Command {
 	
 	private String nicIp;
 	private String nicDescription;
@@ -13,7 +13,7 @@ public class DeregisterNicInNetworkAPICommand extends Command {
 
 	@Override
 	public boolean executeInSequence() {
-		return false;
+		return true;
 	}
 
 	public String getNicIp() {

@@ -13,7 +13,7 @@ public class RemoveNetworkInNetworkAPICommand extends Command {
 	
 	@Override
 	public boolean executeInSequence() {
-		return false;
+		return true;
 	}
 
 	public Long getVlanId() {

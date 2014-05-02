@@ -25,11 +25,11 @@ import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
-import com.globo.networkapi.commands.DeregisterNicInNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
-import com.globo.networkapi.commands.RegisterNicInNetworkAPICommand;
+import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
@@ -196,10 +196,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((RemoveNetworkInNetworkAPICommand) cmd);
 		} else if (cmd instanceof DeallocateVlanFromNetworkAPICommand) {
 			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
-		} else if (cmd instanceof RegisterNicInNetworkAPICommand) {
-			return execute((RegisterNicInNetworkAPICommand) cmd);
-		} else if (cmd instanceof DeregisterNicInNetworkAPICommand) {
-			return execute((DeregisterNicInNetworkAPICommand) cmd);
+		} else if (cmd instanceof RegisterEquipmentAndIpInNetworkAPICommand) {
+			return execute((RegisterEquipmentAndIpInNetworkAPICommand) cmd);
+		} else if (cmd instanceof UnregisterEquipmentAndIpInNetworkAPICommand) {
+			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -304,7 +304,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	public Answer execute(RegisterNicInNetworkAPICommand cmd) {
+	public Answer execute(RegisterEquipmentAndIpInNetworkAPICommand cmd) {
 		try {
 			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
 			if (equipment == null) {
@@ -341,7 +341,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 
-	public Answer execute(DeregisterNicInNetworkAPICommand cmd) {
+	public Answer execute(UnregisterEquipmentAndIpInNetworkAPICommand cmd) {
 		try {
 			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
 			if (equipment == null) {
