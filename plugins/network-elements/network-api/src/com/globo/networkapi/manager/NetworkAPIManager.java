@@ -86,11 +86,11 @@ import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
-import com.globo.networkapi.commands.UnregisterNicInNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
-import com.globo.networkapi.commands.RegisterNicInNetworkAPICommand;
+import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
@@ -929,7 +929,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
 		
-		RegisterNicInNetworkAPICommand cmd = new RegisterNicInNetworkAPICommand();
+		RegisterEquipmentAndIpInNetworkAPICommand cmd = new RegisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setNicDescription("eth" + nic.getDeviceId());
 		cmd.setVmName(vm.getUuid());
@@ -963,7 +963,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
 		
-		UnregisterNicInNetworkAPICommand cmd = new UnregisterNicInNetworkAPICommand();
+		UnregisterEquipmentAndIpInNetworkAPICommand cmd = new UnregisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setNicDescription("eth" + nic.getDeviceId());
 		cmd.setVmName(vm.getUuid());

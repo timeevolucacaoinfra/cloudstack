@@ -2,7 +2,7 @@ package com.globo.networkapi.commands;
 
 import com.cloud.agent.api.Command;
 
-public class UnregisterNicInNetworkAPICommand extends Command {
+public class RegisterEquipmentAndIpInNetworkAPICommand extends Command {
 	
 	private String nicIp;
 	private String nicDescription;
