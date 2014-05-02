@@ -327,8 +327,11 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			if (ip == null) {
 				// Doesn't exist, create it
 				ip = _napi.getIpAPI().saveIpv4(cmd.getNicIp(), equipment.getId(), cmd.getNicDescription(), networkId);
-//			} else if (!ip.getEquipamentos().contains(cmd.getVmName())) {
-//				 FIXME Insert IP in equipment
+			} else {
+				ip = _napi.getIpAPI().getIpv4(ip.getId());
+				if (!ip.getEquipments().contains(cmd.getVmName())) {
+					_napi.getIpAPI().assocIpv4(ip.getId(), equipment.getId(), networkId);
+				}
 			}
 			
 			if (ip == null) {
@@ -354,15 +357,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				// Doesn't exist, ignore
 				s_logger.warn("IP was removed from NetworkAPI before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
 			} else {
-				ip = _napi.getIpAPI().getIpv4(ip.getId());
-				if (ip.getEquipments().isEmpty() || (ip.getEquipments().contains(cmd.getVmName().toUpperCase()) && ip.getEquipments().size() == 1)) {
-					// this ip is only for this equipment.
-					_napi.getIpAPI().deleteIpv4(ip.getId());
-				} else {
-					// There is others equipments associated with this ip. Remove association between ip and equipment
-					// FIXME
-					// _napi.getEquipmentAPI().remove_ip(equipment.getId(), ip.getId());
-				}
+				_napi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
 			}
 			
 			// if there is no more ips in equipment, remove it.
