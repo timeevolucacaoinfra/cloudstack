@@ -911,14 +911,14 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
 		
 		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
-		if (vm == null || nic == null || network == null) {
+		if (vm == null || nic == null) {
 			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
 		}
 		
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
 		if (napiNetworkVO == null) {
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
 		}
@@ -937,7 +937,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
 		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
 		
-		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
@@ -945,14 +945,14 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
-	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
 		
 		String msg = "Unable to unregister nic " + nic + " from VM " + vm + ".";
-		if (vm == null || nic == null || network == null) {
-			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
+		if (vm == null || nic == null) {
+			throw new CloudRuntimeException(msg + " Invalid nic or virtual machine.");
 		}
 		
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
 		if (napiNetworkVO == null) {
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
 		}
@@ -971,7 +971,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
 		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
 		
-		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);

@@ -166,8 +166,8 @@ public interface NetworkAPIService {
 	 * @param network
 	 * @return
 	 */
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
 
 	void unregisterNicInNetworkAPI(NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
+			VirtualMachineProfile<? extends VirtualMachine> vm);
 }

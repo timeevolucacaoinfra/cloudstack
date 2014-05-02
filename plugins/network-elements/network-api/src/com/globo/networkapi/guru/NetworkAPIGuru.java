@@ -124,7 +124,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 		// FIXME Remove try/catch as soon as everything works
 		try {
 			s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
-			_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
+			_networkAPIService.registerNicInNetworkAPI(nic, vm);
 		} catch (Exception e) {
 			s_logger.warn("Exception when registering NIC in Network API", e);
 		}
@@ -136,9 +136,8 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			String reservationId) {
 		s_logger.debug("Asking GuestNetworkGuru to release NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
-		Network network = _networkDao.findById(nic.getNetworkId());
 		try {
-			_networkAPIService.unregisterNicInNetworkAPI(nic, vm, network);
+			_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
 		} catch (Exception e) {
 			s_logger.warn("Exception when deregistering NIC in Network API", e);
 		}
