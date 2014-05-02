@@ -138,7 +138,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 				+ " from VM " + vm.getInstanceName());
 		Network network = _networkDao.findById(nic.getNetworkId());
 		try {
-			_networkAPIService.deregisterNicInNetworkAPI(nic, vm, network);
+			_networkAPIService.unregisterNicInNetworkAPI(nic, vm, network);
 		} catch (Exception e) {
 			s_logger.warn("Exception when deregistering NIC in Network API", e);
 		}
