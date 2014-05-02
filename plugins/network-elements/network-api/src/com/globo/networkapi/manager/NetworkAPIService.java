@@ -168,6 +168,6 @@ public interface NetworkAPIService {
 	 */
 	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
 
-	void deregisterNicInNetworkAPI(NicProfile nic,
+	void unregisterNicInNetworkAPI(NicProfile nic,
 			VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
 }

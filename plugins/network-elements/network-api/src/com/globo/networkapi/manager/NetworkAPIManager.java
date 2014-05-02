@@ -86,7 +86,7 @@ import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
-import com.globo.networkapi.commands.DeregisterNicInNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterNicInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
@@ -945,13 +945,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
-	public void deregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
 		
-		String msg = "Unable to deregister nic " + nic + " from VM " + vm + ".";
+		String msg = "Unable to unregister nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null || network == null) {
 			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
 		}
-		s_logger.info("\n\n\n********** STATE" + vm.getVirtualMachine().getState());
 		
 		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
 		if (napiNetworkVO == null) {
@@ -964,7 +963,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
 		
-		DeregisterNicInNetworkAPICommand cmd = new DeregisterNicInNetworkAPICommand();
+		UnregisterNicInNetworkAPICommand cmd = new UnregisterNicInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setNicDescription("eth" + nic.getDeviceId());
 		cmd.setVmName(vm.getUuid());

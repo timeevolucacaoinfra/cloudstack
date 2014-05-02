@@ -25,7 +25,7 @@ import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
-import com.globo.networkapi.commands.DeregisterNicInNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterNicInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
@@ -198,8 +198,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
 		} else if (cmd instanceof RegisterNicInNetworkAPICommand) {
 			return execute((RegisterNicInNetworkAPICommand) cmd);
-		} else if (cmd instanceof DeregisterNicInNetworkAPICommand) {
-			return execute((DeregisterNicInNetworkAPICommand) cmd);
+		} else if (cmd instanceof UnregisterNicInNetworkAPICommand) {
+			return execute((UnregisterNicInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -341,7 +341,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 
-	public Answer execute(DeregisterNicInNetworkAPICommand cmd) {
+	public Answer execute(UnregisterNicInNetworkAPICommand cmd) {
 		try {
 			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
 			if (equipment == null) {

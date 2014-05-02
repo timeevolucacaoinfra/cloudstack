@@ -13,7 +13,7 @@ public class RegisterNicInNetworkAPICommand extends Command {
 
 	@Override
 	public boolean executeInSequence() {
-		return false;
+		return true;
 	}
 
 	public String getNicIp() {
