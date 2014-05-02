@@ -345,17 +345,17 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		try {
 			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
 			if (equipment == null) {
-				s_logger.warn("VM was removed in NetworkAPI before be destroyed in Cloudstack. This is not a problem, but is a inconsistency: VM UUID " + cmd.getVmName());
+				s_logger.warn("VM was removed from Network API before being destroyed in Cloudstack. This is not critical, logging inconsistency: VM UUID " + cmd.getVmName());
 				return new Answer(cmd);
 			}
 			
 			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
 			if (ip == null) {
 				// Doesn't exist, ignore
-				s_logger.warn("IP was removed from NetworkAPI before be destroyed in Cloudstack. This is not a problem, but is a inconsistency: IP " + cmd.getNicIp());
+				s_logger.warn("IP was removed from NetworkAPI before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
 			} else {
 				ip = _napi.getIpAPI().getIpv4(ip.getId());
-				if (ip.getEquipamentos().isEmpty() || (ip.getEquipamentos().contains(cmd.getVmName().toUpperCase()) && ip.getEquipamentos().size() == 1)) {
+				if (ip.getEquipments().isEmpty() || (ip.getEquipments().contains(cmd.getVmName().toUpperCase()) && ip.getEquipments().size() == 1)) {
 					// this ip is only for this equipment.
 					_napi.getIpAPI().deleteIpv4(ip.getId());
 				} else {
