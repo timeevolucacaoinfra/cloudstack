@@ -361,7 +361,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			}
 			
 			// if there is no more ips in equipment, remove it.
-//			equipment.find_ips_by_equip			
+			List<Ip> ipList = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
+			if (ipList.size() == 0) {
+				_napi.getEquipmentAPI().delete(equipment.getId());
+			}
 			
 			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in Network API");
 		} catch (NetworkAPIException e) {
