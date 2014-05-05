@@ -63,7 +63,6 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private static final long NETWORK_TYPE = 6; // Rede invalida de equipamentos
 	
 	private static final Long EQUIPMENT_TYPE = 10L;
-	private static final Long EQUIPMENT_MODEL = 18L;
 	
 
 	@Override
@@ -310,7 +309,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			if (equipment == null) {
 				s_logger.info("Registering virtualmachine " + cmd.getVmName() + " in networkapi");
 				// Equipment (VM) does not exist, create it
-				equipment = _napi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, EQUIPMENT_MODEL, cmd.getEquipmentGroupId());
+				equipment = _napi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, cmd.getEquipmentModelId(), cmd.getEquipmentGroupId());
 			}
 			
 			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());

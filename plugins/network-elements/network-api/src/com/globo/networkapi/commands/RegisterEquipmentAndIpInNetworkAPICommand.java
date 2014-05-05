@@ -10,6 +10,7 @@ public class RegisterEquipmentAndIpInNetworkAPICommand extends Command {
 	private Long vlanId;
 	private Long environmentId;
 	private Long equipmentGroupId;
+	private Long equipmentModelId;
 
 	@Override
 	public boolean executeInSequence() {
@@ -39,7 +40,7 @@ public class RegisterEquipmentAndIpInNetworkAPICommand extends Command {
 	public void setVmName(String vmName) {
 		this.vmName = vmName;
 	}
-
+	
 	public Long getVlanId() {
 		return vlanId;
 	}
@@ -64,4 +65,11 @@ public class RegisterEquipmentAndIpInNetworkAPICommand extends Command {
 		this.equipmentGroupId = equipmentGroupId;
 	}
 
+	public Long getEquipmentModelId() {
+		return equipmentModelId;
+	}
+	
+	public void setEquipmentModelId(Long equipmentModelId) {
+		this.equipmentModelId = equipmentModelId;
+	}
 }
