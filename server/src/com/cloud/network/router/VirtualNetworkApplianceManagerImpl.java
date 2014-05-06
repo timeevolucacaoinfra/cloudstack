@@ -1539,9 +1539,9 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                     throw new CloudRuntimeException("Cannot find virtual router provider " + type.toString() + " as service provider " + provider.getId());
             }
 
-//                if (_networkModel.isNetworkSystem(guestNetwork) || guestNetwork.getGuestType() == Network.GuestType.Shared) {
-//                owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
-//            }
+                if (_networkModel.isNetworkSystem(guestNetwork) || guestNetwork.getGuestType() == Network.GuestType.Shared) {
+                owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
+            }
 
                 // Check if public network has to be set on VR
             boolean publicNetwork = false;

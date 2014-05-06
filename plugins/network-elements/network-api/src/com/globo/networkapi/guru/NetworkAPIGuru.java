@@ -22,7 +22,6 @@ import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetwork.IsolationMethod;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.guru.GuestNetworkGuru;
-import com.cloud.network.router.VirtualNetworkApplianceManager;
 import com.cloud.network.router.VirtualRouter;
 import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
 import com.cloud.offering.NetworkOffering;
@@ -46,7 +45,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
     @Inject 
     NetworkModel _networkModel;
     @Inject
-    VirtualNetworkApplianceManager _routerMgr;
+    VpcVirtualNetworkApplianceManager _routerMgr;
     @Inject
     AccountManager _accountMgr;
 
