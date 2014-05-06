@@ -1189,19 +1189,22 @@ var addNetworkAPINetworkDialog = {
                 if (isAdmin() || isDomainAdmin()) {
                     array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
                 } else if (isUser()) {
-                    array1.push("&domainId=" + args.data.domainId); // user's domain
                     array1.push("&acltype=account");
 
                     if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific for user
                         array1.push("&projectid=" + args.data.projectId);
                     } else { // account-specific for user
+                        array1.push("&domainId=" + args.data.domainId); // user's domain
                         array1.push("&account=" + args.context.users[0].account); // current user's account
                     }
                 }
             }
 
             $.ajax({
-                url: createURL("addNetworkViaNetworkApiCmd" + array1.join("")),
+                url: createURL("addNetworkViaNetworkApiCmd" + array1.join(""), {
+                    ignoreProject: true
+                }),
+                // url: createURL("addNetworkViaNetworkApiCmd" + array1.join("")),
                 dataType: "json",
                 success: function(json) {
                     var item = json.addnetworkapivlanresponse.network;

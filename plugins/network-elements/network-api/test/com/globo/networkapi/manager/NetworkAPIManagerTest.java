@@ -194,7 +194,7 @@ public class NetworkAPIManagerTest {
     		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
 
     		acct.setDomainId(domainId+1);
-        	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, null, null, domainId, null, true, null);
+        	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, acct.getAccountName(), null, domainId, null, true, null);
         	fail();
     	} catch (PermissionDeniedException e) {
     		verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));

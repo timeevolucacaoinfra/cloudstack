@@ -1,0 +1,10 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.vm.equipmentgroup', '', 'Equipment group to be used when registering a VM NIC in Network API');
+"""
+
+SQL_DOWN = u"""
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.vm.equipmentgroup';
+"""

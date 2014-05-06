@@ -25,16 +25,20 @@ import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
+import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
 import com.globo.networkapi.exception.NetworkAPIException;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
 import com.globo.networkapi.model.Environment;
+import com.globo.networkapi.model.Equipment;
 import com.globo.networkapi.model.IPv4Network;
+import com.globo.networkapi.model.Ip;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -57,6 +61,9 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	private static final Logger s_logger = Logger.getLogger(NetworkAPIResource.class);
 	
 	private static final long NETWORK_TYPE = 6; // Rede invalida de equipamentos
+	
+	private static final Long EQUIPMENT_TYPE = 10L;
+	
 
 	@Override
 	public boolean configure(String name, Map<String, Object> params)
@@ -188,6 +195,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((RemoveNetworkInNetworkAPICommand) cmd);
 		} else if (cmd instanceof DeallocateVlanFromNetworkAPICommand) {
 			return execute((DeallocateVlanFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof RegisterEquipmentAndIpInNetworkAPICommand) {
+			return execute((RegisterEquipmentAndIpInNetworkAPICommand) cmd);
+		} else if (cmd instanceof UnregisterEquipmentAndIpInNetworkAPICommand) {
+			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -292,6 +303,74 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
+	public Answer execute(RegisterEquipmentAndIpInNetworkAPICommand cmd) {
+		try {
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
+			if (equipment == null) {
+				s_logger.info("Registering virtualmachine " + cmd.getVmName() + " in networkapi");
+				// Equipment (VM) does not exist, create it
+				equipment = _napi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, cmd.getEquipmentModelId(), cmd.getEquipmentGroupId());
+			}
+			
+			Vlan vlan = _napi.getVlanAPI().getById(cmd.getVlanId());
+			
+			// Make sure this vlan has one IPv4 network associated to it
+			if (vlan.getIpv4Networks().size() == 0) {
+				return new Answer(cmd, false, "No IPv4 networks in this vlan");
+			} else if (vlan.getIpv4Networks().size() > 1) {
+				return new Answer(cmd, false, "Multiple IPv4 networks in this vlan");
+			}
+			Long networkId = vlan.getIpv4Networks().get(0).getId();
+			
+			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+			if (ip == null) {
+				// Doesn't exist, create it
+				ip = _napi.getIpAPI().saveIpv4(cmd.getNicIp(), equipment.getId(), cmd.getNicDescription(), networkId);
+			} else {
+				ip = _napi.getIpAPI().getIpv4(ip.getId());
+				if (!ip.getEquipments().contains(cmd.getVmName())) {
+					_napi.getIpAPI().assocIpv4(ip.getId(), equipment.getId(), networkId);
+				}
+			}
+			
+			if (ip == null) {
+				return new Answer(cmd, false, "Could not register NIC in Network API");
+			}
+			
+			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " registered successfully in Network API");
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+
+	public Answer execute(UnregisterEquipmentAndIpInNetworkAPICommand cmd) {
+		try {
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getVmName());
+			if (equipment == null) {
+				s_logger.warn("VM was removed from Network API before being destroyed in Cloudstack. This is not critical, logging inconsistency: VM UUID " + cmd.getVmName());
+				return new Answer(cmd);
+			}
+			
+			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+			if (ip == null) {
+				// Doesn't exist, ignore
+				s_logger.warn("IP was removed from NetworkAPI before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
+			} else {
+				_napi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
+			}
+			
+			// if there is no more ips in equipment, remove it.
+			List<Ip> ipList = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
+			if (ipList.size() == 0) {
+				_napi.getEquipmentAPI().delete(equipment.getId());
+			}
+			
+			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in Network API");
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+
 	private Answer createResponse(Vlan vlan, Command cmd) {
 		
 		if (vlan.getIpv4Networks().isEmpty()) {

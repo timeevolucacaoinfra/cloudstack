@@ -1,0 +1,8 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	ALTER TABLE `cloud`.`networkapi_network_ref` MODIFY COLUMN napi_environment_id BIGINT UNSIGNED NOT NULL COMMENT 'Network API environment id';
+"""
+
+SQL_DOWN = u"""
+	ALTER TABLE `cloud`.`networkapi_network_ref` MODIFY COLUMN napi_environment_id BIGINT UNSIGNED COMMENT 'Network API environment id';
+"""

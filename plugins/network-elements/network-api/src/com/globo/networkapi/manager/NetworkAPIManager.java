@@ -89,7 +89,9 @@ import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
+import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
@@ -906,5 +908,110 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		vlan.setDescription(response.getVlanDescription());
 		
 		return vlan;
+	}
+	
+	@Override
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
+		
+		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
+		if (vm == null || nic == null) {
+			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
+		}
+		
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
+		if (napiNetworkVO == null) {
+			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
+		}
+		
+		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVmEquipmentGroup.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		if (equipmentGroup == null) {
+			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
+		}
+
+		String equipmentModel = null;
+		switch(vm.getType()) {
+			case User:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmUser.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case DomainRouter:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmDomainRouter.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case ConsoleProxy:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmConsoleProxy.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case SecondaryStorageVm:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmSecondaryStorageVm.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case ElasticIpVm:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmElasticIpVm.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case ElasticLoadBalancerVm:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmElasticLoadBalancerVm.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case InternalLoadBalancerVm:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmInternalLoadBalancerVm.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+			case UserBareMetal:
+				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmUserBareMetal.key(),
+						Config.ConfigurationParameterScope.global.name(), null);
+				break;
+		}
+		if (equipmentModel == null) {
+			throw new CloudRuntimeException(msg + " Invalid equipment model for VM of type " + vm.getType() + ". Check your Network API global options.");
+		}
+		
+		RegisterEquipmentAndIpInNetworkAPICommand cmd = new RegisterEquipmentAndIpInNetworkAPICommand();
+		cmd.setNicIp(nic.getIp4Address());
+		cmd.setNicDescription("eth" + nic.getDeviceId());
+		cmd.setVmName(vm.getUuid());
+		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
+		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
+		cmd.setEquipmentModelId(Long.valueOf(equipmentModel));
+		
+		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+	}
+
+	@Override
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
+		
+		String msg = "Unable to unregister nic " + nic + " from VM " + vm + ".";
+		if (vm == null || nic == null) {
+			throw new CloudRuntimeException(msg + " Invalid nic or virtual machine.");
+		}
+		
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
+		if (napiNetworkVO == null) {
+			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
+		}
+		
+		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVmEquipmentGroup.key(),
+				Config.ConfigurationParameterScope.global.name(), null);
+		if (equipmentGroup == null) {
+			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
+		}
+		
+		UnregisterEquipmentAndIpInNetworkAPICommand cmd = new UnregisterEquipmentAndIpInNetworkAPICommand();
+		cmd.setNicIp(nic.getIp4Address());
+		cmd.setVmName(vm.getUuid());
+		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+		
+		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
 	}
 }
