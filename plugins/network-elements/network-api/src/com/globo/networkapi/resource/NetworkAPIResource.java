@@ -270,6 +270,10 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				_napi.getVipAPI().validate(cmd.getVipId());
 			}
 			
+			if (!vip.getCreated()) {
+				_napi.getVipAPI().create(cmd.getVipId());
+			}
+			
 			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
