@@ -40,6 +40,7 @@ import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.Equipment;
 import com.globo.networkapi.model.IPv4Network;
 import com.globo.networkapi.model.Ip;
+import com.globo.networkapi.model.Real.RealIP;
 import com.globo.networkapi.model.Vip;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
@@ -249,13 +250,26 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	public Answer execute(ValidateVipInNetworkAPICommand cmd) {
 		try {
 			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
-			if (vip == null || vip.getId() != cmd.getVipId()) {
+			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
 				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
 			}
 			
-			// FIXME Include other checks, such as IP range for reals
+			String msg = "Some reals are not in range of network " + cmd.getNetworkCidr() + ": ";
+			boolean problemWithReals = false;
+			for (RealIP real : vip.getReals().getRealIps()) {
+				if (!NetUtils.isIpWithtInCidrRange(real.getRealIp(), cmd.getNetworkCidr())) {
+					msg += real.getRealIp() + ",";
+					problemWithReals = true;
+				}
+			}
+			if (problemWithReals) {
+				return new Answer(cmd, false, msg.substring(0, msg.length() - 1));
+			}
 			
-			_napi.getVipAPI().validate(cmd.getVipId());
+			if (!vip.getValidated()) {
+				_napi.getVipAPI().validate(cmd.getVipId());
+			}
+			
 			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);

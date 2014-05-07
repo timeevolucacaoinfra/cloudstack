@@ -1050,6 +1050,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		ValidateVipInNetworkAPICommand cmd = new ValidateVipInNetworkAPICommand();
 		cmd.setVipId(napiVipId);
+		cmd.setNetworkCidr(network.getCidr());
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
 		String msg = "Could not validate VIP id with Network API";
 		if (answer == null || !answer.getResult()) {
