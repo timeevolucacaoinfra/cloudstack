@@ -95,6 +95,7 @@ import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.dao.NetworkAPIVipAccDao;
@@ -1025,9 +1026,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	public NetworkAPIVipAccVO addNapiVipToAcc(Long napiVipId, Long accountId,
 			Long networkId) {
 		
-		// FIXME check if VIP exists in NetworkAPI
-		
-		// validate network and account
 		Account account = null;
 		if (accountId != null) {
 			account = _accountMgr.getAccount(accountId);
@@ -1048,6 +1046,15 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 		} else {
 			throw new InvalidParameterValueException("Invalid networkId: " + networkId);
+		}
+		
+		ValidateVipInNetworkAPICommand cmd = new ValidateVipInNetworkAPICommand();
+		cmd.setVipId(napiVipId);
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		String msg = "Could not validate VIP id with Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
 		}
 		
 		Transaction txn = Transaction.currentTxn();

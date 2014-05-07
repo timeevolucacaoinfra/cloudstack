@@ -25,13 +25,14 @@ import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
-import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
 import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
 import com.globo.networkapi.exception.NetworkAPIException;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
@@ -39,6 +40,7 @@ import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.Equipment;
 import com.globo.networkapi.model.IPv4Network;
 import com.globo.networkapi.model.Ip;
+import com.globo.networkapi.model.Vip;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
@@ -199,6 +201,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((RegisterEquipmentAndIpInNetworkAPICommand) cmd);
 		} else if (cmd instanceof UnregisterEquipmentAndIpInNetworkAPICommand) {
 			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
+		} else if (cmd instanceof ValidateVipInNetworkAPICommand) {
+			return execute((ValidateVipInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -236,6 +240,22 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
 				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
 			}
+			return new Answer(cmd);
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+
+	public Answer execute(ValidateVipInNetworkAPICommand cmd) {
+		try {
+			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
+			if (vip == null || vip.getId() != cmd.getVipId()) {
+				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
+			}
+			
+			// FIXME Include other checks, such as IP range for reals
+			
+			_napi.getVipAPI().validate(cmd.getVipId());
 			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
