@@ -23,8 +23,10 @@ import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
+import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
+import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
@@ -204,10 +206,14 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
 		} else if (cmd instanceof ValidateVipInNetworkAPICommand) {
 			return execute((ValidateVipInNetworkAPICommand) cmd);
+		} else if (cmd instanceof AddAndEnableRealInNetworkAPICommand) {
+			return execute((AddAndEnableRealInNetworkAPICommand) cmd);
+		} else if (cmd instanceof DisableAndRemoveRealInNetworkAPICommand) {
+			return execute((DisableAndRemoveRealInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
-	
+
 	private Answer handleNetworkAPIException(Command cmd, NetworkAPIException e) {
 		if (e instanceof NetworkAPIErrorCodeException) {
 			NetworkAPIErrorCodeException ex = (NetworkAPIErrorCodeException) e;
@@ -275,6 +281,45 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			}
 			
 			return new Answer(cmd);
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+	
+	private Answer execute(AddAndEnableRealInNetworkAPICommand cmd) {
+		try {
+			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getIp(), cmd.getNapiEnvironmentId());
+			if (ip == null) {
+				// IP doesn't exist in this environment
+				// FIXME Create on the fly?
+				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
+			}
+			
+			_napi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			
+			_napi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			
+			return new Answer(cmd, true, "Real added and enabled successfully");
+			
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+	
+	private Answer execute(DisableAndRemoveRealInNetworkAPICommand cmd) {
+		try {
+			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getIp(), cmd.getNapiEnvironmentId());
+			if (ip == null) {
+				// IP doesn't exist in this environment
+				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
+			}
+			
+			_napi.getVipAPI().disableReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			
+			_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			
+			return new Answer(cmd, true, "Real disabled and removed successfully");
+			
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
 		}
