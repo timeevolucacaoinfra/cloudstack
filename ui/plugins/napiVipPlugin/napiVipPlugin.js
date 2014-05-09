@@ -25,12 +25,11 @@
 
       // Render page as a list view
       listView: {
-        id: 'instances',
+        id: 'vips',
         fields: {
-          name: { label: 'label.name' },
-          instancename: { label: 'label.internal.name' },
-          displayname: { label: 'label.display.name' },
-          zonename: { label: 'label.zone.name' }
+          id: { label: 'Id'},
+          host: { label: 'Host' },
+          ip: { label: 'IP' },
         },
         actions: {
           // The key/ID you specify here will determine what icon is
@@ -58,7 +57,7 @@
               //    listView.id, specified above;
               //    always make sure you specify an 'id' for the listView,
               //     or else it will be 'undefined!'
-              var instance = args.context.testPluginInstances[0];
+              var instance = args.context.instances[0];
 
               plugin.ui.apiCall('rebootVirtualMachine', {
                 // These will be appended to the API request
@@ -107,9 +106,9 @@
           // args.response.success({ data: [data array] });
           plugin.ui.apiCall('listVirtualMachines', {
             success: function(json) {
-              var vms = json.listvirtualmachinesresponse.virtualmachine;
+              var vips = [{"id": "001", "host": "TESTEVIP1.GLOBO.COM", "ip": "10.0.0.1"}, {"id": "002", "host": "TESTEVIP2.GLOBO.COM", "ip": "10.0.0.2"}];
 
-              args.response.success({ data: vms });
+              args.response.success({ data: vips });
             },
             error: function(errorMessage) {
               args.response.error(errorMessage)
