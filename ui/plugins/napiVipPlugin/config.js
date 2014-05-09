@@ -14,8 +14,12 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-(function($, cloudStack) {
-  cloudStack.plugins = [
-    'napiVipPlugin'
-  ];
-}(jQuery, cloudStack));
+(function (cloudStack) {
+  cloudStack.plugins.napiVipPlugin.config = {
+    title: 'Network API VIPs',
+    desc: 'Manager for VIPs in Network API',
+    externalLink: '',
+    authorName: 'Globo.com',
+    authorEmail: ''
+  };
+}(cloudStack));
