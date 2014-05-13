@@ -36,7 +36,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.UserContext;
 import com.globo.networkapi.manager.NetworkAPIService;
-import com.globo.networkapi.model.Environment;
+import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 import com.globo.networkapi.response.NetworkAPIEnvironmentExternalResponse;
 
 @APICommand(name = "listAllEnvironmentsFromNetworkApi", responseObject=NetworkAPIEnvironmentExternalResponse.class, description="Lists all environments from NetworkAPI")

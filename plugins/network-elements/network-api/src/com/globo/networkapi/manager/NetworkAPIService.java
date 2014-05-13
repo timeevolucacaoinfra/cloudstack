@@ -19,8 +19,8 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
-import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.Vlan;
+import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 
 public interface NetworkAPIService {
 
