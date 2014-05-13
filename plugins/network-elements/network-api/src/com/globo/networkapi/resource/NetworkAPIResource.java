@@ -256,16 +256,17 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			
 			String msg = "Some reals are not in range of network " + cmd.getNetworkCidr() + ": ";
 			boolean problemWithReals = false;
-			if (vip.getReals() == null || vip.getReals().getRealIps() == null || vip.getReals().getRealIps().isEmpty()) {
-				return new Answer(cmd, false, "You must associate reals prior add vip to cloudstack");
-			}
-
-			for (RealIP real : vip.getReals().getRealIps()) {
-				if (!NetUtils.isIpWithtInCidrRange(real.getRealIp(), cmd.getNetworkCidr())) {
-					msg += real.getRealIp() + ",";
-					problemWithReals = true;
+			
+			if (vip.getReals() != null) {
+				// Validate reals if and only if vip already has reals associated to it
+				for (RealIP real : vip.getReals().getRealIps()) {
+					if (!NetUtils.isIpWithtInCidrRange(real.getRealIp(), cmd.getNetworkCidr())) {
+						msg += real.getRealIp() + ",";
+						problemWithReals = true;
+					}
 				}
 			}
+			
 			if (problemWithReals) {
 				return new Answer(cmd, false, msg.substring(0, msg.length() - 1));
 			}
