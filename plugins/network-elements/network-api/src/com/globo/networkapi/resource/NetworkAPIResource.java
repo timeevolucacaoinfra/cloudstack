@@ -1,5 +1,6 @@
 package com.globo.networkapi.resource;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -276,7 +277,17 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	public Answer execute(ListAllEnvironmentsFromNetworkAPICommand cmd) {
 		try {
-			List<Environment> environmentList = _napi.getEnvironmentAPI().listAll();
+			List<Environment> apiEnvironmentList = _napi.getEnvironmentAPI().listAll();
+			
+			List<NetworkAPIAllEnvironmentResponse.Environment> environmentList = new ArrayList<NetworkAPIAllEnvironmentResponse.Environment>(apiEnvironmentList.size());
+			for (Environment apiEnvironment : apiEnvironmentList) {
+				NetworkAPIAllEnvironmentResponse.Environment environment = new NetworkAPIAllEnvironmentResponse.Environment();
+				environment.setId(apiEnvironment.getId());
+				environment.setDcDivisionName(apiEnvironment.getDcDivisionName());
+				environment.setL3GroupName(apiEnvironment.getL3GroupName());
+				environment.setLogicalEnvironmentName(apiEnvironment.getLogicalEnvironmentName());
+				environmentList.add(environment);
+			}
 			
 			return new NetworkAPIAllEnvironmentResponse(cmd, environmentList);
 		} catch (NetworkAPIException e) {
