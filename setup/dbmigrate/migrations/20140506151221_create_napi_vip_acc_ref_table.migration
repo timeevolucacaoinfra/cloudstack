@@ -1,0 +1,22 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	CREATE TABLE `cloud`.`networkapi_vip_acc_ref` (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT, 
+		napi_vip_id BIGINT UNSIGNED NOT NULL,
+		account_id BIGINT UNSIGNED NOT NULL,
+		network_id BIGINT UNSIGNED NOT NULL, 
+		PRIMARY KEY (id), 
+		INDEX networkapi_vip_acc_ref_ix1 (napi_vip_id), 
+		INDEX networkapi_vip_acc_ref_fk2 (account_id), 
+		INDEX networkapi_vip_acc_ref_fk3 (network_id)) 
+	ENGINE=InnoDB 
+	DEFAULT CHARSET=utf8;
+
+	ALTER TABLE `cloud`.`networkapi_vip_acc_ref` ADD CONSTRAINT networkapi_vip_acc_ref_fk2 FOREIGN KEY (account_id) 
+		REFERENCES `cloud`.`account` (id) ON DELETE CASCADE ON UPDATE CASCADE;
+	ALTER TABLE `cloud`.`networkapi_vip_acc_ref` ADD CONSTRAINT networkapi_vip_acc_ref_fk3 FOREIGN KEY (network_id) 
+		REFERENCES `cloud`.`networks` (id) ON DELETE CASCADE ON UPDATE CASCADE;
+"""
+
+SQL_DOWN = u"""
+	DROP TABLE `cloud`.`networkapi_vip_acc_ref`;
+"""

@@ -76,7 +76,9 @@ import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
+import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.api.AddNetworkAPIEnvironmentCmd;
+import com.globo.networkapi.api.AddNetworkAPIVipToAccountCmd;
 import com.globo.networkapi.api.AddNetworkApiHostCmd;
 import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
@@ -93,8 +95,10 @@ import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
+import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
+import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.exception.CloudstackNetworkAPIException;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.resource.NetworkAPIResource;
@@ -133,6 +137,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	NetworkAPINetworkDao _napiNetworkDao;
 	@Inject
 	NetworkAPIEnvironmentDao _napiEnvironmentDao;
+	@Inject
+	NetworkAPIVipAccDao _napiVipAccDao;
 	
 	// Managers
 	@Inject
@@ -718,6 +724,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(ListAllEnvironmentsFromNetworkApiCmd.class);
 		cmdList.add(RemoveNetworkAPIEnvironmentCmd.class);
 		cmdList.add(AddNetworkApiHostCmd.class);
+		cmdList.add(AddNetworkAPIVipToAccountCmd.class);
 		return cmdList;
 	}
 	
@@ -1013,5 +1020,58 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
 		}
+	}
+
+	@Override
+	public NetworkAPIVipAccVO addNapiVipToAcc(Long napiVipId, Long accountId,
+			Long networkId) {
+		
+		Account account = null;
+		if (accountId != null) {
+			account = _accountMgr.getAccount(accountId);
+			if (account == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find an account having the specified account id");
+			}
+		} else {
+			throw new InvalidParameterValueException("Invalid accountId: " + accountId);
+		}
+		
+		Network network = null;
+		if (networkId != null) {
+			network = _ntwkDao.findById(networkId);
+			if (network == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find a network having the specified network id");
+			}
+		} else {
+			throw new InvalidParameterValueException("Invalid networkId: " + networkId);
+		}
+		
+		ValidateVipInNetworkAPICommand cmd = new ValidateVipInNetworkAPICommand();
+		cmd.setVipId(napiVipId);
+		cmd.setNetworkCidr(network.getCidr());
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		String msg = "Could not validate VIP id with Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+		
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+		NetworkAPIVipAccVO napiVipAcc = _napiVipAccDao.findNetworkAPIVipAcct(napiVipId, accountId, networkId);
+		if (napiVipAcc != null) {
+			// Already exists, continue
+			s_logger.info("Association between VIP " + napiVipId + ", account " + accountId + " and network " + networkId + " already exists");
+		} else {
+			napiVipAcc = new NetworkAPIVipAccVO(napiVipId, accountId, networkId);
+			_napiVipAccDao.persist(napiVipAcc);
+		}
+
+	    txn.commit();
+	    return napiVipAcc;
+
 	}
 }

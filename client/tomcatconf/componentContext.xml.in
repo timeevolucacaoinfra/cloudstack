@@ -71,6 +71,7 @@
   </bean>
   <bean id="NetworkAPINetworkDao" class="com.globo.networkapi.dao.NetworkAPINetworkDaoImpl" />
   <bean id="NetworkAPIEnvironmentDao" class="com.globo.networkapi.dao.NetworkAPIEnvironmentDaoImpl" />
+  <bean id="NetworkAPIVipAccDao" class="com.globo.networkapi.dao.NetworkAPIVipAccDaoImpl" />
 
   <!--
     Nicira support components

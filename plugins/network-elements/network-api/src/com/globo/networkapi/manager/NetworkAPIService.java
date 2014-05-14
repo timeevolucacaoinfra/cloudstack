@@ -19,6 +19,7 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
+import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 
@@ -163,11 +164,22 @@ public interface NetworkAPIService {
 	 * Register VM NIC in Network API
 	 * @param nic
 	 * @param vm
-	 * @param network
-	 * @return
 	 */
 	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
 
-	void unregisterNicInNetworkAPI(NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm);
+	/**
+	 * Unregister NIC in Network API
+	 * @param nic
+	 * @param vm
+	 */
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
+	
+	/**
+	 * Associate Network API VIP to an account and network in Cloudstack
+	 * @param networkId
+	 * @param accountId
+	 * @param napiVipId
+	 * @return
+	 */
+	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long accountId, Long napiVipId);
 }
