@@ -15,6 +15,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.Network;
+import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
@@ -182,4 +183,11 @@ public interface NetworkAPIService {
 	 * @return
 	 */
 	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long accountId, Long napiVipId);
+	
+	/**
+	 * Associate nic (real) to NetworkAPI Vip.
+	 * @param vipId
+	 * @param nicId
+	 */
+	public void addNicToVip(Long vipId, Nic nic);
 }

@@ -47,7 +47,7 @@ public class AddNetworkAPIVipToAccountCmd extends BaseCmd {
     @Inject
     NetworkAPIService _ntwkAPIService;
     
-    @Parameter(name="vipid", type=CommandType.LONG, required = true, description="NetworkAPI VIP ID.")
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = true, description="NetworkAPI VIP ID.")
     private Long napiVipId;
     
     @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID to be associated to VIP")

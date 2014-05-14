@@ -294,18 +294,25 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	public Answer execute(AddAndEnableRealInNetworkAPICommand cmd) {
 		try {
-			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getIp(), cmd.getNapiEnvironmentId());
-			if (ip == null) {
-				// IP doesn't exist in this environment
-				// FIXME Create on the fly?
-				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
-			}
-			
 			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getEquipName());
 			if (equipment == null) {
 				// Equipment doesn't exist
 				// FIXME Create on the fly?
 				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
+			}
+			
+			List<Ip> ips = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
+			Ip ip = null;
+			for (Ip equipIp: ips) {
+				String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
+				if (equipIpString.equals(cmd.getIp())) {
+					ip = equipIp;
+				}
+			}
+			
+			if (ip == null) {
+				// FIXME Create on the fly?
+				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
 			}
 			
 			_napi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);

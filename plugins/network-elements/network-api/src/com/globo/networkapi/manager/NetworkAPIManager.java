@@ -72,8 +72,10 @@ import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
+import com.cloud.vm.UserVmVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
@@ -86,6 +88,7 @@ import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
+import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
@@ -159,6 +162,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	ConfigurationServer _configServer;
 	@Inject
 	NetworkService _ntwSvc;
+	@Inject
+	UserVmDao _vmDao;
 	
 	@Override
 	public boolean canEnable(Long physicalNetworkId) {
@@ -1072,6 +1077,23 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	    txn.commit();
 	    return napiVipAcc;
+	}
 
+	@Override
+	public void addNicToVip(Long vipId, Nic nic) {
+		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
+		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
+		if (vm == null) {
+			throw new CloudRuntimeException("Doesn't exists VM that belongs to nic " + nic);
+		}
+		cmd.setEquipId(vm.getUuid());
+		cmd.setIp(nic.getIp4Address());
+		cmd.setVipId(vipId);
+		Network network = _ntwkDao.findById(nic.getNetworkId());
+		Answer answer = callCommand(cmd, network.getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			throw new CloudRuntimeException("Error associating nic " + nic +
+					" to vip " + vipId + ": " + (answer == null ? null : answer.getDetails()));
+		}
 	}
 }

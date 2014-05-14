@@ -6,8 +6,6 @@ public class AddAndEnableRealInNetworkAPICommand extends Command {
 	
 	private String ip;
 	
-	private Long napiEnvironmentId;
-	
 	private Long vipId;
 	
 	private String equipName;
@@ -25,14 +23,6 @@ public class AddAndEnableRealInNetworkAPICommand extends Command {
 		this.ip = ip;
 	}
 	
-	public Long getNapiEnvironmentId() {
-		return napiEnvironmentId;
-	}
-	
-	public void setNapiEnvironmentId(Long napiEnvironmentId) {
-		this.napiEnvironmentId = napiEnvironmentId;
-	}
-
 	public Long getVipId() {
 		return vipId;
 	}
