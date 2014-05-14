@@ -100,10 +100,10 @@ import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.exception.CloudstackNetworkAPIException;
-import com.globo.networkapi.model.Environment;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
+import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
