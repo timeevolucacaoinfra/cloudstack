@@ -10,11 +10,7 @@ public class AddAndEnableRealInNetworkAPICommand extends Command {
 	
 	private Long vipId;
 	
-	private Long equipId;
-	
-	private Integer vipPort;
-	
-	private Integer realPort;
+	private String equipName;
 		
 	@Override
 	public boolean executeInSequence() {
@@ -45,27 +41,11 @@ public class AddAndEnableRealInNetworkAPICommand extends Command {
 		this.vipId = vipId;
 	}
 
-	public Long getEquipId() {
-		return equipId;
+	public String getEquipName() {
+		return equipName;
 	}
 
-	public void setEquipId(Long equipId) {
-		this.equipId = equipId;
-	}
-
-	public Integer getVipPort() {
-		return vipPort;
-	}
-
-	public void setVipPort(Integer vipPort) {
-		this.vipPort = vipPort;
-	}
-
-	public Integer getRealPort() {
-		return realPort;
-	}
-
-	public void setRealPort(Integer realPort) {
-		this.realPort = realPort;
+	public void setEquipId(String equipName) {
+		this.equipName = equipName;
 	}
 }

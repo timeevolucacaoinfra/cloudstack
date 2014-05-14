@@ -292,7 +292,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	private Answer execute(AddAndEnableRealInNetworkAPICommand cmd) {
+	public Answer execute(AddAndEnableRealInNetworkAPICommand cmd) {
 		try {
 			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getIp(), cmd.getNapiEnvironmentId());
 			if (ip == null) {
@@ -301,9 +301,16 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
 			}
 			
-			_napi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getEquipName());
+			if (equipment == null) {
+				// Equipment doesn't exist
+				// FIXME Create on the fly?
+				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
+			}
 			
-			_napi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			_napi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+			
+			_napi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
 			
 			return new Answer(cmd, true, "Real added and enabled successfully");
 			
@@ -312,17 +319,24 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	private Answer execute(DisableAndRemoveRealInNetworkAPICommand cmd) {
+	public Answer execute(DisableAndRemoveRealInNetworkAPICommand cmd) {
 		try {
 			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getIp(), cmd.getNapiEnvironmentId());
 			if (ip == null) {
 				// IP doesn't exist in this environment
 				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
 			}
+
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getEquipName());
+			if (equipment == null) {
+				// Equipment doesn't exist
+				// FIXME Create on the fly?
+				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
+			}
+
+			_napi.getVipAPI().disableReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
 			
-			_napi.getVipAPI().disableReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
-			
-			_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), cmd.getEquipId(), cmd.getVipPort(), cmd.getRealPort());
+			_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
 			
 			return new Answer(cmd, true, "Real disabled and removed successfully");
 			
