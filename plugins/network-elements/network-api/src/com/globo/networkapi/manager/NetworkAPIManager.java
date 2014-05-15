@@ -82,6 +82,7 @@ import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.api.AddNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.api.AddNetworkAPIVipToAccountCmd;
 import com.globo.networkapi.api.AddNetworkApiHostCmd;
+import com.globo.networkapi.api.AddNetworkApiRealToVipCmd;
 import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
 import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
@@ -730,6 +731,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(RemoveNetworkAPIEnvironmentCmd.class);
 		cmdList.add(AddNetworkApiHostCmd.class);
 		cmdList.add(AddNetworkAPIVipToAccountCmd.class);
+		cmdList.add(AddNetworkApiRealToVipCmd.class);
 		return cmdList;
 	}
 	
@@ -1084,9 +1086,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
 		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
 		if (vm == null) {
-			throw new CloudRuntimeException("Doesn't exists VM that belongs to nic " + nic);
+			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
 		}
-		cmd.setEquipId(vm.getUuid());
+		cmd.setEquipName(vm.getUuid());
 		cmd.setIp(nic.getIp4Address());
 		cmd.setVipId(vipId);
 		Network network = _ntwkDao.findById(nic.getNetworkId());

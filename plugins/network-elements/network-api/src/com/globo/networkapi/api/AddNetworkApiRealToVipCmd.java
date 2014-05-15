@@ -23,9 +23,9 @@ import com.cloud.vm.Nic;
 import com.globo.networkapi.manager.NetworkAPIService;
 
 @APICommand(name = "addNetworkApiRealToVip", responseObject=SuccessResponse.class, description="Associates a nic (real) to one specific VIP")
-public class AddNetworkApiRealToVip extends BaseCmd {
+public class AddNetworkApiRealToVipCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(AddNetworkApiRealToVip.class.getName());
+    public static final Logger s_logger = Logger.getLogger(AddNetworkApiRealToVipCmd.class.getName());
     private static final String s_name = "addnetworkapirealtovip";
     
     @Inject
@@ -50,7 +50,7 @@ public class AddNetworkApiRealToVip extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkApiRealToVip command with napiVipId=" + vipId + " nicId=" + this.nicId);
+        	s_logger.debug("addNetworkApiRealToVip command with napiVipId=" + this.vipId + " nicId=" + this.nicId);
         	_ntwkAPIService.addNicToVip(this.vipId, this.getNic());
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());

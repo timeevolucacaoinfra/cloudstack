@@ -35,7 +35,7 @@ public class AddAndEnableRealInNetworkAPICommand extends Command {
 		return equipName;
 	}
 
-	public void setEquipId(String equipName) {
+	public void setEquipName(String equipName) {
 		this.equipName = equipName;
 	}
 }
