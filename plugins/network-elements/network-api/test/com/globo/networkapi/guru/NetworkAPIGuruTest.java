@@ -36,6 +36,7 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
 import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
@@ -45,7 +46,6 @@ import com.cloud.user.UserContextInitializer;
 import com.cloud.user.UserVO;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.dao.NicDao;
-import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.manager.NetworkAPIService;
 
 
@@ -136,8 +136,8 @@ public class NetworkAPIGuruTest {
     		return mock(PhysicalNetworkDao.class);
     	}
     	@Bean
-    	public NetworkAPIVipAccDao networkAPIVipAccDao() {
-    		return mock(NetworkAPIVipAccDao.class);
+    	public VpcVirtualNetworkApplianceManager vpcVirtualNetworkApplianceManager() {
+    		return mock(VpcVirtualNetworkApplianceManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {

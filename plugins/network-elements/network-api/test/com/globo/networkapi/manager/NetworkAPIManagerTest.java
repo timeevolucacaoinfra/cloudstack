@@ -87,6 +87,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
+import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -305,6 +306,10 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public NetworkAPIEnvironmentDao networkAPIEnvironmentDao() {
     		return mock(NetworkAPIEnvironmentDao.class);
+    	}
+    	@Bean
+    	public NetworkAPIVipAccDao networkAPIVipAccDao() {
+    		return mock(NetworkAPIVipAccDao.class);
     	}
     	@Bean
     	public NetworkModel networkModel() {
