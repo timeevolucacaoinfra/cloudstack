@@ -35,7 +35,7 @@ case "$1" in
     if [[ $? -eq 0 ]]; then
       if [[ -d /mnt/root/repository/centos64/x86_64 ]];then 
           echo -n "Copying files /root/cloudstack/dist/rpmbuild/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm to /mnt/root/repository/centos64/x86_64..."
-          cp /root/cloudstack/dist/rpmbuild/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm /mnt/root/repository/centos64/x86_64/
+          mv /root/cloudstack/dist/rpmbuild/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm /mnt/root/repository/centos64/x86_64/
           echo "done"
           createrepo -v /mnt/root/repository/centos64/x86_64
       else
