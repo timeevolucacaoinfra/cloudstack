@@ -1,7 +1,6 @@
 package com.globo.networkapi.guru;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 
@@ -37,6 +36,7 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
 import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
@@ -134,6 +134,10 @@ public class NetworkAPIGuruTest {
     	@Bean
     	public PhysicalNetworkDao physicalNetworkDao() {
     		return mock(PhysicalNetworkDao.class);
+    	}
+    	@Bean
+    	public VpcVirtualNetworkApplianceManager vpcVirtualNetworkApplianceManager() {
+    		return mock(VpcVirtualNetworkApplianceManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {
