@@ -182,12 +182,19 @@ public interface NetworkAPIService {
 	 * @param napiVipId
 	 * @return
 	 */
-	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long accountId, Long napiVipId);
+	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long napiVipId);
 	
 	/**
 	 * Associate nic (real) to NetworkAPI Vip.
 	 * @param vipId
 	 * @param nicId
 	 */
-	public void addNicToVip(Long vipId, Nic nic);
+	public void associateNicToVip(Long vipId, Nic nic);
+
+	/**
+	 * Deassociate nic (real) from NetworkAPI Vip.
+	 * @param vipId
+	 * @param nicId
+	 */
+	public void disassociateNicFromVip(Long vipId, Nic nic);
 }

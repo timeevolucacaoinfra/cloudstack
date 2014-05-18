@@ -22,11 +22,11 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.Nic;
 import com.globo.networkapi.manager.NetworkAPIService;
 
-@APICommand(name = "associateNetworkApiRealToVip", responseObject=SuccessResponse.class, description="Associates a nic (real) to one specific VIP")
-public class AddNetworkApiRealToVipCmd extends BaseCmd {
+@APICommand(name = "disassociateNetworkApiRealFromVip", responseObject=SuccessResponse.class, description="Disassociates a nic (real) from one specific VIP")
+public class DelNetworkApiRealFromVipCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(AddNetworkApiRealToVipCmd.class.getName());
-    private static final String s_name = "associatenetworkapirealtovip";
+    public static final Logger s_logger = Logger.getLogger(DelNetworkApiRealFromVipCmd.class.getName());
+    private static final String s_name = "disassociatenetworkapirealfromvip";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
@@ -50,8 +50,8 @@ public class AddNetworkApiRealToVipCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("associateNetworkApiRealToVip command with napiVipId=" + this.vipId + " nicId=" + this.nicId);
-        	_ntwkAPIService.associateNicToVip(this.vipId, this.getNic());
+        	s_logger.debug("disassociateNetworkApiRealFromVip command with napiVipId=" + this.vipId + " nicId=" + this.nicId);
+        	_ntwkAPIService.disassociateNicFromVip(this.vipId, this.getNic());
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess(true);
