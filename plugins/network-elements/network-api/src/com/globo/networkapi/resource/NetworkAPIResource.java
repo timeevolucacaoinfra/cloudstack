@@ -8,6 +8,7 @@ import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.util.StringUtils;
 import com.cloud.agent.IAgentControl;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
@@ -28,6 +29,7 @@ import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
+import com.globo.networkapi.commands.ListVipsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -45,6 +47,7 @@ import com.globo.networkapi.model.Real.RealIP;
 import com.globo.networkapi.model.Vip;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
+import com.globo.networkapi.response.NetworkAPIVipsResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
@@ -205,6 +208,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
 		} else if (cmd instanceof ValidateVipInNetworkAPICommand) {
 			return execute((ValidateVipInNetworkAPICommand) cmd);
+		} else if (cmd instanceof ListVipsFromNetworkAPICommand) {
+			return execute((ListVipsFromNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -424,6 +429,31 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return handleNetworkAPIException(cmd, e);
 		}
 	}
+	
+	public Answer execute(ListVipsFromNetworkAPICommand cmd) {
+		try {
+			List<Long> napiVipIds = cmd.getNapiVipIds();
+			List<Vip> napiVips = new ArrayList<Vip>();
+			for (Long vipId : napiVipIds) {
+				napiVips.add(_napi.getVipAPI().getById(vipId));
+			}
+			
+			List<NetworkAPIVipsResponse.Vip> vipsList = new ArrayList<NetworkAPIVipsResponse.Vip>(napiVips.size());
+			for (Vip vip : napiVips) {
+				NetworkAPIVipsResponse.Vip vipResponse = new NetworkAPIVipsResponse.Vip();
+				vipResponse.setId(vip.getId());
+				vipResponse.setName(vip.getHost());
+				vipResponse.setIp(vip.getIps().toString());
+				// FIXME Other attributes
+				vipsList.add(vipResponse);
+			}
+			
+			return new NetworkAPIVipsResponse(cmd, vipsList);
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+
 
 	private Answer createResponse(Vlan vlan, Command cmd) {
 		

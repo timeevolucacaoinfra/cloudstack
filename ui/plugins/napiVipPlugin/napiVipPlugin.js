@@ -15,10 +15,9 @@
           network: { label: 'label.network' },
         },
         dataProvider: function(args) {
-          plugin.ui.apiCall('listVirtualMachines', {
+          plugin.ui.apiCall('listNetworkApiVips', {
             success: function(json) {
-              var vips = [{"id": "001", "name": "TESTEVIP1.GLOBO.COM", "ip": "10.0.0.1", "network":"NET01", "healthcheck":"http://healthcheck01", "ports":"80:8080, 443:8443"}, {"id": "002", "name": "TESTEVIP2.GLOBO.COM", "ip": "10.0.0.2", "network":"NET02", "healthcheck":"http://healthcheck02", "ports":"80:8080, 443:8443"}];
-
+              var vips = json.listnetworkapivipsresponse.networkapivip;
               args.response.success({ data: vips });
             },
             error: function(errorMessage) {
@@ -52,7 +51,7 @@
                 persistence: {
                   label: 'Persistence'
                 },
-                healthcheck_type: {
+                healthchecktype: {
                   label: 'Healthcheck Type'
                 },
                 healthcheck: {

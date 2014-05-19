@@ -20,6 +20,7 @@ import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
+import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.deploy.DeployDestination;
@@ -53,6 +54,8 @@ import com.cloud.network.guru.NetworkGuru;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Grouping;
+import com.cloud.projects.Project;
+import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
@@ -84,12 +87,14 @@ import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
 import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
+import com.globo.networkapi.api.ListNetworkApiVipsCmd;
 import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
+import com.globo.networkapi.commands.ListVipsFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -104,6 +109,8 @@ import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
+import com.globo.networkapi.response.NetworkAPIVipsResponse;
+import com.globo.networkapi.response.NetworkAPIVipsResponse.Vip;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
@@ -155,6 +162,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	NetworkManager _networkMgr;
 	@Inject
 	AccountManager _accountMgr;
+    @Inject
+    ProjectManager _projectMgr;
 	@Inject
 	ConfigurationServer _configServer;
 	@Inject
@@ -725,6 +734,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(RemoveNetworkAPIEnvironmentCmd.class);
 		cmdList.add(AddNetworkApiHostCmd.class);
 		cmdList.add(AddNetworkAPIVipToAccountCmd.class);
+		cmdList.add(ListNetworkApiVipsCmd.class);
 		return cmdList;
 	}
 	
@@ -1073,5 +1083,66 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	    txn.commit();
 	    return napiVipAcc;
 
+	}
+
+	@Override
+	public List<Vip> listNetworkAPIVips(Long projectId) {
+
+		Account caller = UserContext.current().getCaller();
+		List<Long> permittedAccounts = new ArrayList<Long>();
+		
+        if (_accountMgr.isAdmin(caller.getType())) {
+        	permittedAccounts.add(caller.getId());
+        }
+        
+		if (projectId != null) {
+            Project project = _projectMgr.getProject(projectId);
+            if (project == null) {
+                throw new InvalidParameterValueException("Unable to find project by specified id");
+            }
+            if (!_projectMgr.canAccessProjectAccount(caller, project.getProjectAccountId())) {
+                // getProject() returns type ProjectVO.
+                InvalidParameterValueException ex = new InvalidParameterValueException("Account " + caller + " cannot access specified project id");
+                ex.addProxyObject(project.getUuid(), "projectId");
+                throw ex;
+            }
+            
+            permittedAccounts.add(project.getProjectAccountId());
+		}
+		
+		// FIXME Improve this search by creating a custom criteria
+		List<DataCenterVO> zones = _dcDao.listAllZones();
+		List<NetworkVO> allowedNetworks = new ArrayList<NetworkVO>();
+		for (DataCenterVO zone : zones) {
+			for (Long accountId : permittedAccounts) {
+				allowedNetworks.addAll(_ntwkDao.listNetworksByAccount(accountId, zone.getId(), Network.GuestType.Shared, false));
+			}
+		}
+		
+		List<Long> networkIds = new ArrayList<Long>();
+		for (NetworkVO networkVO : allowedNetworks) {
+			networkIds.add(networkVO.getId());
+		}
+		
+		// Get all vip Ids related to networks
+		List<NetworkAPIVipAccVO> napiVipAccList = _napiVipAccDao.listByNetworks(networkIds);
+		
+		List<Long> napiVipIds = new ArrayList<Long>();
+		for (NetworkAPIVipAccVO napiVipAcc : napiVipAccList) {
+			napiVipIds.add(napiVipAcc.getNapiVipId());
+		}
+		
+		// Get each VIP from Network API
+		ListVipsFromNetworkAPICommand cmd = new ListVipsFromNetworkAPICommand();
+		cmd.setNapiVipIds(napiVipIds);
+		Answer answer = this.callCommand(cmd, 1L); // FIXME Do not use fixed zone name
+		String msg = "Could not list VIPs from Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+
+		List<Vip> vips =  ((NetworkAPIVipsResponse) answer).getVipsList();
+		return vips;
 	}
 }
