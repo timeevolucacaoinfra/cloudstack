@@ -342,11 +342,15 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	public Answer execute(DisableAndRemoveRealInNetworkAPICommand cmd) {
 		try {
+			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
+			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
+				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
+			}
+			
 			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getEquipName());
 			if (equipment == null) {
-				// Equipment doesn't exist
-				// FIXME Create on the fly?
-				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
+				// Equipment doesn't exist. So, there is not Vip too.
+				return new Answer(cmd, true, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
 			}
 
 			List<Ip> ips = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
@@ -358,9 +362,16 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				}
 			}
 
-			_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
-			
-			return new Answer(cmd, true, "Real disabled and removed successfully");
+			if (vip.getRealsIp() != null) {
+				for (RealIP realIp:  vip.getRealsIp()) {
+					if (ip.getId().equals(realIp.getIpId())) {
+						// real exists in vip. Remove it.
+						_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+						return new Answer(cmd, true, "Real enabled successfully"); 
+					}
+				}
+			}
+			return new Answer(cmd, true, "Real not in vipId " + cmd.getVipId());
 			
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);

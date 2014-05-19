@@ -1,5 +1,7 @@
 package com.globo.networkapi.dao;
 
+import java.util.List;
+
 import javax.ejb.Local;
 
 import org.springframework.stereotype.Component;
@@ -20,6 +22,8 @@ public class NetworkAPIVipAccDaoImpl extends
 
 	final SearchBuilder<NetworkAPIVipAccVO> allParamsSearch;
 
+	final SearchBuilder<NetworkAPIVipAccVO> byNetwork;
+
 	protected NetworkAPIVipAccDaoImpl() {
 		super();
 
@@ -28,6 +32,10 @@ public class NetworkAPIVipAccDaoImpl extends
 		allParamsSearch.and("account_id", allParamsSearch.entity().getAccountId(), Op.EQ);
 		allParamsSearch.and("network_id", allParamsSearch.entity().getNetworkId(), Op.EQ);
 		allParamsSearch.done();
+
+		byNetwork = createSearchBuilder();
+		byNetwork.and("network_id", byNetwork.entity().getNetworkId(), Op.EQ);
+		byNetwork.done();
 	}
 
 	@Override
@@ -38,6 +46,13 @@ public class NetworkAPIVipAccDaoImpl extends
 		sc.setParameters("account_id", accountId);
 		sc.setParameters("network_id", networkId);
 		return findOneBy(sc);
+	}
+
+	@Override
+	public List<NetworkAPIVipAccVO> findByNetwork(long networkId) {
+		SearchCriteria<NetworkAPIVipAccVO> sc = byNetwork.create();
+		sc.setParameters("network_id", networkId);
+		return listBy(sc);
 	}
 
 }
