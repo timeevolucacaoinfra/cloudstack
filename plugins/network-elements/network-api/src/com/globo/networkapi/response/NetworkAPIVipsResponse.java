@@ -22,6 +22,14 @@ public class NetworkAPIVipsResponse extends Answer {
 		private Long id;
 		private String name;
 		private String ip;
+		private String network;
+		private String cache;
+		private String method;
+		private String persistence;
+		private String healthcheckType;
+		private String healthcheck;
+		private Integer maxConn;
+		private List<String> ports;
 
 		public Long getId() {
 			return id;
@@ -40,6 +48,54 @@ public class NetworkAPIVipsResponse extends Answer {
 		}
 		public void setIp(String ip) {
 			this.ip = ip;
+		}
+		public String getNetwork() {
+			return network;
+		}
+		public void setNetwork(String network) {
+			this.network = network;
+		}
+		public String getCache() {
+			return cache;
+		}
+		public void setCache(String cache) {
+			this.cache = cache;
+		}
+		public String getMethod() {
+			return method;
+		}
+		public void setMethod(String method) {
+			this.method = method;
+		}
+		public String getPersistence() {
+			return persistence;
+		}
+		public void setPersistence(String persistence) {
+			this.persistence = persistence;
+		}
+		public String getHealthcheckType() {
+			return healthcheckType;
+		}
+		public void setHealthcheckType(String healthcheckType) {
+			this.healthcheckType = healthcheckType;
+		}
+		public String getHealthcheck() {
+			return healthcheck;
+		}
+		public void setHealthcheck(String healthcheck) {
+			this.healthcheck = healthcheck;
+		}
+		public Integer getMaxConn() {
+			return maxConn;
+		}
+		public void setMaxConn(Integer maxConn) {
+			this.maxConn = maxConn;
+		}
+		public List<String> getPorts() {
+			return ports;
+		}
+		public void setPorts(List<String> ports) {
+			this.ports = ports;
 		}
 	}
 

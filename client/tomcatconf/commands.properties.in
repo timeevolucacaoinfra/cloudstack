@@ -687,7 +687,7 @@ listNetworkApiEnvironments=15
 removeNetworkAPIEnvironment=1
 listAllEnvironmentsFromNetworkApi=1
 addNetworkApiVipToAccountCmd=15
-listNetworkApiVips=1
+listNetworkApiVips=15
 
 ### DNS API commands
 addDnsApiHost=1

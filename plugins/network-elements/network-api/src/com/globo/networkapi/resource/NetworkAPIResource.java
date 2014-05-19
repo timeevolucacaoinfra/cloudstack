@@ -440,11 +440,18 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			
 			List<NetworkAPIVipsResponse.Vip> vipsList = new ArrayList<NetworkAPIVipsResponse.Vip>(napiVips.size());
 			for (Vip vip : napiVips) {
+				if (vip == null) { continue; }
 				NetworkAPIVipsResponse.Vip vipResponse = new NetworkAPIVipsResponse.Vip();
 				vipResponse.setId(vip.getId());
 				vipResponse.setName(vip.getHost());
-				vipResponse.setIp(vip.getIps().toString());
-				// FIXME Other attributes
+				vipResponse.setIp(vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString());
+				// vipResponse.setCache(vip.getCache());
+				// vipResponse.setMethod(vip.getMethod());
+				// vipResponse.setPersistence(vip.getPersistence());
+				// vipResponse.setHealthcheckType(vip.getHealthcheckType());
+				// vipResponse.setHealthcheck(vip.getHealthcheck());
+				// vipResponse.setMaxConn(vip.getMaxConn());
+				// vipResponse.setPorts(vip.getPorts());
 				vipsList.add(vipResponse);
 			}
 			

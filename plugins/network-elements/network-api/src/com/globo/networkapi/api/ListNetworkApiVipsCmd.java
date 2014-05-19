@@ -67,8 +67,14 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     			vipResponse.setId(networkAPIVip.getId());
     			vipResponse.setName(networkAPIVip.getName());
     			vipResponse.setIp(networkAPIVip.getIp());
-    			vipResponse.setNetwork("NET01"); // FIXME
-    			// FIXME Other attributes
+    			vipResponse.setNetwork(networkAPIVip.getNetwork());
+    			vipResponse.setCache(networkAPIVip.getCache());
+    			vipResponse.setMethod(networkAPIVip.getMethod());
+    			vipResponse.setPersistence(networkAPIVip.getPersistence());
+    			vipResponse.setHealthcheckType(networkAPIVip.getHealthcheckType());
+    			vipResponse.setHealthcheck(networkAPIVip.getHealthcheck());
+    			vipResponse.setMaxConn(networkAPIVip.getMaxConn());
+    			vipResponse.setPorts(networkAPIVip.getPorts());
     			vipResponse.setObjectName("networkapivip");
 				responseList.add(vipResponse);
 			}

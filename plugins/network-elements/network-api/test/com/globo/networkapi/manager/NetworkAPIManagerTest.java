@@ -1,18 +1,9 @@
 package com.globo.networkapi.manager;
 
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMapOf;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,10 +56,10 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
-import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
+import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
 import com.cloud.server.ConfigurationServer;
@@ -338,6 +329,10 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public AccountManager accountManager() {
     		return mock(AccountManager.class);
+    	}
+    	@Bean
+    	public ProjectManager projectManager() {
+    		return mock(ProjectManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {

@@ -4,7 +4,7 @@
       id: 'napiVipPlugin',
       title: 'Network API VIPs',
       preFilter: function(args) {
-        return isAdmin();
+        return true; // isAdmin();
       },
 
       listView: {
@@ -63,7 +63,6 @@
                 ports: {
                   label: 'Ports'
                 },
-
               }],
               dataProvider: function(args) {
                 args.response.success({ data: args.jsonObj });

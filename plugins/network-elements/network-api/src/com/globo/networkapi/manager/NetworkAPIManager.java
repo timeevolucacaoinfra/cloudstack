@@ -1124,6 +1124,10 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			networkIds.add(networkVO.getId());
 		}
 		
+		if (networkIds.isEmpty()) {
+			return new ArrayList<Vip>();
+		}
+		
 		// Get all vip Ids related to networks
 		List<NetworkAPIVipAccVO> napiVipAccList = _napiVipAccDao.listByNetworks(networkIds);
 		
@@ -1135,14 +1139,23 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		// Get each VIP from Network API
 		ListVipsFromNetworkAPICommand cmd = new ListVipsFromNetworkAPICommand();
 		cmd.setNapiVipIds(napiVipIds);
-		Answer answer = this.callCommand(cmd, 1L); // FIXME Do not use fixed zone name
+		Answer answer = this.callCommand(cmd, 1L); // FIXME Do not use fixed zone ID
 		String msg = "Could not list VIPs from Network API";
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
 		}
 
+		// Set relationship between Vip and Network
+		// FIXME Better way of doing this?
 		List<Vip> vips =  ((NetworkAPIVipsResponse) answer).getVipsList();
+		for (Vip vip : vips) {
+			for (NetworkAPIVipAccVO napiVipAcc : napiVipAccList) {
+				if (vip.getId() == napiVipAcc.getNapiVipId()) {
+					vip.setNetwork(_ntwkDao.findById(napiVipAcc.getNetworkId()).getName());
+				}
+			}
+		}
 		return vips;
 	}
 }
