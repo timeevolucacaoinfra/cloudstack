@@ -15,10 +15,12 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.Network;
+import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
+import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 
@@ -163,11 +165,36 @@ public interface NetworkAPIService {
 	 * Register VM NIC in Network API
 	 * @param nic
 	 * @param vm
-	 * @param network
-	 * @return
 	 */
 	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
 
-	void unregisterNicInNetworkAPI(NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm);
+	/**
+	 * Unregister NIC in Network API
+	 * @param nic
+	 * @param vm
+	 */
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
+	
+	/**
+	 * Associate Network API VIP to an account and network in Cloudstack
+	 * @param networkId
+	 * @param accountId
+	 * @param napiVipId
+	 * @return
+	 */
+	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long napiVipId);
+	
+	/**
+	 * Associate nic (real) to NetworkAPI Vip.
+	 * @param vipId
+	 * @param nicId
+	 */
+	public void associateNicToVip(Long vipId, Nic nic);
+
+	/**
+	 * Deassociate nic (real) from NetworkAPI Vip.
+	 * @param vipId
+	 * @param nicId
+	 */
+	public void disassociateNicFromVip(Long vipId, Nic nic);
 }

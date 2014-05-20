@@ -30,9 +30,13 @@ import com.cloud.user.AccountManager;
 import com.cloud.user.User;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
+import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.NicDao;
+import com.globo.networkapi.NetworkAPIVipAccVO;
+import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.manager.NetworkAPIService;
 
 public class NetworkAPIGuru extends GuestNetworkGuru {
@@ -48,6 +52,10 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
     VpcVirtualNetworkApplianceManager _routerMgr;
     @Inject
     AccountManager _accountMgr;
+    @Inject
+    NetworkAPIVipAccDao _napiVipDao;
+    @Inject
+    NicDao _nicDao = null;
 
     protected NetworkType _networkType = NetworkType.Advanced;
     
@@ -153,6 +161,16 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 		} catch (Exception e) {
 			s_logger.warn("Exception when deregistering NIC in Network API", e);
 		}
+		
+		// FIXME When NetworkAPI use a effective LoadBalancerImplementation
+		// move the code bellow to NetworkElement
+		long networkId = nic.getNetworkId();
+		List<NetworkAPIVipAccVO> vips = _napiVipDao.findByNetwork(networkId);
+		for (NetworkAPIVipAccVO vip: vips) {
+			NicVO nicVO = _nicDao.findById(nic.getId());
+			_networkAPIService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
+		}
+		
 		return super.release(nic, vm, reservationId);
 	}
 

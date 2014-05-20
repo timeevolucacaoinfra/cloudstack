@@ -1,18 +1,9 @@
 package com.globo.networkapi.manager;
 
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyMapOf;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,7 +56,6 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
-import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
@@ -82,11 +72,13 @@ import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
+import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
+import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -305,6 +297,14 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public NetworkAPIEnvironmentDao networkAPIEnvironmentDao() {
     		return mock(NetworkAPIEnvironmentDao.class);
+    	}
+    	@Bean
+    	public NetworkAPIVipAccDao networkAPIVipAccDao() {
+    		return mock(NetworkAPIVipAccDao.class);
+    	}
+    	@Bean
+    	public UserVmDao vmDao() {
+    		return mock(UserVmDao.class);
     	}
     	@Bean
     	public NetworkModel networkModel() {
