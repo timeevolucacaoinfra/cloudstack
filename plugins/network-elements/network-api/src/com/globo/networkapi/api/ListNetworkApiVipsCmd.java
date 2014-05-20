@@ -71,9 +71,9 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     			vipResponse.setCache(networkAPIVip.getCache());
     			vipResponse.setMethod(networkAPIVip.getMethod());
     			vipResponse.setPersistence(networkAPIVip.getPersistence());
-    			vipResponse.setHealthcheckType(networkAPIVip.getHealthcheckType());
+    			vipResponse.setHealthchecktype(networkAPIVip.getHealthcheckType());
     			vipResponse.setHealthcheck(networkAPIVip.getHealthcheck());
-    			vipResponse.setMaxConn(networkAPIVip.getMaxConn());
+    			vipResponse.setMaxconn(networkAPIVip.getMaxConn());
     			vipResponse.setPorts(networkAPIVip.getPorts());
     			vipResponse.setObjectName("networkapivip");
 				responseList.add(vipResponse);

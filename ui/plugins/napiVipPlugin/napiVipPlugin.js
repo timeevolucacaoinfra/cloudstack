@@ -65,6 +65,8 @@
                 },
               }],
               dataProvider: function(args) {
+                var ports = args.jsonObj.ports.join(", ");
+                args.jsonObj.ports = ports;
                 args.response.success({ data: args.jsonObj });
               }
             },

@@ -36,11 +36,11 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 	
 	private String persistence;
 	
-	private String healthcheckType;
+	private String healthchecktype;
 	
 	private String healthcheck;
 	
-	private Integer maxConn;
+	private Integer maxconn;
 	
 	private List<String> ports;
 
@@ -100,12 +100,12 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 		this.persistence = persistence;
 	}
 
-	public String getHealthcheckType() {
-		return healthcheckType;
+	public String getHealthchecktype() {
+		return healthchecktype;
 	}
 
-	public void setHealthcheckType(String healthcheckType) {
-		this.healthcheckType = healthcheckType;
+	public void setHealthchecktype(String healthchecktype) {
+		this.healthchecktype = healthchecktype;
 	}
 
 	public String getHealthcheck() {
@@ -116,12 +116,12 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 		this.healthcheck = healthcheck;
 	}
 
-	public Integer getMaxConn() {
-		return maxConn;
+	public Integer getMaxconn() {
+		return maxconn;
 	}
 
-	public void setMaxConn(Integer maxConn) {
-		this.maxConn = maxConn;
+	public void setMaxconn(Integer maxconn) {
+		this.maxconn = maxconn;
 	}
 
 	public List<String> getPorts() {
