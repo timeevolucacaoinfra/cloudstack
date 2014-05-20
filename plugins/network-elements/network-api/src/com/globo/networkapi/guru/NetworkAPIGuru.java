@@ -129,6 +129,27 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 	}
 
 	@Override
+	public NicProfile allocate(Network network, NicProfile nic,
+			VirtualMachineProfile<? extends VirtualMachine> vm)
+			throws InsufficientVirtualNetworkCapcityException,
+			InsufficientAddressCapacityException {
+		
+		NicProfile nicProf = super.allocate(network, nic, vm);
+		
+		_networkAPIService.validateNic(nic, vm, network);
+		
+		// FIXME Remove try/catch as soon as everything works
+		try {
+			s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
+			_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
+		} catch (Exception e) {
+			s_logger.warn("Exception when registering NIC in Network API", e);
+		}
+		
+		return nicProf;
+	}
+
+	@Override
 	public void reserve(NicProfile nic, Network network,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
 			DeployDestination dest, ReservationContext context)
@@ -136,26 +157,21 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			InsufficientAddressCapacityException {
 		s_logger.debug("Asking GuestNetworkGuru to reserve nic " + nic.toString() +
 				" for network " + network.getName());
-		
-		_networkAPIService.validateNic(nic, vm, network, dest);
-
 		super.reserve(nic, network, vm, dest, context);
-		
-		// FIXME Remove try/catch as soon as everything works
-		try {
-			s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
-			_networkAPIService.registerNicInNetworkAPI(nic, vm);
-		} catch (Exception e) {
-			s_logger.warn("Exception when registering NIC in Network API", e);
-		}
 	}
-
+	
 	@Override
 	public boolean release(NicProfile nic,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
 			String reservationId) {
 		s_logger.debug("Asking GuestNetworkGuru to release NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
+		return super.release(nic, vm, reservationId);
+	}
+
+	@Override
+	public void deallocate(Network network, NicProfile nic,
+			VirtualMachineProfile<? extends VirtualMachine> vm) {
 		try {
 			_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
 		} catch (Exception e) {
@@ -170,8 +186,9 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			NicVO nicVO = _nicDao.findById(nic.getId());
 			_networkAPIService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
 		}
-		
-		return super.release(nic, vm, reservationId);
+		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
+				+ " from VM " + vm.getInstanceName());
+		super.deallocate(network, nic, vm);
 	}
 
 	@Override
