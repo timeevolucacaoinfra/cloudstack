@@ -8,7 +8,6 @@ import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
 
-import com.amazonaws.util.StringUtils;
 import com.cloud.agent.IAgentControl;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
@@ -263,13 +262,11 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			String msg = "Some reals are not in range of network " + cmd.getNetworkCidr() + ": ";
 			boolean problemWithReals = false;
 			
-			if (vip.getReals() != null) {
-				// Validate reals if and only if vip already has reals associated to it
-				for (RealIP real : vip.getReals().getRealIps()) {
-					if (!NetUtils.isIpWithtInCidrRange(real.getRealIp(), cmd.getNetworkCidr())) {
-						msg += real.getRealIp() + ",";
-						problemWithReals = true;
-					}
+			// Validate reals if and only if vip already has reals associated to it
+			for (RealIP real : vip.getRealsIp()) {
+				if (!NetUtils.isIpWithtInCidrRange(real.getRealIp(), cmd.getNetworkCidr())) {
+					msg += real.getRealIp() + ",";
+					problemWithReals = true;
 				}
 			}
 			
@@ -445,13 +442,13 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				vipResponse.setId(vip.getId());
 				vipResponse.setName(vip.getHost());
 				vipResponse.setIp(vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString());
-				// vipResponse.setCache(vip.getCache());
-				// vipResponse.setMethod(vip.getMethod());
-				// vipResponse.setPersistence(vip.getPersistence());
-				// vipResponse.setHealthcheckType(vip.getHealthcheckType());
-				// vipResponse.setHealthcheck(vip.getHealthcheck());
-				// vipResponse.setMaxConn(vip.getMaxConn());
-				// vipResponse.setPorts(vip.getPorts());
+				vipResponse.setCache(vip.getCache());
+				vipResponse.setMethod(vip.getMethod());
+				vipResponse.setPersistence(vip.getPersistence());
+				vipResponse.setHealthcheckType(vip.getHealthcheckType());
+				vipResponse.setHealthcheck(vip.getHealthcheck());
+				vipResponse.setMaxConn(vip.getMaxConn());
+				vipResponse.setPorts(vip.getPorts());
 				vipsList.add(vipResponse);
 			}
 			
