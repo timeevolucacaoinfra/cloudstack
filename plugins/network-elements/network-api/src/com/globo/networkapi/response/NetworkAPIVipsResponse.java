@@ -1,6 +1,9 @@
 package com.globo.networkapi.response;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.cloudstack.api.BaseResponse;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
@@ -30,6 +33,7 @@ public class NetworkAPIVipsResponse extends Answer {
 		private String healthcheck;
 		private Integer maxConn;
 		private List<String> ports;
+		private List<Real> reals;
 
 		public Long getId() {
 			return id;
@@ -97,6 +101,56 @@ public class NetworkAPIVipsResponse extends Answer {
 		public void setPorts(List<String> ports) {
 			this.ports = ports;
 		}
+		public List<Real> getReals() {
+			return reals;
+		}
+		public void setReals(List<Real> reals) {
+			this.reals = reals;
+		}
 	}
 
+	public static class Real extends BaseResponse {
+		private String vmName;
+		
+		private String ip;
+		
+		private List<String> ports;
+		
+		private Boolean state;
+
+		public String getVmName() {
+			return vmName;
+		}
+
+		public void setVmName(String vmName) {
+			this.vmName = vmName;
+		}
+
+		public String getIp() {
+			return ip;
+		}
+
+		public void setIp(String ip) {
+			this.ip = ip;
+		}
+
+		public List<String> getPorts() {
+			if (ports == null) {
+				ports = new ArrayList<String>();
+			}
+			return ports;
+		}
+
+		public void setPorts(List<String> ports) {
+			this.ports = ports;
+		}
+
+		public Boolean getState() {
+			return state;
+		}
+
+		public void setState(Boolean state) {
+			this.state = state;
+		}
+	}
 }

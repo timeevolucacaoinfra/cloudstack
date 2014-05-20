@@ -16,6 +16,7 @@
 //under the License.
 package com.globo.networkapi.response;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.cloudstack.api.BaseResponse;
@@ -43,6 +44,8 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 	private Integer maxconn;
 	
 	private List<String> ports;
+	
+	private List<Real> reals;
 
 	public Long getId() {
 		return id;
@@ -132,5 +135,54 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 		this.ports = ports;
 	}
 	
+	public List<Real> getReals() {
+		return reals == null ? new ArrayList<Real>() : reals;
+	}
+	
+	public void setReals(List<Real> reals) {
+		this.reals = reals;
+	}
+	
+	public static class Real extends BaseResponse {
+		private String vmname;
+		
+		private String ip;
+		
+		private String ports;
+		
+		private Boolean state;
+
+		public String getVmname() {
+			return vmname;
+		}
+
+		public void setVmname(String vmname) {
+			this.vmname = vmname;
+		}
+
+		public String getIp() {
+			return ip;
+		}
+
+		public void setIp(String ip) {
+			this.ip = ip;
+		}
+
+		public String getPorts() {
+			return ports;
+		}
+
+		public void setPorts(String ports) {
+			this.ports = ports;
+		}
+
+		public Boolean getState() {
+			return state;
+		}
+
+		public void setState(Boolean state) {
+			this.state = state;
+		}
+	}
 	
 }

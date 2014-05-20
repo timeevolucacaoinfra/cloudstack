@@ -1,6 +1,7 @@
 package com.globo.networkapi.resource;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -449,6 +450,43 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				vipResponse.setHealthcheck(vip.getHealthcheck());
 				vipResponse.setMaxConn(vip.getMaxConn());
 				vipResponse.setPorts(vip.getPorts());
+				 
+				// Using a map rather than a list because different ports come in different objects
+				// even though they have the same ID
+				// Example
+                // {
+                //    "id_ip": "33713",
+                //    "port_real": "8180",
+                //    "port_vip": "80",
+                //    "real_ip": "10.20.30.40",
+                //    "real_name": "MACHINE01"
+                // },
+                // {
+                //    "id_ip": "33713",
+                //    "port_real": "8280",
+                //    "port_vip": "80",
+                //    "real_ip": "10.20.30.40",
+                //    "real_name": "MACHINE01"
+                // },
+				Map<Long, NetworkAPIVipsResponse.Real> realMap = new HashMap<Long, NetworkAPIVipsResponse.Real>();
+				for(RealIP real : vip.getRealsIp()) {
+					NetworkAPIVipsResponse.Real realResponse;
+					if (realMap.get(real.getIpId()) != null) {
+						// Already exists in Map
+						realResponse = realMap.get(real.getIpId());
+						realResponse.getPorts().add(real.getVipPort() + ":" + real.getRealPort());
+					} else {
+						// Doesn't exist yet, first time iterating, so add IP parameter and add to list
+						realResponse = new NetworkAPIVipsResponse.Real();
+						realResponse.setIp(real.getRealIp());
+						realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
+						realResponse.setVmName(real.getName());
+						realMap.put(real.getIpId(), realResponse);
+					}
+					
+				}
+				
+				vipResponse.setReals(new ArrayList<NetworkAPIVipsResponse.Real>(realMap.values()));
 				vipsList.add(vipResponse);
 			}
 			

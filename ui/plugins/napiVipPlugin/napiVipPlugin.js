@@ -87,16 +87,7 @@
                   }
                 },
                 dataProvider: function(args) {
-                  plugin.ui.apiCall('listVirtualMachines', {
-                    success: function(json) {
-                      var reals = [{"vmname": "VM01", "ip": "200.0.0.1", "ports": "80:8080", "state": "On"}, {"vmname": "VM02", "ip": "200.0.0.2", "ports": "443:8443", "state": "Off"}];
-
-                      args.response.success({ data: reals });
-                    },
-                    error: function(errorMessage) {
-                      args.response.error(errorMessage)
-                    }
-                  });
+                  args.response.success({ data: args.context.vips[0].reals });
                 },
                 actions: {
                   add: {

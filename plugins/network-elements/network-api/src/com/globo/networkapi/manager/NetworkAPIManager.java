@@ -1156,6 +1156,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				}
 			}
 		}
+		
 		return vips;
 	}
 }
