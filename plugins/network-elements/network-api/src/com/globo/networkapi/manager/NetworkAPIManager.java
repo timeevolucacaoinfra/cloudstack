@@ -943,7 +943,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVmEquipmentGroup.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
-		if (equipmentGroup == null) {
+		if (equipmentGroup == null || "".equals(equipmentGroup)) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
 
