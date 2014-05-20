@@ -26,7 +26,7 @@ import com.globo.networkapi.manager.NetworkAPIService;
 public class AddNetworkApiRealToVipCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddNetworkApiRealToVipCmd.class.getName());
-    private static final String s_name = "associatenetworkapirealtovip";
+    private static final String s_name = "associatenetworkapirealtovipresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
