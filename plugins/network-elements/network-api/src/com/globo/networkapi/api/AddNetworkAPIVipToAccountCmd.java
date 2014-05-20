@@ -23,7 +23,6 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.response.AccountResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.SuccessResponse;
 import org.apache.log4j.Logger;
@@ -47,22 +46,18 @@ public class AddNetworkAPIVipToAccountCmd extends BaseCmd {
     @Inject
     NetworkAPIService _ntwkAPIService;
     
-    @Parameter(name="vipid", type=CommandType.LONG, required = true, description="NetworkAPI VIP ID.")
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = true, description="NetworkAPI VIP ID.")
     private Long napiVipId;
     
     @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID to be associated to VIP")
     private Long networkId;
     
-    @Parameter(name=ApiConstants.ACCOUNT_ID, type=CommandType.UUID, entityType=AccountResponse.class, required=true, description="account ID to be associated to VIP")
-    private Long accountId;
-
-
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkApiVipToAccountCmd command with napiVipId=" + napiVipId + " accountId=" + accountId + " networkId=" + networkId);
-        	NetworkAPIVipAccVO napiVipVO = _ntwkAPIService.addNapiVipToAcc(napiVipId, accountId, networkId);
+        	s_logger.debug("addNetworkApiVipToAccountCmd command with napiVipId=" + napiVipId + " networkId=" + networkId);
+        	NetworkAPIVipAccVO napiVipVO = _ntwkAPIService.addNapiVipToAcc(napiVipId, networkId);
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess((napiVipVO == null ? false : true));
@@ -74,7 +69,7 @@ public class AddNetworkAPIVipToAccountCmd extends BaseCmd {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }
     }
- 
+
     @Override
     public String getCommandName() {
         return s_name;

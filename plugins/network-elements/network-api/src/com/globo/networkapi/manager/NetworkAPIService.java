@@ -15,6 +15,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.Network;
+import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
@@ -88,14 +89,13 @@ public interface NetworkAPIService {
 	 * 
 	 * @param NicProfile
 	 * @param network
-	 * @param dest
 	 * @return
 	 * @throws InsufficientVirtualNetworkCapcityException
 	 * @throws InsufficientAddressCapacityException
 	 */
 	public Network validateNic(NicProfile nicProfile,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
-			Network network, DeployDestination dest)
+			Network network)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException;
 
@@ -165,8 +165,9 @@ public interface NetworkAPIService {
 	 * Register VM NIC in Network API
 	 * @param nic
 	 * @param vm
+	 * @param network
 	 */
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
 
 	/**
 	 * Unregister NIC in Network API
@@ -178,12 +179,25 @@ public interface NetworkAPIService {
 	/**
 	 * Associate Network API VIP to an account and network in Cloudstack
 	 * @param networkId
-	 * @param accountId
 	 * @param napiVipId
 	 * @return
 	 */
-	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long accountId, Long napiVipId);
+	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long napiVipId);
 	
+	/**
+	 * Associate nic (real) to NetworkAPI Vip.
+	 * @param vipId
+	 * @param nicId
+	 */
+	public void associateNicToVip(Long vipId, Nic nic);
+
+	/**
+	 * Deassociate nic (real) from NetworkAPI Vip.
+	 * @param vipId
+	 * @param nicId
+	 */
+	public void disassociateNicFromVip(Long vipId, Nic nic);
+
 	/**
 	 * List all Network API VIPs associated to an account/project
 	 * @param projectId
