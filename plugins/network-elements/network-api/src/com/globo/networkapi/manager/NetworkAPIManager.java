@@ -507,7 +507,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public Network validateNic(NicProfile nicProfile,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
-			Network network, DeployDestination dest)
+			Network network)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
 
@@ -929,14 +929,14 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
 		
 		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null) {
 			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
 		}
 		
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
 		if (napiNetworkVO == null) {
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
 		}

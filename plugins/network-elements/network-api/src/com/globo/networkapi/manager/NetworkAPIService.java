@@ -88,14 +88,13 @@ public interface NetworkAPIService {
 	 * 
 	 * @param NicProfile
 	 * @param network
-	 * @param dest
 	 * @return
 	 * @throws InsufficientVirtualNetworkCapcityException
 	 * @throws InsufficientAddressCapacityException
 	 */
 	public Network validateNic(NicProfile nicProfile,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
-			Network network, DeployDestination dest)
+			Network network)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException;
 
@@ -165,8 +164,9 @@ public interface NetworkAPIService {
 	 * Register VM NIC in Network API
 	 * @param nic
 	 * @param vm
+	 * @param network
 	 */
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
 
 	/**
 	 * Unregister NIC in Network API
