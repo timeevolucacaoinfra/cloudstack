@@ -11,6 +11,7 @@ import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
+import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
@@ -75,23 +76,29 @@ import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
+import com.cloud.vm.UserVmVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.api.AddNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.api.AddNetworkAPIVipToAccountCmd;
 import com.globo.networkapi.api.AddNetworkApiHostCmd;
+import com.globo.networkapi.api.AddNetworkApiRealToVipCmd;
 import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
+import com.globo.networkapi.api.DelNetworkApiRealFromVipCmd;
 import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.api.ListNetworkApiVipsCmd;
 import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
+import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
+import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListVipsFromNetworkAPICommand;
@@ -168,6 +175,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	ConfigurationServer _configServer;
 	@Inject
 	NetworkService _ntwSvc;
+	@Inject
+	UserVmDao _vmDao;
 	
 	@Override
 	public boolean canEnable(Long physicalNetworkId) {
@@ -507,7 +516,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public Network validateNic(NicProfile nicProfile,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
-			Network network, DeployDestination dest)
+			Network network)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
 
@@ -735,6 +744,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkApiHostCmd.class);
 		cmdList.add(AddNetworkAPIVipToAccountCmd.class);
 		cmdList.add(ListNetworkApiVipsCmd.class);
+		cmdList.add(AddNetworkApiRealToVipCmd.class);
+		cmdList.add(DelNetworkApiRealFromVipCmd.class);
 		return cmdList;
 	}
 	
@@ -928,21 +939,21 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
 		
 		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null) {
 			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
 		}
 		
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
 		if (napiNetworkVO == null) {
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
 		}
 		
 		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVmEquipmentGroup.key(),
 				Config.ConfigurationParameterScope.global.name(), null);
-		if (equipmentGroup == null) {
+		if (equipmentGroup == null || "".equals(equipmentGroup)) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
 
@@ -987,7 +998,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		RegisterEquipmentAndIpInNetworkAPICommand cmd = new RegisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
-		cmd.setNicDescription("eth" + nic.getDeviceId());
+		cmd.setNicDescription("");
 		cmd.setVmName(vm.getUuid());
 		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
 		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
@@ -1033,20 +1044,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
-	public NetworkAPIVipAccVO addNapiVipToAcc(Long napiVipId, Long accountId,
-			Long networkId) {
-		
-		Account account = null;
-		if (accountId != null) {
-			account = _accountMgr.getAccount(accountId);
-			if (account == null) {
-				throw new InvalidParameterValueException(
-						"Unable to find an account having the specified account id");
-			}
-		} else {
-			throw new InvalidParameterValueException("Invalid accountId: " + accountId);
-		}
-		
+	public NetworkAPIVipAccVO addNapiVipToAcc(Long napiVipId, Long networkId) {
+
+		Account caller = UserContext.current().getCaller();
 		Network network = null;
 		if (networkId != null) {
 			network = _ntwkDao.findById(networkId);
@@ -1057,6 +1057,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		} else {
 			throw new InvalidParameterValueException("Invalid networkId: " + networkId);
 		}
+        // Perform account permission check on network
+        _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
 		
 		ValidateVipInNetworkAPICommand cmd = new ValidateVipInNetworkAPICommand();
 		cmd.setVipId(napiVipId);
@@ -1071,10 +1073,12 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Transaction txn = Transaction.currentTxn();
 		txn.start();
 
+		// TODO Remove accountId
+		Long accountId = network.getAccountId();
 		NetworkAPIVipAccVO napiVipAcc = _napiVipAccDao.findNetworkAPIVipAcct(napiVipId, accountId, networkId);
 		if (napiVipAcc != null) {
 			// Already exists, continue
-			s_logger.info("Association between VIP " + napiVipId + ", account " + accountId + " and network " + networkId + " already exists");
+			s_logger.info("Association between VIP " + napiVipId + " and network " + networkId + " already exists");
 		} else {
 			napiVipAcc = new NetworkAPIVipAccVO(napiVipId, accountId, networkId);
 			_napiVipAccDao.persist(napiVipAcc);
@@ -1082,7 +1086,48 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	    txn.commit();
 	    return napiVipAcc;
+	}
 
+	@Override
+	public void associateNicToVip(Long vipId, Nic nic) {
+		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
+		if (vm == null) {
+			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
+		}
+		
+		NetworkAPIVipAccVO napiVipVO = _napiVipAccDao.findNetworkAPIVip(vipId, nic.getNetworkId());
+		if (napiVipVO == null) {
+			throw new InvalidParameterValueException("Vip " + vipId + " is not associated with cloudstack");
+		}
+
+		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
+		cmd.setEquipName(vm.getUuid());
+		cmd.setIp(nic.getIp4Address());
+		cmd.setVipId(vipId);
+		Network network = _ntwkDao.findById(nic.getNetworkId());
+		Answer answer = callCommand(cmd, network.getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			throw new CloudRuntimeException("Error associating nic " + nic +
+					" to vip " + vipId + ": " + (answer == null ? null : answer.getDetails()));
+		}
+	}
+
+	@Override
+	public void disassociateNicFromVip(Long vipId, Nic nic) {
+		DisableAndRemoveRealInNetworkAPICommand cmd = new DisableAndRemoveRealInNetworkAPICommand();
+		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
+		if (vm == null) {
+			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
+		}
+		cmd.setEquipName(vm.getUuid());
+		cmd.setIp(nic.getIp4Address());
+		cmd.setVipId(vipId);
+		Network network = _ntwkDao.findById(nic.getNetworkId());
+		Answer answer = callCommand(cmd, network.getDataCenterId());
+		if (answer == null || !answer.getResult()) {
+			throw new CloudRuntimeException("Error removing nic " + nic +
+					" from vip " + vipId + ": " + (answer == null ? null : answer.getDetails()));
+		}
 	}
 
 	@Override

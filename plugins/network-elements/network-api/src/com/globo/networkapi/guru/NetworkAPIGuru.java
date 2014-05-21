@@ -30,9 +30,13 @@ import com.cloud.user.AccountManager;
 import com.cloud.user.User;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
+import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.NicDao;
+import com.globo.networkapi.NetworkAPIVipAccVO;
+import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.manager.NetworkAPIService;
 
 public class NetworkAPIGuru extends GuestNetworkGuru {
@@ -48,6 +52,10 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
     VpcVirtualNetworkApplianceManager _routerMgr;
     @Inject
     AccountManager _accountMgr;
+    @Inject
+    NetworkAPIVipAccDao _napiVipDao;
+    @Inject
+    NicDao _nicDao = null;
 
     protected NetworkType _networkType = NetworkType.Advanced;
     
@@ -121,6 +129,20 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 	}
 
 	@Override
+	public NicProfile allocate(Network network, NicProfile nic,
+			VirtualMachineProfile<? extends VirtualMachine> vm)
+			throws InsufficientVirtualNetworkCapcityException,
+			InsufficientAddressCapacityException {
+		
+		NicProfile nicProf = super.allocate(network, nic, vm);
+		
+		s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
+		_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
+		
+		return nicProf;
+	}
+
+	@Override
 	public void reserve(NicProfile nic, Network network,
 			VirtualMachineProfile<? extends VirtualMachine> vm,
 			DeployDestination dest, ReservationContext context)
@@ -128,48 +150,49 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			InsufficientAddressCapacityException {
 		s_logger.debug("Asking GuestNetworkGuru to reserve nic " + nic.toString() +
 				" for network " + network.getName());
-		
-		_networkAPIService.validateNic(nic, vm, network, dest);
 
 		super.reserve(nic, network, vm, dest, context);
-		
-		// FIXME Remove try/catch as soon as everything works
-		try {
-			s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
-			_networkAPIService.registerNicInNetworkAPI(nic, vm);
-		} catch (Exception e) {
-			s_logger.warn("Exception when registering NIC in Network API", e);
-		}
-	}
 
+		_networkAPIService.validateNic(nic, vm, network);
+
+	}
+	
 	@Override
-	public boolean release(NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
-			String reservationId) {
-		s_logger.debug("Asking GuestNetworkGuru to release NIC " + nic.toString()
+	public void deallocate(Network network, NicProfile nic,
+			VirtualMachineProfile<? extends VirtualMachine> vm) {
+
+		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
-		try {
-			_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
-		} catch (Exception e) {
-			s_logger.warn("Exception when deregistering NIC in Network API", e);
+		
+		// FIXME When NetworkAPI use a effective LoadBalancerImplementation
+		// move the code bellow to NetworkElement
+		long networkId = nic.getNetworkId();
+		List<NetworkAPIVipAccVO> vips = _napiVipDao.findByNetwork(networkId);
+		for (NetworkAPIVipAccVO vip: vips) {
+			NicVO nicVO = _nicDao.findById(nic.getId());
+			_networkAPIService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
 		}
-		return super.release(nic, vm, reservationId);
+
+		_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
+		
+		super.deallocate(network, nic, vm);
 	}
 
 	@Override
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
 
 		try {
+			List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
+			for (VirtualRouter router: routers) {
+					_routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
+			}
+
 			s_logger.debug("Removing networks from NetworkAPI");
 			_networkAPIService.removeNetworkFromNetworkAPI(profile);
 		
 			s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
 			super.shutdown(profile, offering);
 			
-			List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
-			for (VirtualRouter router: routers) {
-					_routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
-			}
 		} catch (ResourceUnavailableException e) {
 			throw new CloudRuntimeException(e);
 		} catch (ConcurrentOperationException e) {

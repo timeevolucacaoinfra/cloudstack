@@ -25,8 +25,10 @@ import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
 import com.cloud.utils.net.NetUtils;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
+import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
+import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListVipsFromNetworkAPICommand;
@@ -210,10 +212,14 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((ValidateVipInNetworkAPICommand) cmd);
 		} else if (cmd instanceof ListVipsFromNetworkAPICommand) {
 			return execute((ListVipsFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof AddAndEnableRealInNetworkAPICommand) {
+			return execute((AddAndEnableRealInNetworkAPICommand) cmd);
+		} else if (cmd instanceof DisableAndRemoveRealInNetworkAPICommand) {
+			return execute((DisableAndRemoveRealInNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
-	
+
 	private Answer handleNetworkAPIException(Command cmd, NetworkAPIException e) {
 		if (e instanceof NetworkAPIErrorCodeException) {
 			NetworkAPIErrorCodeException ex = (NetworkAPIErrorCodeException) e;
@@ -275,15 +281,101 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd, false, msg.substring(0, msg.length() - 1));
 			}
 			
+			return new Answer(cmd);
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+	
+	public Answer execute(AddAndEnableRealInNetworkAPICommand cmd) {
+		try {
+			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
+			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
+				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
+			}
+
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getEquipName());
+			if (equipment == null) {
+				// Equipment doesn't exist
+				// FIXME Create on the fly?
+				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
+			}
+			
+			List<Ip> ips = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
+			Ip ip = null;
+			for (Ip equipIp: ips) {
+				String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
+				if (equipIpString.equals(cmd.getIp())) {
+					ip = equipIp;
+				}
+			}
+			
+			if (ip == null) {
+				// FIXME Create on the fly?
+				return new Answer(cmd, false, "IP doesn't exist in this Network API environment");
+			}
+			
 			if (!vip.getValidated()) {
 				_napi.getVipAPI().validate(cmd.getVipId());
 			}
 			
 			if (!vip.getCreated()) {
+				s_logger.info("Requesting networkapi to create vip " + vip.getId());
 				_napi.getVipAPI().create(cmd.getVipId());
 			}
 			
-			return new Answer(cmd);
+			if (vip.getRealsIp() != null) {
+				for (RealIP realIp:  vip.getRealsIp()) {
+					if (ip.getId().equals(realIp.getIpId())) {
+						// real already added. Only ensure is enabled
+						_napi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+						return new Answer(cmd, true, "Real enabled successfully"); 
+					}
+				}
+			}
+
+			// added reals are always enabled by default
+			_napi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+			return new Answer(cmd, true, "Real added and enabled successfully");
+			
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+	
+	public Answer execute(DisableAndRemoveRealInNetworkAPICommand cmd) {
+		try {
+			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
+			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
+				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
+			}
+			
+			Equipment equipment = _napi.getEquipmentAPI().listByName(cmd.getEquipName());
+			if (equipment == null) {
+				// Equipment doesn't exist. So, there is not Vip too.
+				return new Answer(cmd, true, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
+			}
+
+			List<Ip> ips = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
+			Ip ip = null;
+			for (Ip equipIp: ips) {
+				String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
+				if (equipIpString.equals(cmd.getIp())) {
+					ip = equipIp;
+				}
+			}
+
+			if (vip.getRealsIp() != null) {
+				for (RealIP realIp:  vip.getRealsIp()) {
+					if (ip.getId().equals(realIp.getIpId())) {
+						// real exists in vip. Remove it.
+						_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+						return new Answer(cmd, true, "Real enabled successfully"); 
+					}
+				}
+			}
+			return new Answer(cmd, true, "Real not in vipId " + cmd.getVipId());
+			
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
 		}

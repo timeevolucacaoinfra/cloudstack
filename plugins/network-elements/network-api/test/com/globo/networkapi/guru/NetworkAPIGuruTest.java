@@ -1,6 +1,7 @@
 package com.globo.networkapi.guru;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
@@ -46,6 +47,7 @@ import com.cloud.user.UserContextInitializer;
 import com.cloud.user.UserVO;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.dao.NicDao;
+import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.manager.NetworkAPIService;
 
 
@@ -134,6 +136,10 @@ public class NetworkAPIGuruTest {
     	@Bean
     	public PhysicalNetworkDao physicalNetworkDao() {
     		return mock(PhysicalNetworkDao.class);
+    	}
+    	@Bean
+    	public NetworkAPIVipAccDao networkAPIVipAccDao() {
+    	   return mock(NetworkAPIVipAccDao.class);
     	}
     	@Bean
     	public VpcVirtualNetworkApplianceManager vpcVirtualNetworkApplianceManager() {
