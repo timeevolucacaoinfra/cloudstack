@@ -136,15 +136,8 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 		
 		NicProfile nicProf = super.allocate(network, nic, vm);
 		
-		_networkAPIService.validateNic(nic, vm, network);
-		
-		// FIXME Remove try/catch as soon as everything works
-		try {
-			s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
-			_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
-		} catch (Exception e) {
-			s_logger.warn("Exception when registering NIC in Network API", e);
-		}
+		s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
+		_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
 		
 		return nicProf;
 	}
@@ -157,26 +150,19 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			InsufficientAddressCapacityException {
 		s_logger.debug("Asking GuestNetworkGuru to reserve nic " + nic.toString() +
 				" for network " + network.getName());
+
 		super.reserve(nic, network, vm, dest, context);
+
+		_networkAPIService.validateNic(nic, vm, network);
+
 	}
 	
 	@Override
-	public boolean release(NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
-			String reservationId) {
-		s_logger.debug("Asking GuestNetworkGuru to release NIC " + nic.toString()
-				+ " from VM " + vm.getInstanceName());
-		return super.release(nic, vm, reservationId);
-	}
-
-	@Override
 	public void deallocate(Network network, NicProfile nic,
 			VirtualMachineProfile<? extends VirtualMachine> vm) {
-		try {
-			_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
-		} catch (Exception e) {
-			s_logger.warn("Exception when deregistering NIC in Network API", e);
-		}
+
+		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
+				+ " from VM " + vm.getInstanceName());
 		
 		// FIXME When NetworkAPI use a effective LoadBalancerImplementation
 		// move the code bellow to NetworkElement
@@ -186,8 +172,9 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			NicVO nicVO = _nicDao.findById(nic.getId());
 			_networkAPIService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
 		}
-		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
-				+ " from VM " + vm.getInstanceName());
+
+		_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
+		
 		super.deallocate(network, nic, vm);
 	}
 
@@ -195,16 +182,17 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
 
 		try {
+			List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
+			for (VirtualRouter router: routers) {
+					_routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
+			}
+
 			s_logger.debug("Removing networks from NetworkAPI");
 			_networkAPIService.removeNetworkFromNetworkAPI(profile);
 		
 			s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
 			super.shutdown(profile, offering);
 			
-			List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
-			for (VirtualRouter router: routers) {
-					_routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
-			}
 		} catch (ResourceUnavailableException e) {
 			throw new CloudRuntimeException(e);
 		} catch (ConcurrentOperationException e) {
