@@ -26,7 +26,7 @@ import com.globo.networkapi.manager.NetworkAPIService;
 public class DelNetworkApiRealFromVipCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(DelNetworkApiRealFromVipCmd.class.getName());
-    private static final String s_name = "disassociatenetworkapirealfromvip";
+    private static final String s_name = "disassociatenetworkapirealfromvipresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
