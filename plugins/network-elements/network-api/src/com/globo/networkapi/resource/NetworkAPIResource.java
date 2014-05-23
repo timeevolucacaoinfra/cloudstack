@@ -353,21 +353,12 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd, true, "Equipment " + cmd.getEquipName() + " doesn't exist in Network API");
 			}
 
-			List<Ip> ips = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
-			Ip ip = null;
-			for (Ip equipIp: ips) {
-				String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
-				if (equipIpString.equals(cmd.getIp())) {
-					ip = equipIp;
-				}
-			}
-
 			if (vip.getRealsIp() != null) {
 				for (RealIP realIp:  vip.getRealsIp()) {
-					if (ip.getId().equals(realIp.getIpId())) {
+					if (cmd.getIp().equals(realIp.getRealIp())) {
 						// real exists in vip. Remove it.
-						_napi.getVipAPI().removeReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
-						return new Answer(cmd, true, "Real enabled successfully"); 
+						_napi.getVipAPI().removeReal(cmd.getVipId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
+						return new Answer(cmd, true, "Real removed successfully"); 
 					}
 				}
 			}
