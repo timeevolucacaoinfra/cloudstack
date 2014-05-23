@@ -183,6 +183,12 @@ public interface NetworkAPIService {
 	 */
 	public List<NetworkAPIVipResponse> listNetworkAPIVips(Long projectId);
 
+	/**
+	 * Associate Network API VIP to an account and network in Cloudstack
+	 * @param networkId
+	 * @param napiVipId
+	 * @return
+	 */
 	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long napiVipId);
 	
 	/**
