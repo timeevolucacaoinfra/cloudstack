@@ -12,5 +12,7 @@ public interface NetworkAPIVipAccDao extends GenericDao<NetworkAPIVipAccVO, Long
 	NetworkAPIVipAccVO findNetworkAPIVip(long napiVipId, long networkId);
 
 	List<NetworkAPIVipAccVO> findByNetwork(long networkId);
-
+	
+	List<NetworkAPIVipAccVO> findByVipId(long vipId);
+	
 }

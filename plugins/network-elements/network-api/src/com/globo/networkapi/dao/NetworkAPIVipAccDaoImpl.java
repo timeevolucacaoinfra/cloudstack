@@ -24,6 +24,8 @@ public class NetworkAPIVipAccDaoImpl extends
 
 	final SearchBuilder<NetworkAPIVipAccVO> byNetwork;
 
+	final SearchBuilder<NetworkAPIVipAccVO> byVip;
+	
 	final SearchBuilder<NetworkAPIVipAccVO> byNetworkAndVip;
 
 	protected NetworkAPIVipAccDaoImpl() {
@@ -38,6 +40,10 @@ public class NetworkAPIVipAccDaoImpl extends
 		byNetwork = createSearchBuilder();
 		byNetwork.and("network_id", byNetwork.entity().getNetworkId(), Op.EQ);
 		byNetwork.done();
+		
+		byVip = createSearchBuilder();
+		byVip.and("napi_vip_id", byVip.entity().getNapiVipId(), Op.EQ);
+		byVip.done();
 		
 		byNetworkAndVip = createSearchBuilder();
 		byNetworkAndVip.and("network_id", byNetworkAndVip.entity().getNetworkId(), Op.EQ);
@@ -68,6 +74,13 @@ public class NetworkAPIVipAccDaoImpl extends
 		sc.setParameters("napi_vip_id", napiVipId);
 		sc.setParameters("network_id", networkId);
 		return findOneBy(sc);
+	}
+
+	@Override
+	public List<NetworkAPIVipAccVO> findByVipId(long vipId) {
+		SearchCriteria<NetworkAPIVipAccVO> sc = byVip.create();
+		sc.setParameters("napi_vip_id", vipId);
+		return listBy(sc);
 	}
 
 }
