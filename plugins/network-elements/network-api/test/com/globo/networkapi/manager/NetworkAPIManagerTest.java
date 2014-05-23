@@ -59,6 +59,7 @@ import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
+import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
 import com.cloud.server.ConfigurationServer;
@@ -333,6 +334,10 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public AccountManager accountManager() {
     		return mock(AccountManager.class);
+    	}
+    	@Bean
+    	public ProjectManager projectManager() {
+    		return mock(ProjectManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {

@@ -4,7 +4,6 @@ import java.util.List;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.google.api.client.util.Key;
 
 public class NetworkAPIAllEnvironmentResponse extends Answer {
 

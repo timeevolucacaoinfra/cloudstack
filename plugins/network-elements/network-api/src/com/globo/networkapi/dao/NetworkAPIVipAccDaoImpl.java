@@ -21,6 +21,8 @@ public class NetworkAPIVipAccDaoImpl extends
 		NetworkAPIVipAccDao {
 
 	final SearchBuilder<NetworkAPIVipAccVO> allParamsSearch;
+	
+	final SearchBuilder<NetworkAPIVipAccVO> networkSearch;
 
 	final SearchBuilder<NetworkAPIVipAccVO> byNetwork;
 
@@ -34,6 +36,10 @@ public class NetworkAPIVipAccDaoImpl extends
 		allParamsSearch.and("account_id", allParamsSearch.entity().getAccountId(), Op.EQ);
 		allParamsSearch.and("network_id", allParamsSearch.entity().getNetworkId(), Op.EQ);
 		allParamsSearch.done();
+		
+		networkSearch = createSearchBuilder();
+		networkSearch.and("network_id", networkSearch.entity().getNetworkId(), Op.IN);
+		networkSearch.done();
 
 		byNetwork = createSearchBuilder();
 		byNetwork.and("network_id", byNetwork.entity().getNetworkId(), Op.EQ);
@@ -53,6 +59,12 @@ public class NetworkAPIVipAccDaoImpl extends
 		sc.setParameters("account_id", accountId);
 		sc.setParameters("network_id", networkId);
 		return findOneBy(sc);
+	}
+	
+	public List<NetworkAPIVipAccVO> listByNetworks(List<Long> networkIdList) {
+		SearchCriteria<NetworkAPIVipAccVO> sc = networkSearch.create();
+		sc.setParameters("network_id", networkIdList.toArray(new Object[networkIdList.size()]));
+		return listBy(sc);
 	}
 
 	@Override

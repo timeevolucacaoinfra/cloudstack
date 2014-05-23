@@ -8,6 +8,8 @@ import com.globo.networkapi.NetworkAPIVipAccVO;
 public interface NetworkAPIVipAccDao extends GenericDao<NetworkAPIVipAccVO, Long> {
 
 	NetworkAPIVipAccVO findNetworkAPIVipAcct(long napiVipId, long accountId, long networkId);
+	
+	List<NetworkAPIVipAccVO> listByNetworks(List<Long> networkIdList);
 
 	NetworkAPIVipAccVO findNetworkAPIVip(long napiVipId, long networkId);
 

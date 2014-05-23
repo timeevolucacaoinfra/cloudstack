@@ -23,6 +23,7 @@ import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
+import com.globo.networkapi.response.NetworkAPIVipResponse;
 
 public interface NetworkAPIService {
 
@@ -176,9 +177,15 @@ public interface NetworkAPIService {
 	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
 	
 	/**
+	 * List all Network API VIPs associated to an account/project
+	 * @param projectId
+	 * @return
+	 */
+	public List<NetworkAPIVipResponse> listNetworkAPIVips(Long projectId);
+
+	/**
 	 * Associate Network API VIP to an account and network in Cloudstack
 	 * @param networkId
-	 * @param accountId
 	 * @param napiVipId
 	 * @return
 	 */
