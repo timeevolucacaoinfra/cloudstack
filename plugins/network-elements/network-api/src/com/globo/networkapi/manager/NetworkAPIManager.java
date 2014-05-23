@@ -998,7 +998,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		RegisterEquipmentAndIpInNetworkAPICommand cmd = new RegisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
-		cmd.setNicDescription("eth" + nic.getDeviceId());
+		cmd.setNicDescription("");
 		cmd.setVmName(vm.getUuid());
 		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
 		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
@@ -1090,11 +1090,17 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
 	public void associateNicToVip(Long vipId, Nic nic) {
-		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
 		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
 		if (vm == null) {
 			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
 		}
+		
+		NetworkAPIVipAccVO napiVipVO = _napiVipAccDao.findNetworkAPIVip(vipId, nic.getNetworkId());
+		if (napiVipVO == null) {
+			throw new InvalidParameterValueException("Vip " + vipId + " is not associated with cloudstack");
+		}
+
+		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
 		cmd.setEquipName(vm.getUuid());
 		cmd.setIp(nic.getIp4Address());
 		cmd.setVipId(vipId);

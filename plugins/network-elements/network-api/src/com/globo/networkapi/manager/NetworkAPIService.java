@@ -177,6 +177,13 @@ public interface NetworkAPIService {
 	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
 	
 	/**
+	 * List all Network API VIPs associated to an account/project
+	 * @param projectId
+	 * @return
+	 */
+	public List<Vip> listNetworkAPIVips(Long projectId);
+
+	/**
 	 * Associate Network API VIP to an account and network in Cloudstack
 	 * @param networkId
 	 * @param napiVipId
@@ -197,11 +204,4 @@ public interface NetworkAPIService {
 	 * @param nicId
 	 */
 	public void disassociateNicFromVip(Long vipId, Nic nic);
-
-	/**
-	 * List all Network API VIPs associated to an account/project
-	 * @param projectId
-	 * @return
-	 */
-	public List<Vip> listNetworkAPIVips(Long projectId);
 }
