@@ -31,7 +31,7 @@ import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.ListVipsFromNetworkAPICommand;
+import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -49,7 +49,8 @@ import com.globo.networkapi.model.Real.RealIP;
 import com.globo.networkapi.model.Vip;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
-import com.globo.networkapi.response.NetworkAPIVipsResponse;
+import com.globo.networkapi.response.NetworkAPIVipResponse;
+import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIResource extends ManagerBase implements ServerResource {
@@ -210,8 +211,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
 		} else if (cmd instanceof ValidateVipInNetworkAPICommand) {
 			return execute((ValidateVipInNetworkAPICommand) cmd);
-		} else if (cmd instanceof ListVipsFromNetworkAPICommand) {
-			return execute((ListVipsFromNetworkAPICommand) cmd);
+		} else if (cmd instanceof GetVipInfoFromNetworkAPICommand) {
+			return execute((GetVipInfoFromNetworkAPICommand) cmd);
 		} else if (cmd instanceof AddAndEnableRealInNetworkAPICommand) {
 			return execute((AddAndEnableRealInNetworkAPICommand) cmd);
 		} else if (cmd instanceof DisableAndRemoveRealInNetworkAPICommand) {
@@ -520,69 +521,62 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	public Answer execute(ListVipsFromNetworkAPICommand cmd) {
+	public Answer execute(GetVipInfoFromNetworkAPICommand cmd) {
 		try {
-			List<Long> napiVipIds = cmd.getNapiVipIds();
-			List<Vip> napiVips = new ArrayList<Vip>();
-			for (Long vipId : napiVipIds) {
-				napiVips.add(_napi.getVipAPI().getById(vipId));
-			}
+			long vipId = cmd.getVipId();
+			Vip vip = _napi.getVipAPI().getById(vipId);
 			
-			List<NetworkAPIVipsResponse.Vip> vipsList = new ArrayList<NetworkAPIVipsResponse.Vip>(napiVips.size());
-			for (Vip vip : napiVips) {
-				if (vip == null) { continue; }
-				NetworkAPIVipsResponse.Vip vipResponse = new NetworkAPIVipsResponse.Vip();
-				vipResponse.setId(vip.getId());
-				vipResponse.setName(vip.getHost());
-				vipResponse.setIp(vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString());
-				vipResponse.setCache(vip.getCache());
-				vipResponse.setMethod(vip.getMethod());
-				vipResponse.setPersistence(vip.getPersistence());
-				vipResponse.setHealthcheckType(vip.getHealthcheckType());
-				vipResponse.setHealthcheck(vip.getHealthcheck());
-				vipResponse.setMaxConn(vip.getMaxConn());
-				vipResponse.setPorts(vip.getPorts());
-				 
-				// Using a map rather than a list because different ports come in different objects
-				// even though they have the same ID
-				// Example
-                // {
-                //    "id_ip": "33713",
-                //    "port_real": "8180",
-                //    "port_vip": "80",
-                //    "real_ip": "10.20.30.40",
-                //    "real_name": "MACHINE01"
-                // },
-                // {
-                //    "id_ip": "33713",
-                //    "port_real": "8280",
-                //    "port_vip": "80",
-                //    "real_ip": "10.20.30.40",
-                //    "real_name": "MACHINE01"
-                // },
-				Map<Long, NetworkAPIVipsResponse.Real> realMap = new HashMap<Long, NetworkAPIVipsResponse.Real>();
-				for(RealIP real : vip.getRealsIp()) {
-					NetworkAPIVipsResponse.Real realResponse;
-					if (realMap.get(real.getIpId()) != null) {
-						// Already exists in Map
-						realResponse = realMap.get(real.getIpId());
-						realResponse.getPorts().add(real.getVipPort() + ":" + real.getRealPort());
-					} else {
-						// Doesn't exist yet, first time iterating, so add IP parameter and add to list
-						realResponse = new NetworkAPIVipsResponse.Real();
-						realResponse.setIp(real.getRealIp());
-						realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
-						realResponse.setVmName(real.getName());
-						realMap.put(real.getIpId(), realResponse);
-					}
-					
+			if (vip == null) {
+				// FIXME
+				return null;
+			}
+
+			// Using a map rather than a list because different ports come in different objects
+			// even though they have the same ID
+			// Example
+            // {
+            //    "id_ip": "33713",
+            //    "port_real": "8180",
+            //    "port_vip": "80",
+            //    "real_ip": "10.20.30.40",
+            //    "real_name": "MACHINE01"
+            // },
+            // {
+            //    "id_ip": "33713",
+            //    "port_real": "8280",
+            //    "port_vip": "80",
+            //    "real_ip": "10.20.30.40",
+            //    "real_name": "MACHINE01"
+            // },
+
+			Map<Long, Real> reals = new HashMap<Long, Real>();
+			for(RealIP real : vip.getRealsIp()) {
+				Real realResponse = reals.get(real.getIpId());
+				if (realResponse == null) {
+					// Doesn't exist yet, first time iterating, so add IP parameter and add to list
+					realResponse = new Real();
+					realResponse.setIp(real.getRealIp());
+					realResponse.setVmName(real.getName());
+					reals.put(real.getIpId(), realResponse);
 				}
-				
-				vipResponse.setReals(new ArrayList<NetworkAPIVipsResponse.Real>(realMap.values()));
-				vipsList.add(vipResponse);
+				realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
 			}
-			
-			return new NetworkAPIVipsResponse(cmd, vipsList);
+
+			NetworkAPIVipResponse vipResponse = new NetworkAPIVipResponse(cmd,
+					vipId, // id
+					vip.getHost(), // name
+					vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString(), // ip
+					null, // network
+					vip.getCache(), // cache
+					vip.getMethod(), // method
+					vip.getPersistence(), // persistence
+					vip.getHealthcheckType(), // healtcheck type
+					vip.getHealthcheck(), // healthcheck
+					vip.getMaxConn(), // maxconn,
+					vip.getPorts(),
+					reals.values());
+			 
+			return vipResponse;
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
 		}

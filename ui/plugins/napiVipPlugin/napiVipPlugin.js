@@ -1,4 +1,5 @@
 (function (cloudStack) {
+
   cloudStack.plugins.napiVipPlugin = function(plugin) {
     plugin.ui.addSection({
       id: 'napiVipPlugin',
@@ -18,13 +19,16 @@
           plugin.ui.apiCall('listNetworkApiVips', {
             success: function(json) {
               var vips = json.listnetworkapivipsresponse.networkapivip;
+              vips.forEach(function(vip) {
+                  vip.ports = vip.ports.join("\n");
+              });
               args.response.success({ data: vips });
             },
             error: function(errorMessage) {
-              args.response.error(errorMessage)
+              args.response.error(errorMessage);
             }
           });
-        },        
+        },
         detailView: {
           name: 'VIP details',
           isMaximized: true,
@@ -65,8 +69,6 @@
                 },
               }],
               dataProvider: function(args) {
-                var ports = args.jsonObj.ports.join(", ");
-                args.jsonObj.ports = ports;
                 args.response.success({ data: args.jsonObj });
               }
             },
@@ -151,7 +153,7 @@
                       poll: pollAsyncJobResult
                     }
                   }
-                }                
+                }
               }
             },
           },

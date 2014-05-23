@@ -39,8 +39,8 @@ import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.response.NetworkAPIVipExternalResponse;
-import com.globo.networkapi.response.NetworkAPIVipsResponse.Real;
-import com.globo.networkapi.response.NetworkAPIVipsResponse.Vip;
+import com.globo.networkapi.response.NetworkAPIVipResponse;
+import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.google.common.base.Joiner;
 
 @APICommand(name = "listNetworkApiVips", responseObject=NetworkAPIVipExternalResponse.class, description="Lists NetworkAPI Vips")
@@ -60,11 +60,11 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("listNetworkApiVipsCmd command with projectId=" + projectId);
-        	List<Vip> napiVips = _ntwkAPIService.listNetworkAPIVips(this.projectId);
+        	List<NetworkAPIVipResponse> napiVips = _ntwkAPIService.listNetworkAPIVips(this.projectId);
         	
         	List<NetworkAPIVipExternalResponse> responseList = new ArrayList<NetworkAPIVipExternalResponse>();
     		
-    		for (Vip networkAPIVip : napiVips) {
+    		for (NetworkAPIVipResponse networkAPIVip : napiVips) {
     			NetworkAPIVipExternalResponse vipResponse = new NetworkAPIVipExternalResponse();
     			vipResponse.setId(networkAPIVip.getId());
     			vipResponse.setName(networkAPIVip.getName());
@@ -100,7 +100,7 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage(), runtimeExcp);
         }
     }
  

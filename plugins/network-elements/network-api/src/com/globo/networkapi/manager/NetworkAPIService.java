@@ -23,7 +23,7 @@ import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
-import com.globo.networkapi.response.NetworkAPIVipsResponse.Vip;
+import com.globo.networkapi.response.NetworkAPIVipResponse;
 
 public interface NetworkAPIService {
 
@@ -181,7 +181,7 @@ public interface NetworkAPIService {
 	 * @param projectId
 	 * @return
 	 */
-	public List<Vip> listNetworkAPIVips(Long projectId);
+	public List<NetworkAPIVipResponse> listNetworkAPIVips(Long projectId);
 
 	public NetworkAPIVipAccVO addNapiVipToAcc(Long networkId, Long napiVipId);
 	

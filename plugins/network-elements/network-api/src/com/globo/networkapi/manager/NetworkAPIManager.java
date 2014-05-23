@@ -101,7 +101,7 @@ import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.ListVipsFromNetworkAPICommand;
+import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -116,8 +116,7 @@ import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
-import com.globo.networkapi.response.NetworkAPIVipsResponse;
-import com.globo.networkapi.response.NetworkAPIVipsResponse.Vip;
+import com.globo.networkapi.response.NetworkAPIVipResponse;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
@@ -1131,7 +1130,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
-	public List<Vip> listNetworkAPIVips(Long projectId) {
+	public List<NetworkAPIVipResponse> listNetworkAPIVips(Long projectId) {
 
 		Account caller = UserContext.current().getCaller();
 		List<Long> permittedAccounts = new ArrayList<Long>();
@@ -1170,38 +1169,33 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		if (networkIds.isEmpty()) {
-			return new ArrayList<Vip>();
+			return new ArrayList<NetworkAPIVipResponse>();
 		}
 		
 		// Get all vip Ids related to networks
 		List<NetworkAPIVipAccVO> napiVipAccList = _napiVipAccDao.listByNetworks(networkIds);
 		
-		List<Long> napiVipIds = new ArrayList<Long>();
+		List<NetworkAPIVipResponse> vips = new ArrayList<NetworkAPIVipResponse>();
 		for (NetworkAPIVipAccVO napiVipAcc : napiVipAccList) {
-			napiVipIds.add(napiVipAcc.getNapiVipId());
-		}
-		
-		// Get each VIP from Network API
-		ListVipsFromNetworkAPICommand cmd = new ListVipsFromNetworkAPICommand();
-		cmd.setNapiVipIds(napiVipIds);
-		Answer answer = this.callCommand(cmd, 1L); // FIXME Do not use fixed zone ID
-		String msg = "Could not list VIPs from Network API";
-		if (answer == null || !answer.getResult()) {
-			msg = answer == null ? msg : answer.getDetails();
-			throw new CloudRuntimeException(msg);
-		}
-
-		// Set relationship between Vip and Network
-		// FIXME Better way of doing this?
-		List<Vip> vips =  ((NetworkAPIVipsResponse) answer).getVipsList();
-		for (Vip vip : vips) {
-			for (NetworkAPIVipAccVO napiVipAcc : napiVipAccList) {
-				if (vip.getId() == napiVipAcc.getNapiVipId()) {
-					vip.setNetwork(_ntwkDao.findById(napiVipAcc.getNetworkId()).getName());
-				}
+			
+			Network network = _ntwkDao.findById(napiVipAcc.getNetworkId());
+			
+			// Get each VIP from Network API
+			GetVipInfoFromNetworkAPICommand cmd = new GetVipInfoFromNetworkAPICommand();
+			cmd.setVipId(napiVipAcc.getNapiVipId());
+			Answer answer = this.callCommand(cmd, network.getDataCenterId());
+			String msg = "Could not list VIPs from Network API";
+			if (answer == null || !answer.getResult()) {
+				msg = answer == null ? msg : answer.getDetails();
+				throw new CloudRuntimeException(msg);
 			}
+			NetworkAPIVipResponse vip =  ((NetworkAPIVipResponse) answer);
+
+			// FIXME Better way of doing this?
+			// Set relationship between Vip and Network
+			vip.setNetwork(network.getName());
+			vips.add(vip);
 		}
-		
 		return vips;
 	}
 }
