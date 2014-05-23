@@ -18,9 +18,9 @@
         dataProvider: function(args) {
           plugin.ui.apiCall('listNetworkApiVips', {
             success: function(json) {
-              var vips = json.listnetworkapivipsresponse.networkapivip;
+              var vips = json.listnetworkapivipsresponse.networkapivip || [];
               vips.forEach(function(vip) {
-                  vip.ports = vip.ports.join("\n");
+                  vip.ports = vip.ports.join(", ");
               });
               args.response.success({ data: vips });
             },
