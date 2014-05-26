@@ -211,4 +211,12 @@ public interface NetworkAPIService {
 	 * @param napiVipId
 	 */
 	public void removeNapiVip(Long napiVipId);
+
+	/**
+	 * Find a single Netowrk API VIP
+	 * @param vipId
+	 * @param networkId 
+	 * @return
+	 */
+	public NetworkAPIVipResponse findNetworkAPIVip(Long vipId, Long networkId);
 }

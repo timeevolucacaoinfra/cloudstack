@@ -1,3 +1,4 @@
+
 package com.globo.networkapi.manager;
 
 import java.net.URI;
@@ -1278,4 +1279,53 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	}
 	
+	@Override
+	public NetworkAPIVipResponse findNetworkAPIVip(Long vipId, Long networkId) {
+		if (vipId == null) {
+			throw new InvalidParameterValueException("Invalid VIP id");
+		}
+		
+		if (networkId == null) {
+			throw new InvalidParameterValueException("Invalid Network id");
+		}
+
+		Network network = _ntwkDao.findById(networkId);
+
+		if (network == null) {
+			throw new CloudRuntimeException("Could not find network with networkId" + networkId);
+		}
+		
+		NetworkAPIVipAccVO napiVipAcc = _napiVipAccDao.findNetworkAPIVip(vipId, network.getId());
+
+		if (napiVipAcc == null) {
+			throw new CloudRuntimeException("Could not find mapping for VIP and network");
+		}
+		
+		GetVipInfoFromNetworkAPICommand cmd = new GetVipInfoFromNetworkAPICommand();
+		cmd.setVipId(vipId);
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		String msg = "Could not find VIP from Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+		NetworkAPIVipResponse vip =  ((NetworkAPIVipResponse) answer);
+
+		vip.setNetworkId(network.getUuid());
+		vip.setNetwork(network.getName());
+			
+		for (Real real : vip.getReals()) {
+			Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), network.getId());
+			if (nic != null) {
+				real.setNic(String.valueOf(nic.getId()));
+			}
+				
+			// User VM name rather than UUID
+			UserVmVO userVM = _vmDao.findByUuid(real.getVmName());
+			if (userVM != null) {
+				real.setVmName(userVM.getHostName());
+			}
+		}
+		return vip;
+	}
 }
