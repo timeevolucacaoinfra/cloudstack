@@ -79,6 +79,7 @@ import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.UserVmVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
@@ -99,9 +100,9 @@ import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
+import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -117,6 +118,7 @@ import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 import com.globo.networkapi.response.NetworkAPIVipResponse;
+import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
@@ -144,6 +146,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	UserDao _userDao;
 	@Inject
 	NetworkDao _ntwkDao;
+    @Inject
+    NicDao _nicDao;
 	@Inject
 	NetworkServiceMapDao _ntwkSrvcDao;
 	@Inject
@@ -1191,10 +1195,22 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 			NetworkAPIVipResponse vip =  ((NetworkAPIVipResponse) answer);
 
-			// FIXME Better way of doing this?
-			// Set relationship between Vip and Network
+			vip.setNetworkId(network.getUuid());
 			vip.setNetwork(network.getName());
 			vips.add(vip);
+			
+			for (Real real : vip.getReals()) {
+				Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), network.getId());
+				if (nic != null) {
+					real.setNic(String.valueOf(nic.getId()));
+				}
+				
+				// User VM name rather than UUID
+				UserVmVO userVM = _vmDao.findByUuid(real.getVmName());
+				if (userVM != null) {
+					real.setVmName(userVM.getHostName());
+				}
+			}
 		}
 		return vips;
 	}

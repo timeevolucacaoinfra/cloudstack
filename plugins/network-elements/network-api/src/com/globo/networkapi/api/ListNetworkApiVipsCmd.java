@@ -70,6 +70,7 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     			vipResponse.setName(networkAPIVip.getName());
     			vipResponse.setIp(networkAPIVip.getIp());
     			vipResponse.setNetwork(networkAPIVip.getNetwork());
+    			vipResponse.setNetworkid(networkAPIVip.getNetworkId());
     			vipResponse.setCache(networkAPIVip.getCache());
     			vipResponse.setMethod(networkAPIVip.getMethod());
     			vipResponse.setPersistence(networkAPIVip.getPersistence());
@@ -85,6 +86,7 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     				realResponse.setIp(real.getIp());
     				realResponse.setPorts(Joiner.on(", ").join(real.getPorts()));
     				realResponse.setState(real.getState());
+    				realResponse.setNic(real.getNic());
     				realList.add(realResponse);
     			}
     			vipResponse.setReals(realList);
