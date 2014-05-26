@@ -19,6 +19,7 @@ public class NetworkAPIVipResponse extends Answer {
 	private String persistence;
 	private String healthcheckType;
 	private String healthcheck;
+	private String networkId;
 	private String network;
 	private Integer maxConn;
 	private List<String> ports;
@@ -129,6 +130,14 @@ public class NetworkAPIVipResponse extends Answer {
 	public void setReals(List<Real> reals) {
 		this.reals = reals;
 	}
+	
+	public String getNetworkId() {
+		return networkId;
+	}
+	
+	public void setNetworkId(String networkId) {
+		this.networkId = networkId;
+	}
 
 	public String getNetwork() {
 		return network;
@@ -146,6 +155,8 @@ public class NetworkAPIVipResponse extends Answer {
 		private List<String> ports;
 
 		private Boolean state;
+		
+		private String nic;
 
 		public String getVmName() {
 			return vmName;
@@ -180,6 +191,14 @@ public class NetworkAPIVipResponse extends Answer {
 
 		public void setState(Boolean state) {
 			this.state = state;
+		}
+		
+		public String getNic() {
+			return nic;
+		}
+		
+		public void setNic(String nic) {
+			this.nic = nic;
 		}
 	}
 }
