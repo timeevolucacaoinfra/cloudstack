@@ -48,14 +48,15 @@ public class RemoveNetworkAPIVipCmd extends BaseCmd {
     @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI VIP ID.")
     private Long napiVipId;
     
-    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID associated to VIP")
-    private Long networkId;
+//    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID associated to VIP")
+//    private Long networkId;
     
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId + " networkId=" + networkId);
+//        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId + " networkId=" + networkId);
+        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId);
         	_ntwkAPIService.removeNapiVip(napiVipId);
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
