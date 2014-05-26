@@ -90,6 +90,7 @@ import com.globo.networkapi.api.AddNetworkApiRealToVipCmd;
 import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
 import com.globo.networkapi.api.DelNetworkApiRealFromVipCmd;
+import com.globo.networkapi.api.GenerateUrlForEditingVipCmd;
 import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.api.ListNetworkApiVipsCmd;
@@ -99,6 +100,7 @@ import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
+import com.globo.networkapi.commands.GenerateUrlForEditingVipCommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
@@ -499,9 +501,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				NetworkAPIErrorAnswer napiAnswer = (NetworkAPIErrorAnswer) answer; 
 				throw new CloudstackNetworkAPIException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription());
 			} else {
-				String msg = "Error executing command " + cmd;
+				String msg = "Error executing command " + cmd + ". Maybe NetworkAPI Host is down";
 				msg = answer == null ? msg : answer.getDetails();
-				throw new CloudstackNetworkAPIException(msg);
+				throw new CloudRuntimeException(msg);
 			}
 		}
 		
@@ -745,6 +747,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(ListNetworkApiVipsCmd.class);
 		cmdList.add(AddNetworkApiRealToVipCmd.class);
 		cmdList.add(DelNetworkApiRealFromVipCmd.class);
+		cmdList.add(GenerateUrlForEditingVipCmd.class);
 		return cmdList;
 	}
 	
@@ -1197,5 +1200,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			vips.add(vip);
 		}
 		return vips;
+	}
+
+	@Override
+	public String generateUrlForEditingVip(Long vipId, Network network) {
+		
+		GenerateUrlForEditingVipCommand cmd = new GenerateUrlForEditingVipCommand(vipId);
+		Answer answer = callCommand(cmd, network.getDataCenterId());
+		String msg = "Could not list VIPs from Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+		return answer.getDetails();
 	}
 }

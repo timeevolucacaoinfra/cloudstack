@@ -15,6 +15,53 @@
           ip: { label: 'IP' },
           network: { label: 'label.network' },
         },
+        actions: {
+          add: {
+            label: 'Create new VIP3',
+            createForm: {
+              title: 'Real network',
+              fields: {
+                networkId: {
+                    label: 'label.network',
+                    validation: {
+                        required: true
+                    },
+                    select: function(args) {
+                        $.ajax({
+                            url: createURL('listNetworks'),
+                            async: false,
+                            data: {
+                                listAll: true
+                            },
+                            success: function(json) {
+                                var networks = json.listnetworksresponse.network;
+                                args.response.success({
+                                    data: $.map(networks, function(network) {
+                                        return {
+                                            id: network.id,
+                                            description: network.name
+                                        };
+                                    })
+                                });
+                            }
+                        });
+                    },
+                },
+              }
+            },
+            action: function(args) {
+              console.log('oi', args);
+            },
+            messages: {
+              notification: function(args) {
+                return 'Vip created';
+              }
+            },
+            notification: {
+              poll: pollAsyncJobResult
+            }
+          }
+        },
         dataProvider: function(args) {
           plugin.ui.apiCall('listNetworkApiVips', {
             success: function(json) {

@@ -204,4 +204,6 @@ public interface NetworkAPIService {
 	 * @param nicId
 	 */
 	public void disassociateNicFromVip(Long vipId, Nic nic);
+	
+	public String generateUrlForEditingVip(Long vipId, Network network);
 }

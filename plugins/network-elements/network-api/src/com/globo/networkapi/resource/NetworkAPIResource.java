@@ -29,9 +29,10 @@ import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
+import com.globo.networkapi.commands.GenerateUrlForEditingVipCommand;
+import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
@@ -217,6 +218,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((AddAndEnableRealInNetworkAPICommand) cmd);
 		} else if (cmd instanceof DisableAndRemoveRealInNetworkAPICommand) {
 			return execute((DisableAndRemoveRealInNetworkAPICommand) cmd);
+		} else if (cmd instanceof GenerateUrlForEditingVipCommand) {
+			return execute((GenerateUrlForEditingVipCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -572,7 +575,16 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return handleNetworkAPIException(cmd, e);
 		}
 	}
+	
+	public Answer execute(GenerateUrlForEditingVipCommand cmd) {
 
+		try {
+			String url = _napi.getVipAPI().generateVipEditingUrl(cmd.getVipId());
+			return new Answer(cmd, true, url);
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
 
 	private Answer createResponse(Vlan vlan, Command cmd) {
 		
