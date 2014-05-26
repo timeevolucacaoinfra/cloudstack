@@ -688,6 +688,7 @@ removeNetworkAPIEnvironment=1
 listAllEnvironmentsFromNetworkApi=1
 addNetworkApiVipToAccountCmd=15
 listNetworkApiVips=15
+findNetworkApiVip=15
 associateNetworkApiRealToVip=15
 disassociateNetworkApiRealFromVip=15
 

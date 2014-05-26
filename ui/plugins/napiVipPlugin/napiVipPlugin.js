@@ -88,7 +88,19 @@
                                     // }
                                 },
                                 dataProvider: function(args) {
-                                    args.response.success({ data: args.context.vips[0].reals });
+                                    plugin.ui.apiCall('findNetworkApiVip', {
+                                        data: {
+                                            vipid: args.context.vips[0].id,
+                                            networkid: args.context.vips[0].networkid,
+                                        },
+                                        success: function(json) {
+                                            var reals = json.findnetworkapivipresponse.networkapivip.reals || [];
+                                            args.response.success({ data: reals });
+                                        },
+                                        error: function(errorMessage) {
+                                            args.response.error(errorMessage);
+                                        }
+                                    });
                                 },
                                 actions: {
                                     add: {
