@@ -285,40 +285,28 @@
                         }
                       },
                       action: function(args) {
-                        console.log('args=', args);
 
                         $(window).unbind('message.vip').bind('message.vip', function(event) {
-                          console.log('fui chamado', event);
 
                           var message = null;
                           if (event && event.originalEvent && event.originalEvent.data) {
                               message = $.parseJSON(event.originalEvent.data);
                           }
-                          console.log('message', message);
 
                           if (!message || message.type !== "requestVip") {
                               // this is not my message
                           }
 
-                          // if ($('#editing').val() === '1') {
-                              // $('#editing').val('0');
-                              // ignore this message, but not next
-                              // return;
-                          // }
-
                           var vipId = message.data.requestVip;
-                          console.log('vipId=', vipId);
 
                           $.ajax({
                             url: createURL('addNetworkApiVipToAccountCmd&networkid=' + args.data.networkId +
                               '&vipid=' + vipId),
                             async: true,
                             success: function(vipJson) {
-                              console.log("terminei", vipJson);
                               $(window).unbind('message.vip');
-                              $('#editing-vip').remove();
+                              $('#editing-vip').dialog("close");
                               $(window).trigger('cloudStack.fullRefresh');
-                              // args.data.success();
                             }
                           });
                         });
@@ -328,17 +316,33 @@
                           url: createURL('generateUrlForEditingVip&networkid=' + args.data.networkId),
                           async: false,
                           success: function(json) {
-                              console.log('json=', json);
                               var url = json.generateurlforeditingvipresponse.editingurl.url;
 
                               var $iframe = $("<iframe></iframe>").attr({
-                                    'id': 'editing-vip',
                                     'src': url,
-                                    'width': '880px',
-                                    'height': '1500px',
+                                    'width': '580px',
+                                    'height': '600px',
                                     'scrolling': 'auto'
                               });
-                              $('.view').append($iframe);
+                              var $dialog = $("<div></div>");
+                              $dialog.attr('id', 'editing-vip');
+                              $dialog.append($iframe);
+
+                              $dialog.dialog({
+                                  modal: true,
+                                  width: 600,
+                                  height: 600,
+                                  title: 'Create new VIP',
+                                  closeOnEscape: false,
+                                  // dialogClass: 'dialog-about',
+                                  buttons: {
+                                      'Close': function() {
+                                          $(this).dialog("close");
+                                          $(':ui-dialog, .overlay').remove();
+                                          $(window).trigger('cloudStack.fullRefresh');
+                                      }
+                                  }
+                              }).closest('.ui-dialog').overlay();
                           }
                         });
                       },
