@@ -21,8 +21,14 @@ public class NetworkAPIVipAccDaoImpl extends
 		NetworkAPIVipAccDao {
 
 	final SearchBuilder<NetworkAPIVipAccVO> allParamsSearch;
+	
+	final SearchBuilder<NetworkAPIVipAccVO> networkSearch;
 
 	final SearchBuilder<NetworkAPIVipAccVO> byNetwork;
+
+	final SearchBuilder<NetworkAPIVipAccVO> byVip;
+	
+	final SearchBuilder<NetworkAPIVipAccVO> byNetworkAndVip;
 
 	protected NetworkAPIVipAccDaoImpl() {
 		super();
@@ -32,10 +38,23 @@ public class NetworkAPIVipAccDaoImpl extends
 		allParamsSearch.and("account_id", allParamsSearch.entity().getAccountId(), Op.EQ);
 		allParamsSearch.and("network_id", allParamsSearch.entity().getNetworkId(), Op.EQ);
 		allParamsSearch.done();
+		
+		networkSearch = createSearchBuilder();
+		networkSearch.and("network_id", networkSearch.entity().getNetworkId(), Op.IN);
+		networkSearch.done();
 
 		byNetwork = createSearchBuilder();
 		byNetwork.and("network_id", byNetwork.entity().getNetworkId(), Op.EQ);
 		byNetwork.done();
+		
+		byVip = createSearchBuilder();
+		byVip.and("napi_vip_id", byVip.entity().getNapiVipId(), Op.EQ);
+		byVip.done();
+		
+		byNetworkAndVip = createSearchBuilder();
+		byNetworkAndVip.and("network_id", byNetworkAndVip.entity().getNetworkId(), Op.EQ);
+		byNetworkAndVip.and("napi_vip_id", byNetworkAndVip.entity().getNapiVipId(), Op.EQ);
+		byNetworkAndVip.done();
 	}
 
 	@Override
@@ -47,11 +66,32 @@ public class NetworkAPIVipAccDaoImpl extends
 		sc.setParameters("network_id", networkId);
 		return findOneBy(sc);
 	}
+	
+	public List<NetworkAPIVipAccVO> listByNetworks(List<Long> networkIdList) {
+		SearchCriteria<NetworkAPIVipAccVO> sc = networkSearch.create();
+		sc.setParameters("network_id", networkIdList.toArray(new Object[networkIdList.size()]));
+		return listBy(sc);
+	}
 
 	@Override
 	public List<NetworkAPIVipAccVO> findByNetwork(long networkId) {
 		SearchCriteria<NetworkAPIVipAccVO> sc = byNetwork.create();
 		sc.setParameters("network_id", networkId);
+		return listBy(sc);
+	}
+
+	@Override
+	public NetworkAPIVipAccVO findNetworkAPIVip(long napiVipId, long networkId) {
+		SearchCriteria<NetworkAPIVipAccVO> sc = byNetworkAndVip.create();
+		sc.setParameters("napi_vip_id", napiVipId);
+		sc.setParameters("network_id", networkId);
+		return findOneBy(sc);
+	}
+
+	@Override
+	public List<NetworkAPIVipAccVO> findByVipId(long vipId) {
+		SearchCriteria<NetworkAPIVipAccVO> sc = byVip.create();
+		sc.setParameters("napi_vip_id", vipId);
 		return listBy(sc);
 	}
 

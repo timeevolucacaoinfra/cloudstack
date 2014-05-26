@@ -1,3 +1,18 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.globo.networkapi.api;
 
 import javax.inject.Inject;
@@ -8,7 +23,7 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.response.NicResponse;
+import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.SuccessResponse;
 import org.apache.log4j.Logger;
 
@@ -19,39 +34,30 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.cloud.vm.Nic;
 import com.globo.networkapi.manager.NetworkAPIService;
 
-@APICommand(name = "disassociateNetworkApiRealFromVip", responseObject=SuccessResponse.class, description="Disassociates a nic (real) from one specific VIP")
-public class DelNetworkApiRealFromVipCmd extends BaseCmd {
+@APICommand(name = "removeNetworkApiVip", responseObject=SuccessResponse.class, description="Remove a VIP from Network API and network in Cloudstack")
+public class RemoveNetworkAPIVipCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(DelNetworkApiRealFromVipCmd.class.getName());
-    private static final String s_name = "disassociatenetworkapirealfromvipresponse";
+    public static final Logger s_logger = Logger.getLogger(RemoveNetworkAPIVipCmd.class.getName());
+    private static final String s_name = "removenetworkapivipresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
-
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI Vip Id")
-    private Long vipId;
-
-    @Parameter(name=ApiConstants.NIC_ID, type=CommandType.UUID, entityType=NicResponse.class,
-            required=true, description="NIC ID")
-    private Long nicId;
     
-    public Nic getNic() {
-        Nic nic = _entityMgr.findById(Nic.class, nicId);
-        if (nic == null) {
-            throw new InvalidParameterValueException("Can't find specified nic");
-        }
-        return nic;
-    }
-
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI VIP ID.")
+    private Long napiVipId;
+    
+//    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID associated to VIP")
+//    private Long networkId;
+    
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("disassociateNetworkApiRealFromVip command with napiVipId=" + this.vipId + " nicId=" + this.nicId);
-        	_ntwkAPIService.disassociateNicFromVip(this.vipId, this.getNic());
+//        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId + " networkId=" + networkId);
+        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId);
+        	_ntwkAPIService.removeNapiVip(napiVipId);
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess(true);
@@ -63,7 +69,7 @@ public class DelNetworkApiRealFromVipCmd extends BaseCmd {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }
     }
- 
+
     @Override
     public String getCommandName() {
         return s_name;

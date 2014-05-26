@@ -59,6 +59,7 @@ import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
+import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
 import com.cloud.server.ConfigurationServer;
@@ -72,6 +73,7 @@ import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
+import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
@@ -307,6 +309,10 @@ public class NetworkAPIManagerTest {
     		return mock(UserVmDao.class);
     	}
     	@Bean
+    	public NicDao nicDao() {
+    		return mock(NicDao.class);
+    	}
+    	@Bean
     	public NetworkModel networkModel() {
     		return mock(NetworkModel.class);
     	}
@@ -333,6 +339,10 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public AccountManager accountManager() {
     		return mock(AccountManager.class);
+    	}
+    	@Bean
+    	public ProjectManager projectManager() {
+    		return mock(ProjectManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {

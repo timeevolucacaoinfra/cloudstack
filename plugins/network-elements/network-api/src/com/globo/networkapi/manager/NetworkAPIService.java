@@ -6,7 +6,6 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 
-import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -23,6 +22,7 @@ import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.model.Vlan;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
+import com.globo.networkapi.response.NetworkAPIVipResponse;
 
 public interface NetworkAPIService {
 
@@ -176,9 +176,15 @@ public interface NetworkAPIService {
 	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
 	
 	/**
+	 * List all Network API VIPs associated to an account/project
+	 * @param projectId
+	 * @return
+	 */
+	public List<NetworkAPIVipResponse> listNetworkAPIVips(Long projectId);
+
+	/**
 	 * Associate Network API VIP to an account and network in Cloudstack
 	 * @param networkId
-	 * @param accountId
 	 * @param napiVipId
 	 * @return
 	 */
@@ -197,4 +203,20 @@ public interface NetworkAPIService {
 	 * @param nicId
 	 */
 	public void disassociateNicFromVip(Long vipId, Nic nic);
+	
+	public String generateUrlForEditingVip(Long vipId, Network network);
+
+	/**
+	 * Remove Load Balancer (VIP) from NetworkAPI
+	 * @param napiVipId
+	 */
+	public void removeNapiVip(Long napiVipId);
+
+	/**
+	 * Find a single Netowrk API VIP
+	 * @param vipId
+	 * @param networkId 
+	 * @return
+	 */
+	public NetworkAPIVipResponse findNetworkAPIVip(Long vipId, Long networkId);
 }
