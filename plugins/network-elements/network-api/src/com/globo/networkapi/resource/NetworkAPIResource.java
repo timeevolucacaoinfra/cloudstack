@@ -374,11 +374,23 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 	
 	private Answer execute(RemoveVipFromNetworkAPICommand cmd) {
 		try {
+
 			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
+			
 			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
 				return new Answer(cmd, true, "Vip request " + cmd.getVipId() + " was previously removed from Network API");
 			}
-			// _napi.getVipAPI().removeVip(cmd.getVipId());
+			
+			// remove VIP from network device
+			if (vip.getCreated()) {
+				s_logger.info("Requesting networkapi to remove vip from network device vip_id=" + vip.getId());
+				_napi.getVipAPI().removeScriptVip(cmd.getVipId());
+			}
+			
+			// remove VIP from NetworkAPI DB
+			s_logger.info("Requesting networkapi to remove vip from NetworkAPI DB vip_id=" + vip.getId());
+			_napi.getVipAPI().removeVip(cmd.getVipId());
+			
 			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
