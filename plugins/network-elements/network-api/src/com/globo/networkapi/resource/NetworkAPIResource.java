@@ -35,6 +35,7 @@ import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.RemoveVipFromNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
@@ -217,6 +218,8 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((AddAndEnableRealInNetworkAPICommand) cmd);
 		} else if (cmd instanceof DisableAndRemoveRealInNetworkAPICommand) {
 			return execute((DisableAndRemoveRealInNetworkAPICommand) cmd);
+		} else if (cmd instanceof RemoveVipFromNetworkAPICommand) {
+			return execute((RemoveVipFromNetworkAPICommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -368,6 +371,31 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			}
 			return new Answer(cmd, true, "Real not in vipId " + cmd.getVipId());
 			
+		} catch (NetworkAPIException e) {
+			return handleNetworkAPIException(cmd, e);
+		}
+	}
+	
+	private Answer execute(RemoveVipFromNetworkAPICommand cmd) {
+		try {
+
+			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
+			
+			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
+				return new Answer(cmd, true, "Vip request " + cmd.getVipId() + " was previously removed from Network API");
+			}
+			
+			// remove VIP from network device
+			if (vip.getCreated()) {
+				s_logger.info("Requesting networkapi to remove vip from network device vip_id=" + vip.getId());
+				_napi.getVipAPI().removeScriptVip(cmd.getVipId());
+			}
+			
+			// remove VIP from NetworkAPI DB
+			s_logger.info("Requesting networkapi to remove vip from NetworkAPI DB vip_id=" + vip.getId());
+			_napi.getVipAPI().removeVip(cmd.getVipId());
+			
+			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
 		}

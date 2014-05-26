@@ -94,6 +94,7 @@ import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.api.ListNetworkApiVipsCmd;
 import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
+import com.globo.networkapi.api.RemoveNetworkAPIVipCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
@@ -105,6 +106,7 @@ import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.RemoveVipFromNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
@@ -745,6 +747,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(ListNetworkApiVipsCmd.class);
 		cmdList.add(AddNetworkApiRealToVipCmd.class);
 		cmdList.add(DelNetworkApiRealFromVipCmd.class);
+		cmdList.add(RemoveNetworkAPIVipCmd.class);
 		return cmdList;
 	}
 	
@@ -1198,4 +1201,49 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		return vips;
 	}
+	
+	@Override
+	public void removeNapiVip(Long napiVipId) {
+
+		Account caller = UserContext.current().getCaller();
+		
+		List<NetworkAPIVipAccVO> napiVipList = _napiVipAccDao.findByVipId(napiVipId);
+		
+		if (napiVipList == null || napiVipList.isEmpty()) {
+			throw new InvalidParameterValueException(
+					"Unable to find an association for VIP " + napiVipId);
+		}
+		
+		Network network = null;
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+		for (NetworkAPIVipAccVO networkAPIVipAccVO : napiVipList) {
+			network = _ntwkDao.findById(networkAPIVipAccVO.getNetworkId());
+			if (network == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find a network having the specified network id");
+			}
+			// Perform account permission check on network
+	        _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
+	     
+	        _napiVipAccDao.remove(networkAPIVipAccVO.getId());
+	    
+		}
+		
+		RemoveVipFromNetworkAPICommand cmd = new RemoveVipFromNetworkAPICommand();
+		cmd.setVipId(napiVipId);
+		
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		
+		String msg = "Could not remove VIP " + napiVipId + " from Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+
+		txn.commit();
+
+	}
+	
 }

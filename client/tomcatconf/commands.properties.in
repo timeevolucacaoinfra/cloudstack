@@ -690,6 +690,7 @@ addNetworkApiVipToAccountCmd=15
 listNetworkApiVips=15
 associateNetworkApiRealToVip=15
 disassociateNetworkApiRealFromVip=15
+removeNetworkApiVip=15
 
 ### DNS API commands
 addDnsApiHost=1
