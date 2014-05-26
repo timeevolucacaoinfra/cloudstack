@@ -193,7 +193,7 @@
                                         },
                                         messages: {
                                             confirm: function(args) {
-                                                return 'Are you sure you want to remove real ' + args.context.reals[0].vmname + ' from VIP ' + args.context.vips[0].id + '?';
+                                                return 'Are you sure you want to remove real ' + args.context.reals[0].vmname + ' (' + args.context.reals[0].ip + ') from VIP ' + args.context.vips[0].name + ' (' + args.context.vips[0].ip + ')?';
                                             },
                                             notification: function(args) {
                                                 return 'Real removed successfully';
@@ -213,7 +213,7 @@
                         label: 'label.remove',
                         messages: {
                             confirm: function(args) {
-                                return 'Are you sure you want to remove VIP ' + args.context.vips[0].id + ')?';
+                                return 'Are you sure you want to remove VIP ' + args.context.vips[0].name + ' (' + args.context.vips[0].ip + ')?';
                             },
                             notification: function(args) {
                                 return 'Remove Network API VIP';
