@@ -92,6 +92,7 @@ import com.globo.networkapi.api.AddNetworkApiRealToVipCmd;
 import com.globo.networkapi.api.AddNetworkApiVlanCmd;
 import com.globo.networkapi.api.AddNetworkViaNetworkApiCmd;
 import com.globo.networkapi.api.DelNetworkApiRealFromVipCmd;
+import com.globo.networkapi.api.FindNetworkApiVipCmd;
 import com.globo.networkapi.api.GenerateUrlForEditingVipCmd;
 import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
@@ -756,6 +757,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(DelNetworkApiRealFromVipCmd.class);
 		cmdList.add(GenerateUrlForEditingVipCmd.class);
 		cmdList.add(RemoveNetworkAPIVipCmd.class);
+		cmdList.add(FindNetworkApiVipCmd.class);
 		return cmdList;
 	}
 	
