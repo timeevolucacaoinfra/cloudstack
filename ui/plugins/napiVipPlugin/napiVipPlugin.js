@@ -274,6 +274,44 @@
                       },
                       action: function(args) {
                         console.log('args=', args);
+
+                        $(window).unbind('message.vip').bind('message.vip', function(event) {
+                          console.log('fui chamado', event);
+
+                          var message = null;
+                          if (event && event.originalEvent && event.originalEvent.data) {
+                              message = $.parseJSON(event.originalEvent.data);
+                          }
+                          console.log('message', message);
+
+                          if (!message || message.type !== "requestVip") {
+                              // this is not my message
+                          }
+
+                          // if ($('#editing').val() === '1') {
+                              // $('#editing').val('0');
+                              // ignore this message, but not next
+                              // return;
+                          // }
+
+                          var vipId = message.data.requestVip;
+                          console.log('vipId=', vipId);
+
+                          $.ajax({
+                            url: createURL('addNetworkApiVipToAccountCmd&networkid=' + args.data.networkId +
+                              '&vipid=' + vipId),
+                            async: true,
+                            success: function(vipJson) {
+                              console.log("terminei", vipJson);
+                              $(window).unbind('message.vip');
+                              $('#editing-vip').remove();
+                              $(window).trigger('cloudStack.fullRefresh');
+                              // args.data.success();
+                            }
+                          });
+                        });
+
+
                         $.ajax({
                           url: createURL('generateUrlForEditingVip&networkid=' + args.data.networkId),
                           async: false,
@@ -289,36 +327,6 @@
                                     'scrolling': 'auto'
                               });
                               $('.view').append($iframe);
-
-                              $(window).off('message.vip').on('message.vip', function(event) {
-                                console.log('fui chamado', event);
-
-                                var message = null;
-                                if (event && event.originalEvent && event.originalEvent.data) {
-                                    message = $.parseJSON(event.originalEvent.data);
-                                }
-
-                                if (!message || message.type !== "requestVip") {
-                                    // this is not my message
-                                }
-
-                                // if ($('#editing').val() === '1') {
-                                    // $('#editing').val('0');
-                                    // ignore this message, but not next
-                                    // return;
-                                // }
-
-                                var vipId = message.data.requestVip;
-
-                                $.ajax({
-                                  url: createURL('addNetworkApiVipToAccountCmd&networkid=' + args.data.networkid +
-                                    '&vipid=' + vipId),
-                                  async: true,
-                                  success: function(vipJson) {
-                                    console.log("vipJson", vipJson);
-                                  }
-                                });
-                              });
                           }
                         });
                       },
