@@ -73,6 +73,7 @@ import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
+import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
@@ -306,6 +307,10 @@ public class NetworkAPIManagerTest {
     	@Bean
     	public UserVmDao vmDao() {
     		return mock(UserVmDao.class);
+    	}
+    	@Bean
+    	public NicDao nicDao() {
+    		return mock(NicDao.class);
     	}
     	@Bean
     	public NetworkModel networkModel() {

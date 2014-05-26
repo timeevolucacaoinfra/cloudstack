@@ -6,7 +6,6 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 
-import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -206,4 +205,10 @@ public interface NetworkAPIService {
 	public void disassociateNicFromVip(Long vipId, Nic nic);
 	
 	public String generateUrlForEditingVip(Long vipId, Network network);
+
+	/**
+	 * Remove Load Balancer (VIP) from NetworkAPI
+	 * @param napiVipId
+	 */
+	public void removeNapiVip(Long napiVipId);
 }

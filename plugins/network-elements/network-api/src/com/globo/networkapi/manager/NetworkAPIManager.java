@@ -79,6 +79,7 @@ import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.UserVmVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.UserVmDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
@@ -95,18 +96,20 @@ import com.globo.networkapi.api.ListAllEnvironmentsFromNetworkApiCmd;
 import com.globo.networkapi.api.ListNetworkApiEnvironmentsCmd;
 import com.globo.networkapi.api.ListNetworkApiVipsCmd;
 import com.globo.networkapi.api.RemoveNetworkAPIEnvironmentCmd;
+import com.globo.networkapi.api.RemoveNetworkAPIVipCmd;
 import com.globo.networkapi.commands.ActivateNetworkCommand;
 import com.globo.networkapi.commands.AddAndEnableRealInNetworkAPICommand;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
 import com.globo.networkapi.commands.DisableAndRemoveRealInNetworkAPICommand;
 import com.globo.networkapi.commands.GenerateUrlForEditingVipCommand;
+import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.GetVlanInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.ListAllEnvironmentsFromNetworkAPICommand;
-import com.globo.networkapi.commands.GetVipInfoFromNetworkAPICommand;
 import com.globo.networkapi.commands.NetworkAPIErrorAnswer;
 import com.globo.networkapi.commands.RegisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
+import com.globo.networkapi.commands.RemoveVipFromNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
 import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
@@ -119,6 +122,7 @@ import com.globo.networkapi.resource.NetworkAPIResource;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 import com.globo.networkapi.response.NetworkAPIVipResponse;
+import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
@@ -146,6 +150,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	UserDao _userDao;
 	@Inject
 	NetworkDao _ntwkDao;
+    @Inject
+    NicDao _nicDao;
 	@Inject
 	NetworkServiceMapDao _ntwkSrvcDao;
 	@Inject
@@ -748,6 +754,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		cmdList.add(AddNetworkApiRealToVipCmd.class);
 		cmdList.add(DelNetworkApiRealFromVipCmd.class);
 		cmdList.add(GenerateUrlForEditingVipCmd.class);
+		cmdList.add(RemoveNetworkAPIVipCmd.class);
 		return cmdList;
 	}
 	
@@ -1194,10 +1201,22 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 			NetworkAPIVipResponse vip =  ((NetworkAPIVipResponse) answer);
 
-			// FIXME Better way of doing this?
-			// Set relationship between Vip and Network
+			vip.setNetworkId(network.getUuid());
 			vip.setNetwork(network.getName());
 			vips.add(vip);
+			
+			for (Real real : vip.getReals()) {
+				Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), network.getId());
+				if (nic != null) {
+					real.setNic(String.valueOf(nic.getId()));
+				}
+				
+				// User VM name rather than UUID
+				UserVmVO userVM = _vmDao.findByUuid(real.getVmName());
+				if (userVM != null) {
+					real.setVmName(userVM.getHostName());
+				}
+			}
 		}
 		return vips;
 	}
@@ -1214,4 +1233,49 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		return answer.getDetails();
 	}
+	
+	@Override
+	public void removeNapiVip(Long napiVipId) {
+
+		Account caller = UserContext.current().getCaller();
+		
+		List<NetworkAPIVipAccVO> napiVipList = _napiVipAccDao.findByVipId(napiVipId);
+		
+		if (napiVipList == null || napiVipList.isEmpty()) {
+			throw new InvalidParameterValueException(
+					"Unable to find an association for VIP " + napiVipId);
+		}
+		
+		Network network = null;
+		Transaction txn = Transaction.currentTxn();
+		txn.start();
+
+		for (NetworkAPIVipAccVO networkAPIVipAccVO : napiVipList) {
+			network = _ntwkDao.findById(networkAPIVipAccVO.getNetworkId());
+			if (network == null) {
+				throw new InvalidParameterValueException(
+						"Unable to find a network having the specified network id");
+			}
+			// Perform account permission check on network
+	        _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
+	     
+	        _napiVipAccDao.remove(networkAPIVipAccVO.getId());
+	    
+		}
+		
+		RemoveVipFromNetworkAPICommand cmd = new RemoveVipFromNetworkAPICommand();
+		cmd.setVipId(napiVipId);
+		
+		Answer answer = this.callCommand(cmd, network.getDataCenterId());
+		
+		String msg = "Could not remove VIP " + napiVipId + " from Network API";
+		if (answer == null || !answer.getResult()) {
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+
+		txn.commit();
+
+	}
+	
 }
