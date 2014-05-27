@@ -407,7 +407,12 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
     @Override
     public boolean shutdownProviderInstances(PhysicalNetworkServiceProvider provider, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
-        return true;
+    	PhysicalNetwork pNtwk = _physicalNetworkDao.findById(provider.getPhysicalNetworkId());
+    	Host host = getDnsAPIHost(pNtwk.getDataCenterId());
+    	if (host != null) {
+    		_resourceMgr.deleteHost(host.getId(), true, false);
+    	}
+    	return true;
     }
 
     @Override

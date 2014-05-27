@@ -77,11 +77,11 @@ import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
-import com.cloud.vm.UserVmVO;
+import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
-import com.cloud.vm.dao.UserVmDao;
+import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPINetworkVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
@@ -185,7 +185,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Inject
 	NetworkService _ntwSvc;
 	@Inject
-	UserVmDao _vmDao;
+	VMInstanceDao _vmDao;
 	
 	@Override
 	public boolean canEnable(Long physicalNetworkId) {
@@ -1102,7 +1102,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
 	public void associateNicToVip(Long vipId, Nic nic) {
-		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
+		VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
 		if (vm == null) {
 			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
 		}
@@ -1127,7 +1127,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public void disassociateNicFromVip(Long vipId, Nic nic) {
 		DisableAndRemoveRealInNetworkAPICommand cmd = new DisableAndRemoveRealInNetworkAPICommand();
-		UserVmVO vm = _vmDao.findById(nic.getInstanceId());
+		VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
 		if (vm == null) {
 			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
 		}
@@ -1215,7 +1215,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				}
 				
 				// User VM name rather than UUID
-				UserVmVO userVM = _vmDao.findByUuid(real.getVmName());
+				VMInstanceVO userVM = _vmDao.findByUuid(real.getVmName());
 				if (userVM != null) {
 					real.setVmName(userVM.getHostName());
 				}
@@ -1323,7 +1323,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 				
 			// User VM name rather than UUID
-			UserVmVO userVM = _vmDao.findByUuid(real.getVmName());
+			VMInstanceVO userVM = _vmDao.findByUuid(real.getVmName());
 			if (userVM != null) {
 				real.setVmName(userVM.getHostName());
 			}

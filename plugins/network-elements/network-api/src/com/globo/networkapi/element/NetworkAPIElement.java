@@ -39,7 +39,9 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
+import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
+import com.cloud.host.dao.HostDao;
 import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
@@ -47,9 +49,11 @@ import com.cloud.network.Network.Provider;
 import com.cloud.network.Network.Service;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.Networks.TrafficType;
+import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
 import com.cloud.network.PublicIpAddress;
 import com.cloud.network.dao.NetworkServiceMapDao;
+import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.element.IpDeployer;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
@@ -86,6 +90,10 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
     NetworkAPIService _networkAPIService;
     @Inject
     ResourceManager _resourceMgr;
+	@Inject
+	HostDao _hostDao;
+	@Inject
+	PhysicalNetworkDao _physicalNetworkDao;
     
     @Override
 	public Map<Service, Map<Capability, String>> getCapabilities() {
@@ -246,9 +254,11 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 	public boolean shutdownProviderInstances(
 			PhysicalNetworkServiceProvider provider, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
-		// Nothing to do here.
-		// FIXME Remove all NetworkAPIEnvironmentVO for this physical interface
-		s_logger.debug("shutdownProviderInstances method");
+    	PhysicalNetwork pNtwk = _physicalNetworkDao.findById(provider.getPhysicalNetworkId());
+    	Host host = _hostDao.findByTypeNameAndZoneId(pNtwk.getDataCenterId(), Provider.NetworkAPI.getName(), Type.L2Networking);
+    	if (host != null) {
+    		_resourceMgr.deleteHost(host.getId(), true, false);
+    	}
 		return true;
 	}
 
