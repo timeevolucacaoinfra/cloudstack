@@ -1,7 +1,6 @@
 package com.globo.networkapi.guru;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 

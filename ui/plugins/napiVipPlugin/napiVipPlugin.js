@@ -314,33 +314,37 @@
 
                         $.ajax({
                           url: createURL('generateUrlForEditingVip&networkid=' + args.data.networkId),
-                          async: false,
+                          async: true,
                           success: function(json) {
                               var url = json.generateurlforeditingvipresponse.editingurl.url;
 
-                              var $iframe = $("<iframe></iframe>").attr({
+                              var $iframe = $("<iframe>").attr({
                                     'src': url,
-                                    'width': '580px',
-                                    'height': '600px',
+                                    'width': '680px',
+                                    'height': '100%',
                                     'scrolling': 'auto'
                               });
-                              var $dialog = $("<div></div>");
+                              var $dialog = $("<div>");
                               $dialog.attr('id', 'editing-vip');
                               $dialog.append($iframe);
 
                               $dialog.dialog({
-                                  modal: true,
-                                  width: 600,
-                                  height: 600,
-                                  title: 'Create new VIP',
-                                  closeOnEscape: false,
-                                  // dialogClass: 'dialog-about',
+                                  modal: false,
+                                  width: 700,
+                                  height: 500,
+                                  title: 'Create new VIP6',
+                                  closeOnEscape: true,
                                   buttons: {
                                       'Close': function() {
                                           $(this).dialog("close");
-                                          $(':ui-dialog, .overlay').remove();
-                                          $(window).trigger('cloudStack.fullRefresh');
                                       }
+                                  },
+                                  close: function(event, ui) {
+                                      $(':ui-dialog, .overlay').remove();
+                                      $(window).trigger('cloudStack.fullRefresh');
+                                  },
+                                  open: function(event, ui) {
+                                    $(window).scrollTop($dialog.scrollTop());
                                   }
                               }).closest('.ui-dialog').overlay();
                           }
