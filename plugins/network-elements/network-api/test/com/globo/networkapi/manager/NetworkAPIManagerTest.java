@@ -74,7 +74,7 @@ import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.Transaction;
 import com.cloud.vm.dao.NicDao;
-import com.cloud.vm.dao.UserVmDao;
+import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.commands.CreateNewVlanInNetworkAPICommand;
 import com.globo.networkapi.commands.DeallocateVlanFromNetworkAPICommand;
@@ -305,8 +305,8 @@ public class NetworkAPIManagerTest {
     		return mock(NetworkAPIVipAccDao.class);
     	}
     	@Bean
-    	public UserVmDao vmDao() {
-    		return mock(UserVmDao.class);
+    	public VMInstanceDao vmDao() {
+    		return mock(VMInstanceDao.class);
     	}
     	@Bean
     	public NicDao nicDao() {
