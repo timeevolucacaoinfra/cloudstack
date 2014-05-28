@@ -80,6 +80,7 @@ import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.VirtualMachineProfileImpl;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
@@ -1109,12 +1110,16 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (napiVipVO == null) {
 			throw new InvalidParameterValueException("Vip " + vipId + " is not associated with cloudstack");
 		}
-
+		
+		Network network = _ntwkDao.findById(nic.getNetworkId());
+		if (network == null) {
+			throw new InvalidParameterValueException("Network " + nic.getNetworkId() + " doesn't exists in cloudstack");
+		}
+		
 		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
 		cmd.setEquipName(vm.getUuid());
 		cmd.setIp(nic.getIp4Address());
 		cmd.setVipId(vipId);
-		Network network = _ntwkDao.findById(nic.getNetworkId());
 		Answer answer = callCommand(cmd, network.getDataCenterId());
 		if (answer == null || !answer.getResult()) {
 			throw new CloudRuntimeException("Error associating nic " + nic +

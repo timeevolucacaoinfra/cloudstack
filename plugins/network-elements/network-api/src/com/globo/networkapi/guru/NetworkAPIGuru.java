@@ -180,6 +180,11 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 
 	@Override
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
+		
+		List<NetworkAPIVipAccVO> vips = _napiVipDao.findByNetwork(profile.getId());
+	    if (vips != null && !vips.isEmpty()) {
+	    	throw new CloudRuntimeException("There is VIPs related to this network. Network destroyed will be aborted. Delete VIP before.");
+	    }
 
 		try {
 			List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
