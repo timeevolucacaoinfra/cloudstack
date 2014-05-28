@@ -1146,9 +1146,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		Account caller = UserContext.current().getCaller();
 		List<Long> permittedAccounts = new ArrayList<Long>();
 		
-        if (_accountMgr.isAdmin(caller.getType())) {
-        	permittedAccounts.add(caller.getId());
-        }
+        permittedAccounts.add(caller.getId());
         
 		if (projectId != null) {
             Project project = _projectMgr.getProject(projectId);
