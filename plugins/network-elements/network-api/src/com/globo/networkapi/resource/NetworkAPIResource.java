@@ -39,7 +39,6 @@ import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveVipFromNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
-import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
 import com.globo.networkapi.exception.NetworkAPIErrorCodeException;
 import com.globo.networkapi.exception.NetworkAPIException;
 import com.globo.networkapi.http.HttpXMLRequestProcessor;
@@ -211,8 +210,6 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			return execute((RegisterEquipmentAndIpInNetworkAPICommand) cmd);
 		} else if (cmd instanceof UnregisterEquipmentAndIpInNetworkAPICommand) {
 			return execute((UnregisterEquipmentAndIpInNetworkAPICommand) cmd);
-		} else if (cmd instanceof ValidateVipInNetworkAPICommand) {
-			return execute((ValidateVipInNetworkAPICommand) cmd);
 		} else if (cmd instanceof GetVipInfoFromNetworkAPICommand) {
 			return execute((GetVipInfoFromNetworkAPICommand) cmd);
 		} else if (cmd instanceof AddAndEnableRealInNetworkAPICommand) {
@@ -260,34 +257,6 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
 				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
 			}
-			return new Answer(cmd);
-		} catch (NetworkAPIException e) {
-			return handleNetworkAPIException(cmd, e);
-		}
-	}
-
-	public Answer execute(ValidateVipInNetworkAPICommand cmd) {
-		try {
-			Vip vip = _napi.getVipAPI().getById(cmd.getVipId());
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
-			}
-			
-			String msg = "Some reals are not in range of network " + cmd.getNetworkCidr() + ": ";
-			boolean problemWithReals = false;
-			
-			// Validate reals if and only if vip already has reals associated to it
-			for (RealIP real : vip.getRealsIp()) {
-				if (!NetUtils.isIpWithtInCidrRange(real.getRealIp(), cmd.getNetworkCidr())) {
-					msg += real.getRealIp() + ",";
-					problemWithReals = true;
-				}
-			}
-			
-			if (problemWithReals) {
-				return new Answer(cmd, false, msg.substring(0, msg.length() - 1));
-			}
-			
 			return new Answer(cmd);
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);
@@ -549,8 +518,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			Vip vip = _napi.getVipAPI().getById(vipId);
 			
 			if (vip == null) {
-				// FIXME
-				return null;
+				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in Network API");
 			}
 
 			// Using a map rather than a list because different ports come in different objects

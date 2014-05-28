@@ -114,7 +114,6 @@ import com.globo.networkapi.commands.RemoveNetworkInNetworkAPICommand;
 import com.globo.networkapi.commands.RemoveVipFromNetworkAPICommand;
 import com.globo.networkapi.commands.UnregisterEquipmentAndIpInNetworkAPICommand;
 import com.globo.networkapi.commands.ValidateNicInVlanCommand;
-import com.globo.networkapi.commands.ValidateVipInNetworkAPICommand;
 import com.globo.networkapi.dao.NetworkAPIEnvironmentDao;
 import com.globo.networkapi.dao.NetworkAPINetworkDao;
 import com.globo.networkapi.dao.NetworkAPIVipAccDao;
@@ -1072,9 +1071,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
         // Perform account permission check on network
         _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
 		
-		ValidateVipInNetworkAPICommand cmd = new ValidateVipInNetworkAPICommand();
+        GetVipInfoFromNetworkAPICommand cmd = new GetVipInfoFromNetworkAPICommand();
 		cmd.setVipId(napiVipId);
-		cmd.setNetworkCidr(network.getCidr());
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
 		String msg = "Could not validate VIP id with Network API";
 		if (answer == null || !answer.getResult()) {
