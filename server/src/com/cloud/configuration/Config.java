@@ -421,7 +421,7 @@ public enum Config {
 
 	UCSSyncBladeInterval("Advanced", ManagementServer.class, Integer.class, "ucs.sync.blade.interval", "3600", "the interval cloudstack sync with UCS manager for available blades in case user remove blades from chassis without notifying CloudStack", null),
 
-    ManagementServerVendor("Advanced", ManagementServer.class, String.class, "mgt.server.vendor", "ACS", "the vendor of management server", null);
+    ManagementServerVendor("Advanced", ManagementServer.class, String.class, "mgt.server.vendor", "ACS", "the vendor of management server", null),
 
     // NetworkAPI
     NetworkAPIConnectionTimeout("Network", ManagementServer.class, String.class, "networkapi.connectiontimeout", "120000", "Networkapi connection timeout (in milliseconds)", null),
@@ -439,7 +439,7 @@ public enum Config {
 
     // DNS API
     DNSAPIDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.domain.suffix", "cp.globoi.com", "Domain suffix for all domains created in DNS API", null),
-    DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null),
+    DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null);
 
     private final String _category;
 	private final Class<?> _componentClass;
