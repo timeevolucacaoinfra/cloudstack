@@ -1,0 +1,38 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.user', '83', 'Network API model id to be used for User VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.domain.router', '84', 'Network API model id to be used for Domain Router VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.console.proxy', '85', 'Network API model id to be used for Console Proxy VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.secondary.storage', '86', 'Network API model id to be used for Secondary Storage VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.elastic.ip', '87', 'Network API model id to be used for Elastic IP VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.elastic.load.balancer', '88', 'Network API model id to be used for Elastic Load Balancer VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.internal.load.balancer', '89', 'Network API model id to be used for Internal Load Balancer VMs');
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description) 
+		VALUES ('Network', 'DEFAULT', 'management-server', 'networkapi.model.vm.user.bare.metal', '90', 'Network API model id to be used for User Bare Metal');
+"""
+
+SQL_DOWN = u"""
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.user';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.domain.router';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.console.proxy';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.secondary.storage';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.elastic.ip';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.elastic.load.balancer';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.internal.load.balancer';
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'networkapi.model.vm.user.bare.metal';
+"""

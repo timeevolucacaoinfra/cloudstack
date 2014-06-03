@@ -1,0 +1,18 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	CREATE TABLE `cloud`.`dnsapi_vm_ref` (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        vm_id BIGINT UNSIGNED NOT NULL,
+	dnsapi_domain_id BIGINT UNSIGNED NOT NULL,
+        dnsapi_record_id BIGINT UNSIGNED NOT NULL,
+        PRIMARY KEY (id),
+        CONSTRAINT dnsapi_vm_ref_fk1 FOREIGN KEY (vm_id) REFERENCES `cloud`.`vm_instance` (id) ON DELETE CASCADE ON UPDATE CASCADE,
+	INDEX dnsapi_vm_ref_ix1 (vm_id),
+	INDEX dnsapi_vm_ref_ix2 (dnsapi_domain_id),
+	INDEX dnsapi_vm_ref_ix3 (dnsapi_record_id)
+    )
+    ENGINE=InnoDB DEFAULT CHARSET=utf8
+"""
+
+SQL_DOWN = u"""
+	DROP TABLE `cloud`.`dnsapi_vm_ref`;
+"""

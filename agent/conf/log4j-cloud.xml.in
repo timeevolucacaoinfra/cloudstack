@@ -21,6 +21,19 @@ under the License.
 
 <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/" debug="false">
 
+   <!-- ============================== -->
+   <!-- Append warnings+ to the syslog if it is listening on UDP port FIXME make sysloghost configurable! -->
+   <!-- ============================== -->
+ 
+   <appender name="SYSLOG" class="org.apache.log4j.net.SyslogAppender">
+      <param name="SyslogHost" value="localhost"/>
+      <param name="Header" value="true"/>
+      <param name="Facility" value="LOCAL2"/>
+      <layout class="com.globo.log4j.SyslogLayout">
+         <param name="tag" value="cloudstack-agent" />
+      </layout>
+   </appender>
+
    <!-- ================================= -->
    <!-- Preserve messages in a local file -->
    <!-- ================================= -->
@@ -88,6 +101,7 @@ under the License.
       <level value="INFO"/>
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
+      <appender-ref ref="SYSLOG"/>
    </root>
 
 </log4j:configuration>

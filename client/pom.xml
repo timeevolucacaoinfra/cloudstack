@@ -306,6 +306,15 @@
       <artifactId>cloud-plugin-host-anti-affinity</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <artifactId>cloud-plugin-network-networkapi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cloudstack</groupId>
+      <artifactId>cloud-plugin-network-dnsapi</artifactId>
+      <version>${project.version}</version>
+    </dependency>        
   </dependencies>
   <build>
     <plugins>

@@ -131,6 +131,8 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         public static final Provider InternalLbVm = new Provider("InternalLbVm", false);
         public static final Provider CiscoVnmc = new Provider("CiscoVnmc", true);
         public static final Provider Ovs = new Provider("Ovs", false);
+        public static final Provider NetworkAPI = new Provider("NetworkAPI", true);
+        public static final Provider DnsAPI = new Provider("DnsAPI", true);
 
         private final String name;
         private final boolean isExternal;

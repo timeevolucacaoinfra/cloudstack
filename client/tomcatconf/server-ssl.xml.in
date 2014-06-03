@@ -84,7 +84,7 @@
                maxThreads="150" scheme="https" secure="true"
                clientAuth="false" sslProtocol="TLS" 
                keystoreType="PKCS12"
-	       keystoreFile="conf\cloud-localhost.pk12" 
+	       keystoreFile="/etc/cloudstack/management/cloud-localhost.pk12" 
 	       keystorePass="password"
                />
     -->

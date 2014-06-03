@@ -1509,7 +1509,13 @@
                                         //scope: { label: 'label.scope' }
                                     },
                                     actions: {
-                                        add: addGuestNetworkDialog.def
+                                        // add: addGuestNetworkDialog.def
+                                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                                            isHeader: true
+                                        }),
+                                        addNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
+                                            isHeader: true
+                                        })
                                     },
 
                                     dataProvider: function(args) {
@@ -6051,7 +6057,538 @@
                                 }
                             }
                         }
-                    }
+                    },
+
+                    // NetworkAPI provider detail view
+                    NetworkAPI: {
+                        isMaximized: true,
+                        type: 'detailView',
+                        id: 'networkAPIProvider',
+                        label: 'label.networkAPI',
+                        tabs: {
+                            details: {
+                                title: 'label.details',
+                                fields: [{
+                                    name: {
+                                        label: 'label.name'
+                                    },
+                                    state: {
+                                        label: 'label.state'
+                                    }
+                                }],
+                                dataProvider: function(args) {
+                                    refreshNspData("NetworkAPI");
+                                    var providerObj;
+                                    $(nspHardcodingArray).each(function() {
+                                        if (this.id == "NetworkAPI") {
+                                            providerObj = this;
+                                            return false; //break each loop
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: providerObj,
+                                        actionFilter: networkProviderActionFilter('NetworkAPI')
+                                    });
+                                }
+                            },
+                            instances: {
+                                title: 'Environments',
+                                listView: {
+                                    label: 'Environments',
+                                    id: 'napienvironments',
+                                    fields: {
+                                        name: {
+                                            label: 'Local Name'
+                                        },
+                                        environmentid: {
+                                            label: 'Network API Environment ID'
+                                        }
+                                    },
+                                    dataProvider: function(args) {
+                                        var filter;
+                                        if (args.filterBy.search.value) {
+                                            filter = args.filterBy.search.value;
+                                        }
+
+                                        var items = [];
+                                        $.ajax({
+                                            url: createURL("listNetworkApiEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            success: function(json) {
+                                                $(json.listnetworkapienvironmentsresponse.networkapienvironment).each(function() {
+                                                    if (this.name.match(new RegExp(filter, "i"))) {
+                                                        items.push({
+                                                            name: this.name,
+                                                            environmentid: this.napienvironmentid,
+                                                        });
+                                                    }
+                                                });
+                                                args.response.success({
+                                                    data: items
+                                                });
+                                            }
+                                        });
+                                    },                                    
+                                    actions: {
+                                        add: {
+                                            label: 'Add Environment',
+                                            createForm: {
+                                                title: 'Add a Network API Environment',
+                                                fields: {
+                                                    name: {
+                                                        label: 'Name',
+                                                        validation: {
+                                                            required: true
+                                                        }
+                                                    },
+                                                    napiEnvironmentId: {
+                                                        label: 'Environment',
+                                                        validation: {
+                                                            required: true
+                                                        },
+                                                        select: function(args) {
+                                                            $.ajax({
+                                                                url: createURL("listAllEnvironmentsFromNetworkApi&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                                                dataType: "json",
+                                                                async: false,
+                                                                success: function(json) {
+                                                                    var items = [];
+                                                                    $(json.listallenvironmentsfromnetworkapiresponse.networkapienvironment).each(function() {
+                                                                        items.push({
+                                                                            id: this.environmentId,
+                                                                            description: this.environmentFullName
+                                                                        });
+                                                                    });
+                                                                    args.response.success({
+                                                                        data: items
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            action: function(args) {
+                                                addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment");
+                                            },
+                                            messages: {
+                                                notification: function(args) {
+                                                    return 'Environment added successfully';
+                                                }
+                                            },
+                                            notification: {
+                                                poll: pollAsyncJobResult
+                                            }
+                                        },
+                                        remove: {
+                                            label: 'label.remove',
+                                            messages: {
+                                                confirm: function(args) {
+                                                    return 'Are you sure you want to remove environment ' + args.context.napienvironments[0].name + '(' + args.context.napienvironments[0].environmentid + ')?';
+                                                },
+                                                notification: function(args) {
+                                                    return 'Remove Network API environment';
+                                                }
+                                            },
+                                            action: function(args) {
+                                                var physicalnetworkid = args.context.physicalNetworks[0].id;
+                                                var napienvironmentid = args.context.napienvironments[0].environmentid;
+                                                $.ajax({
+                                                    url: createURL("removeNetworkAPIEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + napienvironmentid),
+                                                    dataType: "json",
+                                                    async: true,
+                                                    success: function(json) {
+                                                        args.response.success();
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    },
+                                                    error: function(XMLHttpResponse) {
+                                                        var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                        args.response.error(errorMsg);
+                                                    }
+                                                });
+                                            },
+                                            notification: {
+                                                poll: function(args) {
+                                                    args.complete();
+                                                }
+                                            }                                     
+                                        },                                        
+                                    },
+                                }
+                            }
+                        },
+                        actions: {
+                            add: {
+                                label: 'Network API Configuration',
+                                createForm: {
+                                    title: 'Network API Configuration',
+                                    fields: {
+                                        username: {
+                                            label: 'Username',
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        password: {
+                                            label: 'Password',
+                                            isPassword: true,
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        url: {
+                                            label: 'URL',
+                                            validation: {
+                                                required: true
+                                            }
+                                        }
+                                    }
+                                },
+                                action: function(args) {
+                                    if (nspMap["NetworkAPI"] == null) {
+                                        $.ajax({
+                                            url: createURL("addNetworkServiceProvider&name=NetworkAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                var jobId = json.addnetworkserviceproviderresponse.jobid;
+                                                var addNetworkAPIProviderIntervalID = setInterval(function() {
+                                                    $.ajax({
+                                                        url: createURL("queryAsyncJobResult&jobId=" + jobId),
+                                                        dataType: "json",
+                                                        success: function(json) {
+                                                            var result = json.queryasyncjobresultresponse;
+                                                            if (result.jobstatus == 0) {
+                                                                return; //Job has not completed
+                                                            } else {
+                                                                clearInterval(addNetworkAPIProviderIntervalID);
+                                                                if (result.jobstatus == 1) {
+                                                                    nspMap["NetworkAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
+                                                                    addNetworkApiHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
+                                                                } else if (result.jobstatus == 2) {
+                                                                    alert("addNetworkServiceProvider&name=NetworkAPI failed. Error: " + _s(result.jobresult.errortext));
+                                                                }
+                                                            }
+                                                        },
+                                                        error: function(XMLHttpResponse) {
+                                                            var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                            alert("addNetworkServiceProvider&name=NetworkAPI failed. Error: " + errorMsg);
+                                                        }
+                                                    });
+                                                }, g_queryAsyncJobResultInterval);
+                                            }
+                                        });
+                                    } else {
+                                        addNetworkApiHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
+                                    }
+                                },
+                                messages: {
+                                    notification: function(args) {
+                                        return 'label.add.NetworkAPI.device';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            enable: {
+                                label: 'label.enable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id + "&state=Enabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.enable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.enable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            disable: {
+                                label: 'label.disable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id + "&state=Disabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.disable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.disable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            destroy: {
+                                label: 'label.shutdown.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.deletenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid
+                                                }
+                                            });
+
+                                            $(window).trigger('cloudStack.fullRefresh');
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.shutdown.provider';
+                                    },
+                                    notification: function(args) {
+                                        return 'label.shutdown.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            }
+                        }
+                    },
+
+                    // DnsAPI provider detail view
+                    DnsAPI: {
+                        isMaximized: true,
+                        type: 'detailView',
+                        id: 'dnsAPIProvider',
+                        label: 'label.dnsAPI',
+                        tabs: {
+                            details: {
+                                title: 'label.details',
+                                fields: [{
+                                    name: {
+                                        label: 'label.name'
+                                    }
+                                }, {
+                                    state: {
+                                        label: 'label.state'
+                                    }
+                                }],
+                                dataProvider: function(args) {
+                                    refreshNspData("DnsAPI");
+                                    var providerObj;
+                                    $(nspHardcodingArray).each(function() {
+                                        if (this.id == "DnsAPI") {
+                                            providerObj = this;
+                                            return false; //break each loop
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: providerObj,
+                                        actionFilter: networkProviderActionFilter('DnsAPI')
+                                    });
+                                }
+                            },
+                        },
+                        actions: {
+                            add: {
+                                label: 'DNS API Configuration',
+                                createForm: {
+                                    title: 'DNS API Configuration',
+                                    preFilter: function(args) {},
+                                    fields: {
+                                        username: {
+                                            label: 'Username',
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        password: {
+                                            label: 'Password',
+                                            isPassword: true,
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        url: {
+                                            label: 'URL',
+                                            validation: {
+                                                required: true
+                                            }
+                                        }
+                                    }
+                                },
+                                action: function(args) {
+                                    if (nspMap["DnsAPI"] == null) {
+                                        $.ajax({
+                                            url: createURL("addNetworkServiceProvider&name=DnsAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                var jobId = json.addnetworkserviceproviderresponse.jobid;
+                                                var addDnsAPIProviderIntervalID = setInterval(function() {
+                                                    $.ajax({
+                                                        url: createURL("queryAsyncJobResult&jobId=" + jobId),
+                                                        dataType: "json",
+                                                        success: function(json) {
+                                                            var result = json.queryasyncjobresultresponse;
+                                                            if (result.jobstatus == 0) {
+                                                                return; //Job has not completed
+                                                            } else {
+                                                                clearInterval(addDnsAPIProviderIntervalID);
+                                                                if (result.jobstatus == 1) {
+                                                                    nspMap["DnsAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
+                                                                    addDnsApiHost(args, selectedPhysicalNetworkObj, "addDnsApiHost", "adddnsapihostresponse");
+                                                                } else if (result.jobstatus == 2) {
+                                                                    alert("addNetworkServiceProvider&name=DnsAPI failed. Error: " + _s(result.jobresult.errortext));
+                                                                }
+                                                            }
+                                                        },
+                                                        error: function(XMLHttpResponse) {
+                                                            var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                            alert("addNetworkServiceProvider&name=DnsAPI failed. Error: " + errorMsg);
+                                                        }
+                                                    });
+                                                }, g_queryAsyncJobResultInterval);
+                                            }
+                                        });
+                                    } else {
+                                        addDnsApiHost(args, selectedPhysicalNetworkObj, "addDnsApiHost", "adddnsapihostresponse");
+                                    }
+                                },
+                                messages: {
+                                    notification: function(args) {
+                                        return 'label.add.DnsAPI.device';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            enable: {
+                                label: 'label.enable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["DnsAPI"].id + "&state=Enabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.enable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.enable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            disable: {
+                                label: 'label.disable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["DnsAPI"].id + "&state=Disabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.disable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.disable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            destroy: {
+                                label: 'label.shutdown.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["DnsAPI"].id),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.deletenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid
+                                                }
+                                            });
+
+                                            $(window).trigger('cloudStack.fullRefresh');
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.shutdown.provider';
+                                    },
+                                    notification: function(args) {
+                                        return 'label.shutdown.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            }
+                        }
+                    },
+
                 }
             }
         },
@@ -17464,6 +18001,75 @@
         });
     }
 
+    function addNetworkApiHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&username=" + todb(args.data.username));
+        array1.push("&password=" + todb(args.data.password));
+        array1.push("&url=" + todb(args.data.url));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                    }
+                });
+            }
+        });
+    }
+
+    function addNetworkApiEnvironment(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&napienvironmentid=" + todb(args.data.napiEnvironmentId));
+        array1.push("&name=" + todb(args.data.name));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                        getUpdatedItem: function(json) {
+                            $(window).trigger('cloudStack.fullRefresh');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function addDnsApiHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&username=" + todb(args.data.username));
+        array1.push("&password=" + todb(args.data.password));
+        array1.push("&url=" + todb(args.data.url));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                    }
+                });
+            }
+        });
+    }
+
+
     function addBigSwitchVnsDevice(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
         var array1 = [];
         array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
@@ -18232,6 +18838,16 @@
                 id: 'pa',
                 name: 'Palo Alto',
                 state: nspMap.pa ? nspMap.pa.state : 'Disabled'
+            });
+            nspHardcodingArray.push({
+                id: 'NetworkAPI',
+                name: 'Network API',
+                state: nspMap.NetworkAPI ? nspMap.NetworkAPI.state : 'Disabled'
+            });
+            nspHardcodingArray.push({
+                id: 'DnsAPI',
+                name: 'DNS API',
+                state: nspMap.DnsAPI ? nspMap.DnsAPI.state : 'Disabled'
             });
         }
         
