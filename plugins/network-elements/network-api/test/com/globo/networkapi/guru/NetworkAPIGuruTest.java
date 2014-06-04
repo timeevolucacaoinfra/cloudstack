@@ -33,6 +33,7 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.VlanDao;
 import com.cloud.exception.CloudException;
+import com.cloud.network.IpAddressManager;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
@@ -148,6 +149,10 @@ public class NetworkAPIGuruTest {
     	@Bean
     	public VpcVirtualNetworkApplianceManager vpcVirtualNetworkApplianceManager() {
     		return mock(VpcVirtualNetworkApplianceManager.class);
+    	}
+    	@Bean
+    	public IpAddressManager ipAddressManager() {
+    		return mock(IpAddressManager.class);
     	}
     	@Bean
     	public ConfigurationServer configurationServer() {

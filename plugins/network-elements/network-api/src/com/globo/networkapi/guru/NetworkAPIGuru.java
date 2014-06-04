@@ -16,7 +16,6 @@ import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Provider;
-import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkProfile;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetwork.IsolationMethod;
@@ -33,7 +32,6 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachineProfile;
-import com.cloud.vm.dao.NicDao;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.manager.NetworkAPIService;
@@ -45,16 +43,12 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
     
     @Inject
     NetworkAPIService _networkAPIService;
-    @Inject 
-    NetworkModel _networkModel;
     @Inject
     VpcVirtualNetworkApplianceManager _routerMgr;
     @Inject
     AccountManager _accountMgr;
     @Inject
     NetworkAPIVipAccDao _napiVipDao;
-    @Inject
-    NicDao _nicDao = null;
 
     protected NetworkType _networkType = NetworkType.Advanced;
     

@@ -206,7 +206,7 @@ public class NetworkAPIManagerTest {
     	String password = null;
     	String url = null;
     	
-    	CallContext.register(user, null);
+    	CallContext.register(user, acct);
     	
 	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
     }
@@ -218,7 +218,7 @@ public class NetworkAPIManagerTest {
     	String password = "";
     	String url = "";
     	
-    	CallContext.register(user, null);
+    	CallContext.register(user, acct);
     	
 	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
     }
@@ -245,7 +245,7 @@ public class NetworkAPIManagerTest {
     	
     	TransactionLegacy tx = TransactionLegacy.open(TransactionLegacy.CLOUD_DB);
     	try {
-    		CallContext.register(user, null);
+    		CallContext.register(user, acct);
 	    	
 		    Host host = _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url);
 		    assertNotNull(host);
