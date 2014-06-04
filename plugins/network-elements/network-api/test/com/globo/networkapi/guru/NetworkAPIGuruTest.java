@@ -6,6 +6,9 @@ import java.io.IOException;
 
 import javax.inject.Inject;
 
+import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -27,11 +30,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
-import com.cloud.configuration.dao.ConfigurationDao;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.VlanDao;
 import com.cloud.exception.CloudException;
-import com.cloud.network.NetworkManager;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
@@ -41,8 +42,6 @@ import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
-import com.cloud.user.UserContext;
-import com.cloud.user.UserContextInitializer;
 import com.cloud.user.UserVO;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.dao.NicDao;
@@ -57,6 +56,7 @@ public class NetworkAPIGuruTest {
 
 	private static long domainId = 10L;
 	private AccountVO acct = null;
+	private UserVO user = null;
 	
 	@Inject
 	NetworkAPIGuru _napiGuru;
@@ -74,19 +74,24 @@ public class NetworkAPIGuruTest {
     @Before
     public void testSetUp() {
         ComponentContext.initComponentsLifeCycle();
+        
         acct = new AccountVO(200L);
         acct.setType(Account.ACCOUNT_TYPE_NORMAL);
         acct.setAccountName("user");
         acct.setDomainId(domainId);
-        
-        UserContext.registerContext(1, acct, null, true);
-        when(_acctMgr.getSystemAccount()).thenReturn(new AccountVO());
-        when(_acctMgr.getSystemUser()).thenReturn(new UserVO());
+
+        user = new UserVO();
+        user.setUsername("user");
+        user.setAccountId(acct.getAccountId());
+
+        CallContext.register(user, acct);
+        when(_acctMgr.getSystemAccount()).thenReturn(this.acct);
+        when(_acctMgr.getSystemUser()).thenReturn(this.user);
     }
     
     @After
     public void testTearDown() {
-    	UserContext.unregisterContext();
+    	CallContext.unregister();
     	acct = null;
     }
     
@@ -105,8 +110,8 @@ public class NetworkAPIGuruTest {
     		return new NetworkAPIGuru();
     	}
     	@Bean
-    	public NetworkManager networkManager() {
-    		return mock(NetworkManager.class);
+    	public NetworkOrchestrationService networkManager() {
+    		return mock(NetworkOrchestrationService.class);
     	}
     	@Bean
     	public DataCenterDao dataCenterDao() {
@@ -159,10 +164,6 @@ public class NetworkAPIGuruTest {
     	@Bean
     	public AccountManager accountManager() {
     		return mock(AccountManager.class);
-    	}
-    	@Bean
-    	public UserContextInitializer userContextInitializer() {
-    		return new UserContextInitializer();
     	}
     	
     	public static class Library implements TypeFilter {

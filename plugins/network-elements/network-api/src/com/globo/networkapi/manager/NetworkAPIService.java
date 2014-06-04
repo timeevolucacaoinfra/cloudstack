@@ -6,6 +6,7 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 
+import com.cloud.exception.CloudException;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -80,8 +81,8 @@ public interface NetworkAPIService {
 			Long projectId, Long domainId, Boolean subdomainAccess,
 			Boolean displayNetwork, Long aclId)
 			throws ResourceUnavailableException, 
-			ResourceAllocationException, ConcurrentOperationException,
-			InsufficientCapacityException;
+			ConcurrentOperationException, CloudException;
+
 	/**
 	 * Validate if nicProfile in compatible with Network and destination dest.
 	 * 

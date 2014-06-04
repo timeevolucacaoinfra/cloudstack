@@ -14,6 +14,7 @@ import javax.naming.ConfigurationException;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
 
@@ -30,6 +31,7 @@ import com.cloud.dc.dao.HostPodDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
+import com.cloud.exception.CloudException;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -70,6 +72,10 @@ import com.cloud.utils.Pair;
 import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
+import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackNoReturn;
+import com.cloud.utils.db.TransactionCallbackWithException;
+import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
 import com.cloud.vm.Nic;
@@ -174,7 +180,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Inject
 	DomainManager _domainMgr;
 	@Inject
-	NetworkManager _networkMgr;
+	NetworkOrchestrationService _networkMgr;
 	@Inject
 	AccountManager _accountMgr;
     @Inject
@@ -264,17 +270,17 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
     @DB
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long napiEnvironmentId, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId,
-			String networkDomain, ACLType aclType, String accountName, Long projectId,
-			Long domainId, Boolean subdomainAccess, Boolean displayNetwork,
-			Long aclId) throws ResourceUnavailableException,
+	public Network createNetworkFromNetworkAPIVlan(final Long vlanId, final Long napiEnvironmentId, Long zoneId,
+			final Long networkOfferingId, final Long physicalNetworkId,
+			final String networkDomain, final ACLType aclType, String accountName, Long projectId,
+			final Long domainId, final Boolean subdomainAccess, final Boolean displayNetwork,
+			Long aclId) throws CloudException, ResourceUnavailableException,
 			ResourceAllocationException, ConcurrentOperationException,
 			InsufficientCapacityException {
 
-		Account caller = CallContext.current().getCallingAccount();
+		final Account caller = CallContext.current().getCallingAccount();
 		
-		Account owner = null;
+		final Account owner;
 		if ((accountName != null && domainId != null) || projectId != null) {
 			owner = _accountMgr.finalizeOwner(caller, accountName, domainId,
 					projectId);
@@ -288,10 +294,10 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
             		ACLType.Account + " for network of type " + Network.GuestType.Shared);
         }
 		
-		boolean isDomainSpecific = true;
+		final boolean isDomainSpecific = true;
 
 		// Validate network offering
-		NetworkOfferingVO ntwkOff = _networkOfferingDao
+		final NetworkOfferingVO ntwkOff = _networkOfferingDao
 				.findById(networkOfferingId);
 		if (ntwkOff == null || ntwkOff.isSystemOnly()) {
 			InvalidParameterValueException ex = new InvalidParameterValueException(
@@ -310,7 +316,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		// validate physical network and zone
 		// Check if physical network exists
-		PhysicalNetwork pNtwk = null;
+		final PhysicalNetwork pNtwk;
 		if (physicalNetworkId != null) {
 			pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
 			if (pNtwk == null) {
@@ -326,7 +332,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			zoneId = pNtwk.getDataCenterId();
 		}
 
-		DataCenter zone = _dcDao.findById(zoneId);
+		final DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
 			throw new InvalidParameterValueException(
 					"Specified zone id was not found");
@@ -355,7 +361,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 					"Network offering can't be used for VPC networks");
 		}
 
-		UserContext.current().setAccountId(owner.getAccountId());
+//		CallContext.register(CallContext.current().getCallingUserId(), owner.getAccountId());
 
 		// /////// NetworkAPI specific code ///////
 
@@ -363,22 +369,25 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		GetVlanInfoFromNetworkAPICommand cmd = new GetVlanInfoFromNetworkAPICommand();
 		cmd.setVlanId(vlanId);
 
-		NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, zoneId);
+		final NetworkAPIVlanResponse response = (NetworkAPIVlanResponse) callCommand(cmd, zoneId);
 
 		long networkAddresLong = response.getNetworkAddress().toLong();
 		String networkAddress = NetUtils.long2Ip(networkAddresLong);
-		String netmask = response.getMask().ip4();
-		String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, netmask);
+		final String netmask = response.getMask().ip4();
+		final String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, netmask);
 
 		String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
-		String gateway = ranges[0];
-		String startIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[0])
+		final String gateway = ranges[0];
+		final String startIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[0])
 				+ NUMBER_OF_RESERVED_IPS_FROM_START);
-		String endIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[1])
+		final String endIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[1])
 				- NUMBER_OF_RESERVED_IPS_BEFORE_END);
-		Long vlanNum = response.getVlanNum();
+		final Long vlanNum = response.getVlanNum();
 		// NO IPv6 support yet
-		String startIPv6 = null, endIPv6 = null, ip6Gateway = null, ip6Cidr = null;
+		final String startIPv6 = null;
+		final String endIPv6 = null;
+		final String ip6Gateway = null;
+		final String ip6Cidr = null;
 
 		s_logger.info("Creating network with name " + response.getVlanName()
 				+ " (" + response.getVlanId() + "), network " + networkAddress
@@ -386,98 +395,84 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				+ endIP + " cidr " + cidr);
 		// /////// End of NetworkAPI specific code ///////
 
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
+		 Network network = Transaction.execute(new TransactionCallbackWithException<Network, CloudException>() {
 
-		Long sharedDomainId = null;
-		if (isDomainSpecific) {
-			if (domainId != null) {
-				sharedDomainId = domainId;
-			} else {
-				sharedDomainId = owner.getDomainId();
-				subdomainAccess = true;
-			}
-		}
-
-		Network network = _networkMgr.createGuestNetwork(
-				networkOfferingId.longValue(), response.getVlanName(),
-				response.getVlanDescription(), gateway, cidr,
-				String.valueOf(response.getVlanNum()), networkDomain, owner,
-				sharedDomainId, pNtwk, zoneId, aclType, subdomainAccess, 
-				null, // vpcId,
-				ip6Gateway,
-				ip6Cidr,
-				displayNetwork,
-				null // isolatedPvlan
-				);
-		
-		// Delete other network related to this, except NetworkAPIGuru
-		// FIXME Improve this search
-
-		// Not needed when DirectNetworkGuru is disconnected
-		// for (NetworkVO otherNetwork : _ntwkDao.listAll()) {
-		//	if (otherNetwork.getRelated() == network.getId()) {
-		//		if ("NetworkAPIGuru".equalsIgnoreCase(otherNetwork.getGuruName())) {
-		//			// FIXME Fix related
-		//			s_logger.info("Network with NetworkAPI found " + network.getId());
-		//			network = otherNetwork;
-		//		} else {
-		//			s_logger.info("Destroy network " + otherNetwork.getId() + " " + otherNetwork.getName() + " " + otherNetwork.getGuruName());
-		//			_ntwSvc.deleteNetwork(otherNetwork.getId());
-		//		}
-		//	}
-		// }
-
-		// Save relashionship with napi and network
-		NetworkAPINetworkVO napiNetworkVO = new NetworkAPINetworkVO(vlanId,
-				network.getId(), napiEnvironmentId);
-		napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
-
-		// if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
-			// Create vlan ip range
-			_configMgr.createVlanAndPublicIpRange(pNtwk.getDataCenterId(),
-					network.getId(), physicalNetworkId, false, (Long) null,
-					startIP, endIP, gateway, netmask, vlanNum.toString(), null,
-					startIPv6, endIPv6, ip6Gateway, ip6Cidr);
-		// }
-
-		txn.commit();
-
-		// if the network offering has persistent set to true, implement the
-		// network
-		if (ntwkOff.getIsPersistent()) {
-			try {
-				if (network.getState() == Network.State.Setup) {
-					s_logger.debug("Network id=" + network.getId()
-							+ " is already provisioned");
-					return network;
+			@Override
+			public Network doInTransaction(TransactionStatus status) throws CloudException {
+				boolean newSubdomainAccess = subdomainAccess;
+				Long sharedDomainId = null;
+				if (isDomainSpecific) {
+					if (domainId != null) {
+						sharedDomainId = domainId;
+					} else {
+						sharedDomainId = owner.getDomainId();
+						newSubdomainAccess = true;
+					}
 				}
-				DeployDestination dest = new DeployDestination(zone, null,
-						null, null);
-				UserVO callerUser = _userDao.findById(CallContext.current()
-						.getCallingUserId());
-				Journal journal = new Journal.LogJournal("Implementing "
-						+ network, s_logger);
-				ReservationContext context = new ReservationContextImpl(UUID
-						.randomUUID().toString(), journal, callerUser, caller);
-				s_logger.debug("Implementing network "
-						+ network
-						+ " as a part of network provision for persistent network");
-				Pair<NetworkGuru, NetworkVO> implementedNetwork = _networkMgr
-						.implementNetwork(network.getId(), dest, context);
-				if (implementedNetwork.first() == null) {
-					s_logger.warn("Failed to provision the network " + network);
+
+				Network network = _networkMgr.createGuestNetwork(
+						networkOfferingId.longValue(), response.getVlanName(),
+						response.getVlanDescription(), gateway, cidr,
+						String.valueOf(response.getVlanNum()), networkDomain, owner,
+						sharedDomainId, pNtwk, zone.getId(), aclType, newSubdomainAccess, 
+						null, // vpcId,
+						ip6Gateway,
+						ip6Cidr,
+						displayNetwork,
+						null // isolatedPvlan
+						);
+				
+				// Save relashionship with napi and network
+				NetworkAPINetworkVO napiNetworkVO = new NetworkAPINetworkVO(vlanId,
+						network.getId(), napiEnvironmentId);
+				napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
+
+				// if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
+					// Create vlan ip range
+					_configMgr.createVlanAndPublicIpRange(pNtwk.getDataCenterId(),
+							network.getId(), physicalNetworkId, false, (Long) null,
+							startIP, endIP, gateway, netmask, vlanNum.toString(), null,
+							startIPv6, endIPv6, ip6Gateway, ip6Cidr);
+				// }
+
+				// if the network offering has persistent set to true, implement the
+				// network
+				if (ntwkOff.getIsPersistent()) {
+					try {
+						if (network.getState() == Network.State.Setup) {
+							s_logger.debug("Network id=" + network.getId()
+									+ " is already provisioned");
+							return network;
+						}
+						DeployDestination dest = new DeployDestination(zone, null,
+								null, null);
+						UserVO callerUser = _userDao.findById(CallContext.current()
+								.getCallingUserId());
+						Journal journal = new Journal.LogJournal("Implementing "
+								+ network, s_logger);
+						ReservationContext context = new ReservationContextImpl(UUID
+								.randomUUID().toString(), journal, callerUser, caller);
+						s_logger.debug("Implementing network "
+								+ network
+								+ " as a part of network provision for persistent network");
+						Pair<NetworkGuru, NetworkVO> implementedNetwork = (Pair<NetworkGuru, NetworkVO>) _networkMgr
+								.implementNetwork(network.getId(), dest, context);
+						if (implementedNetwork.first() == null) {
+							s_logger.warn("Failed to provision the network " + network);
+						}
+						network = implementedNetwork.second();
+					} catch (ResourceUnavailableException ex) {
+						s_logger.warn("Failed to implement persistent guest network "
+								+ network + "due to ", ex);
+						CloudRuntimeException e = new CloudRuntimeException(
+								"Failed to implement persistent guest network");
+						e.addProxyObject(network.getUuid(), "networkId");
+						throw e;
+					}
 				}
-				network = implementedNetwork.second();
-			} catch (ResourceUnavailableException ex) {
-				s_logger.warn("Failed to implement persistent guest network "
-						+ network + "due to ", ex);
-				CloudRuntimeException e = new CloudRuntimeException(
-						"Failed to implement persistent guest network");
-				e.addProxyObject(network.getUuid(), "networkId");
-				throw e;
+				return network;
 			}
-		}
+		});
 		return network;
 	}
 
@@ -644,6 +639,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
 		}
 		
+		
 		// Check if there is a environment with same id or name in this zone.
 		List<NetworkAPIEnvironmentVO> napiEnvironments = listNetworkAPIEnvironmentsFromDB(null, zoneId);
 		for (NetworkAPIEnvironmentVO napiEnvironment: napiEnvironments) {
@@ -655,13 +651,14 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 		}
 				
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
-
-	    NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
-	    _napiEnvironmentDao.persist(napiEnvironmentVO);
-
-	    txn.commit();
+	    final NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
+		Transaction.execute(new TransactionCallbackNoReturn() {
+			
+			@Override
+			public void doInTransactionWithoutResult(TransactionStatus status) {
+			    _napiEnvironmentDao.persist(napiEnvironmentVO);
+			}
+		});
 	    return napiEnvironmentVO;
 	}
 
@@ -695,9 +692,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
 		}
 
-		Long zoneId = pNtwk.getDataCenterId();
+		final Long zoneId = pNtwk.getDataCenterId();
 
-		Map<String, String> params = new HashMap<String, String>();
+		final Map<String, String> params = new HashMap<String, String>();
 		params.put("guid", "networkapi-" + String.valueOf(zoneId));
 		params.put("zoneId", String.valueOf(zoneId));
 		params.put("name", Provider.NetworkAPI.getName());
@@ -713,25 +710,27 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		params.put("connectTimeout", connectTimeout);
 		params.put("numberOfRetries", numberOfRetries);
 
-		Map<String, Object> hostDetails = new HashMap<String, Object>();
+		final Map<String, Object> hostDetails = new HashMap<String, Object>();
 		hostDetails.putAll(params);
 		
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
+		Host host = Transaction.execute(new TransactionCallback<Host>() {
 
-		try {
-			NetworkAPIResource resource = new NetworkAPIResource();
-			resource.configure(Provider.NetworkAPI.getName(), hostDetails);
-			
-			Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
-					params);
-			
-	       txn.commit();
-	       return host;
-		} catch (ConfigurationException e) {
-            txn.rollback();
-            throw new CloudRuntimeException(e);
-		}
+			@Override
+			public Host doInTransaction(TransactionStatus status) {
+				NetworkAPIResource resource = new NetworkAPIResource();
+
+				try {
+					resource.configure(Provider.NetworkAPI.getName(), hostDetails);
+					
+					Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
+							params);
+					return host;
+				} catch (ConfigurationException e) {
+		            throw new CloudRuntimeException(e);
+				}
+			}
+		});
+       return host;
 	}
 
 	@Override
@@ -832,24 +831,17 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	@DB
 	public void deallocateVlanFromNetworkAPI(Network network) {
-		
-		Transaction txn = Transaction.currentTxn();
-		try {
-			txn.start();
 
+		try {
 			NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
 			if (napiNetworkVO != null) {
 				_napiNetworkDao.remove(napiNetworkVO.getId());
 				this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
 			}
 			
-			txn.commit();
-
 		} catch (CloudstackNetworkAPIException e) {
-			txn.rollback();
 			handleNetworkUnavaiableError(e);
 		}
-
 	}
 	
 	public void deallocateVlanFromNetworkAPI(Long zoneId, Long vlanId) {
@@ -900,9 +892,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@DB
 	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId) {
 
-        Transaction txn = Transaction.currentTxn();
-        txn.start();
-        
         // Check if there are any networks in this Network API environment
         List<NetworkAPINetworkVO> associationList = _napiNetworkDao.listByEnvironmentId(napiEnvironmentId);
         
@@ -920,8 +909,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		        
         boolean result = _napiEnvironmentDao.remove(napiEnvironment.getId());
 
-        txn.commit();
-		
 		return result;
 	}
 	
@@ -1064,9 +1051,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg);
 		}
 		
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
-
 		// TODO Remove accountId
 		Long accountId = network.getAccountId();
 		NetworkAPIVipAccVO napiVipAcc = _napiVipAccDao.findNetworkAPIVipAcct(napiVipId, accountId, networkId);
@@ -1078,7 +1062,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			_napiVipAccDao.persist(napiVipAcc);
 		}
 
-	    txn.commit();
 	    return napiVipAcc;
 	}
 
@@ -1234,9 +1217,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		}
 		
 		Network network = null;
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
-
 		for (NetworkAPIVipAccVO networkAPIVipAccVO : napiVipList) {
 			network = _ntwkDao.findById(networkAPIVipAccVO.getNetworkId());
 			if (network == null) {
@@ -1260,9 +1240,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
 		}
-
-		txn.commit();
-
 	}
 	
 	@Override
