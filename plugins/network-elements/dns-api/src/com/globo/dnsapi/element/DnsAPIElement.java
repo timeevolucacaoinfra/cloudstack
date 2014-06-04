@@ -220,7 +220,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
 			@Override
 			public void doInTransactionWithoutResult(TransactionStatus status) {
-				// TODO Auto-generated method stub
 				// Configure network domain
 				setupDomainAndReverseDomain(network);
 
