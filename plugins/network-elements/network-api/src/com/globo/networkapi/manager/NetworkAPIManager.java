@@ -214,12 +214,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		Account caller = CallContext.current().getCallingAccount();
 
-		Account owner = null;
 		if ((accountName != null && domainId != null) || projectId != null) {
-			owner = _accountMgr.finalizeOwner(caller, accountName, domainId,
+			_accountMgr.finalizeOwner(caller, accountName, domainId,
 					projectId);
-		} else {
-			owner = caller;
 		}
 
 		DataCenter zone = _dcDao.findById(zoneId);
@@ -397,6 +394,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 		 Network network = Transaction.execute(new TransactionCallbackWithException<Network, CloudException>() {
 
+			@SuppressWarnings("unchecked")
 			@Override
 			public Network doInTransaction(TransactionStatus status) throws CloudException {
 				boolean newSubdomainAccess = subdomainAccess;

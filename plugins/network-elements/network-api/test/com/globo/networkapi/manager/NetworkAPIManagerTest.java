@@ -13,6 +13,8 @@ import javax.inject.Inject;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -62,7 +64,6 @@ import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
-import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
@@ -70,7 +71,7 @@ import com.cloud.user.DomainManager;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.component.ComponentContext;
-import com.cloud.utils.db.Transaction;
+import com.cloud.utils.db.TransactionLegacy;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
@@ -111,7 +112,7 @@ public class NetworkAPIManagerTest {
 	HostDao _hostDao;
 	
 	@Inject
-	ConfigurationServer _configServer;
+	ConfigurationDao _configDao;
 	
 	@Inject
 	AgentManager _agentMgr;
@@ -161,9 +162,9 @@ public class NetworkAPIManagerTest {
     	String networkName = "MockTestNetwork";
     	when(_napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId)).thenReturn(new NetworkAPIEnvironmentVO(physicalNetworkId, networkName, napiEnvironmentId));
 
-    	when(_configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120");
-    	when(_configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120");
-    	when(_configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120");
+    	when(_configDao.getValue(Config.NetworkAPIReadTimeout.key())).thenReturn("120");
+    	when(_configDao.getValue(Config.NetworkAPIConnectionTimeout.key())).thenReturn("120");
+    	when(_configDao.getValue(Config.NetworkAPINumberOfRetries.key())).thenReturn("120");
     	
     	HostVO napiHost = new HostVO(napiHostId, null, null, null, null, null, null, 
     			null, null, null, null, null, null, null, null, null, null, zoneId, null,
@@ -205,7 +206,7 @@ public class NetworkAPIManagerTest {
     	String password = null;
     	String url = null;
     	
-    	UserContext.registerContext(1l, null, null, true);
+    	CallContext.register(user, null);
     	
 	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
     }
@@ -217,7 +218,7 @@ public class NetworkAPIManagerTest {
     	String password = "";
     	String url = "";
     	
-    	UserContext.registerContext(1l, null, null, true);
+    	CallContext.register(user, null);
     	
 	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
     }
@@ -232,9 +233,9 @@ public class NetworkAPIManagerTest {
     	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
     	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
     	
-    	when(_configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
-    	when(_configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("120000");
-    	when(_configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(), Config.ConfigurationParameterScope.global.name(), null)).thenReturn("0");
+    	when(_configDao.getValue(Config.NetworkAPIReadTimeout.key())).thenReturn("120000");
+    	when(_configDao.getValue(Config.NetworkAPIConnectionTimeout.key())).thenReturn("120000");
+    	when(_configDao.getValue(Config.NetworkAPINumberOfRetries.key())).thenReturn("0");
     	
     	HostVO napiHost = new HostVO(1L, "NetworkAPI", null, "Up", "L2Networking", "", null, 
     			null, "", null, null, null, null, null, null, null, null, zoneId, null,
@@ -242,9 +243,9 @@ public class NetworkAPIManagerTest {
 
     	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(napiHost);
     	
-    	Transaction tx = Transaction.open(Transaction.CLOUD_DB);
+    	TransactionLegacy tx = TransactionLegacy.open(TransactionLegacy.CLOUD_DB);
     	try {
-	    	UserContext.registerContext(1l, null, null, true);
+    		CallContext.register(user, null);
 	    	
 		    Host host = _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url);
 		    assertNotNull(host);
@@ -316,6 +317,10 @@ public class NetworkAPIManagerTest {
     		return mock(NicDao.class);
     	}
     	@Bean
+    	public ConfigurationDao configurationDao() {
+    		return mock(ConfigurationDao.class);
+    	}
+    	@Bean
     	public NetworkModel networkModel() {
     		return mock(NetworkModel.class);
     	}
@@ -336,8 +341,8 @@ public class NetworkAPIManagerTest {
     		return mock(DomainManager.class);
     	}
     	@Bean
-    	public NetworkManager networkManager() {
-    		return mock(NetworkManager.class);
+    	public NetworkOrchestrationService networkOrchestrationService() {
+    		return mock(NetworkOrchestrationService.class);
     	}
     	@Bean
     	public AccountManager accountManager() {
@@ -348,19 +353,10 @@ public class NetworkAPIManagerTest {
     		return mock(ProjectManager.class);
     	}
     	@Bean
-    	public ConfigurationServer configurationServer() {
-    		return mock(ConfigurationServer.class);
-    	}
-    	@Bean
     	public NetworkService networkService() {
     		return mock(NetworkService.class);
     	}
-    	
-    	@Bean
-    	public UserContextInitializer userContextInitializer() {
-    		return new UserContextInitializer();
-    	}
-
+    
         public static class Library implements TypeFilter {
  
             @Override
