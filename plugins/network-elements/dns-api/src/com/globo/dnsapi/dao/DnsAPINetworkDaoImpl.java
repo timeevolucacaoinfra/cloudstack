@@ -12,7 +12,7 @@ import com.cloud.utils.db.SearchCriteria.Op;
 import com.globo.dnsapi.DnsAPINetworkVO;
 
 @Component
-@Local(value=DnsAPINetworkDao.class) @DB(txn=false)
+@Local(value=DnsAPINetworkDao.class) @DB
 public class DnsAPINetworkDaoImpl extends GenericDaoBase<DnsAPINetworkVO, Long> implements DnsAPINetworkDao {
 
 	final SearchBuilder<DnsAPINetworkVO> networkIdSearch;

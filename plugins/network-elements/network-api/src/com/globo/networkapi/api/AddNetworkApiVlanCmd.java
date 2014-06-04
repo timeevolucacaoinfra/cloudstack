@@ -31,6 +31,7 @@ import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
+import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
 import com.cloud.exception.ConcurrentOperationException;
@@ -39,7 +40,6 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
-import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.manager.NetworkAPIService;
 
@@ -157,6 +157,6 @@ public class AddNetworkApiVlanCmd extends BaseCmd {
 
     @Override
     public long getEntityOwnerId() {
-        return UserContext.current().getCaller().getId();
+    	return CallContext.current().getCallingAccountId();
     }
 }

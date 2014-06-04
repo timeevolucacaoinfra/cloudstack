@@ -27,6 +27,7 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -127,14 +128,14 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	NetworkDao _networkDao;
 	@Inject
 	PhysicalNetworkDao _physicalNetworkDao;
+	@Inject
+	ConfigurationDao _configDao;
 	
 	// Managers
 	@Inject
 	AgentManager _agentMgr;
 	@Inject
 	ResourceManager _resourceMgr;
-	@Inject
-	ConfigurationServer _configServer;
 	
     public DnsAPIElement() {
 
@@ -162,8 +163,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     
     private void setupNetworkDomain(Network network, DataCenter zone) {
     	
-		String domainSuffix = _configServer.getConfigValue(Config.DNSAPIDomainSuffix.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
+		String domainSuffix = _configDao.getValue(Config.DNSAPIDomainSuffix.key());
 		/* Create new domain in DNS API */
 		// domainName is of form 'zoneName-vlanNum.domainSuffix'
 		if (domainSuffix == null) {
@@ -228,7 +228,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
     @Override
     @DB
-    public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
+    public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
     ResourceUnavailableException, InsufficientCapacityException {
     	
     	if (!isTypeSupported(vm.getType())) {
@@ -299,7 +299,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
     @Override
     @DB
-    public boolean release(Network network, NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
+    public boolean release(Network network, NicProfile nic, VirtualMachineProfile vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
     	
     	if (!isTypeSupported(vm.getType())) {
@@ -568,8 +568,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	}
 	
 	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
-		Long templateId = Long.valueOf(_configServer.getConfigValue(Config.DNSAPITemplateId.key(),
-				Config.ConfigurationParameterScope.global.name(), null));
+		Long templateId = Long.valueOf(_configDao.getValue(Config.DNSAPITemplateId.key()));
 		if (templateId == null) {
 			throw new CloudRuntimeException("TemplateId for domain is not set up in the global configs");
 		}
@@ -692,7 +691,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
 	}
 	
-	protected void saveRecordDB(VirtualMachineProfile<? extends VirtualMachine> vm, Long domainId, Record record) {
+	protected void saveRecordDB(VirtualMachineProfile vm, Long domainId, Record record) {
 		
 		long vmId = vm.getId();
     	DnsAPIVirtualMachineVO dnsapiVMVO = this.getDnsAPIVirtualMachineVO(vmId, domainId);

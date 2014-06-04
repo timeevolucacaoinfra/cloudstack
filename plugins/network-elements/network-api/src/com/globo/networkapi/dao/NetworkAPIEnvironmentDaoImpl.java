@@ -15,7 +15,7 @@ import com.globo.networkapi.NetworkAPIEnvironmentVO;
 
 @Component
 @Local(value = NetworkAPINetworkDao.class)
-@DB(txn = false)
+@DB
 public class NetworkAPIEnvironmentDaoImpl extends
 		GenericDaoBase<NetworkAPIEnvironmentVO, Long> implements
 		NetworkAPIEnvironmentDao {

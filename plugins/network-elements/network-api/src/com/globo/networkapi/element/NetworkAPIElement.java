@@ -66,7 +66,6 @@ import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
-import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.resource.NetworkAPIResource;
@@ -208,7 +207,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 	@Override
 	public boolean prepare(Network network, NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
+			VirtualMachineProfile vm,
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
@@ -219,7 +218,7 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 
 	@Override
 	public boolean release(Network network, NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
+			VirtualMachineProfile vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
 		s_logger.debug("*** Here we call networkapi to unallocate VLAN");

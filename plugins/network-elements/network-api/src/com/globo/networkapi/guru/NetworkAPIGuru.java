@@ -32,7 +32,6 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
-import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
 import com.globo.networkapi.NetworkAPIVipAccVO;
@@ -130,7 +129,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 
 	@Override
 	public NicProfile allocate(Network network, NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm)
+			VirtualMachineProfile vm)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
 		
@@ -144,7 +143,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 
 	@Override
 	public void reserve(NicProfile nic, Network network,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
+			VirtualMachineProfile vm,
 			DeployDestination dest, ReservationContext context)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
@@ -159,7 +158,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 	
 	@Override
 	public void deallocate(Network network, NicProfile nic,
-			VirtualMachineProfile<? extends VirtualMachine> vm) {
+			VirtualMachineProfile vm) {
 
 		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
@@ -206,12 +205,12 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 	}
 
 	@Override
-	public boolean trash(Network network, NetworkOffering offering, Account owner) {
+	public boolean trash(Network network, NetworkOffering offering) {
 		
 		s_logger.debug("Deallocating VLAN networks from NetworkAPI");
 		_networkAPIService.deallocateVlanFromNetworkAPI(network);
 		
 		s_logger.debug("VLAN networks released. Passing on to GuestNetworkGuru to trash network " + network.getName());
-		return super.trash(network, offering, owner);
+		return super.trash(network, offering);
 	}
 }

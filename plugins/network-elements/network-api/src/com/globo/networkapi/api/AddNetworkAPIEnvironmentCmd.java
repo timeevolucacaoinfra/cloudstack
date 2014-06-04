@@ -24,6 +24,7 @@ import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
+import org.apache.cloudstack.context.CallContext;
 
 import com.cloud.api.ApiDBUtils;
 import com.cloud.event.EventTypes;
@@ -32,7 +33,6 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.manager.NetworkAPIService;
@@ -108,7 +108,7 @@ public class AddNetworkAPIEnvironmentCmd extends BaseAsyncCmd {
 
 	@Override
 	public long getEntityOwnerId() {
-		return UserContext.current().getCaller().getId();
+		return CallContext.current().getCallingAccountId();
 	}
 
 	@Override

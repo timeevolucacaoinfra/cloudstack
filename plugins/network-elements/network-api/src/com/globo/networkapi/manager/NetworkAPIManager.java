@@ -13,6 +13,8 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
+import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
@@ -43,7 +45,6 @@ import com.cloud.host.dao.HostDao;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
-import com.cloud.network.NetworkManager;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.PhysicalNetwork;
@@ -59,11 +60,9 @@ import com.cloud.org.Grouping;
 import com.cloud.projects.Project;
 import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
-import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.DomainManager;
-import com.cloud.user.UserContext;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
@@ -78,9 +77,7 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VMInstanceVO;
-import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
-import com.cloud.vm.VirtualMachineProfileImpl;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
@@ -149,6 +146,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Inject
 	NetworkOfferingDao _networkOfferingDao;
 	@Inject
+	ConfigurationDao _configDao;
+	@Inject
 	UserDao _userDao;
 	@Inject
 	NetworkDao _ntwkDao;
@@ -181,8 +180,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
     @Inject
     ProjectManager _projectMgr;
 	@Inject
-	ConfigurationServer _configServer;
-	@Inject
 	NetworkService _ntwSvc;
 	@Inject
 	VMInstanceDao _vmDao;
@@ -209,7 +206,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException {
 
-		Account caller = UserContext.current().getCaller();
+		Account caller = CallContext.current().getCallingAccount();
 
 		Account owner = null;
 		if ((accountName != null && domainId != null) || projectId != null) {
@@ -275,7 +272,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			ResourceAllocationException, ConcurrentOperationException,
 			InsufficientCapacityException {
 
-		Account caller = UserContext.current().getCaller();
+		Account caller = CallContext.current().getCallingAccount();
 		
 		Account owner = null;
 		if ((accountName != null && domainId != null) || projectId != null) {
@@ -457,8 +454,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 				}
 				DeployDestination dest = new DeployDestination(zone, null,
 						null, null);
-				UserVO callerUser = _userDao.findById(UserContext.current()
-						.getCallerUserId());
+				UserVO callerUser = _userDao.findById(CallContext.current()
+						.getCallingUserId());
 				Journal journal = new Journal.LogJournal("Implementing "
 						+ network, s_logger);
 				ReservationContext context = new ReservationContextImpl(UUID
@@ -524,8 +521,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	@Override
 	public Network validateNic(NicProfile nicProfile,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
-			Network network)
+			VirtualMachineProfile vm, Network network)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
 
@@ -706,12 +702,9 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		params.put("zoneId", String.valueOf(zoneId));
 		params.put("name", Provider.NetworkAPI.getName());
 		
-		String readTimeout = _configServer.getConfigValue(Config.NetworkAPIReadTimeout.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String connectTimeout = _configServer.getConfigValue(Config.NetworkAPIConnectionTimeout.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
-		String numberOfRetries = _configServer.getConfigValue(Config.NetworkAPINumberOfRetries.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
+		String readTimeout = _configDao.getValue(Config.NetworkAPIReadTimeout.key());
+		String connectTimeout = _configDao.getValue(Config.NetworkAPIConnectionTimeout.key());
+		String numberOfRetries = _configDao.getValue(Config.NetworkAPINumberOfRetries.key());
 
 		params.put("url", url);
 		params.put("username", username);
@@ -951,7 +944,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 	
 	@Override
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network) {
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm, Network network) {
 		
 		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null) {
@@ -963,45 +956,36 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
 		}
 		
-		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVmEquipmentGroup.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
+		String equipmentGroup = _configDao.getValue(Config.NetworkAPIVmEquipmentGroup.key());
 		if (equipmentGroup == null || "".equals(equipmentGroup)) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
 
 		String equipmentModel = null;
 		switch(vm.getType()) {
-			case User:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmUser.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
-				break;
 			case DomainRouter:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmDomainRouter.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmDomainRouter.key());
 				break;
 			case ConsoleProxy:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmConsoleProxy.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmConsoleProxy.key());
 				break;
 			case SecondaryStorageVm:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmSecondaryStorageVm.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmSecondaryStorageVm.key());
 				break;
 			case ElasticIpVm:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmElasticIpVm.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmElasticIpVm.key());
 				break;
 			case ElasticLoadBalancerVm:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmElasticLoadBalancerVm.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmElasticLoadBalancerVm.key());
 				break;
 			case InternalLoadBalancerVm:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmInternalLoadBalancerVm.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmInternalLoadBalancerVm.key());
 				break;
 			case UserBareMetal:
-				equipmentModel = _configServer.getConfigValue(Config.NetworkAPIModelVmUserBareMetal.key(),
-						Config.ConfigurationParameterScope.global.name(), null);
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmUserBareMetal.key());
+				break;
+			default:
+				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmUser.key());
 				break;
 		}
 		if (equipmentModel == null) {
@@ -1025,7 +1009,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	}
 
 	@Override
-	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm) {
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm) {
 		
 		String msg = "Unable to unregister nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null) {
@@ -1037,8 +1021,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
 		}
 		
-		String equipmentGroup = _configServer.getConfigValue(Config.NetworkAPIVmEquipmentGroup.key(),
-				Config.ConfigurationParameterScope.global.name(), null);
+		String equipmentGroup = _configDao.getValue(Config.NetworkAPIVmEquipmentGroup.key());
 		if (equipmentGroup == null) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
 		}
@@ -1058,7 +1041,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public NetworkAPIVipAccVO addNapiVipToAcc(Long napiVipId, Long networkId) {
 
-		Account caller = UserContext.current().getCaller();
+		Account caller = CallContext.current().getCallingAccount();
 		Network network = null;
 		if (networkId != null) {
 			network = _ntwkDao.findById(networkId);
@@ -1148,7 +1131,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public List<NetworkAPIVipResponse> listNetworkAPIVips(Long projectId) {
 
-		Account caller = UserContext.current().getCaller();
+		Account caller = CallContext.current().getCallingAccount();
 		List<Long> permittedAccounts = new ArrayList<Long>();
 		
         permittedAccounts.add(caller.getId());
@@ -1241,7 +1224,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 	@Override
 	public void removeNapiVip(Long napiVipId) {
 
-		Account caller = UserContext.current().getCaller();
+		Account caller = CallContext.current().getCallingAccount();
 		
 		List<NetworkAPIVipAccVO> napiVipList = _napiVipAccDao.findByVipId(napiVipId);
 		

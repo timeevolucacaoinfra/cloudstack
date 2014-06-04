@@ -12,7 +12,7 @@ import com.cloud.utils.db.SearchCriteria.Op;
 import com.globo.dnsapi.DnsAPIVirtualMachineVO;
 
 @Component
-@Local(value=DnsAPIVirtualMachineDao.class) @DB(txn=false)
+@Local(value=DnsAPIVirtualMachineDao.class) @DB
 public class DnsAPIVirtualMachineDaoImpl extends GenericDaoBase<DnsAPIVirtualMachineVO, Long> implements DnsAPIVirtualMachineDao {
 	
 	protected final SearchBuilder<DnsAPIVirtualMachineVO> VmAndDomainSearch;

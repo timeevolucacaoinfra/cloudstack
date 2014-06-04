@@ -28,13 +28,13 @@ import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
+import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.user.UserContext;
 import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.response.NetworkAPIAllEnvironmentResponse.Environment;
 import com.globo.networkapi.response.NetworkAPIEnvironmentExternalResponse;
@@ -94,6 +94,6 @@ public class ListAllEnvironmentsFromNetworkApiCmd extends BaseCmd {
 
     @Override
     public long getEntityOwnerId() {
-        return UserContext.current().getCaller().getId();
+    	return CallContext.current().getCallingAccountId();
     }
 }

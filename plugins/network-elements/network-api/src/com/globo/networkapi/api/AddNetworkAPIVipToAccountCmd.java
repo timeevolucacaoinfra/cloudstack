@@ -25,6 +25,7 @@ import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.SuccessResponse;
+import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
 import com.cloud.exception.ConcurrentOperationException;
@@ -32,7 +33,6 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.user.UserContext;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.manager.NetworkAPIService;
@@ -77,6 +77,6 @@ public class AddNetworkAPIVipToAccountCmd extends BaseCmd {
 
     @Override
     public long getEntityOwnerId() {
-        return UserContext.current().getCaller().getId();
+    	return CallContext.current().getCallingAccountId();
     }
 }

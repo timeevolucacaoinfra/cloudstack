@@ -15,7 +15,7 @@ import com.globo.networkapi.NetworkAPIVipAccVO;
 
 @Component
 @Local(value = NetworkAPIVipAccDao.class)
-@DB(txn = false)
+@DB
 public class NetworkAPIVipAccDaoImpl extends
 		GenericDaoBase<NetworkAPIVipAccVO, Long> implements
 		NetworkAPIVipAccDao {

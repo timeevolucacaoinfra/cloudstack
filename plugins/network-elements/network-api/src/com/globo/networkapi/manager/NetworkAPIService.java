@@ -16,7 +16,6 @@ import com.cloud.host.Host;
 import com.cloud.network.Network;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
-import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIEnvironmentVO;
 import com.globo.networkapi.NetworkAPIVipAccVO;
@@ -93,7 +92,7 @@ public interface NetworkAPIService {
 	 * @throws InsufficientAddressCapacityException
 	 */
 	public Network validateNic(NicProfile nicProfile,
-			VirtualMachineProfile<? extends VirtualMachine> vm,
+			VirtualMachineProfile vm,
 			Network network)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException;
@@ -166,14 +165,14 @@ public interface NetworkAPIService {
 	 * @param vm
 	 * @param network
 	 */
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm, Network network);
+	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm, Network network);
 
 	/**
 	 * Unregister NIC in Network API
 	 * @param nic
 	 * @param vm
 	 */
-	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile<? extends VirtualMachine> vm);
+	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm);
 	
 	/**
 	 * List all Network API VIPs associated to an account/project
