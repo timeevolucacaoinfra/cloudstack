@@ -62,10 +62,13 @@ import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ResourceStateAdapter;
 import com.cloud.resource.ServerResource;
 import com.cloud.resource.UnableDeleteHostException;
-import com.cloud.server.ConfigurationServer;
 import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
+import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackNoReturn;
+import com.cloud.utils.db.TransactionCallbackWithException;
+import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
@@ -211,24 +214,25 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
     @Override
     @DB
-    public boolean implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
+    public boolean implement(final Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
     InsufficientCapacityException {
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
+    	Transaction.execute(new TransactionCallbackNoReturn() {
 
-		// Configure network domain
-		setupDomainAndReverseDomain(network);
+			@Override
+			public void doInTransactionWithoutResult(TransactionStatus status) {
+				// Configure network domain
+				setupDomainAndReverseDomain(network);
 
-    	/* Export changes to Bind in DNS API */
-    	this.scheduleBindExport(network.getDataCenterId());
-
-    	txn.commit();
+		    	/* Export changes to Bind in DNS API */
+		    	scheduleBindExport(network.getDataCenterId());
+			}
+    	});
         return true;
     }
 
     @Override
     @DB
-    public boolean prepare(Network network, NicProfile nic, VirtualMachineProfile vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
+    public boolean prepare(final Network network, final NicProfile nic, final VirtualMachineProfile vm, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException,
     ResourceUnavailableException, InsufficientCapacityException {
     	
     	if (!isTypeSupported(vm.getType())) {
@@ -237,69 +241,70 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
     	
     	Long zoneId = network.getDataCenterId();
-    	DataCenter zone = _dcDao.findById(zoneId);
+    	final DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
 		
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
+		Transaction.execute(new TransactionCallbackNoReturn() {
+			
+			@Override
+			public void doInTransactionWithoutResult(TransactionStatus status) {
+				// VirtualRouter is created before implement method was called.
+				setupDomainAndReverseDomain(network);
+				
+				DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
+				if (dnsapiNetworkVO == null) {
+					throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
+				}
 
-		// VirtualRouter is created before implement method was called.
-		setupDomainAndReverseDomain(network);
-		
-		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
-		if (dnsapiNetworkVO == null) {
-			throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
-		}
+				long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+				long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
+				
+				/* Create new A record in DNS API */
+				// We allow only lower case names in DNS, so force lower case names for VMs
+				String vmName = vm.getHostName();
+				String vmNameLowerCase = vmName.toLowerCase();
+				if (!vmName.equals(vmNameLowerCase) && vm.getType() == VirtualMachine.Type.User) {
+					throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
+				}
+				
+				String recordName = vmNameLowerCase;
+		    	Record createdRecord = createOrUpdateRecord(zone.getId(), domainId, recordName, nic.getIp4Address(), false);
+		    	
+				/* Create new PTR record in DNS API */
+				// Need domain name for full reverse record content
+		    	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
+		    	Answer answerInfo = callCommand(cmdInfo, zone.getId());
+		    	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
+		    	if (domain == null) {
+		    		// Domain doesn't exist in DNS API
+		    		throw new CloudRuntimeException("Could not get Domain info from DNS API");
+		    	}
+		    	
+		    	String[] octets = nic.getIp4Address().split("\\.");
+				String reverseRecordName = octets[3];
+				String reverseRecordContent = recordName + "." + domain.getName();
+		    	
+				Record createdReverseRecord = createOrUpdateRecord(zone.getId(), reverseDomainId, reverseRecordName, reverseRecordContent, true);
+				
+		    	/* Save in the database */
+		    	// Save domain record
+		    	saveRecordDB(vm, domainId, createdRecord);
+		    	// Save reverse domain record
+		    	saveRecordDB(vm, reverseDomainId, createdReverseRecord);
 
-		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
-		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
-		
-		/* Create new A record in DNS API */
-		// We allow only lower case names in DNS, so force lower case names for VMs
-		String vmName = vm.getHostName();
-		String vmNameLowerCase = vmName.toLowerCase();
-		if (!vmName.equals(vmNameLowerCase) && vm.getType() == VirtualMachine.Type.User) {
-			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
-		}
-		
-		String recordName = vmNameLowerCase;
-    	Record createdRecord = this.createOrUpdateRecord(zoneId, domainId, recordName, nic.getIp4Address(), false);
-    	
-		/* Create new PTR record in DNS API */
-		// Need domain name for full reverse record content
-    	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
-    	Answer answerInfo = callCommand(cmdInfo, zoneId);
-    	Domain domain = ((DnsAPIDomainResponse) answerInfo).getDomain();
-    	if (domain == null) {
-    		// Domain doesn't exist in DNS API
-    		throw new CloudRuntimeException("Could not get Domain info from DNS API");
-    	}
-    	
-    	String[] octets = nic.getIp4Address().split("\\.");
-		String reverseRecordName = octets[3];
-		String reverseRecordContent = recordName + "." + domain.getName();
-    	
-		Record createdReverseRecord = this.createOrUpdateRecord(zoneId, reverseDomainId, reverseRecordName, reverseRecordContent, true);
-		
-    	/* Save in the database */
-    	// Save domain record
-    	this.saveRecordDB(vm, domainId, createdRecord);
-    	// Save reverse domain record
-    	this.saveRecordDB(vm, reverseDomainId, createdReverseRecord);
-
-    	/* Export changes to Bind in DNS API */
-    	this.scheduleBindExport(zoneId);
-    	
-    	txn.commit();
+		    	/* Export changes to Bind in DNS API */
+		    	scheduleBindExport(zone.getId());
+			}
+		});
     	return true;
     }
 
     @Override
     @DB
-    public boolean release(Network network, NicProfile nic, VirtualMachineProfile vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
+    public boolean release(final Network network, NicProfile nic, final VirtualMachineProfile vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering release method for DnsAPI");
     	
     	if (!isTypeSupported(vm.getType())) {
@@ -308,50 +313,53 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	}
     	
     	Long zoneId = network.getDataCenterId();
-    	DataCenter zone = _dcDao.findById(zoneId);
+    	final DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
 		
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
-		
-		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
-		if (dnsapiNetworkVO == null) {
-			// Don't have mapping for domain anymore, should let Cloudstack clean everything up
-			return true;
-		}
+		boolean result = Transaction.execute(new TransactionCallback<Boolean>() {
 
-		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
-		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
+			@Override
+			public Boolean doInTransaction(TransactionStatus status) {
+				DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
+				if (dnsapiNetworkVO == null) {
+					// Don't have mapping for domain anymore, should let Cloudstack clean everything up
+					return true;
+				}
 
-		DnsAPIVirtualMachineVO dnsapiVirtualMachineVODomain = this.getDnsAPIVirtualMachineVO(vm.getId(), domainId);
-		DnsAPIVirtualMachineVO dnsapiVirtualMachineVOReverseDomain = this.getDnsAPIVirtualMachineVO(vm.getId(), reverseDomainId);
-		if (dnsapiVirtualMachineVODomain == null || dnsapiVirtualMachineVOReverseDomain == null) {
-			// Don't have mapping for VMs anymore, should let Cloudstack clean everything up
-			return true;
-		}
+				long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+				long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
 
-		long recordId = dnsapiVirtualMachineVODomain.getDnsapiRecordId();
-		long reverseRecordId = dnsapiVirtualMachineVOReverseDomain.getDnsapiRecordId();
-		
-		/* Remove record from DNS API */
-		this.removeRecord(zoneId, recordId);
+				DnsAPIVirtualMachineVO dnsapiVirtualMachineVODomain = getDnsAPIVirtualMachineVO(vm.getId(), domainId);
+				DnsAPIVirtualMachineVO dnsapiVirtualMachineVOReverseDomain = getDnsAPIVirtualMachineVO(vm.getId(), reverseDomainId);
+				if (dnsapiVirtualMachineVODomain == null || dnsapiVirtualMachineVOReverseDomain == null) {
+					// Don't have mapping for VMs anymore, should let Cloudstack clean everything up
+					return true;
+				}
+
+				long recordId = dnsapiVirtualMachineVODomain.getDnsapiRecordId();
+				long reverseRecordId = dnsapiVirtualMachineVOReverseDomain.getDnsapiRecordId();
+				
+				/* Remove record from DNS API */
+				removeRecord(zone.getId(), recordId);
+		    	
+		    	/* Remove reverse record from DNS API */
+				removeRecord(zone.getId(), reverseRecordId);
+				
+		    	/* Export changes to Bind in DNS API */
+		    	scheduleBindExport(zone.getId());
+		    	
+		    	/* Remove entries from mapping table */
+		    	_dnsapiVmDao.remove(dnsapiVirtualMachineVODomain.getId());
+		    	_dnsapiVmDao.remove(dnsapiVirtualMachineVOReverseDomain.getId());
+		    	
+		    	return true;
+			}
+		});
     	
-    	/* Remove reverse record from DNS API */
-		this.removeRecord(zoneId, reverseRecordId);
-		
-    	/* Export changes to Bind in DNS API */
-    	this.scheduleBindExport(zoneId);
-    	
-    	/* Remove entries from mapping table */
-    	_dnsapiVmDao.remove(dnsapiVirtualMachineVODomain.getId());
-    	_dnsapiVmDao.remove(dnsapiVirtualMachineVOReverseDomain.getId());
-    	
-    	txn.commit();
-    	
-        return true;
+        return result;
     }
 
     @Override
@@ -362,42 +370,45 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 
     @Override
     @DB
-    public boolean destroy(Network network, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
+    public boolean destroy(final Network network, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
     	s_logger.debug("Entering destroy method for DnsAPI");
     	Long zoneId = network.getDataCenterId();
-    	DataCenter zone = _dcDao.findById(zoneId);
+    	final DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
-
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
 		
-		DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
-		if (dnsapiNetworkVO == null) {
-			// Don't have mapping for domain anymore, should let Cloudstack clean everything up
-			return true;
-		}
+		boolean result = Transaction.execute(new TransactionCallback<Boolean>() {
+			
+			@Override
+			public Boolean doInTransaction(TransactionStatus status) {
+				DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
+				if (dnsapiNetworkVO == null) {
+					// Don't have mapping for domain anymore, should let Cloudstack clean everything up
+					return true;
+				}
 
-		long domainId = dnsapiNetworkVO.getDnsapiDomainId();
-		long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
+				long domainId = dnsapiNetworkVO.getDnsapiDomainId();
+				long reverseDomainId = dnsapiNetworkVO.getDnsapiReverseDomainId();
+				    	
+				/* Remove domain from DNS API */
+				removeDomain(zone.getId(), domainId, false);
 		    	
-		/* Remove domain from DNS API */
-		this.removeDomain(zoneId, domainId, false);
+		    	/* Remove reverse domain from DNS API */
+				removeDomain(zone.getId(), reverseDomainId, true);
+				
+		    	/* Export changes to Bind in DNS API */
+		    	scheduleBindExport(zone.getId());
+		    	
+		    	/* Remove entry from mapping table */
+		    	_dnsapiNetworkDao.remove(dnsapiNetworkVO.getId());
+		    	
+		    	return true;
+			}
+		});
     	
-    	/* Remove reverse domain from DNS API */
-		this.removeDomain(zoneId, reverseDomainId, true);
-		
-    	/* Export changes to Bind in DNS API */
-    	this.scheduleBindExport(zoneId);
-    	
-    	/* Remove entry from mapping table */
-    	_dnsapiNetworkDao.remove(dnsapiNetworkVO.getId());
-    	
-    	txn.commit();
-    	
-        return true;
+        return result;
     }
 
     @Override
@@ -488,7 +499,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	
 	@Override
 	@DB
-	public Host addDNSAPIHost(Long physicalNetworkId, String username, String password, String url) {
+	public Host addDNSAPIHost(Long physicalNetworkId, final String username, final String password, String url) {
 		
 		if (username == null || username.trim().isEmpty()) {
 			throw new InvalidParameterValueException("Invalid username: " + username);
@@ -515,9 +526,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
 		}
 
-		Long zoneId = pNtwk.getDataCenterId();
+		final Long zoneId = pNtwk.getDataCenterId();
 
-		Map<String, String> params = new HashMap<String, String>();
+		final Map<String, String> params = new HashMap<String, String>();
 		params.put("guid", "dnsapi-" + String.valueOf(zoneId));
 		params.put("zoneId", String.valueOf(zoneId));
 		params.put("name", Provider.DnsAPI.getName());
@@ -526,37 +537,39 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 		params.put("username", username);
 		params.put("password", password);
 		
-		Map<String, Object> hostDetails = new HashMap<String, Object>();
+		final Map<String, Object> hostDetails = new HashMap<String, Object>();
 		hostDetails.putAll(params);
-		
-		Transaction txn = Transaction.currentTxn();
-		txn.start();
 
-		try {
-			DnsAPIResource resource = new DnsAPIResource();
-			resource.configure(Provider.DnsAPI.getName(), hostDetails);
-			
-			Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
-					params);
-			
-			if (host == null) {
-				throw new CloudRuntimeException("Failed to add DNS API host");
+		Host host = Transaction.execute(new TransactionCallbackWithException<Host, CloudRuntimeException>() {
+
+			@Override
+			public Host doInTransaction(TransactionStatus status) throws CloudRuntimeException {
+				try {
+					DnsAPIResource resource = new DnsAPIResource();
+					resource.configure(Provider.DnsAPI.getName(), hostDetails);
+					
+					Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(), params);
+					
+					if (host == null) {
+						throw new CloudRuntimeException("Failed to add DNS API host");
+					}
+					
+					// Validate username and password by logging in
+					SignInCommand cmd = new SignInCommand(username, password);
+					Answer answer = callCommand(cmd, zoneId);
+					if (answer == null || !answer.getResult()) {
+						// Could not sign in on DNS API
+						throw new ConfigurationException("Could not sign in on DNS API. Please verify URL, username and password.");
+					}
+					
+					return host;
+				} catch (ConfigurationException e) {
+					throw new CloudRuntimeException(e);
+				}
 			}
-			
-			// Validate username and password by logging in
-			SignInCommand cmd = new SignInCommand(username, password);
-			Answer answer = callCommand(cmd, zoneId);
-			if (answer == null || !answer.getResult()) {
-				// Could not sign in on DNS API
-				throw new ConfigurationException("Could not sign in on DNS API. Please verify URL, username and password.");
-			}
-			
-			txn.commit();
-			
-			return host;
-		} catch (ConfigurationException e) {
-			throw new CloudRuntimeException(e);
-		}
+		});
+		
+		return host;
 	}
 	
 	private DnsAPINetworkVO getDnsAPINetworkVO(Network network) {
