@@ -24,7 +24,6 @@ import java.util.Set;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
-import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -166,7 +165,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         return (_networkManager.isProviderForNetwork(getProvider(), network.getId()) && _ntwkSrvcDao.canProviderSupportServiceInNetwork(network.getId(), service, Network.Provider.NetworkAPI));
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public boolean implement(Network network, NetworkOffering offering,
 			DeployDestination dest, ReservationContext context)

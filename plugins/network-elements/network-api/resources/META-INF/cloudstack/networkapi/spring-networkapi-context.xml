@@ -28,10 +28,10 @@
                       >
 
   <context:annotation-config />
-
   <context:component-scan base-package="com.globo.networkapi" />
 
   <!--  @DB support -->
+  <!--
   <bean id="componentContext" class="com.cloud.utils.component.ComponentContext" />
   <bean id="transactionContextBuilder" class="com.cloud.utils.db.TransactionContextBuilder" />
  
@@ -42,5 +42,6 @@
         </list>
     </property>
   </bean>
-
+  -->
+  
 </beans>
