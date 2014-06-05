@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
@@ -132,6 +133,7 @@ import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
 @Component
+@Local({NetworkAPIService.class, PluggableService.class})
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	private static final Logger s_logger = Logger
