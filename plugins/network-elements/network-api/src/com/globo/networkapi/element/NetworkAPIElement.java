@@ -42,6 +42,7 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.ExternalLoadBalancerDeviceManager;
 import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
@@ -73,7 +74,7 @@ import com.google.gson.Gson;
 
 @Component
 @Local(value = { NetworkElement.class, LoadBalancingServiceProvider.class })
-public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements NetworkElement, LoadBalancingServiceProvider, IpDeployer {
+public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl implements LoadBalancingServiceProvider, IpDeployer, ExternalLoadBalancerDeviceManager {
 	private static final Logger s_logger = Logger
 			.getLogger(NetworkAPIElement.class);
 
@@ -165,14 +166,6 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         return (_networkManager.isProviderForNetwork(getProvider(), network.getId()) && _ntwkSrvcDao.canProviderSupportServiceInNetwork(network.getId(), service, Network.Provider.NetworkAPI));
 	}
 
-    @Override
-	public boolean configure(String name, Map<String, Object> params)
-			throws ConfigurationException {
-		s_logger.debug("Configure " + name + " params " + params);
-		super.configure(name, params);
-		return true;
-	}
-    
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean implement(Network network, NetworkOffering offering,

@@ -2,10 +2,12 @@ package com.globo.networkapi.guru;
 
 import java.util.List;
 
+import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.deploy.DeployDestination;
@@ -21,6 +23,7 @@ import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetwork.IsolationMethod;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.guru.GuestNetworkGuru;
+import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.router.VirtualRouter;
 import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
 import com.cloud.offering.NetworkOffering;
@@ -36,6 +39,8 @@ import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.dao.NetworkAPIVipAccDao;
 import com.globo.networkapi.manager.NetworkAPIService;
 
+@Component
+@Local(value = { NetworkGuru.class })
 public class NetworkAPIGuru extends GuestNetworkGuru {
     private static final Logger s_logger = Logger.getLogger(NetworkAPIGuru.class);
     
@@ -54,6 +59,7 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
     
     public NetworkAPIGuru() {
         _isolationMethods = new IsolationMethod[] { IsolationMethod.VLAN };
+        setName("NetworkAPIGuru");
     }
     
     public boolean isMyNetworkType(NetworkType networkType) {
