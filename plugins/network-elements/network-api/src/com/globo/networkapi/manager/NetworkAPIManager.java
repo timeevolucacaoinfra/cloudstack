@@ -17,6 +17,7 @@ import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
@@ -130,6 +131,7 @@ import com.globo.networkapi.response.NetworkAPIVipResponse;
 import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.globo.networkapi.response.NetworkAPIVlanResponse;
 
+@Component
 public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 
 	private static final Logger s_logger = Logger
