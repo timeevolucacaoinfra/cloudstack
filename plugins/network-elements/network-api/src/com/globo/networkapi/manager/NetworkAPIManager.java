@@ -401,7 +401,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			@SuppressWarnings("unchecked")
 			@Override
 			public Network doInTransaction(TransactionStatus status) throws CloudException {
-				boolean newSubdomainAccess = subdomainAccess;
+				Boolean newSubdomainAccess = subdomainAccess;
 				Long sharedDomainId = null;
 				if (isDomainSpecific) {
 					if (domainId != null) {

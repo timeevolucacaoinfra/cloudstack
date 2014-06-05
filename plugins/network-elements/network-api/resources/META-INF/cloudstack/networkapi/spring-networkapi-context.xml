@@ -29,19 +29,5 @@
 
   <context:annotation-config />
   <context:component-scan base-package="com.globo.networkapi" />
-
-  <!--  @DB support -->
-  <!--
-  <bean id="componentContext" class="com.cloud.utils.component.ComponentContext" />
-  <bean id="transactionContextBuilder" class="com.cloud.utils.db.TransactionContextBuilder" />
- 
-  <bean id="instantiatePostProcessor" class="com.cloud.utils.component.ComponentInstantiationPostProcessor">
-    <property name="Interceptors">
-        <list>
-            <ref bean="transactionContextBuilder" />
-        </list>
-    </property>
-  </bean>
-  -->
   
 </beans>
