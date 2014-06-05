@@ -1,0 +1,28 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+    CREATE TABLE IF NOT EXISTS `cloud`.`networkapi_network_ref` (
+         `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+         `napi_vlan_id` bigint unsigned NOT NULL COMMENT 'id of vlan in network api',
+         `network_id` bigint unsigned NOT NULL COMMENT 'network id',
+         PRIMARY KEY (`id`),
+         CONSTRAINT `fk_napi_network_ref__network_id` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+         INDEX `fk_napi_network_ref__network_id` (`network_id`),
+         INDEX `fk_napi_network_ref__napi_vlan_id` (`napi_vlan_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+    CREATE TABLE IF NOT EXISTS `cloud`.`networkapi_environment_ref` (
+         `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+         `napi_environment_id` bigint unsigned NOT NULL COMMENT 'id of network api environment',
+         `physical_network_id` bigint unsigned NOT NULL COMMENT 'physical network id',
+         `name` varchar(255) NOT NULL COMMENT 'name',
+         PRIMARY KEY (`id`),
+         CONSTRAINT `fk_napi_environment_ref__physical_network_id` FOREIGN KEY (`physical_network_id`) REFERENCES `physical_network` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+         INDEX `fk_napi_network_ref__physical_network_id` (`physical_network_id`),
+         INDEX `fk_napi_network_ref__napi_environment_id` (`napi_environment_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+"""
+
+SQL_DOWN = u"""
+    DROP TABLE `cloud`.`networkapi_network_ref`;
+    DROP TABLE `cloud`.`networkapi_environment_ref`;
+"""
