@@ -18762,6 +18762,12 @@
                             case "BigSwitchVns":
                                 nspMap["bigswitchVns"] = items[i];
                                 break;
+                            case "NetworkAPI":
+                                nspMap["NetworkAPI"] = items[i];
+                                break;
+                            case "DnsAPI":
+                                nspMap["DnsAPI"] = items[i];
+                                break;    
                         }
                     }
                 }
