@@ -453,11 +453,12 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	public HostVO createHostVOForDirectConnectAgent(HostVO host,
 			StartupCommand[] startup, ServerResource resource,
 			Map<String, String> details, List<String> hostTags) {
-        if (!(startup[0] instanceof StartupCommand)) {
+        if (!(startup[0] instanceof StartupCommand && resource instanceof DnsAPIResource)) {
             return null;
         }
         host.setType(Host.Type.L2Networking);
-        return host;	}
+        return host;
+	}
 
 	@Override
 	public DeleteHostAnswer deleteHost(HostVO host, boolean isForced,
