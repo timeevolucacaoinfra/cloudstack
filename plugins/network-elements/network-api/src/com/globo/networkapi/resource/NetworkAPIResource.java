@@ -492,20 +492,22 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd);
 			}
 			
-			Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
-			if (ip == null) {
-				// Doesn't exist, ignore
-				s_logger.warn("IP was removed from NetworkAPI before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
-			} else {
-				_napi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
+			if (cmd.getEnvironmentId() != null && cmd.getNicIp() != null) {
+				Ip ip = _napi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+				if (ip == null) {
+					// Doesn't exist, ignore
+					s_logger.warn("IP was removed from NetworkAPI before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
+				} else {
+					_napi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
+				}
 			}
-			
+
 			// if there is no more ips in equipment, remove it.
 			List<Ip> ipList = _napi.getIpAPI().findIpsByEquipment(equipment.getId());
 			if (ipList.size() == 0) {
 				_napi.getEquipmentAPI().delete(equipment.getId());
 			}
-			
+
 			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in Network API");
 		} catch (NetworkAPIException e) {
 			return handleNetworkAPIException(cmd, e);

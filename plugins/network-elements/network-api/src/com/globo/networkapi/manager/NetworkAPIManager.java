@@ -71,6 +71,7 @@ import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
 import com.cloud.utils.Pair;
+import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
@@ -411,11 +412,24 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 						newSubdomainAccess = true;
 					}
 				}
+				
+				String newNetworkDomain = networkDomain;
+				if (!StringUtils.isNotBlank(newNetworkDomain)) {
+					/* Create new domain in DNS */
+					String domainSuffix = _configDao.getValue(Config.NetworkAPIDomainSuffix.key());
+					// domainName is of form 'zoneName-vlanNum.domainSuffix'
+					if (domainSuffix == null) {
+						domainSuffix = "";
+					} else if (!domainSuffix.startsWith(".")) {
+						domainSuffix = "." + domainSuffix;
+					}
+			    	newNetworkDomain = (zone.getName() + "-" + String.valueOf(response.getVlanNum()) + domainSuffix).toLowerCase();
+				}
 
 				Network network = _networkMgr.createGuestNetwork(
 						networkOfferingId.longValue(), response.getVlanName(),
 						response.getVlanDescription(), gateway, cidr,
-						String.valueOf(response.getVlanNum()), networkDomain, owner,
+						String.valueOf(response.getVlanNum()), newNetworkDomain, owner,
 						sharedDomainId, pNtwk, zone.getId(), aclType, newSubdomainAccess, 
 						null, // vpcId,
 						ip6Gateway,
@@ -1005,11 +1019,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Invalid nic or virtual machine.");
 		}
 		
-		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
-		if (napiNetworkVO == null) {
-			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
-		}
-		
 		String equipmentGroup = _configDao.getValue(Config.NetworkAPIVmEquipmentGroup.key());
 		if (equipmentGroup == null) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
@@ -1018,7 +1027,11 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		UnregisterEquipmentAndIpInNetworkAPICommand cmd = new UnregisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setVmName(vm.getUuid());
-		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+
+		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
+		if (napiNetworkVO != null) {
+			cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+		}
 		
 		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
 		if (answer == null || !answer.getResult()) {

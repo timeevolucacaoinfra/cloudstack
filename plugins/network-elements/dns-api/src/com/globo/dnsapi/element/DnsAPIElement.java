@@ -151,7 +151,9 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     
     private static Map<Service, Map<Capability, String>> setCapabilities() {
     	Map<Service, Map<Capability, String>> caps = new HashMap<Service, Map<Capability, String>>();
-        caps.put(Service.Dns, new HashMap<Capability, String>());
+    	Map<Capability, String> dnsCapabilities = new HashMap<Capability, String>();
+    	dnsCapabilities.put(Capability.AllowDnsSuffixModification, "true");
+        caps.put(Service.Dns, dnsCapabilities);
         return caps;
     }
 
@@ -164,29 +166,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
     	return type == VirtualMachine.Type.User || type == VirtualMachine.Type.ConsoleProxy || type == VirtualMachine.Type.DomainRouter;
     }
     
-    private void setupNetworkDomain(Network network, DataCenter zone) {
-    	
-		String domainSuffix = _configDao.getValue(Config.DNSAPIDomainSuffix.key());
-		/* Create new domain in DNS API */
-		// domainName is of form 'zoneName-vlanNum.domainSuffix'
-		if (domainSuffix == null) {
-			domainSuffix = "";
-		} else if (!domainSuffix.startsWith(".")) {
-			domainSuffix = "." + domainSuffix;
-		}
-    	String domainName = (zone.getName() + "-" + network.getBroadcastUri().getHost() + domainSuffix).toLowerCase();
-
-    	if (!domainName.equals(network.getNetworkDomain())) {
-    		s_logger.info("Chaging network domain name to " + domainName + " of network " + network);
-        	/* Update domain suffix in Network object */
-//        	NetworkVO networkVO = _networkDao.findById(network.getId());
-        	// Network object is reused between all services. So, I can't change only in database
-        	NetworkVO networkVO = (NetworkVO) network;
-        	networkVO.setNetworkDomain(domainName);
-        	_networkDao.update(network.getId(), networkVO);
-    	}
-    }
-    
     protected Domain setupDomainAndReverseDomain(Network network) {
 		Long zoneId = network.getDataCenterId();
     	DataCenter zone = _dcDao.findById(zoneId);
@@ -195,8 +174,6 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 					"Could not find zone associated to this network");
 		}
 		
-    	setupNetworkDomain(network, zone);
-    	
     	s_logger.debug("Creating domain " + network.getNetworkDomain() + " for network " + network);
     	Domain domain = this.getOrCreateDomain(zone.getId(), network.getNetworkDomain(), false);
 
@@ -252,7 +229,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			@Override
 			public void doInTransactionWithoutResult(TransactionStatus status) {
 				// VirtualRouter is created before implement method was called.
-				setupDomainAndReverseDomain(network);
+//				setupDomainAndReverseDomain(network);
 				
 				DnsAPINetworkVO dnsapiNetworkVO = getDnsAPINetworkVO(network);
 				if (dnsapiNetworkVO == null) {

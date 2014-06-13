@@ -436,9 +436,9 @@ public enum Config {
     NetworkAPIModelVmElasticLoadBalancerVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.elastic.load.balancer", "88", "Network API model id to be used for Elastic Load Balancer VMs", null),
     NetworkAPIModelVmInternalLoadBalancerVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.internal.load.balancer", "89", "Network API model id to be used for Internal Load Balancer VMs", null),
     NetworkAPIModelVmUserBareMetal("Network", ManagementServer.class, Long.class, "networkapi.model.vm.user.bare.metal", "90", "Network API model id to be used for User Bare Metal", null),
+    NetworkAPIDomainSuffix("Network", ManagementServer.class, String.class, "networkapi.domain.suffix", "", "Domain suffix for all domains created in DNS API", null),
 
     // DNS API
-    DNSAPIDomainSuffix("Network", ManagementServer.class, String.class, "dnsapi.global.domain.suffix", "cp.globoi.com", "Domain suffix for all domains created in DNS API", null),
     DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null);
 
     private final String _category;
