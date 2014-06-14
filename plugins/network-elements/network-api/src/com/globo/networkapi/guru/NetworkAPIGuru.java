@@ -9,11 +9,13 @@ import javax.naming.ConfigurationException;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.deploy.DeploymentPlan;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
+import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
@@ -30,11 +32,14 @@ import com.cloud.offering.NetworkOffering;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.User;
+import com.cloud.utils.db.Transaction;
+import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackWithException;
+import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
-import com.cloud.vm.VirtualMachine.State;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.networkapi.NetworkAPIVipAccVO;
 import com.globo.networkapi.dao.NetworkAPIVipAccDao;
@@ -110,14 +115,6 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			return null;
 		}
 
-		// FIXME While we have same issues with ACL API with net not in equipment, I create network
-		// in design method. In implement method nothing will do because network was already created.
-		try {
-			_networkAPIService.implementNetwork(network);
-		} catch (ConfigurationException e) {
-			throw new CloudRuntimeException("Unable to activate network " + network, e);
-		}
-
 		// we want implement method be called.
 		network.setState(Network.State.Allocated);
 		return network;
@@ -138,16 +135,29 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 	}
 
 	@Override
-	public NicProfile allocate(Network network, NicProfile nic,
-			VirtualMachineProfile vm)
+	public NicProfile allocate(final Network network, final NicProfile nic,
+			final VirtualMachineProfile vm)
 			throws InsufficientVirtualNetworkCapcityException,
 			InsufficientAddressCapacityException {
-		
-		NicProfile nicProf = super.allocate(network, nic, vm);
-		
-		s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
-		_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
-		
+
+		NicProfile nicProf;
+		try {
+			nicProf = Transaction.execute(new TransactionCallbackWithException<NicProfile, InsufficientNetworkCapacityException>() {
+
+				@Override
+				public NicProfile doInTransaction(TransactionStatus status) throws InsufficientNetworkCapacityException {
+					NicProfile nicProf = NetworkAPIGuru.super.allocate(network, nic, vm);
+					s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
+					_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
+					return nicProf;
+				}
+			});
+		} catch (InsufficientAddressCapacityException e) {
+			throw e;
+		} catch (InsufficientNetworkCapacityException e) {
+			s_logger.error(e.getMessage(), e);
+            throw new InsufficientVirtualNetworkCapcityException(e.getMessage(), e.getScope(), e.getId());
+		}
 		return nicProf;
 	}
 
@@ -205,7 +215,9 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 			_networkAPIService.removeNetworkFromNetworkAPI(profile);
 		
 			s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
-			super.shutdown(profile, offering);
+			// never call super.shutdown because it clear broadcastUri, and sometimes this
+			// make same networks without vlan
+//			super.shutdown(profile, offering);
 			
 		} catch (ResourceUnavailableException e) {
 			throw new CloudRuntimeException(e);

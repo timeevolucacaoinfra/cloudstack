@@ -266,7 +266,48 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			
 			throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.network);
 		}
-		
+
+		// if the network offering has persistent set to true, implement the
+		// network
+		// FIXME While we have same issues with ACL API with net not in equipment, all
+		// networks are considered persistent.
+		NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
+		if (true /*ntwkOff.getIsPersistent()*/) {
+			try {
+				if (network.getState() == Network.State.Setup) {
+					s_logger.debug("Network id=" + network.getId()
+							+ " is already provisioned");
+					return network;
+				}
+				DeployDestination dest = new DeployDestination(zone, null,
+						null, null);
+				UserVO callerUser = _userDao.findById(CallContext.current()
+						.getCallingUserId());
+				Journal journal = new Journal.LogJournal("Implementing "
+						+ network, s_logger);
+				ReservationContext context = new ReservationContextImpl(UUID
+						.randomUUID().toString(), journal, callerUser, caller);
+				s_logger.debug("Implementing network "
+						+ network
+						+ " as a part of network provision for persistent network");
+				@SuppressWarnings("unchecked")
+				Pair<NetworkGuru, NetworkVO> implementedNetwork = (Pair<NetworkGuru, NetworkVO>) _networkMgr
+						.implementNetwork(network.getId(), dest, context);
+				if (implementedNetwork.first() == null) {
+					s_logger.warn("Failed to provision the network " + network);
+				}
+				network = implementedNetwork.second();
+			} catch (ResourceUnavailableException ex) {
+				s_logger.warn("Failed to implement persistent guest network "
+						+ network + "due to ", ex);
+				CloudRuntimeException e = new CloudRuntimeException(
+						"Failed to implement persistent guest network");
+				e.addProxyObject(network.getUuid(), "networkId");
+				throw e;
+			}
+		}
+
+
 		return network;
 	}
 
@@ -450,42 +491,6 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 							startIP, endIP, gateway, netmask, vlanNum.toString(), null,
 							startIPv6, endIPv6, ip6Gateway, ip6Cidr);
 				// }
-
-				// if the network offering has persistent set to true, implement the
-				// network
-				if (ntwkOff.getIsPersistent()) {
-					try {
-						if (network.getState() == Network.State.Setup) {
-							s_logger.debug("Network id=" + network.getId()
-									+ " is already provisioned");
-							return network;
-						}
-						DeployDestination dest = new DeployDestination(zone, null,
-								null, null);
-						UserVO callerUser = _userDao.findById(CallContext.current()
-								.getCallingUserId());
-						Journal journal = new Journal.LogJournal("Implementing "
-								+ network, s_logger);
-						ReservationContext context = new ReservationContextImpl(UUID
-								.randomUUID().toString(), journal, callerUser, caller);
-						s_logger.debug("Implementing network "
-								+ network
-								+ " as a part of network provision for persistent network");
-						Pair<NetworkGuru, NetworkVO> implementedNetwork = (Pair<NetworkGuru, NetworkVO>) _networkMgr
-								.implementNetwork(network.getId(), dest, context);
-						if (implementedNetwork.first() == null) {
-							s_logger.warn("Failed to provision the network " + network);
-						}
-						network = implementedNetwork.second();
-					} catch (ResourceUnavailableException ex) {
-						s_logger.warn("Failed to implement persistent guest network "
-								+ network + "due to ", ex);
-						CloudRuntimeException e = new CloudRuntimeException(
-								"Failed to implement persistent guest network");
-						e.addProxyObject(network.getUuid(), "networkId");
-						throw e;
-					}
-				}
 				return network;
 			}
 		});
@@ -598,7 +603,11 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (networkId == null) {
 			return null;
 		}
-		return _napiNetworkDao.findByNetworkId(networkId).getNapiVlanId();
+		NetworkAPINetworkVO vo = _napiNetworkDao.findByNetworkId(networkId);
+		if (vo == null) {
+			return null;
+		}
+		return vo.getNapiVlanId();
 	}
 
 	/**
@@ -667,14 +676,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			}
 		}
 				
-	    final NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
-		Transaction.execute(new TransactionCallbackNoReturn() {
-			
-			@Override
-			public void doInTransactionWithoutResult(TransactionStatus status) {
-			    _napiEnvironmentDao.persist(napiEnvironmentVO);
-			}
-		});
+	    NetworkAPIEnvironmentVO napiEnvironmentVO = new NetworkAPIEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
+	    _napiEnvironmentDao.persist(napiEnvironmentVO);
 	    return napiEnvironmentVO;
 	}
 
