@@ -109,6 +109,15 @@ public class NetworkAPIGuru extends GuestNetworkGuru {
 		if (network == null) {
 			return null;
 		}
+
+		// FIXME While we have same issues with ACL API with net not in equipment, I create network
+		// in design method. In implement method nothing will do because network was already created.
+		try {
+			_networkAPIService.implementNetwork(network);
+		} catch (ConfigurationException e) {
+			throw new CloudRuntimeException("Unable to activate network " + network, e);
+		}
+
 		// we want implement method be called.
 		network.setState(Network.State.Allocated);
 		return network;
