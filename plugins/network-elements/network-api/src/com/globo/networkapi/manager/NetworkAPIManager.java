@@ -851,8 +851,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		try {
 			NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
 			if (napiNetworkVO != null) {
-				_napiNetworkDao.remove(napiNetworkVO.getId());
 				this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
+				_napiNetworkDao.remove(napiNetworkVO.getId());
 			}
 			
 		} catch (CloudstackNetworkAPIException e) {
