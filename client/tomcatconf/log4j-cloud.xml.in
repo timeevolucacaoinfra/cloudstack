@@ -68,7 +68,7 @@ under the License.
       <param name="Header" value="true"/>
       <param name="Facility" value="LOCAL2"/>
       <layout class="org.apache.log4j.EnhancedPatternLayout">
-         <param name="ConversionPattern" value="cloudstack2: %m [%c] (%t:%x)%n"/>
+         <param name="ConversionPattern" value="cloudstack: [%c] (%t:%x) %m%n"/>
       </layout>
    </appender>
 
