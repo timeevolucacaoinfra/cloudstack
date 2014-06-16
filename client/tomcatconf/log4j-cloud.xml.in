@@ -64,7 +64,7 @@ under the License.
    <!-- ============================== -->
 
    <appender name="SYSLOG" class="org.apache.log4j.net.SyslogAppender">
-      <param name="SyslogHost" value="localhost"/>
+      <param name="SyslogHost" value="localhost:5140"/>
       <param name="Header" value="true"/>
       <param name="Facility" value="LOCAL2"/>
       <layout class="org.apache.log4j.EnhancedPatternLayout">
