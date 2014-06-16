@@ -1,0 +1,8 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+UPDATE `cloud`.`configuration` SET `name` = 'networkapi.domain.suffix' WHERE `name` = 'dnsapi.global.domain.suffix';
+"""
+
+SQL_DOWN = u"""
+UPDATE `cloud`.`configuration` SET `name` = 'dnsapi.global.domain.suffix' WHERE `name` = 'networkapi.domain.suffix';
+"""
