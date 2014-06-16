@@ -52,6 +52,15 @@ under the License.
       </layout>
    </appender>
 
+   <appender name="SYSLOG" class="org.apache.log4j.net.SyslogAppender">
+      <param name="SyslogHost" value="localhost"/>
+      <param name="Header" value="true"/>
+      <param name="Facility" value="LOCAL2"/>
+      <layout class="org.apache.log4j.EnhancedPatternLayout">
+         <param name="ConversionPattern" value="cloudstack-usage: [%c] %m%n"/>
+      </layout>
+   </appender>
+
    <!-- ================ -->
    <!-- Limit categories -->
    <!-- ================ -->
@@ -79,6 +88,7 @@ under the License.
 
    <root>
       <level value="INFO"/>
+      <appender-ref ref="SYSLOG"/>
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="USAGE"/>
    </root>

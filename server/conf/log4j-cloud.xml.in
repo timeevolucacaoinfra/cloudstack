@@ -55,10 +55,11 @@ under the License.
    <!-- ============================== -->
 
    <appender name="SYSLOG" class="org.apache.log4j.net.SyslogAppender">
-      <param name="Header" value="true"/>
-      <param name="Facility" value="LOCAL2"/>
-      <layout class="com.globo.log4j.SyslogLayout">
-        <param name="tag" value="cloudstack-server" />
+      <param name="Threshold" value="WARN"/>
+      <param name="SyslogHost" value="localhost"/>
+      <param name="Facility" value="LOCAL6"/>
+      <layout class="org.apache.log4j.PatternLayout">
+         <param name="ConversionPattern" value="%-5p [%c{1.}] (%t:%x) %m%n"/>
       </layout>
    </appender>
 
@@ -113,7 +114,7 @@ under the License.
    <!-- ======================= -->
 
    <root>
-      <level value="DEBUG"/>
+      <level value="INFO"/>
       <appender-ref ref="SYSLOG"/>
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
