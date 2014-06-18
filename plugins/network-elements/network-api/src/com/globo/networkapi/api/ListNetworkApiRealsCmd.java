@@ -26,7 +26,7 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.response.NetworkResponse;
+import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
@@ -39,14 +39,13 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.response.NetworkAPIVipExternalResponse;
 import com.globo.networkapi.response.NetworkAPIVipResponse;
-import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
 import com.google.common.base.Joiner;
 
-@APICommand(name = "findNetworkApiVip", responseObject=NetworkAPIVipExternalResponse.class, description="Find NetworkAPI Vip")
-public class FindNetworkApiVipCmd extends BaseCmd {
+@APICommand(name = "listNetworkApiReals", responseObject=NetworkAPIVipExternalResponse.class, description="List NetworkAPI Reals")
+public class ListNetworkApiRealsCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(FindNetworkApiVipCmd.class);
-    private static final String s_name = "findnetworkapivipresponse";
+    public static final Logger s_logger = Logger.getLogger(ListNetworkApiRealsCmd.class);
+    private static final String s_name = "listnetworkapirealsresponse";
     
     @Inject
     NetworkAPIService _ntwkAPIService;
@@ -54,44 +53,32 @@ public class FindNetworkApiVipCmd extends BaseCmd {
     @Parameter(name=ApiConstants.VIP_ID, required = true, type=CommandType.LONG, entityType = NetworkAPIVipResponse.class, description="the vip id")
     private Long vipId;
     
-    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, description="the network id")
-    private Long networkId;
-    
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("listNetworkApiRealsCmd command with vipId=" + vipId);
-        	NetworkAPIVipResponse networkAPIVip = _ntwkAPIService.findNetworkAPIVip(this.vipId, this.networkId);
+        	List<NetworkAPIVipResponse.Real> networkAPIReals = _ntwkAPIService.listNetworkAPIReals(this.vipId);
     		
-			NetworkAPIVipExternalResponse vipResponse = new NetworkAPIVipExternalResponse();
-    		vipResponse.setId(networkAPIVip.getId());
-    		vipResponse.setName(networkAPIVip.getName());
-    		vipResponse.setIp(networkAPIVip.getIp());
-    		vipResponse.setNetwork(networkAPIVip.getNetwork());
-    		vipResponse.setNetworkid(networkAPIVip.getNetworkId());
-    		vipResponse.setCache(networkAPIVip.getCache());
-    		vipResponse.setMethod(networkAPIVip.getMethod());
-    		vipResponse.setPersistence(networkAPIVip.getPersistence());
-    		vipResponse.setHealthchecktype(networkAPIVip.getHealthcheckType());
-    		vipResponse.setHealthcheck(networkAPIVip.getHealthcheck());
-    		vipResponse.setMaxconn(networkAPIVip.getMaxConn());
-    		vipResponse.setPorts(networkAPIVip.getPorts());
-    		
-    		List<NetworkAPIVipExternalResponse.Real> realList = new ArrayList<NetworkAPIVipExternalResponse.Real>();
-    		for(Real real : networkAPIVip.getReals()) {
-    			NetworkAPIVipExternalResponse.Real realResponse = new NetworkAPIVipExternalResponse.Real();
-    			realResponse.setVmname(real.getVmName());
-    			realResponse.setIp(real.getIp());
-    			realResponse.setPorts(Joiner.on(", ").join(real.getPorts()));
-    			realResponse.setState(real.getState());
-    			realResponse.setNic(real.getNic());
-    			realList.add(realResponse);
-    		}
-    		vipResponse.setReals(realList);
-    		vipResponse.setResponseName(getCommandName());
-    		vipResponse.setObjectName("networkapivip");
-    		this.setResponseObject(vipResponse);
+        	List<NetworkAPIVipExternalResponse.Real> responseList = new ArrayList<NetworkAPIVipExternalResponse.Real>();
+        	
+        	for(NetworkAPIVipResponse.Real napiReal : networkAPIReals) {
+        		NetworkAPIVipExternalResponse.Real realResponse = new NetworkAPIVipExternalResponse.Real();
+    			realResponse.setVmname(napiReal.getVmName());
+    			realResponse.setIp(napiReal.getIp());
+        		realResponse.setNetwork(napiReal.getNetwork());
+    			realResponse.setPorts(Joiner.on(", ").join(napiReal.getPorts()));
+    			realResponse.setState(napiReal.getState());
+    			realResponse.setNic(napiReal.getNic());
+    			
+    			realResponse.setObjectName("networkapireal");
+    			responseList.add(realResponse);
+        	}
+        	
+        	ListResponse<NetworkAPIVipExternalResponse.Real> response = new ListResponse<NetworkAPIVipExternalResponse.Real>();
+        	response.setResponses(responseList);
+    		response.setResponseName(getCommandName());
+    		this.setResponseObject(response);
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {

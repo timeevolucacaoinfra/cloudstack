@@ -12,7 +12,7 @@
                 fields: {
                     name: { label: 'label.name' },
                     ip: { label: 'IP' },
-                    network: { label: 'label.network' },
+                    // network: { label: 'label.network' },
                 },
                 dataProvider: function(args) {
                     plugin.ui.apiCall('listNetworkApiVips', {
@@ -78,6 +78,7 @@
                                 fields: {
                                     vmname: { label: 'VM' },
                                     ip: { label: 'IP' },
+                                    network: { label: 'Network' },
                                     ports: { label: 'Ports' },
                                     // state: {
                                     //     label: 'label.state',
@@ -88,13 +89,12 @@
                                     // }
                                 },
                                 dataProvider: function(args) {
-                                    plugin.ui.apiCall('findNetworkApiVip', {
+                                    plugin.ui.apiCall('listNetworkApiReals', {
                                         data: {
                                             vipid: args.context.vips[0].id,
-                                            networkid: args.context.vips[0].networkid,
                                         },
                                         success: function(json) {
-                                            var reals = json.findnetworkapivipresponse.networkapivip.reals || [];
+                                            var reals = json.listnetworkapirealsresponse.networkapireal || [];
                                             args.response.success({ data: reals });
                                         },
                                         error: function(errorMessage) {
@@ -114,27 +114,29 @@
                                                         required: true
                                                     },
                                                     select: function(args) {
-                                                        $.ajax({
-                                                            url: createURL("listVirtualMachines&networkid=" + args.context.vips[0].networkid),
-                                                            dataType: "json",
-                                                            async: false,
-                                                            success: function(json) {
-                                                                var vms = json.listvirtualmachinesresponse.virtualmachine;
-                                                                var items = [];
-                                                                $(vms).each(function(indexvm, vm) {
-                                                                    $(vm.nic).each(function(indexnic,nic) {
-                                                                        if (nic.networkid === args.context.vips[0].networkid) {
-                                                                            items.push({
-                                                                                id: nic.id,
-                                                                                description: vm.name,
-                                                                            });
-                                                                        }
+                                                        var items = [];
+                                                        args.context.vips[0].networkids.forEach(function(networkid) {
+                                                            $.ajax({
+                                                                url: createURL("listVirtualMachines&networkid=" + networkid),
+                                                                dataType: "json",
+                                                                async: false,
+                                                                success: function(json) {
+                                                                    var vms = json.listvirtualmachinesresponse.virtualmachine;
+                                                                    $(vms).each(function(indexvm, vm) {
+                                                                        $(vm.nic).each(function(indexnic,nic) {
+                                                                            if (nic.networkid === networkid) {
+                                                                                items.push({
+                                                                                    id: nic.id,
+                                                                                    description: vm.name,
+                                                                                });
+                                                                            }
+                                                                        });
                                                                     });
-                                                                });
-                                                                args.response.success({
-                                                                    data: items
-                                                                });
-                                                            }
+                                                                }
+                                                            });
+                                                        });
+                                                        args.response.success({
+                                                            data: items
                                                         });
                                                     }
                                                 }

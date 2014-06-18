@@ -218,5 +218,5 @@ public interface NetworkAPIService {
 	 * @param networkId 
 	 * @return
 	 */
-	public NetworkAPIVipResponse findNetworkAPIVip(Long vipId, Long networkId);
+	public List<NetworkAPIVipResponse.Real> listNetworkAPIReals(Long vipId);
 }

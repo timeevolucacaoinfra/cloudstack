@@ -40,8 +40,6 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.networkapi.manager.NetworkAPIService;
 import com.globo.networkapi.response.NetworkAPIVipExternalResponse;
 import com.globo.networkapi.response.NetworkAPIVipResponse;
-import com.globo.networkapi.response.NetworkAPIVipResponse.Real;
-import com.google.common.base.Joiner;
 
 @APICommand(name = "listNetworkApiVips", responseObject=NetworkAPIVipExternalResponse.class, description="Lists NetworkAPI Vips")
 public class ListNetworkApiVipsCmd extends BaseCmd {
@@ -69,8 +67,6 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     			vipResponse.setId(networkAPIVip.getId());
     			vipResponse.setName(networkAPIVip.getName());
     			vipResponse.setIp(networkAPIVip.getIp());
-    			vipResponse.setNetwork(networkAPIVip.getNetwork());
-    			vipResponse.setNetworkid(networkAPIVip.getNetworkId());
     			vipResponse.setCache(networkAPIVip.getCache());
     			vipResponse.setMethod(networkAPIVip.getMethod());
     			vipResponse.setPersistence(networkAPIVip.getPersistence());
@@ -78,18 +74,7 @@ public class ListNetworkApiVipsCmd extends BaseCmd {
     			vipResponse.setHealthcheck(networkAPIVip.getHealthcheck());
     			vipResponse.setMaxconn(networkAPIVip.getMaxConn());
     			vipResponse.setPorts(networkAPIVip.getPorts());
-    			
-    			List<NetworkAPIVipExternalResponse.Real> realList = new ArrayList<NetworkAPIVipExternalResponse.Real>();
-    			for(Real real : networkAPIVip.getReals()) {
-    				NetworkAPIVipExternalResponse.Real realResponse = new NetworkAPIVipExternalResponse.Real();
-    				realResponse.setVmname(real.getVmName());
-    				realResponse.setIp(real.getIp());
-    				realResponse.setPorts(Joiner.on(", ").join(real.getPorts()));
-    				realResponse.setState(real.getState());
-    				realResponse.setNic(real.getNic());
-    				realList.add(realResponse);
-    			}
-    			vipResponse.setReals(realList);
+    			vipResponse.setNetworkids(networkAPIVip.getNetworkIds());
     			
     			vipResponse.setObjectName("networkapivip");
 				responseList.add(vipResponse);

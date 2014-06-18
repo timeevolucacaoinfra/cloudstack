@@ -29,9 +29,7 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 
 	private String ip;
 	
-	private String networkid;
-	
-	private String network;
+	private List<String> networkids;
 	
 	private String cache;
 	
@@ -73,20 +71,12 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 		this.ip = ip;
 	}
 
-	public String getNetworkid() {
-		return networkid;
+	public List<String> getNetworkids() {
+		return networkids;
 	}
 	
-	public void setNetworkid(String networkid) {
-		this.networkid = networkid;
-	}
-	
-	public String getNetwork() {
-		return network;
-	}
-
-	public void setNetwork(String network) {
-		this.network = network;
+	public void setNetworkids(List<String> networkids) {
+		this.networkids = networkids;
 	}
 
 	public String getCache() {
@@ -158,6 +148,8 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 		
 		private String ip;
 		
+		private String network;
+		
 		private String ports;
 		
 		private Boolean state;
@@ -178,6 +170,14 @@ public class NetworkAPIVipExternalResponse extends BaseResponse {
 
 		public void setIp(String ip) {
 			this.ip = ip;
+		}
+		
+		public String getNetwork() {
+			return network;
+		}
+
+		public void setNetwork(String network) {
+			this.network = network;
 		}
 
 		public String getPorts() {
