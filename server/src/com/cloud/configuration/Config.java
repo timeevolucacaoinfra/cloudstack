@@ -421,7 +421,10 @@ public enum Config {
 
 	UCSSyncBladeInterval("Advanced", ManagementServer.class, Integer.class, "ucs.sync.blade.interval", "3600", "the interval cloudstack sync with UCS manager for available blades in case user remove blades from chassis without notifying CloudStack", null),
 
-    ManagementServerVendor("Advanced", ManagementServer.class, String.class, "mgt.server.vendor", "ACS", "the vendor of management server", null);
+    ManagementServerVendor("Advanced", ManagementServer.class, String.class, "mgt.server.vendor", "ACS", "the vendor of management server", null),
+
+    // DNS API
+    DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null);
 
     private final String _category;
 	private final Class<?> _componentClass;

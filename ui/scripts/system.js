@@ -6051,7 +6051,212 @@
                                 }
                             }
                         }
-                    }
+                    },
+
+                    // DnsAPI provider detail view
+                    DnsAPI: {
+                        isMaximized: true,
+                        type: 'detailView',
+                        id: 'dnsAPIProvider',
+                        label: 'label.dnsAPI',
+                        tabs: {
+                            details: {
+                                title: 'label.details',
+                                fields: [{
+                                    name: {
+                                        label: 'label.name'
+                                    }
+                                }, {
+                                    state: {
+                                        label: 'label.state'
+                                    }
+                                }],
+                                dataProvider: function(args) {
+                                    refreshNspData("DnsAPI");
+                                    var providerObj;
+                                    $(nspHardcodingArray).each(function() {
+                                        if (this.id == "DnsAPI") {
+                                            providerObj = this;
+                                            return false; //break each loop
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: providerObj,
+                                        actionFilter: networkProviderActionFilter('DnsAPI')
+                                    });
+                                }
+                            },
+                        },
+                        actions: {
+                            add: {
+                                label: 'DNS API Configuration',
+                                createForm: {
+                                    title: 'DNS API Configuration',
+                                    preFilter: function(args) {},
+                                    fields: {
+                                        username: {
+                                            label: 'Username',
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        password: {
+                                            label: 'Password',
+                                            isPassword: true,
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        url: {
+                                            label: 'URL',
+                                            validation: {
+                                                required: true
+                                            }
+                                        }
+                                    }
+                                },
+                                action: function(args) {
+                                    if (nspMap["DnsAPI"] == null) {
+                                        $.ajax({
+                                            url: createURL("addNetworkServiceProvider&name=DnsAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                var jobId = json.addnetworkserviceproviderresponse.jobid;
+                                                var addDnsAPIProviderIntervalID = setInterval(function() {
+                                                    $.ajax({
+                                                        url: createURL("queryAsyncJobResult&jobId=" + jobId),
+                                                        dataType: "json",
+                                                        success: function(json) {
+                                                            var result = json.queryasyncjobresultresponse;
+                                                            if (result.jobstatus == 0) {
+                                                                return; //Job has not completed
+                                                            } else {
+                                                                clearInterval(addDnsAPIProviderIntervalID);
+                                                                if (result.jobstatus == 1) {
+                                                                    nspMap["DnsAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
+                                                                    addDnsApiHost(args, selectedPhysicalNetworkObj, "addDnsApiHost", "adddnsapihostresponse");
+                                                                } else if (result.jobstatus == 2) {
+                                                                    alert("addNetworkServiceProvider&name=DnsAPI failed. Error: " + _s(result.jobresult.errortext));
+                                                                }
+                                                            }
+                                                        },
+                                                        error: function(XMLHttpResponse) {
+                                                            var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                            alert("addNetworkServiceProvider&name=DnsAPI failed. Error: " + errorMsg);
+                                                        }
+                                                    });
+                                                }, g_queryAsyncJobResultInterval);
+                                            }
+                                        });
+                                    } else {
+                                        addDnsApiHost(args, selectedPhysicalNetworkObj, "addDnsApiHost", "adddnsapihostresponse");
+                                    }
+                                },
+                                messages: {
+                                    notification: function(args) {
+                                        return 'label.add.DnsAPI.device';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            enable: {
+                                label: 'label.enable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["DnsAPI"].id + "&state=Enabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.enable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.enable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            disable: {
+                                label: 'label.disable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["DnsAPI"].id + "&state=Disabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.disable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.disable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            destroy: {
+                                label: 'label.shutdown.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["DnsAPI"].id),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.deletenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid
+                                                }
+                                            });
+
+                                            $(window).trigger('cloudStack.fullRefresh');
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.shutdown.provider';
+                                    },
+                                    notification: function(args) {
+                                        return 'label.shutdown.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            }
+                        }
+                    },
+
                 }
             }
         },
@@ -17464,6 +17669,29 @@
         });
     }
 
+    function addDnsApiHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&username=" + todb(args.data.username));
+        array1.push("&password=" + todb(args.data.password));
+        array1.push("&url=" + todb(args.data.url));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                    }
+                });
+            }
+        });
+    }
+
+
     function addBigSwitchVnsDevice(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
         var array1 = [];
         array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
@@ -18156,6 +18384,9 @@
                             case "BigSwitchVns":
                                 nspMap["bigswitchVns"] = items[i];
                                 break;
+                            case "DnsAPI":
+                                nspMap["DnsAPI"] = items[i];
+                                break;    
                         }
                     }
                 }
@@ -18232,6 +18463,11 @@
                 id: 'pa',
                 name: 'Palo Alto',
                 state: nspMap.pa ? nspMap.pa.state : 'Disabled'
+            });
+            nspHardcodingArray.push({
+                id: 'DnsAPI',
+                name: 'DNS API',
+                state: nspMap.DnsAPI ? nspMap.DnsAPI.state : 'Disabled'
             });
         }
         

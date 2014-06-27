@@ -710,3 +710,7 @@ importLdapUsers=3
 
 #### juniper-contrail commands
 createServiceInstance=1
+
+### DNS API commands
+addDnsApiHost=1
+
