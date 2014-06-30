@@ -315,7 +315,12 @@
       <groupId>org.apache.cloudstack</groupId>
       <artifactId>cloud-plugin-network-dnsapi</artifactId>
       <version>${project.version}</version>
-    </dependency>        
+    </dependency>  
+    <dependency>
+      <groupId>net.kencochrane.raven</groupId>
+      <artifactId>raven</artifactId>
+      <version>4.0</version>
+    </dependency>      
   </dependencies>
   <build>
     <plugins>

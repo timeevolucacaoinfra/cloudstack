@@ -71,6 +71,14 @@ under the License.
          <param name="ConversionPattern" value="cloudstack: [%c] (%t:%x) %m%n"/>
       </layout>
    </appender>
+   
+   <appender name="SENTRY" class="net.kencochrane.raven.log4j.SentryAppender">
+      <param name="Threshold" value="ERROR"/>
+      <!-- LAB -->
+      <param name="Dsn" value="http://7e23ed87173f4f46a8fdab7bb44f6462:e66438423ba84c8496fdb4a5119e643a@ce.cyclops.dev.globoi.com/38" />
+      <!-- PROD -->
+      <!-- <param name="Dsn" value="http://ab9b1711c34b4b978ba5b00ce50cfad2:809550780ebd4759b38cd7d1e7a270e8@ce.cyclops.globoi.com/45" /> -->
+   </appender>
 
    <!-- ============================== -->
    <!-- Append alerts to the syslog if it is configured -->
@@ -204,6 +212,7 @@ under the License.
       <appender-ref ref="SYSLOG"/>
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
+      <appender-ref ref="SENTRY"/>
    </root>
 
 </log4j:configuration>
