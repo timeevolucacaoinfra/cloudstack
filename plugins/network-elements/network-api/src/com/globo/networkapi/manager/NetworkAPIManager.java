@@ -1099,8 +1099,16 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Network " + nic.getNetworkId() + " doesn't exists in cloudstack");
 		}
 		
+		String instanceNamePrefix = _configDao.getValue(Config.InstanceName.key());
+		String equipName = "";
+		if (instanceNamePrefix == null || instanceNamePrefix.equals("")) {
+			equipName = vm.getUuid();
+		} else {
+			equipName = instanceNamePrefix + "-" + vm.getUuid();
+		}
+		
 		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
-		cmd.setEquipName(vm.getUuid());
+		cmd.setEquipName(equipName);
 		cmd.setIp(nic.getIp4Address());
 		cmd.setVipId(vipId);
 		Answer answer = callCommand(cmd, network.getDataCenterId());
