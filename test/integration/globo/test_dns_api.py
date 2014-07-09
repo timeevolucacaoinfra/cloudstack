@@ -25,6 +25,9 @@ from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering
 from marvin.integration.lib.utils import cleanup_resources
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
+# import for DNS lookup
+import dns.resolver
+
 class Data(object):
     """Test data object that is required to create resources
     """
@@ -150,6 +153,9 @@ class TestVMDnsApi(cloudstackTestCase):
             self.network_offering
         ]
 
+        self.resolver = dns.resolver.Resolver()
+        self.resolver.nameservers = [''] # Set nameserver to resolve hostnames
+
     def test_deploy_vm_with_dnsapi(self):
         """Test Deploy Virtual Machine with DNS API
 
@@ -167,14 +173,6 @@ class TestVMDnsApi(cloudstackTestCase):
         cmd.networkofferingid = self.network_offering.id
         cmd.zoneid = self.zone.id
         self.network = self.apiclient.createNetwork(cmd)
-        # self.network = Network.create(
-        #    self.apiclient,
-        #    self.testdata["network"],
-        #    self.account.name,
-        #    self.account.domainid,
-        #    networkofferingid = self.network_offering.id,
-        #    zoneid = self.zone.id
-        #)
 
         list_networks = Network.list(self.apiclient, id=self.network.id)
 
@@ -209,6 +207,9 @@ class TestVMDnsApi(cloudstackTestCase):
             self.network.networkdomain,
             "Network domains do not match"
         )
+
+        # Throws exception if domain doesn't exist
+        self.resolver.query(network.networkdomain)
 
         self.virtual_machine = VirtualMachine.create(
             self.apiclient,
@@ -253,6 +254,11 @@ class TestVMDnsApi(cloudstackTestCase):
             vm.state,
             "Running",
             msg="VM is not in Running state"
+        )
+        self.assertEqual(
+            self.resolver.query(vm.name + '.' + network.networkdomain)[0].address,
+            vm.nic[0].ipaddress,
+            "Resolved IP address and VM IP address do not match"
         )
 
     def tearDown(self):
