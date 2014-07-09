@@ -70,12 +70,17 @@ class Data(object):
                 "displaytext": "DnsAPINetwork",
                 "networkdomain": "integrationtest.globo.com"
             },
+            "dnsapi_provider": {
+                "url": "http://globodns.dev.globoi.com",
+                "username": "admin@globoi.com",
+                "password": "password"
+            },
             "ostype": 'CentOS 5.6 (64-bit)',
         }
 
 
-class TestDeployVM(cloudstackTestCase):
-    """Test deploy a VM into a user account
+class TestVMDnsApi(cloudstackTestCase):
+    """Test deploy a VM using DNS API
     """
 
     def setUp(self):
@@ -106,20 +111,30 @@ class TestDeployVM(cloudstackTestCase):
         )
 
         # set up DNS API Provider
-        self.dnsapi_provider = NetworkServiceProvider.add(
+        nw_service_providers = NetworkServiceProvider.list(
             self.apiclient,
             'DnsAPI',
-            self.physical_network[0].id,
-            None
+            self.physical_network[0].id
         )
+        if isinstance(nw_service_providers, list):
+            self.dnsapi_provider = nw_service_providers[0]
+        else:
+            self.dnsapi_provider = NetworkServiceProvider.add(
+                self.apiclient,
+                'DnsAPI',
+                self.physical_network[0].id,
+                None
+            )
 
         cmd = addDnsApiHost.addDnsApiHostCmd()
-        cmd.username = 'admin@globoi.com'
-        cmd.password = 'password'
-        cmd.url = 'http://globodns.dev.globoi.com'
+        cmd.username = self.testdata["dnsapi_provider"]["username"]
+        cmd.password = self.testdata["dnsapi_provider"]["password"]
+        cmd.url = self.testdata["dnsapi_provider"]["url"]
         cmd.physicalnetworkid = self.physical_network[0].id
         self.apiclient.addDnsApiHost(cmd)
-        self.dnsapi_provider.update(self.apiclient, self.dnsapi_provider.id, state='Enabled')
+
+        if self.dnsapi_provider.state != 'Enabled':
+            self.dnsapi_provider.update(self.apiclient, self.dnsapi_provider.id, state='Enabled')
 
         self.network_offering = NetworkOffering.create(
             self.apiclient,
@@ -127,15 +142,7 @@ class TestDeployVM(cloudstackTestCase):
         )
         # Enable Net Offering
         self.network_offering.update(self.apiclient, state='Enabled')
-        # create a network
-        self.network = Network.create(
-            self.apiclient,
-            self.testdata["network"],
-            self.account.name,
-            self.account.domainid,
-            networkofferingid = self.network_offering.id,
-            zoneid = self.zone.id
-        )
+
         #build cleanup list
         self.cleanup = [
             self.service_offering,
@@ -150,6 +157,50 @@ class TestDeployVM(cloudstackTestCase):
         # 1. Network domain is correctly filled
         # 2. VM is accessible through its DNS entry
         """
+        # create a network
+        self.network = Network.create(
+            self.apiclient,
+            self.testdata["network"],
+            self.account.name,
+            self.account.domainid,
+            networkofferingid = self.network_offering.id,
+            zoneid = self.zone.id
+        )
+
+        list_networks = Network.list(self.apiclient, id=self.network.id)
+
+        self.debug(
+            "Verify listNetworks response for network: %s" % self.network.id
+        )
+
+        self.assertEqual(
+            isinstance(list_networks, list),
+            True,
+            "List networks response was not a valid list"
+        )
+        self.assertNotEqual(
+            len(list_networks),
+            0,
+            "List networks response was empty"
+        )
+
+        network = list_networks[0]
+        self.assertEqual(
+            network.id,
+            self.network.id,
+            "Network ids do not match"
+        )
+        self.assertEqual(
+            network.name,
+            self.network.name,
+            "Network names do not match"
+        )
+        self.assertEqual(
+            network.network_domain,
+            self.network.network_domain,
+            "Network domains do not match"
+        )
+
         self.virtual_machine = VirtualMachine.create(
             self.apiclient,
             self.testdata["virtual_machine"],
