@@ -31,7 +31,7 @@ from marvin.integration.lib.utils import cleanup_resources
 #common - commonly used methods for all tests are listed here
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
-from nose.plugins.attrib import attr
+# from nose.plugins.attrib import attr
 
 
 class TestData(object):
@@ -74,9 +74,10 @@ class TestDeployVM(cloudstackTestCase):
     """Test deploy a VM into a user account
     """
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(self):
         self.testdata = TestData().testdata
-        self.apiclient = self.testClient.getApiClient()
+        self.apiclient = super(TestDeployVM, self).getClsTestClient().getApiClient()
 
         # Get Zone, Domain and Default Built-in template
         self.domain = get_domain(self.apiclient, self.testdata)
@@ -101,8 +102,8 @@ class TestDeployVM(cloudstackTestCase):
             self.testdata["network"],
             self.account.name,
             self.account.domainid,
-            networkofferingid = '66f5e68e-8815-4e24-a85d-bb3677cb6f6e',
-            zoneid = self.zone.id
+            networkofferingid='66f5e68e-8815-4e24-a85d-bb3677cb6f6e',
+            zoneid=self.zone.id
         )
         #build cleanup list
         self.cleanup = [
@@ -163,6 +164,7 @@ class TestDeployVM(cloudstackTestCase):
             msg="VM is not in Running state"
         )
 
+    @classmethod
     def tearDown(self):
         try:
             cleanup_resources(self.apiclient, self.cleanup)
