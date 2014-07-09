@@ -18,7 +18,7 @@
 
 #All tests inherit from cloudstackTestCase
 from marvin.cloudstackTestCase import cloudstackTestCase
-from marvin.cloudstackAPI import addDnsApiHost
+from marvin.cloudstackAPI import addDnsApiHost, createNetwork
 
 #Import Integration Libraries
 from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering, Network, NetworkOffering, NetworkServiceProvider, PhysicalNetwork
@@ -158,14 +158,23 @@ class TestVMDnsApi(cloudstackTestCase):
         # 2. VM is accessible through its DNS entry
         """
         # create a network
-        self.network = Network.create(
-            self.apiclient,
-            self.testdata["network"],
-            self.account.name,
-            self.account.domainid,
-            networkofferingid = self.network_offering.id,
-            zoneid = self.zone.id
-        )
+        cmd = createNetwork.createNetworkCmd()
+        cmd.name = self.testdata["network"]["name"]
+        cmd.displaytext = self.testdata["network"]["displaytext"]
+        cmd.networkdomain = self.testdata["network"]["networkdomain"]
+        cmd.account = self.account.name
+        cmd.domainid = self.account.domainid
+        cmd.networkofferingid = self.network_offering.id
+        cmd.zoneid = self.zone.id
+        self.apiclient.createNetwork(cmd)
+        # self.network = Network.create(
+        #    self.apiclient,
+        #    self.testdata["network"],
+        #    self.account.name,
+        #    self.account.domainid,
+        #    networkofferingid = self.network_offering.id,
+        #    zoneid = self.zone.id
+        #)
 
         list_networks = Network.list(self.apiclient, id=self.network.id)
 
