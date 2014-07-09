@@ -71,8 +71,8 @@ class Data(object):
                 "networkdomain": "integrationtest.globo.com"
             },
             "dnsapi_provider": {
-                "url": "http://globodns.dev.globoi.com",
-                "username": "admin@globoi.com",
+                "url": "http://dns-api.evo.globoi.com",
+                "username": "admin@example.com",
                 "password": "password"
             },
             "ostype": 'CentOS 5.6 (64-bit)',
@@ -113,8 +113,8 @@ class TestVMDnsApi(cloudstackTestCase):
         # set up DNS API Provider
         nw_service_providers = NetworkServiceProvider.list(
             self.apiclient,
-            'DnsAPI',
-            self.physical_network[0].id
+            name='DnsAPI',
+            physicalnetworkid=self.physical_network[0].id
         )
         if isinstance(nw_service_providers, list):
             self.dnsapi_provider = nw_service_providers[0]
@@ -196,8 +196,8 @@ class TestVMDnsApi(cloudstackTestCase):
             "Network names do not match"
         )
         self.assertEqual(
-            network.network_domain,
-            self.network.network_domain,
+            network.networkdomain,
+            self.network.networkdomain,
             "Network domains do not match"
         )
 
