@@ -166,7 +166,7 @@ class TestVMDnsApi(cloudstackTestCase):
         cmd.domainid = self.account.domainid
         cmd.networkofferingid = self.network_offering.id
         cmd.zoneid = self.zone.id
-        self.apiclient.createNetwork(cmd)
+        self.network = self.apiclient.createNetwork(cmd)
         # self.network = Network.create(
         #    self.apiclient,
         #    self.testdata["network"],
