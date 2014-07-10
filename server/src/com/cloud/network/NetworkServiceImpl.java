@@ -41,7 +41,6 @@ import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
-
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.api.command.admin.network.DedicateGuestVlanRangeCmd;
@@ -55,6 +54,8 @@ import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.network.element.InternalLoadBalancerElementService;
+import org.apache.cloudstack.region.PortableIpDao;
+import org.apache.cloudstack.region.PortableIpVO;
 
 import com.cloud.api.ApiDBUtils;
 import com.cloud.configuration.Config;
@@ -200,6 +201,8 @@ public class NetworkServiceImpl extends ManagerBase implements NetworkService {
     // MAX_VXLAN_VNI should be 16777215L (2^24-1), but Linux vxlan interface doesn't accept VNI:2^24-1 now.
     // It seems a bug.
 
+    @Inject
+    PortableIpDao _portableIpDao;
     @Inject
     DataCenterDao _dcDao = null;
     @Inject
@@ -577,6 +580,22 @@ public class NetworkServiceImpl extends ManagerBase implements NetworkService {
                         if (s_logger.isDebugEnabled()) {
                             s_logger.debug("Associate IP address called by the user " + callerUserId + " account " + ipOwner.getId());
                         }
+                        
+                        // Se esta tudo válido, posso inserir um IP Portable conforme código abaixo, já alocado da networkapi. Se possivel,
+                        //usando tratamento de eventos e também envolvendo uma transação
+                        if ("NetworkAPIGuru".equals(network.getGuruName())) {
+                        	Long portable_ip_range_id = 1l;
+                        	List<PortableIpVO> totalIps = _portableIpDao.listByRangeId(portable_ip_range_id);
+                            PortableIpVO portableIP = new PortableIpVO(
+                            		regionId,
+                            		portable_ip_range_id,
+                            		"100",
+                            		"10.170.1.1",
+                            		"255.255.255.0",
+                            		NetUtils.long2Ip(178913556l + totalIps.size())); // 178913556 = 10.170.1.20
+                            _portableIpDao.persist(portableIP);
+                        }
+                        
                         return _ipAddrMgr.allocatePortableIp(ipOwner, caller, zoneId, networkId, null);
                     } else {
                         throw new InvalidParameterValueException("Associate IP address can only be called on the shared networks in the advanced zone"

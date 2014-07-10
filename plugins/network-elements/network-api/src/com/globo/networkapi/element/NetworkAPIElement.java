@@ -17,6 +17,7 @@ package com.globo.networkapi.element;
 //specific language governing permissions and limitations
 //under the License.
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +59,9 @@ import com.cloud.network.element.IpDeployer;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRule.LbDestination;
+import com.cloud.network.lb.LoadBalancingRule.LbStickinessPolicy;
+import com.cloud.network.rules.FirewallRule;
 import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
 import com.cloud.network.rules.LoadBalancerContainer;
@@ -282,14 +286,17 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 //        }
 		s_logger.debug("Called applyLBRules config " + config + " rules " + rules);
         s_logger.debug("**** Configuring LB in networkapi");
-//        return applyLoadBalancerRules(config, rules);
-        return false;
+        for (LoadBalancingRule lbrules : rules) {
+            this.printlbrules(lbrules);
+        }
+        return true;
     }
 
 	@Override
 	public boolean validateLBRule(Network network, LoadBalancingRule rule) {
 		s_logger.debug("Called validateLBRule Network " + network + " rule " + rule);
         s_logger.debug("**** Validating LB in networkapi (???)");
+        this.printlbrules(rule);
 		return true;
 	}
 
@@ -297,7 +304,33 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
 	public List<LoadBalancerTO> updateHealthChecks(Network network,
 			List<LoadBalancingRule> lbrules) {
 		s_logger.debug("Called updateHealthChecks Network " + network + " lbrules " + lbrules);
-		return null;
+		List<LoadBalancerTO> lbto = new ArrayList<LoadBalancerTO>();
+		for (LoadBalancingRule rule : lbrules) {
+			this.printlbrules(rule);
+			boolean revoked = (rule.getState().equals(FirewallRule.State.Revoke));
+            String protocol = rule.getProtocol();
+            String algorithm = rule.getAlgorithm();
+            String uuid = rule.getUuid();
+
+            String srcIp = rule.getSourceIp().addr();
+            int srcPort = rule.getSourcePortStart();
+            List<LbDestination> destinations = rule.getDestinations();
+            List<LbStickinessPolicy> stickinessPolicies = rule.getStickinessPolicies();
+            LoadBalancerTO lb = new LoadBalancerTO(uuid, srcIp, srcPort, protocol, algorithm, revoked, false, false /* inline */, destinations, stickinessPolicies);
+            lbto.add(lb);
+		}
+		return lbto;
+	}
+	
+	private void printlbrules(LoadBalancingRule lbrules) {
+		s_logger.debug("load balancer name=" + lbrules.getName() + " algorithm=" + lbrules.getAlgorithm() + " protocol=" +
+				lbrules.getProtocol() + " lbprotocol=" + lbrules.getLbProtocol() + " scheme=" + lbrules.getScheme().name() +
+				" state="+lbrules.getState().name() + " networkid=" + lbrules.getNetworkId()
+				);
+		for (LbDestination lbd : lbrules.getDestinations()) {
+			s_logger.debug("\treal com ip " + lbd.getIpAddress() + ":[" + lbd.getDestinationPortStart() + "," + lbd.getDestinationPortEnd() + "] de " +
+					lbrules.getSourceIp().addr() + "[" + lbrules.getSourcePortStart() + ", " + lbrules.getSourcePortEnd() + "]");
+		}
 	}
 
 	@Override
@@ -307,6 +340,12 @@ public class NetworkAPIElement extends ExternalLoadBalancerDeviceManagerImpl imp
         // return true, as IP will be associated as part of LB rule configuration
 		s_logger.debug("Called applyIps Network " + network + " ipAddress " + ipAddress + " services " + services);
         s_logger.debug("**** Adicionando reals in networkapi");
+        for (PublicIpAddress ip: ipAddress) {
+        	s_logger.debug("\tip=" + ip.getAddress());
+        }
+        for (Service s: services) {
+        	s_logger.debug("\tservice=" + s.getName() + " - " + Arrays.toString(s.getCapabilities()));
+        }
         return true;
 	}
 
