@@ -27,6 +27,24 @@ from marvin.integration.lib.common import get_zone, get_domain, get_template
 
 # import for DNS lookup
 import dns.resolver
+import os
+
+# import httplib, urllib
+# 
+# params = urllib.urlencode({'auth_token': '9VMsH6yUrgjzT9qVC3Nh', 'now': True})
+# 
+# headers = {"Content-type": "application/json", "Accept": "application/json"}
+# 
+# dnsapi_host = 'dns-api.evo.globoi.com'
+# export_dnsapi_path = '/bind9/export'
+# 
+# conn = httplib.HTTPConnection(dnsapi_host, timeout=10)
+# conn.request("POST", export_dnsapi_path, params, headers)
+# response = conn.getresponse()
+# print response.status
+# conn.close()
+
+# curl -s -H 'Content-type: application/json' -H 'Accept: application/json' -X POST -d '{"auth_token": "9VMsH6yUrgjzT9qVC3Nh", "now":"true"}' http://dns-api.evo.globoi.com/bind9/export -o /dev/null
 
 class Data(object):
     """Test data object that is required to create resources
@@ -154,7 +172,7 @@ class TestVMDnsApi(cloudstackTestCase):
         ]
 
         self.resolver = dns.resolver.Resolver()
-        self.resolver.nameservers = [''] # Set nameserver to resolve hostnames
+        self.resolver.nameservers = ['10.2.162.13'] # Set nameserver to resolve hostnames
 
     def test_deploy_vm_with_dnsapi(self):
         """Test Deploy Virtual Machine with DNS API
@@ -209,7 +227,7 @@ class TestVMDnsApi(cloudstackTestCase):
         )
 
         # Throws exception if domain doesn't exist
-        self.resolver.query(network.networkdomain)
+        # self.resolver.query(network.networkdomain)
 
         self.virtual_machine = VirtualMachine.create(
             self.apiclient,
@@ -223,6 +241,13 @@ class TestVMDnsApi(cloudstackTestCase):
         )
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
+        # force export in dns-api
+        os.system("curl -s -H 'Content-type: application/json' -H 'Accept: application/json' -X POST -d '{\"auth_token\": \"9VMsH6yUrgjzT9qVC3Nh\", \"now\":\"true\"}' http://dns-api.evo.globoi.com/bind9/export -o /dev/null")
+        # conn = httplib.HTTPConnection(dnsapi_host, timeout=10)
+        # conn.request("POST", export_dnsapi_path, params, headers)
+        # response = conn.getresponse()
+        # self.debug("@@@@@@@@@@ Respose status:%s" % response.status)
+        # conn.close()
 
         self.debug(
             "Verify listVirtualMachines response for virtual machine: %s" % self.virtual_machine.id
@@ -255,6 +280,11 @@ class TestVMDnsApi(cloudstackTestCase):
             "Running",
             msg="VM is not in Running state"
         )
+
+        self.debug(
+            "@@@@@@@@@@@@@@ checando dns %s" % vm.name + '.' + network.networkdomain
+        )
+
         self.assertEqual(
             self.resolver.query(vm.name + '.' + network.networkdomain)[0].address,
             vm.nic[0].ipaddress,
