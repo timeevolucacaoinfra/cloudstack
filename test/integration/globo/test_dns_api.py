@@ -16,6 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# import for DNS lookup
+import dns.resolver
+import requests
+import json
+
 #All tests inherit from cloudstackTestCase
 from marvin.cloudstackTestCase import cloudstackTestCase
 from marvin.cloudstackAPI import addDnsApiHost, createNetwork
@@ -25,26 +30,13 @@ from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering
 from marvin.integration.lib.utils import cleanup_resources
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
-# import for DNS lookup
-import dns.resolver
-import os
 
-# import httplib, urllib
-# 
-# params = urllib.urlencode({'auth_token': '9VMsH6yUrgjzT9qVC3Nh', 'now': True})
-# 
-# headers = {"Content-type": "application/json", "Accept": "application/json"}
-# 
-# dnsapi_host = 'dns-api.evo.globoi.com'
-# export_dnsapi_path = '/bind9/export'
-# 
-# conn = httplib.HTTPConnection(dnsapi_host, timeout=10)
-# conn.request("POST", export_dnsapi_path, params, headers)
-# response = conn.getresponse()
-# print response.status
-# conn.close()
+# dnsapi
+dnsapi_host = 'http://dns-api.evo.globoi.com'
+dnsapi_export_path = '/bind9/export'
+dnsapi_payload = {'auth_token': '9VMsH6yUrgjzT9qVC3Nh', 'now': 'true'}
+dnsapi_headers = {"Content-type": "application/json", "Accept": "application/json"}
 
-# curl -s -H 'Content-type: application/json' -H 'Accept: application/json' -X POST -d '{"auth_token": "9VMsH6yUrgjzT9qVC3Nh", "now":"true"}' http://dns-api.evo.globoi.com/bind9/export -o /dev/null
 
 class Data(object):
     """Test data object that is required to create resources
@@ -172,7 +164,7 @@ class TestVMDnsApi(cloudstackTestCase):
         ]
 
         self.resolver = dns.resolver.Resolver()
-        self.resolver.nameservers = ['10.2.162.13'] # Set nameserver to resolve hostnames
+        self.resolver.nameservers = ['10.2.162.13']  # Set nameserver to resolve hostnames
 
     def test_deploy_vm_with_dnsapi(self):
         """Test Deploy Virtual Machine with DNS API
@@ -241,13 +233,8 @@ class TestVMDnsApi(cloudstackTestCase):
         )
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
-        # force export in dns-api
-        os.system("curl -s -H 'Content-type: application/json' -H 'Accept: application/json' -X POST -d '{\"auth_token\": \"9VMsH6yUrgjzT9qVC3Nh\", \"now\":\"true\"}' http://dns-api.evo.globoi.com/bind9/export -o /dev/null")
-        # conn = httplib.HTTPConnection(dnsapi_host, timeout=10)
-        # conn.request("POST", export_dnsapi_path, params, headers)
-        # response = conn.getresponse()
-        # self.debug("@@@@@@@@@@ Respose status:%s" % response.status)
-        # conn.close()
+        # force export & reload bind in dns-api
+        requests.post(dnsapi_host + dnsapi_export_path, data=json.dumps(dnsapi_payload), headers=dnsapi_headers)
 
         self.debug(
             "Verify listVirtualMachines response for virtual machine: %s" % self.virtual_machine.id
@@ -279,10 +266,6 @@ class TestVMDnsApi(cloudstackTestCase):
             vm.state,
             "Running",
             msg="VM is not in Running state"
-        )
-
-        self.debug(
-            "@@@@@@@@@@@@@@ checando dns %s" % vm.name + '.' + network.networkdomain
         )
 
         self.assertEqual(
