@@ -20,6 +20,7 @@
 import dns.resolver
 import requests
 import json
+from ConfigParser import SafeConfigParser
 
 #All tests inherit from cloudstackTestCase
 from marvin.cloudstackTestCase import cloudstackTestCase
@@ -31,11 +32,15 @@ from marvin.integration.lib.utils import cleanup_resources
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
 
-# dnsapi
-dnsapi_host = 'http://dns-api.evo.globoi.com'
-dnsapi_export_path = '/bind9/export'
-dnsapi_payload = {'auth_token': '9VMsH6yUrgjzT9qVC3Nh', 'now': 'true'}
-dnsapi_headers = {"Content-type": "application/json", "Accept": "application/json"}
+# load config file
+parser = SafeConfigParser()
+parser.read('./cfg/endpoints.cfg')
+
+# get dnsapi endpoint
+dnsapi_host = parser.get('dns-api', 'host')
+dnsapi_export_path = parser.get('dns-api', 'export_location')
+dnsapi_payload = parser.get('dns-api', 'payload')
+dnsapi_headers = json.loads(parser.get('dns-api', 'header'))
 
 
 class Data(object):
@@ -84,7 +89,7 @@ class Data(object):
                 "networkdomain": "integrationtest.globo.com"
             },
             "dnsapi_provider": {
-                "url": "http://dns-api.evo.globoi.com",
+                "url": dnsapi_host,
                 "username": "admin@example.com",
                 "password": "password"
             },
@@ -234,7 +239,7 @@ class TestVMDnsApi(cloudstackTestCase):
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
         # force export & reload bind in dns-api
-        requests.post(dnsapi_host + dnsapi_export_path, data=json.dumps(dnsapi_payload), headers=dnsapi_headers)
+        requests.post(dnsapi_host + dnsapi_export_path, data=dnsapi_payload, headers=dnsapi_headers)
 
         self.debug(
             "Verify listVirtualMachines response for virtual machine: %s" % self.virtual_machine.id
