@@ -254,7 +254,7 @@ public class NetworkAPIResource extends ManagerBase implements ServerResource {
 			String netmask = network.getMaskOct1() + "." + network.getMaskOct2() + "." + network.getMaskOct3() + "." + network.getMaskOct4();
 			long cidrSize = NetUtils.getCidrSize(netmask);
 			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
-			if (!(ipLong > NetUtils.ip2Long(ipRange[0]) && ipLong < NetUtils.ip2Long(ipRange[1]))) {
+			if (!(ipLong >= NetUtils.ip2Long(ipRange[0]) && ipLong <= NetUtils.ip2Long(ipRange[1]))) {
 				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
 			}
 			return new Answer(cmd);

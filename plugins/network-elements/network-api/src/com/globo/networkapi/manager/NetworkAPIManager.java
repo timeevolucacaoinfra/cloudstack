@@ -1000,7 +1000,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		RegisterEquipmentAndIpInNetworkAPICommand cmd = new RegisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setNicDescription("");
-		cmd.setVmName(vm.getUuid());
+		cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
 		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
 		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
 		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
@@ -1011,6 +1011,17 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
 		}
+	}
+	
+	private String getEquipNameFromUuid(String uuid) {
+		String instanceNamePrefix = _configDao.getValue(Config.InstanceName.key());
+		String equipName = "";
+		if (instanceNamePrefix == null || instanceNamePrefix.equals("")) {
+			equipName = uuid;
+		} else {
+			equipName = instanceNamePrefix + "-" + uuid;
+		}
+		return equipName;
 	}
 
 	@Override
@@ -1028,7 +1039,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		
 		UnregisterEquipmentAndIpInNetworkAPICommand cmd = new UnregisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
-		cmd.setVmName(vm.getUuid());
+		cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
 
 		NetworkAPINetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
 		if (napiNetworkVO != null) {
@@ -1099,16 +1110,8 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new InvalidParameterValueException("Network " + nic.getNetworkId() + " doesn't exists in cloudstack");
 		}
 		
-		String instanceNamePrefix = _configDao.getValue(Config.InstanceName.key());
-		String equipName = "";
-		if (instanceNamePrefix == null || instanceNamePrefix.equals("")) {
-			equipName = vm.getUuid();
-		} else {
-			equipName = instanceNamePrefix + "-" + vm.getUuid();
-		}
-		
 		AddAndEnableRealInNetworkAPICommand cmd = new AddAndEnableRealInNetworkAPICommand();
-		cmd.setEquipName(equipName);
+		cmd.setEquipName(getEquipNameFromUuid(vm.getUuid()));
 		cmd.setIp(nic.getIp4Address());
 		cmd.setVipId(vipId);
 		Answer answer = callCommand(cmd, network.getDataCenterId());
@@ -1125,7 +1128,7 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 		if (vm == null) {
 			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
 		}
-		cmd.setEquipName(vm.getUuid());
+		cmd.setEquipName(getEquipNameFromUuid(vm.getUuid()));
 		cmd.setIp(nic.getIp4Address());
 		cmd.setVipId(vipId);
 		Network network = _ntwkDao.findById(nic.getNetworkId());
