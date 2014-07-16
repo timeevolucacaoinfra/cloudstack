@@ -997,10 +997,18 @@ public class NetworkAPIManager implements NetworkAPIService, PluggableService {
 			throw new CloudRuntimeException(msg + " Invalid equipment model for VM of type " + vm.getType() + ". Check your Network API global options.");
 		}
 		
+		String instanceNamePrefix = _configDao.getValue(Config.InstanceName.key());
+		String equipName = "";
+		if (instanceNamePrefix == null || instanceNamePrefix.equals("")) {
+			equipName = vm.getUuid();
+		} else {
+			equipName = instanceNamePrefix + "-" + vm.getUuid();
+		}
+		
 		RegisterEquipmentAndIpInNetworkAPICommand cmd = new RegisterEquipmentAndIpInNetworkAPICommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setNicDescription("");
-		cmd.setVmName(vm.getUuid());
+		cmd.setVmName(equipName);
 		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
 		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
 		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
