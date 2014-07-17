@@ -454,7 +454,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
         return true;
     }
     
-	private Answer callCommand(Command cmd, Long zoneId) {
+	protected Answer callCommand(Command cmd, Long zoneId) {
 		
 		HostVO dnsApiHost = getDnsAPIHost(zoneId);
 		if (dnsApiHost == null) {

@@ -67,39 +67,43 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 	@Override
 	public boolean configure(String name, Map<String, Object> params)
 			throws ConfigurationException {
+		
+		if (params.containsKey("dnsapiclient")) {
+			// This is used to allow mocking on testing
+			_dnsapi = (DNSAPI) params.get("dnsapiclient");
+		} else {
+			_zoneId = (String) params.get("zoneId");
+			if (_zoneId == null) {
+				throw new ConfigurationException("Unable to find zone");
+			}
+			
+			_guid = (String) params.get("guid");
+			if (_guid == null) {
+				throw new ConfigurationException("Unable to find guid");
+			}
+			
+			_name = (String) params.get("name");
+			if (_name == null) {
+				throw new ConfigurationException("Unable to find name");
+			}
 	
-		_zoneId = (String) params.get("zoneId");
-		if (_zoneId == null) {
-			throw new ConfigurationException("Unable to find zone");
-		}
-		
-		_guid = (String) params.get("guid");
-		if (_guid == null) {
-			throw new ConfigurationException("Unable to find guid");
-		}
-		
-		_name = (String) params.get("name");
-		if (_name == null) {
-			throw new ConfigurationException("Unable to find name");
-		}
-
-		_url = (String) params.get("url");
-		if (_url == null) {
-			throw new ConfigurationException("Unable to find url");
-		}
-		
-		_username = (String) params.get("username");
-		if (_username == null) {
-			throw new ConfigurationException("Unable to find username");
-		}
-
-		_password = (String) params.get("password");
-		if (_password == null) {
-			throw new ConfigurationException("Unable to find password");
-		}
-
-		_dnsapi = DNSAPI.buildHttpApi(_url, _username, _password);
-
+			_url = (String) params.get("url");
+			if (_url == null) {
+				throw new ConfigurationException("Unable to find url");
+			}
+			
+			_username = (String) params.get("username");
+			if (_username == null) {
+				throw new ConfigurationException("Unable to find username");
+			}
+	
+			_password = (String) params.get("password");
+			if (_password == null) {
+				throw new ConfigurationException("Unable to find password");
+			}
+	
+			_dnsapi = DNSAPI.buildHttpApi(_url, _username, _password);
+		}	
 		return true;
 	}
 
