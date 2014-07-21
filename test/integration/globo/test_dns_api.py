@@ -41,6 +41,7 @@ dnsapi_host = parser.get('dns-api', 'host')
 dnsapi_export_path = parser.get('dns-api', 'export_location')
 dnsapi_payload = parser.get('dns-api', 'payload')
 dnsapi_headers = json.loads(parser.get('dns-api', 'header'))
+resolver_nameserver = parser.get('dns-api', 'resolver')
 
 
 class Data(object):
@@ -168,7 +169,7 @@ class TestVMDnsApi(cloudstackTestCase):
         ]
 
         self.resolver = dns.resolver.Resolver()
-        self.resolver.nameservers = ['10.2.162.13']  # Set nameserver to resolve hostnames
+        self.resolver.nameservers = [resolver_nameserver]  # Set nameserver to resolve hostnames
 
     def test_deploy_vm_with_dnsapi(self):
         """Test Deploy Virtual Machine with DNS API
