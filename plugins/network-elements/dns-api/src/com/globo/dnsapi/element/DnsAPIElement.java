@@ -27,6 +27,8 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -35,7 +37,6 @@ import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.StartupCommand;
-import com.cloud.configuration.Config;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
@@ -54,7 +55,6 @@ import com.cloud.network.Network.Service;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
 import com.cloud.network.dao.NetworkDao;
-import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.offering.NetworkOffering;
@@ -106,11 +106,13 @@ import com.globo.dnsapi.response.DnsAPIRecordResponse;
 
 @Component
 @Local(NetworkElement.class)
-public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, NetworkElement, DnsAPIElementService {
+public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, NetworkElement, DnsAPIElementService, Configurable {
 
 	private static final Logger s_logger = Logger.getLogger(DnsAPIElement.class);
 	
 	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
+	
+	private static final ConfigKey<Long> GloboDNSTemplateId = new ConfigKey<Long>("Advanced", Long.class, "globodns.domain.templateid", "1", "Template id to be used when creating domains in GloboDNS", true, ConfigKey.Scope.Global);
 	
 	private static final String AUTHORITY_TYPE = "M";
 	
@@ -559,7 +561,7 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 	}
 	
 	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
-		Long templateId = Long.valueOf(_configDao.getValue(Config.DNSAPITemplateId.key()));
+		Long templateId = GloboDNSTemplateId.value();
 		if (templateId == null) {
 			throw new CloudRuntimeException("TemplateId for domain is not set up in the global configs");
 		}
@@ -717,6 +719,16 @@ public class DnsAPIElement extends AdapterBase implements ResourceStateAdapter, 
 			// fail on export never rollback transaction
 			s_logger.warn("Error schedule DNSAPI to export. Hosts will delay to appear in DNS", e);
 		}
+	}
+
+	@Override
+	public String getConfigComponentName() {
+		return DnsAPIElement.class.getSimpleName();
+	}
+
+	@Override
+	public ConfigKey<?>[] getConfigKeys() {
+		return new ConfigKey<?>[] {GloboDNSTemplateId};
 	}
 
 }
