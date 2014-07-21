@@ -1133,4 +1133,3 @@ CREATE TABLE IF NOT EXISTS `dnsapi_vm_ref` (
   CONSTRAINT `dnsapi_vm_ref_fk1` FOREIGN KEY (`vm_id`) REFERENCES `vm_instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-INSERT IGNORE INTO configuration (category, instance, component, name, value, description) VALUES ('Network', 'DEFAULT', 'management-server', 'dnsapi.domain.templateid', '1', 'Template id to be used when creating domains in DNS API');
