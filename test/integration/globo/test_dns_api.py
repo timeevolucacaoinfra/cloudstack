@@ -68,7 +68,6 @@ class Data(object):
                 "cpunumber": 1,
                 "cpuspeed": 100,
                 "memory": 100,
-                "storagetype": 'local',
             },
             "network_offering": {
                 "name": "DNS API Network Offering",
