@@ -92,12 +92,13 @@ PrintLog INFO "Checking out to branch '${project_branch}'"
 git checkout ${project_branch} >/dev/null 2>/dev/null
 PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
 source $WORKON_HOME/${virtualenv_name}/bin/activate
-# mvn -Pdeveloper -Dsimulator clean install
-# mvn -P developer -pl :cloud-marvin
-# mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
-# mvn --version
-# mvn -P developer,systemvm clean package
 
+PrintLog INFO "Compiling cloudstack..."
+mvn -Pdeveloper -Dsimulator clean package
+PrintLog INFO "Compiling and packing marvin..."
+mvn -P developer -pl :cloud-marvin
+PrintLog INFO "Sync marvin"
+mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
 # Deploy DB, Populate DB and create infra structure
 PrintLog INFO "Creating SQL schema"
