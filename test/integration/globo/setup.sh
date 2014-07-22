@@ -64,10 +64,10 @@ WaitForInfrastructure() {
     max_retries=20
     sleep_time=10
     ret_count=1
-    PrintLog INFO "Waiting infrastructure..."
+    PrintLog INFO "Waiting for infrastructure..."
     while [ $ret_count -le $max_retries ]; do
         if grep -q 'server resources successfully discovered by SimulatorSecondaryDiscoverer' ${maven_log}; then
-            [[ $debug ]] && PrintLog INFO "Jetty is running and ready"
+            [[ $debug ]] && PrintLog INFO "Infrastructure is ready"
             return 1
         else
             [[ $debug ]] && PrintLog DEBUG "Infrasctructure is not ready yet... sleeping more ${sleep_time}sec (${ret_count}/${max_retries})"
