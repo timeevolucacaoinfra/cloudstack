@@ -97,8 +97,6 @@ PrintLog INFO "Compiling cloudstack..."
 mvn -Pdeveloper -Dsimulator clean package
 PrintLog INFO "Compiling and packing marvin..."
 mvn -P developer -pl :cloud-marvin
-PrintLog INFO "Sync marvin"
-mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
 # Deploy DB, Populate DB and create infra structure
 PrintLog INFO "Creating SQL schema"
@@ -120,6 +118,8 @@ rm -f ${maven_log}
 StartJetty
 
 # Tests
+PrintLog INFO "Sync marvin"
+mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --load ${globo_test_basedir}/test_dns_api.py
 tail -1 $(ls -dtr /tmp/[0-9]* | tail -1)/results.txt | grep -qw 'OK'
 retval=$?
