@@ -47,8 +47,8 @@ ShutdownJetty() {
     sleep_time=3
     ret_count=1
     PrintLog INFO "Stopping cloudstack..."
-    kill $(ps wwwaux | awk '/[m]aven.*jetty:run -Dsimulator/ {print $2}')
-    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to stop jetty"
+    kill $(ps wwwaux | awk '/[m]aven.*jetty:run -Dsimulator/ {print $2}') 2>/dev/null
+    [[ $? -ne 0 ]] && PrintLog WARN "Failed to stop jetty"
     while [ $ret_count -le $max_retries ]; do
         if [[ -z $(ps wwwaux | awk '/[m]aven.*jetty:run -Dsimulator/ {print $2}') ]]; then
             return 1
