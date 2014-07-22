@@ -36,8 +36,6 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
-import com.globo.dnsapi.DNSAPI;
-import com.globo.dnsapi.DNSAPIException;
 import com.globo.dnsapi.commands.CreateDomainCommand;
 import com.globo.dnsapi.commands.CreateRecordCommand;
 import com.globo.dnsapi.commands.CreateReverseDomainCommand;
@@ -53,15 +51,17 @@ import com.globo.dnsapi.commands.RemoveReverseDomainCommand;
 import com.globo.dnsapi.commands.ScheduleExportCommand;
 import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.commands.UpdateRecordCommand;
-import com.globo.dnsapi.model.Authentication;
-import com.globo.dnsapi.model.Domain;
-import com.globo.dnsapi.model.Export;
-import com.globo.dnsapi.model.Record;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 import com.globo.dnsapi.response.DnsAPIDomainResponse;
 import com.globo.dnsapi.response.DnsAPIExportResponse;
 import com.globo.dnsapi.response.DnsAPIRecordListResponse;
 import com.globo.dnsapi.response.DnsAPIRecordResponse;
+import com.globo.globodns.client.GloboDns;
+import com.globo.globodns.client.GloboDnsException;
+import com.globo.globodns.client.model.Authentication;
+import com.globo.globodns.client.model.Domain;
+import com.globo.globodns.client.model.Export;
+import com.globo.globodns.client.model.Record;
 
 public class DnsAPIResource extends ManagerBase implements ServerResource {
 	private String _zoneId;
@@ -76,7 +76,7 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 	
 	private String _password;
 	
-	protected DNSAPI _dnsapi;
+	protected GloboDns _globoDns;
 	
 	private static final Logger s_logger = Logger.getLogger(DnsAPIResource.class);
 
@@ -114,7 +114,7 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 			throw new ConfigurationException("Unable to find password");
 		}
 
-		_dnsapi = DNSAPI.buildHttpApi(_url, _username, _password);
+		_globoDns = GloboDns.buildHttpApi(_url, _username, _password);
 
 		return true;
 	}
@@ -210,57 +210,57 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 	
 	public Answer execute(SignInCommand cmd) {
 		try {
-			Authentication auth = _dnsapi.getAuthAPI().signIn(cmd.getEmail(), cmd.getPassword());
+			Authentication auth = _globoDns.getAuthAPI().signIn(cmd.getEmail(), cmd.getPassword());
 			if (auth != null) {
 				return new Answer(cmd, true, "Signed in successfully");
 			} else {
 				return new Answer(cmd, false, "Unable to sign in on DNS API");
 			}
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(CreateDomainCommand cmd) {
 		try {
-			Domain domain = _dnsapi.getDomainAPI().createDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
+			Domain domain = _globoDns.getDomainAPI().createDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
 			if (domain != null) {
 				return new DnsAPIDomainResponse(cmd, domain);
 			} else {
 				return new Answer(cmd, false, "Unable to create domain in DNS API");
 			}
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(RemoveDomainCommand cmd) {
 		try {
-			_dnsapi.getDomainAPI().removeDomain(cmd.getDomainId());
+			_globoDns.getDomainAPI().removeDomain(cmd.getDomainId());
 			return new Answer(cmd, true, "Domain removed");
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(RemoveReverseDomainCommand cmd) {
 		try {
-			_dnsapi.getDomainAPI().removeReverseDomain(cmd.getReverseDomainId());
+			_globoDns.getDomainAPI().removeReverseDomain(cmd.getReverseDomainId());
 			return new Answer(cmd, true, "Reverse domain removed");
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(CreateReverseDomainCommand cmd) {
 		try {
-			Domain reverseDomain = _dnsapi.getDomainAPI().createReverseDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
+			Domain reverseDomain = _globoDns.getDomainAPI().createReverseDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
 			if (reverseDomain != null) {
 				return new DnsAPIDomainResponse(cmd, reverseDomain);
 			} else {
 				return new Answer(cmd, false, "Unable to create reverse domain in DNS API");
 			}
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
@@ -269,12 +269,12 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		try {
 			List<Domain> result;
 			if (cmd.getQuery() == null) {
-				result = _dnsapi.getDomainAPI().listAll();
+				result = _globoDns.getDomainAPI().listAll();
 			} else {
-				result = _dnsapi.getDomainAPI().listByQuery(cmd.getQuery());
+				result = _globoDns.getDomainAPI().listByQuery(cmd.getQuery());
 			}
 			return new DnsAPIDomainListResponse(cmd, result);
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
@@ -283,30 +283,30 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		try {
 			List<Domain> result;
 			if (cmd.getQuery() == null) {
-				result = _dnsapi.getDomainAPI().listAllReverse();
+				result = _globoDns.getDomainAPI().listAllReverse();
 			} else {
-				result = _dnsapi.getDomainAPI().listReverseByQuery(cmd.getQuery());
+				result = _globoDns.getDomainAPI().listReverseByQuery(cmd.getQuery());
 			}
 			return new DnsAPIDomainListResponse(cmd, result);
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(GetDomainInfoCommand cmd) {
 		try {
-			Domain domain = _dnsapi.getDomainAPI().getById(cmd.getDomainId());
+			Domain domain = _globoDns.getDomainAPI().getById(cmd.getDomainId());
 			return new DnsAPIDomainResponse(cmd, domain);
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(GetReverseDomainInfoCommand cmd) {
 		try {
-			Domain domainReverse = _dnsapi.getDomainAPI().getReverseById(cmd.getReverseDomainId());
+			Domain domainReverse = _globoDns.getDomainAPI().getReverseById(cmd.getReverseDomainId());
 			return new DnsAPIDomainResponse(cmd, domainReverse);
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
@@ -315,70 +315,70 @@ public class DnsAPIResource extends ManagerBase implements ServerResource {
 		try {
 			List<Record> result;
 			if (cmd.getQuery() == null) {
-				result = _dnsapi.getRecordAPI().listAll(cmd.getDomainId());
+				result = _globoDns.getRecordAPI().listAll(cmd.getDomainId());
 			} else {
-				result = _dnsapi.getRecordAPI().listByQuery(cmd.getDomainId(), cmd.getQuery());
+				result = _globoDns.getRecordAPI().listByQuery(cmd.getDomainId(), cmd.getQuery());
 			}
 			return new DnsAPIRecordListResponse(cmd, result);
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(CreateRecordCommand cmd) {
 		try {
-			Record record = _dnsapi.getRecordAPI().createRecord(cmd.getDomainId(), cmd.getName(), cmd.getContent(), cmd.getType());
+			Record record = _globoDns.getRecordAPI().createRecord(cmd.getDomainId(), cmd.getName(), cmd.getContent(), cmd.getType());
 			if (record != null) {
 				return new DnsAPIRecordResponse(cmd, record);
 			} else {
 				return new Answer(cmd, false, "Unable to create record in DNS API");
 			}
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(UpdateRecordCommand cmd) {
 		try {
-			_dnsapi.getRecordAPI().updateRecord(cmd.getRecordId(), cmd.getDomainId(), cmd.getName(), cmd.getContent());
-			Record record = _dnsapi.getRecordAPI().getById(cmd.getRecordId());
+			_globoDns.getRecordAPI().updateRecord(cmd.getRecordId(), cmd.getDomainId(), cmd.getName(), cmd.getContent());
+			Record record = _globoDns.getRecordAPI().getById(cmd.getRecordId());
 			if (record != null) {
 				return new DnsAPIRecordResponse(cmd, record);
 			} else {
 				return new Answer(cmd, false, "Unable to update record in DNS API");
 			}
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(GetRecordInfoCommand cmd) {
 		try {
-			Record record = _dnsapi.getRecordAPI().getById(cmd.getRecordId());
+			Record record = _globoDns.getRecordAPI().getById(cmd.getRecordId());
 			return new DnsAPIRecordResponse(cmd, record);
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(RemoveRecordCommand cmd) {
 		try {
-			_dnsapi.getRecordAPI().removeRecord(cmd.getRecordId());
+			_globoDns.getRecordAPI().removeRecord(cmd.getRecordId());
 			return new Answer(cmd, true, "Record removed");
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
 	public Answer execute(ScheduleExportCommand cmd) {
 		try {
-			Export export = _dnsapi.getExportAPI().scheduleExport();
+			Export export = _globoDns.getExportAPI().scheduleExport();
 			if (export != null) {
 				return new DnsAPIExportResponse(cmd, export);
 			} else {
 				return new Answer(cmd, false, "Unable to schedule export in DNS API");
 			}
-		} catch (DNSAPIException e) {
+		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}

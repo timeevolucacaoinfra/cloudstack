@@ -94,15 +94,15 @@ import com.globo.dnsapi.commands.SignInCommand;
 import com.globo.dnsapi.commands.UpdateRecordCommand;
 import com.globo.dnsapi.dao.DnsAPINetworkDao;
 import com.globo.dnsapi.dao.DnsAPIVirtualMachineDao;
-import com.globo.dnsapi.model.Domain;
-import com.globo.dnsapi.model.Export;
-import com.globo.dnsapi.model.Record;
 import com.globo.dnsapi.resource.DnsAPIResource;
 import com.globo.dnsapi.response.DnsAPIDomainListResponse;
 import com.globo.dnsapi.response.DnsAPIDomainResponse;
 import com.globo.dnsapi.response.DnsAPIExportResponse;
 import com.globo.dnsapi.response.DnsAPIRecordListResponse;
 import com.globo.dnsapi.response.DnsAPIRecordResponse;
+import com.globo.globodns.client.model.Domain;
+import com.globo.globodns.client.model.Export;
+import com.globo.globodns.client.model.Record;
 
 @Component
 @Local(NetworkElement.class)

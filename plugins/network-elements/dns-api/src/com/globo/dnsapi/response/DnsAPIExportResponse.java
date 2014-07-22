@@ -18,7 +18,7 @@ package com.globo.dnsapi.response;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.globo.dnsapi.model.Export;
+import com.globo.globodns.client.model.Export;
 
 public class DnsAPIExportResponse extends Answer {
 

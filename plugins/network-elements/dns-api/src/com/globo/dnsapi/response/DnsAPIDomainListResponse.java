@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.globo.dnsapi.model.Domain;
+import com.globo.globodns.client.model.Domain;
 
 public class DnsAPIDomainListResponse extends Answer {
 

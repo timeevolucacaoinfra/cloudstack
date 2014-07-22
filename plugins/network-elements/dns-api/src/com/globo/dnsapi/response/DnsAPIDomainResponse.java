@@ -2,7 +2,7 @@ package com.globo.dnsapi.response;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.globo.dnsapi.model.Domain;
+import com.globo.globodns.client.model.Domain;
 
 public class DnsAPIDomainResponse extends Answer {
 
