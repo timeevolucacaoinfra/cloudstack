@@ -7,6 +7,8 @@ globo_test_basedir="${project_basedir}/test/integration/globo"
 project_branch='4.3.0-globo'
 maven_log='/tmp/cloudstack.log'
 
+[[ -z $WORKON_HOME ]] && WORKON_HOME=$JENKINS_HOME/.virtualenvs
+
 debug=1
 
 [[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
@@ -92,6 +94,9 @@ source $WORKON_HOME/${virtualenv_name}/bin/activate
 # mvn -Pdeveloper -Dsimulator clean install
 # mvn -P developer -pl :cloud-marvin
 # mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
+# mvn --version
+# mvn -P developer,systemvm clean package
+
 
 # Deploy DB, Populate DB and create infra structure
 PrintLog INFO "Creating SQL schema"
