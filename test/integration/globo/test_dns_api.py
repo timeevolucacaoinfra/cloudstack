@@ -20,6 +20,7 @@
 import dns.resolver
 import requests
 import json
+import os
 from ConfigParser import SafeConfigParser
 
 #All tests inherit from cloudstackTestCase
@@ -31,10 +32,10 @@ from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering
 from marvin.integration.lib.utils import cleanup_resources
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
-
 # load config file
+endpoint_file = os.path.join(os.getcwd(), 'test/integration/globo', 'cfg/endpoints.cfg')
 parser = SafeConfigParser()
-parser.read('./cfg/endpoints.cfg')
+parser.read(endpoint_file)
 
 # get dnsapi endpoint
 dnsapi_host = parser.get('dns-api', 'host')
