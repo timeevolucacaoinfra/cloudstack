@@ -82,6 +82,7 @@ WaitForInfrastructure() {
 }
 
 # Checkout repository, compile, use virtualenv and sync the mavin commands
+ShutdownJetty
 PrintLog INFO "Removing log file '${maven_log}'"
 rm -f ${maven_log}
 [[ $debug ]] && PrintLog DEBUG "Change work dir to ${project_basedir}"
