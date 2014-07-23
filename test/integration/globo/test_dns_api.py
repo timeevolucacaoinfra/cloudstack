@@ -33,7 +33,7 @@ from marvin.integration.lib.utils import cleanup_resources
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
 # load config file
-endpoint_file = os.path.join(os.getcwd(), 'test/integration/globo', 'cfg/endpoints.cfg')
+endpoint_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'cfg/endpoints.cfg')
 parser = SafeConfigParser()
 parser.read(endpoint_file)
 
