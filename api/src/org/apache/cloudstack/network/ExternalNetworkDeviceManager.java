@@ -46,7 +46,7 @@ public interface ExternalNetworkDeviceManager extends Manager {
         public static final NetworkDevice NiciraNvp = new NetworkDevice("NiciraNvp", Network.Provider.NiciraNvp.getName());
         public static final NetworkDevice CiscoVnmc = new NetworkDevice("CiscoVnmc", Network.Provider.CiscoVnmc.getName());
         public static final NetworkDevice NetworkAPI = new NetworkDevice("NetworkAPI", Network.Provider.NetworkAPI.getName());
-        public static final NetworkDevice DnsAPI = new NetworkDevice("DnsAPI", Network.Provider.DnsAPI.getName());
+        public static final NetworkDevice GloboDns = new NetworkDevice("GloboDns", Network.Provider.GloboDns.getName());
 
         public NetworkDevice(String deviceName, String ntwkServiceprovider) {
             _name = deviceName;
