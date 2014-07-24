@@ -43,6 +43,7 @@ import com.globo.globodns.client.model.Domain;
 import com.globo.globodns.client.model.Export;
 import com.globo.globodns.client.model.Record;
 import com.globo.globodns.cloudstack.commands.CreateDomainCommand;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.CreateRecordCommand;
 import com.globo.globodns.cloudstack.commands.CreateReverseDomainCommand;
 import com.globo.globodns.cloudstack.commands.GetDomainInfoCommand;
@@ -78,6 +79,10 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 	
 	protected GloboDns _globoDns;
 	
+	private static final String RECORD_TYPE = "A";
+	private static final String REVERSE_RECORD_TYPE = "PTR";
+	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
+
 	private static final Logger s_logger = Logger.getLogger(GloboDnsResource.class);
 
 	@Override
@@ -382,4 +387,84 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
+	
+	private Domain searchDomain(String name) {
+		if (name == null) {
+			return null;
+		}
+		List<Domain> candidates = _globoDns.getDomainAPI().listByQuery(name);
+		for (Domain candidate: candidates) {
+			if (name.equals(candidate.getName())) {
+				return candidate;
+			}
+		}
+		return null;
+		
+		
+	}
+	
+	private Record searchRecord(String recordName, Long domainId) {
+		if (recordName == null || domainId == null) {
+			return null;
+		}
+		List<Record> candidates = _globoDns.getRecordAPI().listByQuery(domainId, recordName);
+		// GloboDns search name in name and content. I need to iterate to check if recordName exists only in name
+		for (Record candidate: candidates) {
+			if (recordName.equalsIgnoreCase(candidate.getContent())) {
+				s_logger.debug("Record " + recordName + " in domain id " + domainId + " found in GloboDNS");
+				return candidate;
+			}
+		}
+		s_logger.debug("Record " + recordName + " in domain id " + domainId + " not found in GloboDNS");
+		return null;
+	}
+	
+	private boolean createOrUpdateRecord(Long domainId, String name, String ip, String type) {
+		Record record = this.searchRecord(name, domainId);
+		if (record == null) {
+			// Create new record
+			record = _globoDns.getRecordAPI().createRecord(domainId, name, ip, type);
+			s_logger.info("Created record " + name + " in domain " + domainId);
+		} else {
+			if (!ip.equals(record.getContent())) {
+				// ip is incorrect. Fix.
+				_globoDns.getRecordAPI().updateRecord(record.getId(), domainId, name, ip);
+			}
+		}
+		return record != null;
+	}
+
+	public Answer execute(CreateOrUpdateRecordAndReverseCommand cmd) {
+		try {
+			Domain domain = searchDomain(cmd.getDomain());
+			if (domain == null) {
+				return new Answer(cmd, false, "Invalid domain");
+			}
+			
+			boolean created = createOrUpdateRecord(domain.getId(), cmd.getName(), cmd.getIp(), RECORD_TYPE);
+			if (!created) {
+				return new Answer(cmd, false, "Unable to create record " + cmd.getName() + " at " + cmd.getDomain());
+			}
+			
+			// create reverse
+	    	String[] octets = cmd.getIp().split("\\.");
+			String reverseRecordName = octets[3];
+			String reverseRecordContent = cmd.getName() + '.' + domain.getName();
+	    	String reverseDomainName = octets[2] + '.' + octets[1] + '.' + octets[0] + '.' + REVERSE_DOMAIN_SUFFIX;
+	    	
+	    	Domain reverseDomain = searchDomain(reverseDomainName);
+			if (reverseDomain == null) {
+				return new Answer(cmd, false, "Invalid reverse domain");
+			}
+
+			created = createOrUpdateRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE);
+			if (!created) {
+				return new Answer(cmd, false, "Unable to create reverse record to ip " + cmd.getIp());
+			}
+			return new Answer(cmd);
+		} catch (GloboDnsException e) {
+			return new Answer(cmd, false, e.getMessage());
+		}
+	}
+	
 }
