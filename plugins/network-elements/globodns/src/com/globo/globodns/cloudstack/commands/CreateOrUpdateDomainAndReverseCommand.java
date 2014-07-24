@@ -18,18 +18,18 @@ package com.globo.globodns.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
 
-public class CreateOrUpdateRecordAndReverseCommand extends Command {
+public class CreateOrUpdateDomainAndReverseCommand extends Command {
 	
-	private String recordName;
-	
-	private String recordIp;
+	private String networkAddress;
 	
 	private String domainName;
+	
+	private Long templateId;
 
-	public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String domainName) {
-		this.recordName = recordName;
-		this.recordIp = recordIp;
+	public CreateOrUpdateDomainAndReverseCommand(String domainName, String networkAddress, Long templateId) {
 		this.domainName = domainName;
+		this.networkAddress = networkAddress;
+		this.templateId = templateId;
 	}
 	
 	@Override
@@ -37,15 +37,15 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 		return false;
 	}
 
-	public String getRecordName() {
-		return this.recordName;
-	}
-	
-	public String getRecordIp() {
-		return this.recordIp;
+	public String getNetworkAddress() {
+		return this.networkAddress;
 	}
 	
 	public String getDomainName() {
 		return this.domainName;
+	}
+	
+	public Long getTemplateId() {
+		return this.templateId;
 	}
 }

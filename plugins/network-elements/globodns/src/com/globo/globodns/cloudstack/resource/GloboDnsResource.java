@@ -43,6 +43,7 @@ import com.globo.globodns.client.model.Domain;
 import com.globo.globodns.client.model.Export;
 import com.globo.globodns.client.model.Record;
 import com.globo.globodns.cloudstack.commands.CreateDomainCommand;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateDomainAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.CreateRecordCommand;
 import com.globo.globodns.cloudstack.commands.CreateReverseDomainCommand;
@@ -79,9 +80,10 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 	
 	protected GloboDns _globoDns;
 	
-	private static final String RECORD_TYPE = "A";
+	private static final String IPV4_RECORD_TYPE = "A";
 	private static final String REVERSE_RECORD_TYPE = "PTR";
 	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
+	private static final String DEFAULT_AUTHORITY_TYPE = "M";
 
 	private static final Logger s_logger = Logger.getLogger(GloboDnsResource.class);
 
@@ -209,6 +211,10 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			return execute((ScheduleExportCommand) cmd);
 		} else if (cmd instanceof UpdateRecordCommand) {
 			return execute((UpdateRecordCommand) cmd);
+		} else if (cmd instanceof CreateOrUpdateDomainAndReverseCommand) {
+			return execute((CreateOrUpdateDomainAndReverseCommand) cmd);
+		} else if (cmd instanceof CreateOrUpdateRecordAndReverseCommand) {
+			return execute((CreateOrUpdateRecordAndReverseCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -399,8 +405,6 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			}
 		}
 		return null;
-		
-		
 	}
 	
 	private Record searchRecord(String recordName, Long domainId) {
@@ -433,24 +437,44 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		}
 		return record != null;
 	}
+	
+	private String generateReverseDomainNameFromNetworkIp(String networkIp) {
+    	String[] octets = networkIp.split("\\.");
+    	String reverseDomainName = octets[2] + '.' + octets[1] + '.' + octets[0] + '.' + REVERSE_DOMAIN_SUFFIX;
+    	return reverseDomainName;
+	}
+	
+	public void scheduleExportChangesToBind() {
+		try {
+			Export export = _globoDns.getExportAPI().scheduleExport();
+			if (export != null) {
+				s_logger.info("GloboDns Export: " + export.getResult());
+			}
+		} catch (GloboDnsException e) {
+			s_logger.warn("Error on scheduling export. Although everything was persist, someone need to manually force export in GloboDns", e);
+		}
+	}
 
 	public Answer execute(CreateOrUpdateRecordAndReverseCommand cmd) {
+		boolean needsExport = false;
 		try {
-			Domain domain = searchDomain(cmd.getDomain());
+			Domain domain = searchDomain(cmd.getDomainName());
 			if (domain == null) {
 				return new Answer(cmd, false, "Invalid domain");
 			}
 			
-			boolean created = createOrUpdateRecord(domain.getId(), cmd.getName(), cmd.getIp(), RECORD_TYPE);
+			boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), IPV4_RECORD_TYPE);
 			if (!created) {
-				return new Answer(cmd, false, "Unable to create record " + cmd.getName() + " at " + cmd.getDomain());
+				return new Answer(cmd, false, "Unable to create record " + cmd.getRecordName() + " at " + cmd.getDomainName());
+			} else {
+				needsExport = true;
 			}
 			
 			// create reverse
-	    	String[] octets = cmd.getIp().split("\\.");
+	    	String[] octets = cmd.getRecordIp().split("\\.");
 			String reverseRecordName = octets[3];
-			String reverseRecordContent = cmd.getName() + '.' + domain.getName();
-	    	String reverseDomainName = octets[2] + '.' + octets[1] + '.' + octets[0] + '.' + REVERSE_DOMAIN_SUFFIX;
+			String reverseRecordContent = cmd.getRecordName() + '.' + domain.getName();
+	    	String reverseDomainName = generateReverseDomainNameFromNetworkIp(cmd.getRecordIp());
 	    	
 	    	Domain reverseDomain = searchDomain(reverseDomainName);
 			if (reverseDomain == null) {
@@ -459,11 +483,60 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 
 			created = createOrUpdateRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE);
 			if (!created) {
-				return new Answer(cmd, false, "Unable to create reverse record to ip " + cmd.getIp());
+				return new Answer(cmd, false, "Unable to create reverse record to ip " + cmd.getRecordIp());
+			} else {
+				needsExport = true;
 			}
+			
 			return new Answer(cmd);
 		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
+		} finally {
+			if (needsExport) {
+				scheduleExportChangesToBind();
+			}
+		}
+	}
+	
+	public Answer execute(CreateOrUpdateDomainAndReverseCommand cmd) {
+		
+		boolean needsExport = false;
+		try {
+			Domain domain = searchDomain(cmd.getDomainName());
+			if (domain == null) {
+				// create
+				domain = _globoDns.getDomainAPI().createDomain(cmd.getDomainName(), cmd.getTemplateId(), DEFAULT_AUTHORITY_TYPE);
+				s_logger.info("Created domain " + cmd.getDomainName() + " with template " + cmd.getTemplateId());
+				if (domain == null) {
+					return new Answer(cmd, false, "Unable to create domain " + cmd.getDomainName());
+				} else {
+					needsExport = true;
+				}
+			}
+			
+			String reverseDomainName = generateReverseDomainNameFromNetworkIp(cmd.getNetworkAddress());
+			Domain reverseDomain = searchDomain(cmd.getDomainName());
+			if (reverseDomain == null) {
+				reverseDomain = _globoDns.getDomainAPI().createReverseDomain(reverseDomainName, cmd.getTemplateId(), DEFAULT_AUTHORITY_TYPE);
+				s_logger.info("Created reverse domain " + reverseDomainName + " with template " + cmd.getTemplateId());
+				if (reverseDomain == null) {
+					return new Answer(cmd, false, "Unable to create reverse domain " + reverseDomainName);
+				} else {
+					needsExport = true;
+				}
+			}
+
+			if (needsExport) {
+				scheduleExportChangesToBind();
+			}
+		
+			return new Answer(cmd);
+		} catch (GloboDnsException e) {
+			return new Answer(cmd, false, e.getMessage());
+		} finally {
+			if (needsExport) {
+				scheduleExportChangesToBind();
+			}
 		}
 	}
 	
