@@ -78,7 +78,7 @@ import com.globo.globodns.cloudstack.response.GloboDnsRecordResponse;
 public class GloboDnsElementTest {
 
     private static long zoneId = 5L;
-    private static long napiHostId = 7L;
+    private static long globoDnsHostId = 7L;
     private static long domainId = 10L;
     private AccountVO acct = null;
 	private UserVO user = null;
@@ -107,9 +107,6 @@ public class GloboDnsElementTest {
 	@Before
 	public void setUp() throws Exception {
         ComponentContext.initComponentsLifeCycle();
-        
-        // configure spy on GloboDnsElement
-        this._globodnsElement = spy(this._globodnsElement);
         
         acct = new AccountVO(200L);
         acct.setType(Account.ACCOUNT_TYPE_NORMAL);
@@ -151,9 +148,9 @@ public class GloboDnsElementTest {
 		ReservationContext context = new ReservationContextImpl(null, null, user);
 		_globodnsElement.prepare(network, nic, vm, dest, context);
 	}
-
+	
 	@Test
-	public void testprepareMethodCallDNSAPIToRegisterHostName() throws Exception {
+	public void testPrepareMethodCallGloboDnsToRegisterHostName() throws Exception {
 		Network network = mock(Network.class);
 		when(network.getDataCenterId()).thenReturn(zoneId);
 		when(network.getId()).thenReturn(1l);
@@ -178,10 +175,10 @@ public class GloboDnsElementTest {
 //		globodnsResource.configure("globodns", params);
 		
 		HostVO hostVO = mock(HostVO.class);
-		when(hostVO.getId()).thenReturn(napiHostId);
+		when(hostVO.getId()).thenReturn(globoDnsHostId);
 		when(_hostDao.findByTypeNameAndZoneId(eq(zoneId), eq(Provider.GloboDns.getName()), eq(Type.L2Networking))).thenReturn(hostVO);
 
-		when(_agentMgr.easySend(eq(napiHostId), isA(ListRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
+		when(_agentMgr.easySend(eq(globoDnsHostId), isA(ListRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
 
 			@Override
 			public Answer answer(InvocationOnMock invocation) throws Throwable {
@@ -190,7 +187,7 @@ public class GloboDnsElementTest {
 			}
 		});
 
-		when(_agentMgr.easySend(eq(napiHostId), isA(CreateRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
+		when(_agentMgr.easySend(eq(globoDnsHostId), isA(CreateRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
 
 			@Override
 			public Answer answer(InvocationOnMock invocation) throws Throwable {
@@ -201,7 +198,7 @@ public class GloboDnsElementTest {
 			}
 		});
 
-		when(_agentMgr.easySend(eq(napiHostId), isA(GetDomainInfoCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
+		when(_agentMgr.easySend(eq(globoDnsHostId), isA(GetDomainInfoCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
 
 			@Override
 			public Answer answer(InvocationOnMock invocation) throws Throwable {
