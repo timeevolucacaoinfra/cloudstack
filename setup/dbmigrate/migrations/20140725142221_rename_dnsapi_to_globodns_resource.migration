@@ -1,8 +1,11 @@
 #-*- coding:utf-8 -*-
 SQL_UP = u"""
 UPDATE `cloud`.`host` SET `name` = 'GloboDNS', `resource` = 'com.globo.globodns.cloudstack.resource.GloboDnsResource', `guid` = (SELECT CONCAT ('globodns-', data_center_id)) WHERE `resource` = 'com.globo.dnsapi.resource.DnsAPIResource';
+DELETE FROM `cloud`.`configuration` WHERE `name` = 'dnsapi.domain.templateid' AND `value` = 1;
 """
 
 SQL_DOWN = u"""
 UPDATE `cloud`.`host` SET `name` = 'DnsAPI', `resource` = 'com.globo.dnsapi.resource.DnsAPIResource', `guid` = (SELECT CONCAT ('dnsapi-', data_center_id)) WHERE `resource` = 'com.globo.globodns.cloudstack.resource.GloboDnsResource';
+INSERT INTO `cloud`.`configuration` (category, instance, component, name, value, description, default_value) VALUES ('Network', 'DEFAULT', 'management-server', 'dnsapi.domain.templateid', 1, 'Template id to be used when creating domains in DNS API', 1);
 """
+
