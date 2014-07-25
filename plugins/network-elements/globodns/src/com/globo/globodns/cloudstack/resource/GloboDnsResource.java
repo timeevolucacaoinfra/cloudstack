@@ -414,7 +414,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		List<Record> candidates = _globoDns.getRecordAPI().listByQuery(domainId, recordName);
 		// GloboDns search name in name and content. We need to iterate to check if recordName exists only in name
 		for (Record candidate: candidates) {
-			if (recordName.equalsIgnoreCase(candidate.getContent())) {
+			if (recordName.equalsIgnoreCase(candidate.getName())) {
 				s_logger.debug("Record " + recordName + " in domain id " + domainId + " found in GloboDNS");
 				return candidate;
 			}

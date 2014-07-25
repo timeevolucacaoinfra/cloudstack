@@ -4,24 +4,15 @@ package com.globo.globodns.cloudstack.resource;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.core.type.classreading.MetadataReader;
-import org.springframework.core.type.classreading.MetadataReaderFactory;
-import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -143,17 +134,49 @@ public class GloboDnsResourceTest {
     	verify(_exportApi, never()).scheduleExport();
     }
 
-    @Configuration
-    @ComponentScan(includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
-    public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
+    @Test
+    public void testUpdateRecordAndReverseWhenDomainExists() throws Exception {
+    	String recordName = "recordname";
+    	String oldRecordIp = "10.10.10.10";
+    	String newRecordIp = "20.20.20.20";
+    	String domainName = "domain.name.com";
+    	String reverseDomainName = "20.20.20.in-addr.arpa";
+    	String reverseRecordName = "20";
+    	String reverseRecordContent = recordName + "." + domainName;
+    	
+    	Domain domain = new Domain();
+    	domain.getDomainAttributes().setId(1L);
+    	domain.getDomainAttributes().setName(domainName);
+    	List<Domain> domainList = new ArrayList<Domain>();
+    	domainList.add(domain);
+    	when(_domainApi.listByQuery(domainName)).thenReturn(domainList);
 
-        public static class Library implements TypeFilter {
- 
-            @Override
-            public boolean match(MetadataReader mdr, MetadataReaderFactory arg1) throws IOException {
-                ComponentScan cs = TestConfiguration.class.getAnnotation(ComponentScan.class);
-                return SpringUtils.includedInBasePackageClasses(mdr.getClassMetadata().getClassName(), cs);
-            }
-        }
+    	Domain reverseDomain = new Domain();
+    	reverseDomain.getDomainAttributes().setId(2L);
+    	reverseDomain.getDomainAttributes().setName(reverseDomainName);
+    	List<Domain> reverseDomainList = new ArrayList<Domain>();
+    	reverseDomainList.add(reverseDomain);
+    	when(_domainApi.listByQuery(reverseDomainName)).thenReturn(reverseDomainList);
+    	
+    	Record record = new Record();
+    	record.getTypeARecordAttributes().setName(recordName);
+    	record.getTypeARecordAttributes().setContent(oldRecordIp);
+    	List<Record> recordList = new ArrayList<Record>();
+    	recordList.add(record);
+    	when(_recordApi.listByQuery(domain.getId(), recordName)).thenReturn(recordList);    	
+
+    	Record reverseRecord = new Record();
+    	reverseRecord.getTypePTRRecordAttributes().setName(oldRecordIp);
+    	record.getTypeARecordAttributes().setContent(reverseRecordName);
+    	List<Record> reverseRecordList = new ArrayList<Record>();
+    	reverseRecordList.add(reverseRecord);
+    	when(_recordApi.listByQuery(domain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
+    	when(_recordApi.createRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, "PTR")).thenReturn(reverseRecord);
+
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName));
+    	verify(_recordApi, times(1)).updateRecord(record.getId(), domain.getId(), recordName, newRecordIp);
+    	assertNotNull(answer);
+    	assertEquals(true, answer.getResult());
+    	verify(_exportApi, times(1)).scheduleExport();
     }
 }
