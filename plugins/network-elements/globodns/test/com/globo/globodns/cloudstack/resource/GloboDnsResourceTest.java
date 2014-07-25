@@ -4,15 +4,24 @@ package com.globo.globodns.cloudstack.resource;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.ComponentScan.Filter;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.core.type.classreading.MetadataReader;
+import org.springframework.core.type.classreading.MetadataReaderFactory;
+import org.springframework.core.type.filter.TypeFilter;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -117,5 +126,34 @@ public class GloboDnsResourceTest {
     	assertNotNull(answer);
     	assertEquals(true, answer.getResult());
     	verify(_exportApi, times(1)).scheduleExport();
+    }
+
+    @Test
+    public void testCreateRecordAndReverseWhenDomainDoesntExist() throws Exception {
+    	String recordName = "recordname";
+    	String recordIp = "10.10.10.10";
+    	String domainName = "domain.name.com";
+    	
+    	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
+
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName));
+    	assertNotNull(answer);
+    	assertEquals(false, answer.getResult());
+    	assertEquals("Invalid domain", answer.getDetails());
+    	verify(_exportApi, never()).scheduleExport();
+    }
+
+    @Configuration
+    @ComponentScan(includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
+    public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
+
+        public static class Library implements TypeFilter {
+ 
+            @Override
+            public boolean match(MetadataReader mdr, MetadataReaderFactory arg1) throws IOException {
+                ComponentScan cs = TestConfiguration.class.getAnnotation(ComponentScan.class);
+                return SpringUtils.includedInBasePackageClasses(mdr.getClassMetadata().getClassName(), cs);
+            }
+        }
     }
 }
