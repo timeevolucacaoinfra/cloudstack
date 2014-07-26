@@ -20,10 +20,10 @@ import com.cloud.agent.api.Command;
 
 public class RemoveDomainCommand extends Command {
 	
-	private Long domainId;
-
-	public RemoveDomainCommand(Long domainId) {
-		this.domainId = domainId;
+	private String networkDomain;
+	
+	public RemoveDomainCommand(String networkDomain) {
+		this.networkDomain = networkDomain;
 	}
 	
 	@Override
@@ -31,7 +31,7 @@ public class RemoveDomainCommand extends Command {
 		return false;
 	}
 	
-	public Long getDomainId() {
-		return this.domainId;
+	public String getNetworkDomain() {
+		return this.networkDomain;
 	}
 }

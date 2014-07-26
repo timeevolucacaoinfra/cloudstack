@@ -24,12 +24,15 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 	
 	private String recordIp;
 	
-	private String domainName;
+	private String networkDomain;
+	
+	private Long reverseTemplateId;
 
-	public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String domainName) {
+	public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId) {
 		this.recordName = recordName;
 		this.recordIp = recordIp;
-		this.domainName = domainName;
+		this.networkDomain = networkDomain;
+		this.reverseTemplateId = reverseTemplateId;
 	}
 	
 	@Override
@@ -45,7 +48,12 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 		return this.recordIp;
 	}
 	
-	public String getDomainName() {
-		return this.domainName;
+	public String getNetworkDomain() {
+		return this.networkDomain;
 	}
+
+	public Long getReverseTemplateId() {
+		return reverseTemplateId;
+	}
+
 }

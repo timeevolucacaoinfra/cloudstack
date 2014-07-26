@@ -18,7 +18,7 @@ package com.globo.globodns.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
 
-public class CreateOrUpdateDomainAndReverseCommand extends Command {
+public class CreateOrUpdateDomainCommand extends Command {
 	
 	private String networkAddress;
 	
@@ -26,7 +26,7 @@ public class CreateOrUpdateDomainAndReverseCommand extends Command {
 	
 	private Long templateId;
 
-	public CreateOrUpdateDomainAndReverseCommand(String domainName, String networkAddress, Long templateId) {
+	public CreateOrUpdateDomainCommand(String domainName, String networkAddress, Long templateId) {
 		this.domainName = domainName;
 		this.networkAddress = networkAddress;
 		this.templateId = templateId;

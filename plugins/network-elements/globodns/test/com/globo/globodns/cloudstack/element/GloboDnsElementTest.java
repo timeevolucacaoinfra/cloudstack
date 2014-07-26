@@ -1,11 +1,9 @@
 package com.globo.globodns.cloudstack.element;
 
 
-import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
-import java.util.Collections;
 
 import javax.inject.Inject;
 
@@ -16,7 +14,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.invocation.InvocationOnMock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScan.Filter;
@@ -32,8 +29,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.agent.AgentManager;
-import com.cloud.agent.api.Answer;
-import com.cloud.agent.api.Command;
 import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
@@ -41,11 +36,8 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.host.Host.Type;
-import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
 import com.cloud.network.Network;
-import com.cloud.network.Network.Provider;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.resource.ResourceManager;
@@ -60,17 +52,8 @@ import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globodns.cloudstack.GloboDnsNetworkVO;
-import com.globo.globodns.cloudstack.GloboDnsVirtualMachineVO;
-import com.globo.globodns.cloudstack.commands.CreateRecordCommand;
-import com.globo.globodns.cloudstack.commands.GetDomainInfoCommand;
-import com.globo.globodns.cloudstack.commands.ListRecordCommand;
 import com.globo.globodns.cloudstack.dao.GloboDnsNetworkDao;
 import com.globo.globodns.cloudstack.dao.GloboDnsVirtualMachineDao;
-import com.globo.globodns.client.model.Domain;
-import com.globo.globodns.client.model.Record;
-import com.globo.globodns.cloudstack.response.GloboDnsDomainResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsRecordListResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsRecordResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
@@ -151,7 +134,7 @@ public class GloboDnsElementTest {
 		ReservationContext context = new ReservationContextImpl(null, null, user);
 		_globodnsElement.prepare(network, nic, vm, dest, context);
 	}
-
+/*
 	@Test
 	public void testprepareMethodCallDNSAPIToRegisterHostName() throws Exception {
 		Network network = mock(Network.class);
@@ -225,7 +208,7 @@ public class GloboDnsElementTest {
 		_globodnsElement.prepare(network, nic, vm, dest, context);
 		verify(_globodnsVMDao, atLeastOnce()).persist(isA(GloboDnsVirtualMachineVO.class));
 	}
-
+*/
     @Configuration
     @ComponentScan(basePackageClasses = {GloboDnsElement.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
