@@ -25,7 +25,7 @@ public class CreateOrUpdateDomainCommand extends Command {
 	private String domainName;
 	
 	private Long templateId;
-
+	
 	public CreateOrUpdateDomainCommand(String domainName, String networkAddress, Long templateId) {
 		this.domainName = domainName;
 		this.networkAddress = networkAddress;
@@ -38,14 +38,14 @@ public class CreateOrUpdateDomainCommand extends Command {
 	}
 
 	public String getNetworkAddress() {
-		return this.networkAddress;
+		return networkAddress;
 	}
 	
 	public String getDomainName() {
-		return this.domainName;
+		return domainName;
 	}
 	
 	public Long getTemplateId() {
-		return this.templateId;
+		return templateId;
 	}
 }

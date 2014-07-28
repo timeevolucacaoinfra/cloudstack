@@ -195,7 +195,17 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		try {
 			Domain domain = searchDomain(cmd.getNetworkDomain(), false);
 			if (domain != null) {
+				if (!cmd.isOverride()) {
+					for (Record record: _globoDns.getRecordAPI().listAll(domain.getId())) {
+						if (record.getTypeNSRecordAttributes() == null) {
+							s_logger.warn("There are records in domain " + cmd.getNetworkDomain() + " and override is not enable. I will not delete this domain.");
+							return new Answer(cmd, true, "Domain keeped"); 
+						}
+					}
+				}
 				_globoDns.getDomainAPI().removeDomain(domain.getId());
+			} else {
+				s_logger.warn("Domain " + cmd.getNetworkDomain() + " already been deleted.");
 			}
 			
 			return new Answer(cmd, true, "Domain removed");
@@ -207,15 +217,16 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 	public Answer execute(RemoveRecordCommand cmd) {
 		boolean needsExport = false;
 		try {
-			if (removeRecord(cmd.getRecordName(), cmd.getNetworkDomain(), false)) {
+			if (removeRecord(cmd.getRecordName(), cmd.getRecordIp(), cmd.getNetworkDomain(), false, cmd.isOverride())) {
 				needsExport = true;
 			}
 			
 			// remove reverse
 			String reverseGloboDnsName = generateReverseDomainNameFromNetworkIp(cmd.getRecordIp());
 			String reverseRecordName = generateReverseRecordNameFromNetworkIp(cmd.getRecordIp());
+			String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain();
 			
-			if (removeRecord(reverseRecordName, reverseGloboDnsName, true)) {
+			if (removeRecord(reverseRecordName, reverseRecordContent, reverseGloboDnsName, true, cmd.isOverride())) {
 				needsExport = true;
 			}
 			
@@ -237,16 +248,26 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 				return new Answer(cmd, false, "Domain " + cmd.getNetworkDomain() + " doesn't exists in GloboDns");
 			}
 			
-			boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), IPV4_RECORD_TYPE);
+			boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), IPV4_RECORD_TYPE, cmd.isOverride());
 			if (!created) {
-				return new Answer(cmd, false, "Unable to create record " + cmd.getRecordName() + " at " + cmd.getNetworkDomain());
+				String msg = "Unable to create record " + cmd.getRecordName() + " at " + cmd.getNetworkDomain();
+				if (!cmd.isOverride()) {
+					msg += ". Override record option is false, maybe record already exist.";
+				}
+				return new Answer(cmd, false, msg);
 			} else {
 				needsExport = true;
 			}
 			
 			String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain();
-			if (createOrUpdateReverse(cmd.getRecordIp(), reverseRecordContent, cmd.getReverseTemplateId())) {
+			if (createOrUpdateReverse(cmd.getRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride())) {
 				needsExport = true;
+			} else {
+				if (!cmd.isOverride()) {
+					String msg = "Unable to create reverse record " + cmd.getRecordName() + " for ip " + cmd.getRecordIp();
+					msg += ". Override record option is false, maybe record already exist.";
+					return new Answer(cmd, false, msg);
+				}
 			}
 			
 			return new Answer(cmd);
@@ -259,22 +280,17 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	protected boolean createOrUpdateReverse(String networkIp, String reverseRecordContent, Long templateId) {
-		boolean needsExport = false;
+	protected boolean createOrUpdateReverse(String networkIp, String reverseRecordContent, Long templateId, boolean override) {
 		String reverseDomainName = generateReverseDomainNameFromNetworkIp(networkIp);
 		Domain reverseDomain = searchDomain(reverseDomainName, true);
 		if (reverseDomain == null) {
 			reverseDomain = _globoDns.getDomainAPI().createReverseDomain(reverseDomainName, templateId, DEFAULT_AUTHORITY_TYPE);
 			s_logger.info("Created reverse domain " + reverseDomainName + " with template " + templateId);
-			needsExport = true;
 		}
 
 		// create reverse
 		String reverseRecordName = generateReverseRecordNameFromNetworkIp(networkIp);
-		if (createOrUpdateRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE)) {
-			needsExport = true;
-		}
-		return needsExport;
+		return createOrUpdateRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE, override);
 	}
 	
 	public Answer execute(CreateOrUpdateDomainCommand cmd) {
@@ -291,6 +307,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 				} else {
 					needsExport = true;
 				}
+			} else {
+				s_logger.warn("Domain " + cmd.getDomainName() + " already exist.");
 			}
 			return new Answer(cmd);
 		} catch (GloboDnsException e) {
@@ -308,7 +326,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 	 * @param bindZoneName
 	 * @return true if record exists and was removed.
 	 */
-	protected boolean removeRecord(String recordName, String bindZoneName, boolean reverse) {
+	protected boolean removeRecord(String recordName, String recordValue, String bindZoneName, boolean reverse, boolean override) {
 		Domain domain = searchDomain(bindZoneName, reverse);
 		if (domain == null) {
 			s_logger.warn("Domain " + bindZoneName + " doesn't exists in GloboDNS. Record " + recordName + " has already been removed.");
@@ -318,9 +336,14 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		if (record == null) {
 			s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " has already been removed.");
 			return false;
+		} else {
+			if (!override && !record.getContent().equals(recordValue)) {
+				s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " have different value from " + recordValue + " and override is not enable. I will not delete it.");
+				return false;
+			}
+			_globoDns.getRecordAPI().removeRecord(record.getId());
 		}
 		
-		_globoDns.getRecordAPI().removeRecord(record.getId());
 		return true;
 	}
 
@@ -332,7 +355,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 	 * @param type
 	 * @return if record was created or updated.
 	 */
-	private boolean createOrUpdateRecord(Long domainId, String name, String ip, String type) {
+	private boolean createOrUpdateRecord(Long domainId, String name, String ip, String type, boolean override) {
 		Record record = this.searchRecord(name, domainId);
 		if (record == null) {
 			// Create new record
@@ -340,11 +363,15 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			s_logger.info("Created record " + name + " in domain " + domainId);
 		} else {
 			if (!ip.equals(record.getContent())) {
-				// ip is incorrect. Fix.
-				_globoDns.getRecordAPI().updateRecord(record.getId(), domainId, name, ip);
+				if (Boolean.TRUE.equals(override)) {
+					// ip is incorrect. Fix.
+					_globoDns.getRecordAPI().updateRecord(record.getId(), domainId, name, ip);
+				} else {
+					return false;
+				}
 			}
 		}
-		return record != null;
+		return true;
 	}
 	
 	/**

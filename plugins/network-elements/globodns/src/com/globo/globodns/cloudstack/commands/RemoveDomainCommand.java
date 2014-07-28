@@ -22,8 +22,11 @@ public class RemoveDomainCommand extends Command {
 	
 	private String networkDomain;
 	
-	public RemoveDomainCommand(String networkDomain) {
+	private boolean override;
+	
+	public RemoveDomainCommand(String networkDomain, boolean override) {
 		this.networkDomain = networkDomain;
+		this.override = override;
 	}
 	
 	@Override
@@ -33,5 +36,9 @@ public class RemoveDomainCommand extends Command {
 	
 	public String getNetworkDomain() {
 		return this.networkDomain;
+	}
+	
+	public boolean isOverride() {
+		return override;
 	}
 }

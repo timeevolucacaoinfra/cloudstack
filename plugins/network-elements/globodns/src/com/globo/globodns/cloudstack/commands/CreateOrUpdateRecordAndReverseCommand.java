@@ -27,12 +27,15 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 	private String networkDomain;
 	
 	private Long reverseTemplateId;
+	
+	private boolean override;
 
-	public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId) {
+	public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId, boolean override) {
 		this.recordName = recordName;
 		this.recordIp = recordIp;
 		this.networkDomain = networkDomain;
 		this.reverseTemplateId = reverseTemplateId;
+		this.override = override;
 	}
 	
 	@Override
@@ -54,6 +57,10 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 
 	public Long getReverseTemplateId() {
 		return reverseTemplateId;
+	}
+	
+	public boolean isOverride() {
+		return override;
 	}
 
 }

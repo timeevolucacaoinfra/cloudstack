@@ -26,10 +26,13 @@ public class RemoveRecordCommand extends Command {
 	
 	private String networkDomain;
 	
-	public RemoveRecordCommand(String recordName, String recordIp, String networkDomain) {
+	private boolean override;
+	
+	public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean override) {
 		this.recordName = recordName;
 		this.recordIp = recordIp;
 		this.networkDomain = networkDomain;
+		this.override = override;
 	}
 	
 	@Override
@@ -41,24 +44,16 @@ public class RemoveRecordCommand extends Command {
 		return recordName;
 	}
 
-	public void setRecordName(String recordName) {
-		this.recordName = recordName;
-	}
-
 	public String getRecordIp() {
 		return recordIp;
-	}
-
-	public void setRecordIp(String recordIp) {
-		this.recordIp = recordIp;
 	}
 
 	public String getNetworkDomain() {
 		return networkDomain;
 	}
 
-	public void setNetworkDomain(String networkDomain) {
-		this.networkDomain = networkDomain;
+	public boolean isOverride() {
+		return override;
 	}
 	
 }

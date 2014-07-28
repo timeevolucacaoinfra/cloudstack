@@ -87,6 +87,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
 	
 	private static final ConfigKey<Long> GloboDNSTemplateId = new ConfigKey<Long>("Advanced", Long.class, "globodns.domain.templateid", "1", "Template id to be used when creating domains in GloboDNS", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Boolean> GloboDNSOverride = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.override.entries", "true", "Allow GloboDns to override entries that already exist", true, ConfigKey.Scope.Global);
 	
 	// DAOs
 	@Inject
@@ -151,7 +152,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
 		}
 		
-		CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(vmHostname, nic.getIp4Address(), network.getNetworkDomain(), GloboDNSTemplateId.value());
+		CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(vmHostname, nic.getIp4Address(), network.getNetworkDomain(), GloboDNSTemplateId.value(), GloboDNSOverride.value());
 		callCommand(cmd, zoneId);
     	return true;
     }
@@ -172,7 +173,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 					"Could not find zone associated to this network");
 		}
 		
-		RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), nic.getIp4Address(), network.getNetworkDomain());
+		RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), nic.getIp4Address(), network.getNetworkDomain(), GloboDNSOverride.value());
 		callCommand(cmd, zoneId);
         return true;
     }
@@ -192,7 +193,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 					"Could not find zone associated to this network");
 		}
 		
-		RemoveDomainCommand cmd = new RemoveDomainCommand(network.getNetworkDomain());
+		RemoveDomainCommand cmd = new RemoveDomainCommand(network.getNetworkDomain(), GloboDNSOverride.value());
 		callCommand(cmd, zoneId);
         return true;
     }
