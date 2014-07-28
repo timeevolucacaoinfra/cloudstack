@@ -43,7 +43,7 @@ public class GloboDnsResourceTest {
 
 	@Before
 	public void setUp() throws Exception {
-        ComponentContext.initComponentsLifeCycle();
+        // ComponentContext.initComponentsLifeCycle();
         
         String name = "GloboDNS";
         Map<String, Object> params = new HashMap<String, Object>();
@@ -95,13 +95,12 @@ public class GloboDnsResourceTest {
     	reverseDomain.getDomainAttributes().setName(reverseDomainName);
     	List<Domain> reverseDomainList = new ArrayList<Domain>();
     	reverseDomainList.add(reverseDomain);
-    	when(_domainApi.listByQuery(reverseDomainName)).thenReturn(reverseDomainList);
+    	when(_domainApi.listReverseByQuery(reverseDomainName)).thenReturn(reverseDomainList);
     	
     	Record record = new Record();
     	record.getTypeARecordAttributes().setName(recordName);
     	record.getTypeARecordAttributes().setContent(recordIp);
     	List<Record> recordList = new ArrayList<Record>();
-    	recordList.add(record);
     	when(_recordApi.listByQuery(domain.getId(), recordName)).thenReturn(recordList);
     	when(_recordApi.createRecord(domain.getId(), recordName, recordIp, "A")).thenReturn(record);
 
@@ -109,11 +108,10 @@ public class GloboDnsResourceTest {
     	reverseRecord.getTypePTRRecordAttributes().setName(recordIp);
     	record.getTypeARecordAttributes().setContent(reverseRecordName);
     	List<Record> reverseRecordList = new ArrayList<Record>();
-    	reverseRecordList.add(reverseRecord);
-    	when(_recordApi.listByQuery(domain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
+    	when(_recordApi.listByQuery(reverseDomain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
     	when(_recordApi.createRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, "PTR")).thenReturn(reverseRecord);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName));
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, 1L));
     	assertNotNull(answer);
     	assertEquals(true, answer.getResult());
     	verify(_exportApi, times(1)).scheduleExport();
@@ -127,10 +125,10 @@ public class GloboDnsResourceTest {
     	
     	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName));
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, 1L));
     	assertNotNull(answer);
+    	assertEquals("Domain " + domainName + " doesn't exist in GloboDns", answer.getDetails());
     	assertEquals(false, answer.getResult());
-    	assertEquals("Invalid domain", answer.getDetails());
     	verify(_exportApi, never()).scheduleExport();
     }
 
@@ -156,7 +154,7 @@ public class GloboDnsResourceTest {
     	reverseDomain.getDomainAttributes().setName(reverseDomainName);
     	List<Domain> reverseDomainList = new ArrayList<Domain>();
     	reverseDomainList.add(reverseDomain);
-    	when(_domainApi.listByQuery(reverseDomainName)).thenReturn(reverseDomainList);
+    	when(_domainApi.listReverseByQuery(reverseDomainName)).thenReturn(reverseDomainList);
     	
     	Record record = new Record();
     	record.getTypeARecordAttributes().setName(recordName);
@@ -170,10 +168,10 @@ public class GloboDnsResourceTest {
     	record.getTypeARecordAttributes().setContent(reverseRecordName);
     	List<Record> reverseRecordList = new ArrayList<Record>();
     	reverseRecordList.add(reverseRecord);
-    	when(_recordApi.listByQuery(domain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
+    	when(_recordApi.listByQuery(reverseDomain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
     	when(_recordApi.createRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, "PTR")).thenReturn(reverseRecord);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName));
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName, 1L));
     	verify(_recordApi, times(1)).updateRecord(record.getId(), domain.getId(), recordName, newRecordIp);
     	assertNotNull(answer);
     	assertEquals(true, answer.getResult());
