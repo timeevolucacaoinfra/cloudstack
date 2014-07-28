@@ -4,6 +4,8 @@ UPDATE `cloud`.`host` SET `name` = 'GloboDns', `resource` = 'com.globo.globodns.
 UPDATE `cloud`.`ntwk_offering_service_map` SET `provider` = 'GloboDns' WHERE `provider` = 'DnsAPI' AND `service` = 'Dns';
 UPDATE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.guid WHERE host_details.host_id = host.id AND host.name = 'GloboDns' AND host_details.name = 'guid';
 UPDATE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.name WHERE host_details.host_id = host.id AND host.name = 'GloboDns' AND host_details.name = 'name';
+UPDATE `cloud`.`physical_network_service_providers` SET `provider_name` = 'GloboDns' WHERE `provider_name` = 'DnsAPI';
+UPDATE `cloud`.`ntwk_service_map` SET `provider` = 'GloboDns' WHERE `service` = 'Dns' AND `provider` = 'DnsAPI';
 DELETE FROM `cloud`.`configuration` WHERE `name` = 'dnsapi.domain.templateid';
 
 """
@@ -14,5 +16,7 @@ UPDATE `cloud`.`ntwk_offering_service_map` SET `provider` = 'DnsAPI' WHERE provi
 INSERT INTO `cloud`.`configuration` (category, instance, component, name, value, description, default_value) VALUES ('Network', 'DEFAULT', 'management-server', 'dnsapi.domain.templateid', 1, 'Template id to be used when creating domains in DNS API', 1);
 UPDATE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.guid WHERE host_details.host_id = host.id AND host.name = 'DnsAPI' AND host_details.name = 'guid';
 UPDATE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.name WHERE host_details.host_id = host.id AND host.name = 'DnsAPI' AND host_details.name = 'name';
+UPDATE `cloud`.`physical_network_service_providers` SET `provider_name` = 'DnsAPI' WHERE `provider_name` = 'GloboDns';
+UPDATE `cloud`.`ntwk_service_map` SET `provider` = 'DnsAPI' WHERE `service` = 'Dns' AND `provider` = 'GloboDns';
 DELETE FROM `cloud`.`configuration` WHERE `name` = 'globodns.domain.templateid';
 """
