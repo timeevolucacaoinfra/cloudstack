@@ -43,7 +43,7 @@ public class GloboDnsResourceTest {
 
 	@Before
 	public void setUp() throws Exception {
-        ComponentContext.initComponentsLifeCycle();
+        // ComponentContext.initComponentsLifeCycle();
         
         String name = "GloboDNS";
         Map<String, Object> params = new HashMap<String, Object>();
