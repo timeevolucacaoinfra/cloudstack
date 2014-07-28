@@ -75,7 +75,7 @@ public class GloboDnsResourceTest {
     }
     
     @Test
-    public void testCreateRecordAndReverseWhenDomainExists() throws Exception {
+    public void testCreateRecordAndReverseWhenDomainExistsAndOverrideIsTrue() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
@@ -111,7 +111,7 @@ public class GloboDnsResourceTest {
     	when(_recordApi.listByQuery(reverseDomain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
     	when(_recordApi.createRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, "PTR")).thenReturn(reverseRecord);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, 1L));
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, 1L, true));
     	assertNotNull(answer);
     	assertEquals(true, answer.getResult());
     	verify(_exportApi, times(1)).scheduleExport();
@@ -125,7 +125,7 @@ public class GloboDnsResourceTest {
     	
     	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, 1L));
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, 1L, true));
     	assertNotNull(answer);
     	assertEquals("Domain " + domainName + " doesn't exist in GloboDns", answer.getDetails());
     	assertEquals(false, answer.getResult());
@@ -133,7 +133,7 @@ public class GloboDnsResourceTest {
     }
 
     @Test
-    public void testUpdateRecordAndReverseWhenDomainExists() throws Exception {
+    public void testUpdateRecordAndReverseWhenDomainExistsAndOverrideIsTrue() throws Exception {
     	String recordName = "recordname";
     	String oldRecordIp = "10.10.10.10";
     	String newRecordIp = "20.20.20.20";
@@ -171,7 +171,7 @@ public class GloboDnsResourceTest {
     	when(_recordApi.listByQuery(reverseDomain.getId(), reverseRecordName)).thenReturn(reverseRecordList);
     	when(_recordApi.createRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, "PTR")).thenReturn(reverseRecord);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName, 1L));
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName, 1L, true));
     	verify(_recordApi, times(1)).updateRecord(record.getId(), domain.getId(), recordName, newRecordIp);
     	assertNotNull(answer);
     	assertEquals(true, answer.getResult());
