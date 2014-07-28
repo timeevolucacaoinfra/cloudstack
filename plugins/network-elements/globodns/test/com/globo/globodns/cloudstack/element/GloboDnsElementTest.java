@@ -1,7 +1,7 @@
 package com.globo.globodns.cloudstack.element;
 
-
 import static org.mockito.Mockito.*;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 
@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.invocation.InvocationOnMock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScan.Filter;
@@ -29,6 +30,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.agent.AgentManager;
+import com.cloud.agent.api.Answer;
+import com.cloud.agent.api.Command;
 import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.deploy.DeployDestination;
@@ -36,8 +39,11 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceUnavailableException;
+import com.cloud.host.Host.Type;
+import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
 import com.cloud.network.Network;
+import com.cloud.network.Network.Provider;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.resource.ResourceManager;
@@ -52,6 +58,7 @@ import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globodns.cloudstack.GloboDnsNetworkVO;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.dao.GloboDnsNetworkDao;
 import com.globo.globodns.cloudstack.dao.GloboDnsVirtualMachineDao;
 
@@ -113,7 +120,7 @@ public class GloboDnsElementTest {
 
     @Test
 	public void testGetCapabilities() {
-		//fail("Not yet implemented");
+//		fail("Not yet implemented");
 	}
 
 	@Test(expected=InvalidParameterValueException.class)
@@ -132,7 +139,6 @@ public class GloboDnsElementTest {
 		_globodnsElement.prepare(network, nic, vm, dest, context);
 	}
 
-/*
 	@Test
 	public void testPrepareMethodCallGloboDnsToRegisterHostName() throws Exception {
 		Network network = mock(Network.class);
@@ -150,64 +156,24 @@ public class GloboDnsElementTest {
 		DeployDestination dest = new DeployDestination();
 		ReservationContext context = new ReservationContextImpl(null, null, user);
 		
-//		MockDNSAPI globodnsclient = new MockDNSAPI();
-//		globodnsclient.registerFakeRequest(HttpMethod.GET, "/domains/0/records.json?query=vm-name", "{}");
-		
-//		final GloboDnsResource globodnsResource = new GloboDnsResource();
-//		Map<String, Object> params = new HashMap<String, Object>();
-//		params.put("globodnsclient", globodnsclient);
-//		globodnsResource.configure("globodns", params);
-		
 		HostVO hostVO = mock(HostVO.class);
 		when(hostVO.getId()).thenReturn(globoDnsHostId);
 		when(_hostDao.findByTypeNameAndZoneId(eq(zoneId), eq(Provider.GloboDns.getName()), eq(Type.L2Networking))).thenReturn(hostVO);
 
-		when(_agentMgr.easySend(eq(globoDnsHostId), isA(ListRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
+		when(_agentMgr.easySend(eq(globoDnsHostId), isA(CreateOrUpdateRecordAndReverseCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
 
 			@Override
 			public Answer answer(InvocationOnMock invocation) throws Throwable {
 				Command cmd = (Command) invocation.getArguments()[1];
-				return new GloboDnsRecordListResponse(cmd, Collections.<Record>emptyList());
+				return new Answer(cmd);
 			}
 		});
 
-		when(_agentMgr.easySend(eq(globoDnsHostId), isA(CreateRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
-
-			@Override
-			public Answer answer(InvocationOnMock invocation) throws Throwable {
-				Command cmd = (Command) invocation.getArguments()[1];
-				Record record = new Record();
-				record.getTypeARecordAttributes().setId(25L);
-				return new GloboDnsRecordResponse(cmd, record);
-			}
-		});
-
-		when(_agentMgr.easySend(eq(globoDnsHostId), isA(GetDomainInfoCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
-
-			@Override
-			public Answer answer(InvocationOnMock invocation) throws Throwable {
-				Command cmd = (Command) invocation.getArguments()[1];
-				Domain domain = new Domain();
-				domain.getDomainAttributes().setId(24L);
-				return new GloboDnsDomainResponse(cmd, domain);
-			}
-		});
-		
-//		when(_agentMgr.easySend(eq(napiHostId), any(GetDomainInfoCommand.class))).thenReturn(null);
-//		when(_agentMgr.easySend(eq(napiHostId), any(Command.class))).then(new org.mockito.stubbing.Answer<Answer>() {
-//
-//			@Override
-//			public Answer answer(InvocationOnMock invocation) throws Throwable {
-//				return globodnsResource.executeRequest((Command) invocation.getArguments()[1]);
-//			}
-//			
-//		});
-		
 		_globodnsElement.prepare(network, nic, vm, dest, context);
-		verify(_globodnsVMDao, atLeastOnce()).persist(isA(GloboDnsVirtualMachineVO.class));
+		verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(CreateOrUpdateRecordAndReverseCommand.class));
 	}
-*/
-    @Configuration
+
+	@Configuration
     @ComponentScan(basePackageClasses = {GloboDnsElement.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
 
