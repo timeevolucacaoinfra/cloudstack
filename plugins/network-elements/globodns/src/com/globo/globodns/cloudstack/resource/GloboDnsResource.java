@@ -197,13 +197,14 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			if (domain != null) {
 				if (!cmd.isOverride()) {
 					for (Record record: _globoDns.getRecordAPI().listAll(domain.getId())) {
-						if (record.getTypeNSRecordAttributes() == null) {
+						if (record.getTypeNSRecordAttributes().getId() == null) {
 							s_logger.warn("There are records in domain " + cmd.getNetworkDomain() + " and override is not enable. I will not delete this domain.");
 							return new Answer(cmd, true, "Domain keeped"); 
 						}
 					}
 				}
 				_globoDns.getDomainAPI().removeDomain(domain.getId());
+				scheduleExportChangesToBind();
 			} else {
 				s_logger.warn("Domain " + cmd.getNetworkDomain() + " already been deleted.");
 			}

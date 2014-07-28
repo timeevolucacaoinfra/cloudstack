@@ -59,6 +59,7 @@ import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globodns.cloudstack.GloboDnsNetworkVO;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
+import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 import com.globo.globodns.cloudstack.dao.GloboDnsNetworkDao;
 import com.globo.globodns.cloudstack.dao.GloboDnsVirtualMachineDao;
 
@@ -171,6 +172,39 @@ public class GloboDnsElementTest {
 
 		_globodnsElement.prepare(network, nic, vm, dest, context);
 		verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(CreateOrUpdateRecordAndReverseCommand.class));
+	}
+
+	@Test
+	public void testReleaseMethodCallResource() throws Exception {
+		Network network = mock(Network.class);
+		when(network.getDataCenterId()).thenReturn(zoneId);
+		when(network.getId()).thenReturn(1l);
+		NicProfile nic = new NicProfile();
+		nic.setIp4Address("10.11.12.13");
+		VirtualMachineProfile vm = mock(VirtualMachineProfile.class);
+		when(vm.getHostName()).thenReturn("vm-name");
+		when(vm.getType()).thenReturn(VirtualMachine.Type.User);
+		DataCenterVO dataCenterVO = mock(DataCenterVO.class);
+		when(dataCenterVO.getId()).thenReturn(zoneId);
+		when(_datacenterDao.findById(zoneId)).thenReturn(dataCenterVO);
+		when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
+		ReservationContext context = new ReservationContextImpl(null, null, user);
+		
+		HostVO hostVO = mock(HostVO.class);
+		when(hostVO.getId()).thenReturn(globoDnsHostId);
+		when(_hostDao.findByTypeNameAndZoneId(eq(zoneId), eq(Provider.GloboDns.getName()), eq(Type.L2Networking))).thenReturn(hostVO);
+
+		when(_agentMgr.easySend(eq(globoDnsHostId), isA(RemoveRecordCommand.class))).then(new org.mockito.stubbing.Answer<Answer>() {
+
+			@Override
+			public Answer answer(InvocationOnMock invocation) throws Throwable {
+				Command cmd = (Command) invocation.getArguments()[1];
+				return new Answer(cmd);
+			}
+		});
+
+		_globodnsElement.release(network, nic, vm, context);
+		verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(RemoveRecordCommand.class));
 	}
 
 	@Configuration
