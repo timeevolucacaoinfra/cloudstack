@@ -123,7 +123,8 @@ StartJetty
 PrintLog INFO "Sync marvin"
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --load ${globo_test_basedir}/test_dns_api.py
-tail -1 $(ls -dtr /tmp/[0-9]* | tail -1)/results.txt | grep -qw 'OK'
+results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
+tail -1 ${results_file} | grep -qw 'OK'
 retval=$?
 if [[ $retval -eq 0 ]]; then
     ShutdownJetty
@@ -131,5 +132,6 @@ if [[ $retval -eq 0 ]]; then
     exit 0
 else
     PrintLog ERROR "Tests failed!!!"
+    cat ${results_file}
     exit 1
 fi
