@@ -246,7 +246,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		try {
 			Domain domain = searchDomain(cmd.getNetworkDomain(), false);
 			if (domain == null) {
-				return new Answer(cmd, false, "Domain " + cmd.getNetworkDomain() + " doesn't exist in GloboDns");
+				domain = _globoDns.getDomainAPI().createDomain(cmd.getNetworkDomain(), cmd.getReverseTemplateId(), DEFAULT_AUTHORITY_TYPE);
+				s_logger.warn("Domain " + cmd.getNetworkDomain() + " doesn't exist, maybe someone removed it. It was automatically created with template " + cmd.getReverseTemplateId());
 			}
 			
 			boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), IPV4_RECORD_TYPE, cmd.isOverride());
