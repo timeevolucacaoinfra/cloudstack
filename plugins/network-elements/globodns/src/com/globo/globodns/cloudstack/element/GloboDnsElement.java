@@ -53,7 +53,6 @@ import com.cloud.network.Network.Provider;
 import com.cloud.network.Network.Service;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
-import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.offering.NetworkOffering;
@@ -64,8 +63,6 @@ import com.cloud.resource.UnableDeleteHostException;
 import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
-import com.cloud.utils.db.TransactionCallback;
-import com.cloud.utils.db.TransactionCallbackNoReturn;
 import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -73,35 +70,13 @@ import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
-import com.globo.globodns.client.model.Domain;
-import com.globo.globodns.client.model.Export;
-import com.globo.globodns.client.model.Record;
-import com.globo.globodns.cloudstack.GloboDnsNetworkVO;
-import com.globo.globodns.cloudstack.GloboDnsVirtualMachineVO;
 import com.globo.globodns.cloudstack.api.AddGloboDnsHostCmd;
-import com.globo.globodns.cloudstack.commands.CreateDomainCommand;
-import com.globo.globodns.cloudstack.commands.CreateRecordCommand;
-import com.globo.globodns.cloudstack.commands.CreateReverseDomainCommand;
-import com.globo.globodns.cloudstack.commands.GetDomainInfoCommand;
-import com.globo.globodns.cloudstack.commands.GetRecordInfoCommand;
-import com.globo.globodns.cloudstack.commands.GetReverseDomainInfoCommand;
-import com.globo.globodns.cloudstack.commands.ListDomainCommand;
-import com.globo.globodns.cloudstack.commands.ListRecordCommand;
-import com.globo.globodns.cloudstack.commands.ListReverseDomainCommand;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateDomainCommand;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
-import com.globo.globodns.cloudstack.commands.RemoveReverseDomainCommand;
-import com.globo.globodns.cloudstack.commands.ScheduleExportCommand;
 import com.globo.globodns.cloudstack.commands.SignInCommand;
-import com.globo.globodns.cloudstack.commands.UpdateRecordCommand;
-import com.globo.globodns.cloudstack.dao.GloboDnsNetworkDao;
-import com.globo.globodns.cloudstack.dao.GloboDnsVirtualMachineDao;
 import com.globo.globodns.cloudstack.resource.GloboDnsResource;
-import com.globo.globodns.cloudstack.response.GloboDnsDomainListResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsDomainResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsExportResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsRecordListResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsRecordResponse;
 
 @Component
 @Local(NetworkElement.class)
@@ -112,24 +87,13 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 	private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
 	
 	private static final ConfigKey<Long> GloboDNSTemplateId = new ConfigKey<Long>("Advanced", Long.class, "globodns.domain.templateid", "1", "Template id to be used when creating domains in GloboDNS", true, ConfigKey.Scope.Global);
-	
-	private static final String AUTHORITY_TYPE = "M";
-	
-	private static final String RECORD_TYPE = "A";
-	private static final String REVERSE_RECORD_TYPE = "PTR";
-	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
+	private static final ConfigKey<Boolean> GloboDNSOverride = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.override.entries", "true", "Allow GloboDns to override entries that already exist", true, ConfigKey.Scope.Global);
 	
 	// DAOs
 	@Inject
 	DataCenterDao _dcDao;
 	@Inject
-	GloboDnsNetworkDao _globoDnsNetworkDao;
-	@Inject
-	GloboDnsVirtualMachineDao _globoDnsVmDao;
-	@Inject
 	HostDao _hostDao;
-	@Inject
-	NetworkDao _networkDao;
 	@Inject
 	PhysicalNetworkDao _physicalNetworkDao;
 	
@@ -139,71 +103,28 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 	@Inject
 	ResourceManager _resourceMgr;
 	
-    public GloboDnsElement() {
-
-    }
-
-    @Override
-    public Map<Service, Map<Capability, String>> getCapabilities() {
-        return capabilities;
-    }
-    
-    private static Map<Service, Map<Capability, String>> setCapabilities() {
-    	Map<Service, Map<Capability, String>> caps = new HashMap<Service, Map<Capability, String>>();
-    	Map<Capability, String> dnsCapabilities = new HashMap<Capability, String>();
-    	dnsCapabilities.put(Capability.AllowDnsSuffixModification, "true");
-        caps.put(Service.Dns, dnsCapabilities);
-        return caps;
-    }
-
-    @Override
-    public Provider getProvider() {
-        return Provider.GloboDns;
-    }
-    
     protected boolean isTypeSupported(VirtualMachine.Type type) {
     	return type == VirtualMachine.Type.User || type == VirtualMachine.Type.ConsoleProxy || type == VirtualMachine.Type.DomainRouter;
     }
     
-    protected Domain setupDomainAndReverseDomain(Network network) {
+    @Override
+    @DB
+    public boolean implement(final Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
+    InsufficientCapacityException {
+    	
 		Long zoneId = network.getDataCenterId();
     	DataCenter zone = _dcDao.findById(zoneId);
 		if (zone == null) {
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
-		
-    	s_logger.debug("Creating domain " + network.getNetworkDomain() + " for network " + network);
-    	Domain domain = this.getOrCreateDomain(zone.getId(), network.getNetworkDomain(), false);
-
-    	/* Create new reverse domain in GloboDNS */
-    	String[] octets = network.getCidr().split("\\/")[0].split("\\.");
-    	String reverseDomainName = octets[2] + "." + octets[1] + "." + octets[0] + "." + REVERSE_DOMAIN_SUFFIX;
-    	s_logger.debug("Creating reverse domain " + reverseDomainName);
-    	Domain reverseDomain = this.getOrCreateDomain(zone.getId(), reverseDomainName, true);
-    	
-    	/* Save in the database */
-    	this.saveDomainDB(network, domain, reverseDomain);
-    	
-    	return domain;
+		CreateOrUpdateDomainCommand cmd = new CreateOrUpdateDomainCommand(network.getNetworkDomain(), GloboDNSTemplateId.value());
+		callCommand(cmd, zoneId);
+		return true;
     }
-
-    @Override
-    @DB
-    public boolean implement(final Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException,
-    InsufficientCapacityException {
-    	Transaction.execute(new TransactionCallbackNoReturn() {
-
-			@Override
-			public void doInTransactionWithoutResult(TransactionStatus status) {
-				// Configure network domain
-				setupDomainAndReverseDomain(network);
-
-		    	/* Export changes to Bind in GloboDNS */
-		    	scheduleBindExport(network.getDataCenterId());
-			}
-    	});
-        return true;
+    
+    protected String hostNameOfVirtualMachine(VirtualMachineProfile vm) {
+    	return vm.getHostName().toLowerCase();
     }
 
     @Override
@@ -222,59 +143,17 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
+
+		/* Create new A record in GloboDNS */
+		// We allow only lower case names in DNS, so force lower case names for VMs
+		String vmName = vm.getHostName();
+		String vmHostname = hostNameOfVirtualMachine(vm);
+		if (!vmName.equals(vmHostname) && vm.getType() == VirtualMachine.Type.User) {
+			throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
+		}
 		
-		Transaction.execute(new TransactionCallbackNoReturn() {
-			
-			@Override
-			public void doInTransactionWithoutResult(TransactionStatus status) {
-				// VirtualRouter is created before implement method was called.
-//				setupDomainAndReverseDomain(network);
-				
-				GloboDnsNetworkVO globoDnsNetworkVO = getGloboDnsNetworkVO(network);
-				if (globoDnsNetworkVO == null) {
-					throw new CloudRuntimeException("Could not obtain DNS mapping for this network");
-				}
-
-				long domainId = globoDnsNetworkVO.getGloboDnsDomainId();
-				long reverseDomainId = globoDnsNetworkVO.getGloboDnsReverseDomainId();
-				
-				/* Create new A record in GloboDNS */
-				// We allow only lower case names in DNS, so force lower case names for VMs
-				String vmName = vm.getHostName();
-				String vmNameLowerCase = vmName.toLowerCase();
-				if (!vmName.equals(vmNameLowerCase) && vm.getType() == VirtualMachine.Type.User) {
-					throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
-				}
-				
-				String recordName = vmNameLowerCase;
-		    	Record createdRecord = createOrUpdateRecord(zone.getId(), domainId, recordName, nic.getIp4Address(), false);
-		    	
-				/* Create new PTR record in GloboDNS */
-				// Need domain name for full reverse record content
-		    	GetDomainInfoCommand cmdInfo = new GetDomainInfoCommand(domainId);
-		    	Answer answerInfo = callCommand(cmdInfo, zone.getId());
-		    	Domain domain = ((GloboDnsDomainResponse) answerInfo).getDomain();
-		    	if (domain == null) {
-		    		// Domain doesn't exist in GloboDNS
-		    		throw new CloudRuntimeException("Could not get Domain info from GloboDNS");
-		    	}
-		    	
-		    	String[] octets = nic.getIp4Address().split("\\.");
-				String reverseRecordName = octets[3];
-				String reverseRecordContent = recordName + "." + domain.getName();
-		    	
-				Record createdReverseRecord = createOrUpdateRecord(zone.getId(), reverseDomainId, reverseRecordName, reverseRecordContent, true);
-				
-		    	/* Save in the database */
-		    	// Save domain record
-		    	saveRecordDB(vm, domainId, createdRecord);
-		    	// Save reverse domain record
-		    	saveRecordDB(vm, reverseDomainId, createdReverseRecord);
-
-		    	/* Export changes to Bind in GloboDNS */
-		    	scheduleBindExport(zone.getId());
-			}
-		});
+		CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(vmHostname, nic.getIp4Address(), network.getNetworkDomain(), GloboDNSTemplateId.value(), GloboDNSOverride.value());
+		callCommand(cmd, zoneId);
     	return true;
     }
 
@@ -294,47 +173,9 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 					"Could not find zone associated to this network");
 		}
 		
-		boolean result = Transaction.execute(new TransactionCallback<Boolean>() {
-
-			@Override
-			public Boolean doInTransaction(TransactionStatus status) {
-				GloboDnsNetworkVO globoDnsNetworkVO = getGloboDnsNetworkVO(network);
-				if (globoDnsNetworkVO == null) {
-					// Don't have mapping for domain anymore, should let Cloudstack clean everything up
-					return true;
-				}
-
-				long domainId = globoDnsNetworkVO.getGloboDnsDomainId();
-				long reverseDomainId = globoDnsNetworkVO.getGloboDnsReverseDomainId();
-
-				GloboDnsVirtualMachineVO globoDnsVirtualMachineVODomain = getGloboDnsVirtualMachineVO(vm.getId(), domainId);
-				GloboDnsVirtualMachineVO globoDnsVirtualMachineVOReverseDomain = getGloboDnsVirtualMachineVO(vm.getId(), reverseDomainId);
-				if (globoDnsVirtualMachineVODomain == null || globoDnsVirtualMachineVOReverseDomain == null) {
-					// Don't have mapping for VMs anymore, should let Cloudstack clean everything up
-					return true;
-				}
-
-				long recordId = globoDnsVirtualMachineVODomain.getGloboDnsRecordId();
-				long reverseRecordId = globoDnsVirtualMachineVOReverseDomain.getGloboDnsRecordId();
-				
-				/* Remove record from GloboDNS */
-				removeRecord(zone.getId(), recordId);
-		    	
-		    	/* Remove reverse record from GloboDNS */
-				removeRecord(zone.getId(), reverseRecordId);
-				
-		    	/* Export changes to Bind in GloboDNS */
-		    	scheduleBindExport(zone.getId());
-		    	
-		    	/* Remove entries from mapping table */
-		    	_globoDnsVmDao.remove(globoDnsVirtualMachineVODomain.getId());
-		    	_globoDnsVmDao.remove(globoDnsVirtualMachineVOReverseDomain.getId());
-		    	
-		    	return true;
-			}
-		});
-    	
-        return result;
+		RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), nic.getIp4Address(), network.getNetworkDomain(), GloboDNSOverride.value());
+		callCommand(cmd, zoneId);
+        return true;
     }
 
     @Override
@@ -352,38 +193,48 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 					"Could not find zone associated to this network");
 		}
 		
-		boolean result = Transaction.execute(new TransactionCallback<Boolean>() {
-			
-			@Override
-			public Boolean doInTransaction(TransactionStatus status) {
-				GloboDnsNetworkVO globoDnsNetworkVO = getGloboDnsNetworkVO(network);
-				if (globoDnsNetworkVO == null) {
-					// Don't have mapping for domain anymore, should let Cloudstack clean everything up
-					return true;
-				}
-
-				long domainId = globoDnsNetworkVO.getGloboDnsDomainId();
-				long reverseDomainId = globoDnsNetworkVO.getGloboDnsReverseDomainId();
-				    	
-				/* Remove domain from GloboDNS */
-				removeDomain(zone.getId(), domainId, false);
-		    	
-		    	/* Remove reverse domain from GloboDNS */
-				removeDomain(zone.getId(), reverseDomainId, true);
-				
-		    	/* Export changes to Bind in GloboDNS */
-		    	scheduleBindExport(zone.getId());
-		    	
-		    	/* Remove entry from mapping table */
-		    	_globoDnsNetworkDao.remove(globoDnsNetworkVO.getId());
-		    	
-		    	return true;
-			}
-		});
-    	
-        return result;
+		RemoveDomainCommand cmd = new RemoveDomainCommand(network.getNetworkDomain(), GloboDNSOverride.value());
+		callCommand(cmd, zoneId);
+        return true;
+    }
+    
+    ///////// Provider control methods ////////////
+	private Answer callCommand(Command cmd, Long zoneId) {
+		
+		HostVO globoDnsHost = getGloboDnsHost(zoneId);
+		if (globoDnsHost == null) {
+			throw new CloudRuntimeException("Could not find the GloboDNS resource");
+		}
+		
+		Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
+		if (answer == null || !answer.getResult()) {
+			String msg = "Error executing command " + cmd;
+			msg = answer == null ? msg : answer.getDetails();
+			throw new CloudRuntimeException(msg);
+		}
+		
+		return answer;
+	}
+	
+    @Override
+    public Map<Service, Map<Capability, String>> getCapabilities() {
+        return capabilities;
+    }
+    
+    private static Map<Service, Map<Capability, String>> setCapabilities() {
+    	Map<Service, Map<Capability, String>> caps = new HashMap<Service, Map<Capability, String>>();
+    	Map<Capability, String> dnsCapabilities = new HashMap<Capability, String>();
+    	// FIXME
+    	dnsCapabilities.put(Capability.AllowDnsSuffixModification, "true");
+        caps.put(Service.Dns, dnsCapabilities);
+        return caps;
     }
 
+    @Override
+    public Provider getProvider() {
+        return Provider.GloboDns;
+    }
+    
     @Override
     public boolean isReady(PhysicalNetworkServiceProvider provider) {
         return true;
@@ -408,7 +259,20 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     public boolean verifyServicesCombination(Set<Service> services) {
         return true;
     }
+    
+    ////// Configurable methods /////////////
+	@Override
+	public String getConfigComponentName() {
+		return GloboDnsElement.class.getSimpleName();
+	}
 
+	@Override
+	public ConfigKey<?>[] getConfigKeys() {
+		return new ConfigKey<?>[] {GloboDNSTemplateId};
+	}
+
+
+    ////////// Resource/Host methods ////////////
 	@Override
 	public List<Class<?>> getCommands() {
 		List<Class<?>> cmdList = new ArrayList<Class<?>>();
@@ -450,23 +314,6 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         return true;
     }
     
-	private Answer callCommand(Command cmd, Long zoneId) {
-		
-		HostVO globoDnsHost = getGloboDnsHost(zoneId);
-		if (globoDnsHost == null) {
-			throw new CloudRuntimeException("Could not find the GloboDNS resource");
-		}
-		
-		Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
-		if (answer == null || !answer.getResult()) {
-			String msg = "Error executing command " + cmd;
-			msg = answer == null ? msg : answer.getDetails();
-			throw new CloudRuntimeException(msg);
-		}
-		
-		return answer;
-	}
-	
 	private HostVO getGloboDnsHost(Long zoneId) {
 		return _hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboDns.getName(), Type.L2Networking);
 	}
@@ -545,184 +392,4 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 		
 		return host;
 	}
-	
-	private GloboDnsNetworkVO getGloboDnsNetworkVO(Network network) {
-		return _globoDnsNetworkDao.findByNetworkId(network.getId());
-	}
-	
-	private GloboDnsVirtualMachineVO getGloboDnsVirtualMachineVO(long vmId, Long domainId) {
-		return _globoDnsVmDao.findByVirtualMachineIdAndDomainId(vmId, domainId);
-	}
-	
-	private Domain getOrCreateDomain(Long zoneId, String domainName, boolean reverse) {
-		Long templateId = GloboDNSTemplateId.value();
-		if (templateId == null) {
-			throw new CloudRuntimeException("TemplateId for domain is not set up in the global configs");
-		}
-
-    	// Check if domain already exists
-    	Command cmdList;
-    	if (reverse) {
-    		cmdList = new ListReverseDomainCommand(domainName);
-    	} else {
-    		cmdList = new ListDomainCommand(domainName);
-    	}
-    	Answer answerList = callCommand(cmdList, zoneId);
-    	List<Domain> domainList = ((GloboDnsDomainListResponse) answerList).getDomainList();
-    	if (domainList.size() == 0) {
-    		// Doesn't exist yet, create it
-    		Command cmdCreate;
-    		if (reverse) {
-    			cmdCreate = new CreateReverseDomainCommand(domainName, templateId, AUTHORITY_TYPE);
-    		} else {
-    			cmdCreate = new CreateDomainCommand(domainName, templateId, AUTHORITY_TYPE);
-    		}
-        	Answer answerCreateDomain = callCommand(cmdCreate, zoneId);
-        	return ((GloboDnsDomainResponse) answerCreateDomain).getDomain();
-    	} else if (domainList.size() == 1) {
-    		return domainList.get(0);
-    	} else {
-    		throw new CloudRuntimeException("Multiple domains already exist in GloboDNS");
-    	}
-	}
-		
-	private void removeDomain(Long zoneId, Long domainId, boolean reverse) {
-    	// Check if domain exists
-		Command cmdInfo;
-		if (reverse) {
-			cmdInfo = new GetReverseDomainInfoCommand(domainId);
-		} else {
-			cmdInfo = new GetDomainInfoCommand(domainId);
-		}
-    	Answer answerInfo = callCommand(cmdInfo, zoneId);
-    	Domain domain = ((GloboDnsDomainResponse) answerInfo).getDomain();
-    	if (domain == null) {
-    		// Domain doesn't exist in GloboDNS
-    		// Do nothing, continue
-    	} else {
-    		// Remove domain
-    		Command cmdRemove;
-    		if (reverse) {
-    			cmdRemove = new RemoveReverseDomainCommand(domainId);
-    		} else {
-    			cmdRemove = new RemoveDomainCommand(domainId);
-    		}
-    		callCommand(cmdRemove, zoneId);
-    	}
-	}
-		
-	private void saveDomainDB(Network network, Domain createdDomain, Domain reverseDomain) {
-		
-    	GloboDnsNetworkVO globoDnsNetworkVO = _globoDnsNetworkDao.findByNetworkId(network.getId());
-    	if (globoDnsNetworkVO == null) {
-    		// Entry in mapping table doesn't exist yet, create it
-    		globoDnsNetworkVO = new GloboDnsNetworkVO(network.getId(), createdDomain.getId(), reverseDomain.getId());
-    		_globoDnsNetworkDao.persist(globoDnsNetworkVO);
-    	} else {
-    		// An entry already exists
-    		if (globoDnsNetworkVO.getNetworkId() == network.getId() && globoDnsNetworkVO.getGloboDnsDomainId() == createdDomain.getId() && globoDnsNetworkVO.getGloboDnsReverseDomainId() == reverseDomain.getId()) {
-    			// All the same, entry already exists, nothing to do
-    			return;
-    		} else {
-    			// Outdated info, update it
-    			GloboDnsNetworkVO newGloboDnsNetworkVO = new GloboDnsNetworkVO(network.getId(), createdDomain.getId(), reverseDomain.getId());
-    			_globoDnsNetworkDao.update(globoDnsNetworkVO.getId(), newGloboDnsNetworkVO);
-    		}
-    	}
-	}
-	
-	private Record createOrUpdateRecord(Long zoneId, long domainId, String name, String content, boolean reverse) {
-		// Check if record already exists
-		ListRecordCommand cmdList;
-		if (reverse) {
-			cmdList = new ListRecordCommand(domainId, content);
-		} else {
-			cmdList = new ListRecordCommand(domainId, name);
-		}
-		Answer answerList = callCommand(cmdList, zoneId);
-		List<Record> recordList = ((GloboDnsRecordListResponse) answerList).getRecordList();
-		Command cmd;
-		if (recordList.size() == 0) {
-    		// Doesn't exist yet, create it
-			if (reverse) {
-	        	cmd = new CreateRecordCommand(domainId, name, content, REVERSE_RECORD_TYPE); // Reverse record
-			} else {
-	        	cmd = new CreateRecordCommand(domainId, name, content, RECORD_TYPE); // Regular record
-	    	}
-		} else if (recordList.size() == 1) {
-			// Record already exists, we should update it with newer info
-			if (reverse) {
-				cmd = new UpdateRecordCommand(domainId, recordList.get(0).getId(), name, content, REVERSE_RECORD_TYPE);
-			} else {
-				cmd = new UpdateRecordCommand(domainId, recordList.get(0).getId(), name, content, RECORD_TYPE);
-			}
-		} else {
-			throw new CloudRuntimeException("Multiple records in GloboDNS");
-		}
-    	Answer answerCreateRecord = callCommand(cmd, zoneId);
-    	return ((GloboDnsRecordResponse) answerCreateRecord).getRecord();
-	}
-	
-	private void removeRecord(Long zoneId, Long recordId) {
-    	// Check if record exists
-    	GetRecordInfoCommand cmdInfo = new GetRecordInfoCommand(recordId);
-    	Answer answerInfo = callCommand(cmdInfo, zoneId);
-    	Record record = ((GloboDnsRecordResponse) answerInfo).getRecord();
-    	if (record == null) {
-    		// Record doesn't exist in GloboDNS
-    		// Do nothing, continue
-    	} else {
-    		// Remove record
-    		RemoveRecordCommand cmdRemove = new RemoveRecordCommand(recordId);
-    		callCommand(cmdRemove, zoneId);
-    	}
-	}
-	
-	protected void saveRecordDB(VirtualMachineProfile vm, Long domainId, Record record) {
-		
-		long vmId = vm.getId();
-    	GloboDnsVirtualMachineVO globoDnsVMVO = this.getGloboDnsVirtualMachineVO(vmId, domainId);
-    	if (globoDnsVMVO == null) {
-    		// Entry in mapping table doesn't exist yet, create it
-    		globoDnsVMVO = new GloboDnsVirtualMachineVO(vmId, domainId, record.getId());
-    		_globoDnsVmDao.persist(globoDnsVMVO);
-    	} else {
-    		// An entry already exists
-    		// Check if it needs to be updated
-    		if (globoDnsVMVO.getVirtualMachineId() == vmId && globoDnsVMVO.getGloboDnsRecordId() == record.getId()) {
-    			// All the same, entry already exists, nothing to do
-    			return;
-    		} else {
-    			// Outdated info, update it
-    			globoDnsVMVO.setVirtualMachineId(vmId);
-    			globoDnsVMVO.setGloboDnsRecordId(record.getId());
-    			_globoDnsVmDao.update(globoDnsVMVO.getId(), globoDnsVMVO);
-    		}
-    	}
-	}
-	
-	private void scheduleBindExport(Long zoneId) {
-		try {
-			ScheduleExportCommand cmdExport = new ScheduleExportCommand();
-	    	Answer answerExport = callCommand(cmdExport, zoneId);
-	    	Export export = ((GloboDnsExportResponse) answerExport).getExport();
-	    	if (export != null) {
-	    		s_logger.debug(export.getResult());
-	    	}
-		} catch (CloudRuntimeException e) {
-			// fail on export never rollback transaction
-			s_logger.warn("Error scheduling GloboDNS to export. Hosts will delay to appear in DNS", e);
-		}
-	}
-
-	@Override
-	public String getConfigComponentName() {
-		return GloboDnsElement.class.getSimpleName();
-	}
-
-	@Override
-	public ConfigKey<?>[] getConfigKeys() {
-		return new ConfigKey<?>[] {GloboDNSTemplateId};
-	}
-
 }

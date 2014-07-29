@@ -18,27 +18,27 @@ package com.globo.globodns.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
 
-public class ListRecordCommand extends Command {
+public class CreateOrUpdateDomainCommand extends Command {
 	
-	private Long domainId;
+	private String domainName;
 	
-	private String query;
-
-	public ListRecordCommand(Long domainId, String query) {
-		this.domainId = domainId;
-		this.query = query;
+	private Long templateId;
+	
+	public CreateOrUpdateDomainCommand(String domainName, Long templateId) {
+		this.domainName = domainName;
+		this.templateId = templateId;
 	}
 	
 	@Override
 	public boolean executeInSequence() {
 		return false;
 	}
-
-	public Long getDomainId() {
-		return this.domainId;
+	
+	public String getDomainName() {
+		return domainName;
 	}
 	
-	public String getQuery() {
-		return this.query;
+	public Long getTemplateId() {
+		return templateId;
 	}
 }

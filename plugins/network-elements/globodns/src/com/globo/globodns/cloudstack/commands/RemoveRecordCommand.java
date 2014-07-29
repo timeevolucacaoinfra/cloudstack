@@ -20,18 +20,40 @@ import com.cloud.agent.api.Command;
 
 public class RemoveRecordCommand extends Command {
 	
-	private Long recordId;
-
-	public RemoveRecordCommand(Long recordId) {
-		this.recordId = recordId;
+	private String recordName;
+	
+	private String recordIp;
+	
+	private String networkDomain;
+	
+	private boolean override;
+	
+	public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean override) {
+		this.recordName = recordName;
+		this.recordIp = recordIp;
+		this.networkDomain = networkDomain;
+		this.override = override;
 	}
 	
 	@Override
 	public boolean executeInSequence() {
 		return false;
 	}
-	
-	public Long getRecordId() {
-		return this.recordId;
+
+	public String getRecordName() {
+		return recordName;
 	}
+
+	public String getRecordIp() {
+		return recordIp;
+	}
+
+	public String getNetworkDomain() {
+		return networkDomain;
+	}
+
+	public boolean isOverride() {
+		return override;
+	}
+	
 }
