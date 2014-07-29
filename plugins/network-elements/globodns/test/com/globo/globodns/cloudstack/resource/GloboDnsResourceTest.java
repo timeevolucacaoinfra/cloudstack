@@ -84,6 +84,11 @@ public class GloboDnsResourceTest {
 	public void tearDown() throws Exception {
     }
     
+    
+    ///////////////////////
+    // Auxiliary Methods //
+    ///////////////////////
+    
     private Domain generateFakeDomain(String domainName, boolean reverse) {
     	Domain domain = new Domain();
     	domain.getDomainAttributes().setId(sequenceId++);
@@ -120,8 +125,13 @@ public class GloboDnsResourceTest {
     	return record;
     }
     
+    
+    /////////////////////////
+    // Create Record tests //
+    /////////////////////////
+    
     @Test
-    public void testCreateRecordAndReverseWillSuccessWhenDomainExistsAndRecordNotAndOverrideIsTrue() throws Exception {
+    public void testCreateRecordAndReverseWillSuccessWhenDomainExistsAndRecordDoesntExistAndOverrideIsTrue() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
@@ -190,6 +200,11 @@ public class GloboDnsResourceTest {
     	assertEquals(false, answer.getResult());
     	verify(_exportApi, never()).scheduleExport();
     }
+    
+    
+    /////////////////////////
+    // Update Record tests //
+    /////////////////////////
 
     @Test
     public void testUpdateRecordAndReverseWhenDomainExistsAndOverrideIsTrue() throws Exception {
@@ -217,7 +232,12 @@ public class GloboDnsResourceTest {
     	assertEquals(true, answer.getResult());
     	verify(_exportApi, times(1)).scheduleExport();
     }
-
+    
+    
+    /////////////////////////
+    // Remove Record tests //
+    /////////////////////////
+    
     @Test
     public void testRemoveRecordWhenRecordExists() throws Exception {
     	String recordName = "recordname";
@@ -242,7 +262,7 @@ public class GloboDnsResourceTest {
     }
 
     @Test
-    public void testRemoveRecordCommandWhenReverseRecordExistsWithDifferentValueAndOverrideIsFalseCommandWillSuccessButReverseRecordIsNotRemove() throws Exception {
+    public void testRemoveRecordWithSuccessAndReverseRecordNotRemovedWhenReverseRecordExistsWithDifferentValueAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
@@ -264,7 +284,7 @@ public class GloboDnsResourceTest {
     }
 
     @Test
-    public void testRemoveRecordCommandWhenRecordExistsWithDifferentValueAndOverrideIsFalseCommandWillSuccessButRecordIsNotRemoveButReverseWill() throws Exception {
+    public void testRemoveReverseRecordButNotRemoveRecordWhenRecordExistsWithDifferentValueAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
@@ -284,9 +304,14 @@ public class GloboDnsResourceTest {
     	verify(_recordApi, times(1)).removeRecord(eq(reverseRecord.getId()));
     	verify(_exportApi, times(1)).scheduleExport();
     }
+    
+    
+    /////////////////////////
+    // Remove Domain tests //
+    /////////////////////////
 
     @Test
-    public void testRemoveDomainCommandWhenDomainExistsAndThereAreRecordsAndOverrideIsFalseCommandWillSuccessButDomainAreKeeped() throws Exception {
+    public void testRemoveDomainWithSuccessButDomainKeptWhenDomainExistsAndThereAreRecordsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
@@ -306,7 +331,7 @@ public class GloboDnsResourceTest {
     }
 
     @Test
-    public void testRemoveDomainCommandWhenDomainExistsAndThereAreOnlyRecordsNSAndOverrideIsFalseCommandWillSuccess() throws Exception {
+    public void testRemoveDomainWithSuccessWhenDomainExistsAndThereAreOnlyNSRecordsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
