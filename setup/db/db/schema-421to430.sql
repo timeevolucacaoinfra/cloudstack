@@ -1107,29 +1107,3 @@ UPDATE `cloud`.`disk_offering_details` set `display_detail`=1 where id> 0;
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name) VALUES (168, UUID(), 6, 'Windows Server 2012 R2 (64-bit)');
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name, guest_os_id) VALUES  ("XenServer", 'Windows Server 2012 R2 (64-bit)', 168);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name, guest_os_id) VALUES  ("VmWare", 'Windows Server 2012 R2 (64-bit)', 168);
-
---- DNSAPI
-CREATE TABLE IF NOT EXISTS `dnsapi_network_ref` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `network_id` bigint(20) unsigned NOT NULL,
-  `dnsapi_domain_id` bigint(20) unsigned NOT NULL,
-  `dnsapi_reverse_domain_id` bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `dnsapi_network_ref_fk1` (`network_id`),
-  KEY `dnsapi_network_ref_ix2` (`dnsapi_domain_id`),
-  KEY `dnsapi_network_ref_ix3` (`dnsapi_reverse_domain_id`),
-  CONSTRAINT `dnsapi_network_ref_fk1` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-CREATE TABLE IF NOT EXISTS `dnsapi_vm_ref` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `vm_id` bigint(20) unsigned NOT NULL,
-  `dnsapi_domain_id` bigint(20) unsigned NOT NULL,
-  `dnsapi_record_id` bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `dnsapi_vm_ref_ix1` (`vm_id`),
-  KEY `dnsapi_vm_ref_ix2` (`dnsapi_domain_id`),
-  KEY `dnsapi_vm_ref_ix3` (`dnsapi_record_id`),
-  CONSTRAINT `dnsapi_vm_ref_fk1` FOREIGN KEY (`vm_id`) REFERENCES `vm_instance` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
