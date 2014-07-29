@@ -247,7 +247,35 @@ public class GloboDnsResourceTest {
     	assertEquals(true, answer.getResult());
     	verify(_exportApi, times(1)).scheduleExport();
     }
-    
+
+    @Test
+    public void testCreateRecordAndReverseWhenDomainDoesNotExistAndOverrideIsFalse() throws Exception {
+    	String recordName = "recordname";
+    	String recordIp = "40.30.20.10";
+    	String domainName = "domain.name.com";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
+    	String reverseRecordName = "10";
+    	String reverseRecordContent = recordName + "." + domainName;
+    	
+    	Domain domain = new Domain();
+    	domain.getDomainAttributes().setId(sequenceId++);
+    	Domain reverseDomain = new Domain();
+    	reverseDomain.getDomainAttributes().setId(sequenceId++);
+    	
+    	Record record = new Record();
+    	
+    	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
+    	when(_domainApi.createDomain(eq(domainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
+    	when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
+    	when(_domainApi.createReverseDomain(eq(reverseDomainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(reverseDomain);
+    	when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, false));
+    	assertNotNull(answer);
+    	assertEquals(true, answer.getResult());
+    	verify(_exportApi, times(1)).scheduleExport();
+    }
+
     
     /////////////////////////
     // Update Record tests //
