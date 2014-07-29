@@ -25,7 +25,7 @@ from ConfigParser import SafeConfigParser
 
 #All tests inherit from cloudstackTestCase
 from marvin.cloudstackTestCase import cloudstackTestCase
-from marvin.cloudstackAPI import addDnsApiHost, createNetwork
+from marvin.cloudstackAPI import addGloboDnsHost, createNetwork
 
 #Import Integration Libraries
 from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering, Network, NetworkOffering, NetworkServiceProvider, PhysicalNetwork
@@ -37,11 +37,11 @@ endpoint_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'cfg/e
 parser = SafeConfigParser()
 parser.read(endpoint_file)
 
-# get dnsapi endpoint
-dnsapi_host = parser.get('dns-api', 'host')
-dnsapi_export_path = parser.get('dns-api', 'export_location')
-dnsapi_payload = parser.get('dns-api', 'payload')
-dnsapi_headers = json.loads(parser.get('dns-api', 'header'))
+# get globodns endpoint
+globodns_host = parser.get('dns-api', 'host')
+globodns_export_path = parser.get('dns-api', 'export_location')
+globodns_payload = parser.get('dns-api', 'payload')
+globodns_headers = json.loads(parser.get('dns-api', 'header'))
 resolver_nameserver = parser.get('dns-api', 'resolver')
 
 
@@ -60,8 +60,8 @@ class Data(object):
             },
             # data reqd for virtual machine creation
             "virtual_machine": {
-                "name": "testdnsapi",
-                "displayname": "testdnsapi",
+                "name": "testglobodns",
+                "displayname": "testglobodns",
             },
             # service offering
             "service_offering": {
@@ -79,18 +79,18 @@ class Data(object):
                 "traffictype": "GUEST",
                 "serviceProviderList": {
                     "Dhcp": "VirtualRouter",
-                    "Dns": "DnsAPI",
+                    "Dns": "GloboDns",
                     "SourceNat": "VirtualRouter"
                 }
             },
             # network
             "network": {
-                "name": "DnsAPINetwork",
-                "displaytext": "DnsAPINetwork",
+                "name": "GloboDnsNetwork",
+                "displaytext": "GloboDnsNetwork",
                 "networkdomain": "integrationtest.globo.com"
             },
-            "dnsapi_provider": {
-                "url": dnsapi_host,
+            "globodns_provider": {
+                "url": globodns_host,
                 "username": "admin@example.com",
                 "password": "password"
             },
@@ -98,7 +98,7 @@ class Data(object):
         }
 
 
-class TestVMDnsApi(cloudstackTestCase):
+class TestVMGloboDns(cloudstackTestCase):
     """Test deploy a VM using DNS API
     """
 
@@ -132,28 +132,28 @@ class TestVMDnsApi(cloudstackTestCase):
         # set up DNS API Provider
         nw_service_providers = NetworkServiceProvider.list(
             self.apiclient,
-            name='DnsAPI',
+            name='GloboDns',
             physicalnetworkid=self.physical_network[0].id
         )
         if isinstance(nw_service_providers, list):
-            self.dnsapi_provider = nw_service_providers[0]
+            self.globodns_provider = nw_service_providers[0]
         else:
-            self.dnsapi_provider = NetworkServiceProvider.add(
+            self.globodns_provider = NetworkServiceProvider.add(
                 self.apiclient,
-                'DnsAPI',
+                'GloboDns',
                 self.physical_network[0].id,
                 None
             )
 
-        cmd = addDnsApiHost.addDnsApiHostCmd()
-        cmd.username = self.testdata["dnsapi_provider"]["username"]
-        cmd.password = self.testdata["dnsapi_provider"]["password"]
-        cmd.url = self.testdata["dnsapi_provider"]["url"]
+        cmd = addGloboDnsHost.addGloboDnsHostCmd()
+        cmd.username = self.testdata["globodns_provider"]["username"]
+        cmd.password = self.testdata["globodns_provider"]["password"]
+        cmd.url = self.testdata["globodns_provider"]["url"]
         cmd.physicalnetworkid = self.physical_network[0].id
-        self.apiclient.addDnsApiHost(cmd)
+        self.apiclient.addGloboDnsHost(cmd)
 
-        if self.dnsapi_provider.state != 'Enabled':
-            self.dnsapi_provider.update(self.apiclient, self.dnsapi_provider.id, state='Enabled')
+        if self.globodns_provider.state != 'Enabled':
+            self.globodns_provider.update(self.apiclient, self.globodns_provider.id, state='Enabled')
 
         self.network_offering = NetworkOffering.create(
             self.apiclient,
@@ -172,7 +172,7 @@ class TestVMDnsApi(cloudstackTestCase):
         self.resolver = dns.resolver.Resolver()
         self.resolver.nameservers = [resolver_nameserver]  # Set nameserver to resolve hostnames
 
-    def test_deploy_vm_with_dnsapi(self):
+    def test_deploy_vm_with_globodns(self):
         """Test Deploy Virtual Machine with DNS API
 
         # Validate the following:
@@ -240,7 +240,7 @@ class TestVMDnsApi(cloudstackTestCase):
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
         # force export & reload bind in dns-api
-        requests.post(dnsapi_host + dnsapi_export_path, data=dnsapi_payload, headers=dnsapi_headers)
+        requests.post(globodns_host + globodns_export_path, data=globodns_payload, headers=globodns_headers)
 
         self.debug(
             "Verify listVirtualMachines response for virtual machine: %s" % self.virtual_machine.id
@@ -283,6 +283,6 @@ class TestVMDnsApi(cloudstackTestCase):
     def tearDown(self):
         try:
             cleanup_resources(self.apiclient, self.cleanup)
-            self.dnsapi_provider.delete(self.apiclient)
+            self.globodns_provider.delete(self.apiclient)
         except Exception as e:
             self.debug("Warning! Exception in tearDown: %s" % e)
