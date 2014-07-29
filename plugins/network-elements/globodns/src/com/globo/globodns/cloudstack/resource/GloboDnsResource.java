@@ -42,26 +42,11 @@ import com.globo.globodns.client.model.Authentication;
 import com.globo.globodns.client.model.Domain;
 import com.globo.globodns.client.model.Export;
 import com.globo.globodns.client.model.Record;
-import com.globo.globodns.cloudstack.commands.CreateDomainCommand;
-import com.globo.globodns.cloudstack.commands.CreateRecordCommand;
-import com.globo.globodns.cloudstack.commands.CreateReverseDomainCommand;
-import com.globo.globodns.cloudstack.commands.GetDomainInfoCommand;
-import com.globo.globodns.cloudstack.commands.GetRecordInfoCommand;
-import com.globo.globodns.cloudstack.commands.GetReverseDomainInfoCommand;
-import com.globo.globodns.cloudstack.commands.ListDomainCommand;
-import com.globo.globodns.cloudstack.commands.ListRecordCommand;
-import com.globo.globodns.cloudstack.commands.ListReverseDomainCommand;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateDomainCommand;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
-import com.globo.globodns.cloudstack.commands.RemoveReverseDomainCommand;
-import com.globo.globodns.cloudstack.commands.ScheduleExportCommand;
 import com.globo.globodns.cloudstack.commands.SignInCommand;
-import com.globo.globodns.cloudstack.commands.UpdateRecordCommand;
-import com.globo.globodns.cloudstack.response.GloboDnsDomainListResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsDomainResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsExportResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsRecordListResponse;
-import com.globo.globodns.cloudstack.response.GloboDnsRecordResponse;
 
 public class GloboDnsResource extends ManagerBase implements ServerResource {
 	private String _zoneId;
@@ -78,6 +63,11 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 	
 	protected GloboDns _globoDns;
 	
+	private static final String IPV4_RECORD_TYPE = "A";
+	private static final String REVERSE_RECORD_TYPE = "PTR";
+	private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
+	private static final String DEFAULT_AUTHORITY_TYPE = "M";
+
 	private static final Logger s_logger = Logger.getLogger(GloboDnsResource.class);
 
 	@Override
@@ -176,34 +166,14 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			return new MaintainAnswer((MaintainCommand) cmd);
 		} else if (cmd instanceof SignInCommand) {
 			return execute((SignInCommand) cmd);
-		} else if (cmd instanceof CreateDomainCommand) {
-			return execute((CreateDomainCommand) cmd);
 		} else if (cmd instanceof RemoveDomainCommand) {
 			return execute((RemoveDomainCommand) cmd);
-		} else if (cmd instanceof RemoveReverseDomainCommand) {
-			return execute((RemoveReverseDomainCommand) cmd);
-		} else if (cmd instanceof CreateReverseDomainCommand) {
-			return execute((CreateReverseDomainCommand) cmd);
-		} else if (cmd instanceof ListDomainCommand) {
-			return execute((ListDomainCommand) cmd);
-		} else if (cmd instanceof ListReverseDomainCommand) {
-			return execute((ListReverseDomainCommand) cmd);
-		} else if (cmd instanceof GetDomainInfoCommand) {
-			return execute((GetDomainInfoCommand) cmd);
-		} else if (cmd instanceof GetReverseDomainInfoCommand) {
-			return execute((GetReverseDomainInfoCommand) cmd);
-		} else if (cmd instanceof ListRecordCommand) {
-			return execute((ListRecordCommand) cmd);
-		} else if (cmd instanceof CreateRecordCommand) {
-			return execute((CreateRecordCommand) cmd);
-		} else if (cmd instanceof GetRecordInfoCommand) {
-			return execute((GetRecordInfoCommand) cmd);
 		} else if (cmd instanceof RemoveRecordCommand) {
 			return execute((RemoveRecordCommand) cmd);
-		} else if (cmd instanceof ScheduleExportCommand) {
-			return execute((ScheduleExportCommand) cmd);
-		} else if (cmd instanceof UpdateRecordCommand) {
-			return execute((UpdateRecordCommand) cmd);
+		} else if (cmd instanceof CreateOrUpdateDomainCommand) {
+			return execute((CreateOrUpdateDomainCommand) cmd);
+		} else if (cmd instanceof CreateOrUpdateRecordAndReverseCommand) {
+			return execute((CreateOrUpdateRecordAndReverseCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -221,165 +191,265 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 		}
 	}
 	
-	public Answer execute(CreateDomainCommand cmd) {
-		try {
-			Domain domain = _globoDns.getDomainAPI().createDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
-			if (domain != null) {
-				return new GloboDnsDomainResponse(cmd, domain);
-			} else {
-				return new Answer(cmd, false, "Unable to create domain in GloboDNS");
-			}
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
 	public Answer execute(RemoveDomainCommand cmd) {
 		try {
-			_globoDns.getDomainAPI().removeDomain(cmd.getDomainId());
+			Domain domain = searchDomain(cmd.getNetworkDomain(), false);
+			if (domain != null) {
+				if (!cmd.isOverride()) {
+					for (Record record: _globoDns.getRecordAPI().listAll(domain.getId())) {
+						if (record.getTypeNSRecordAttributes().getId() == null) {
+							s_logger.warn("There are records in domain " + cmd.getNetworkDomain() + " and override is not enable. I will not delete this domain.");
+							return new Answer(cmd, true, "Domain keeped"); 
+						}
+					}
+				}
+				_globoDns.getDomainAPI().removeDomain(domain.getId());
+				scheduleExportChangesToBind();
+			} else {
+				s_logger.warn("Domain " + cmd.getNetworkDomain() + " already been deleted.");
+			}
+			
 			return new Answer(cmd, true, "Domain removed");
 		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
 		}
 	}
 	
-	public Answer execute(RemoveReverseDomainCommand cmd) {
-		try {
-			_globoDns.getDomainAPI().removeReverseDomain(cmd.getReverseDomainId());
-			return new Answer(cmd, true, "Reverse domain removed");
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(CreateReverseDomainCommand cmd) {
-		try {
-			Domain reverseDomain = _globoDns.getDomainAPI().createReverseDomain(cmd.getName(), cmd.getTemplateId(), cmd.getAuthorityType());
-			if (reverseDomain != null) {
-				return new GloboDnsDomainResponse(cmd, reverseDomain);
-			} else {
-				return new Answer(cmd, false, "Unable to create reverse domain in GloboDNS");
-			}
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(ListDomainCommand cmd) {
-		try {
-			List<Domain> result;
-			if (cmd.getQuery() == null) {
-				result = _globoDns.getDomainAPI().listAll();
-			} else {
-				result = _globoDns.getDomainAPI().listByQuery(cmd.getQuery());
-			}
-			return new GloboDnsDomainListResponse(cmd, result);
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(ListReverseDomainCommand cmd) {
-		try {
-			List<Domain> result;
-			if (cmd.getQuery() == null) {
-				result = _globoDns.getDomainAPI().listAllReverse();
-			} else {
-				result = _globoDns.getDomainAPI().listReverseByQuery(cmd.getQuery());
-			}
-			return new GloboDnsDomainListResponse(cmd, result);
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(GetDomainInfoCommand cmd) {
-		try {
-			Domain domain = _globoDns.getDomainAPI().getById(cmd.getDomainId());
-			return new GloboDnsDomainResponse(cmd, domain);
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(GetReverseDomainInfoCommand cmd) {
-		try {
-			Domain domainReverse = _globoDns.getDomainAPI().getReverseById(cmd.getReverseDomainId());
-			return new GloboDnsDomainResponse(cmd, domainReverse);
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(ListRecordCommand cmd) {
-		try {
-			List<Record> result;
-			if (cmd.getQuery() == null) {
-				result = _globoDns.getRecordAPI().listAll(cmd.getDomainId());
-			} else {
-				result = _globoDns.getRecordAPI().listByQuery(cmd.getDomainId(), cmd.getQuery());
-			}
-			return new GloboDnsRecordListResponse(cmd, result);
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(CreateRecordCommand cmd) {
-		try {
-			Record record = _globoDns.getRecordAPI().createRecord(cmd.getDomainId(), cmd.getName(), cmd.getContent(), cmd.getType());
-			if (record != null) {
-				return new GloboDnsRecordResponse(cmd, record);
-			} else {
-				return new Answer(cmd, false, "Unable to create record in GloboDNS");
-			}
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(UpdateRecordCommand cmd) {
-		try {
-			_globoDns.getRecordAPI().updateRecord(cmd.getRecordId(), cmd.getDomainId(), cmd.getName(), cmd.getContent());
-			Record record = _globoDns.getRecordAPI().getById(cmd.getRecordId());
-			if (record != null) {
-				return new GloboDnsRecordResponse(cmd, record);
-			} else {
-				return new Answer(cmd, false, "Unable to update record in GloboDNS");
-			}
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	public Answer execute(GetRecordInfoCommand cmd) {
-		try {
-			Record record = _globoDns.getRecordAPI().getById(cmd.getRecordId());
-			return new GloboDnsRecordResponse(cmd, record);
-		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
 	public Answer execute(RemoveRecordCommand cmd) {
+		boolean needsExport = false;
 		try {
-			_globoDns.getRecordAPI().removeRecord(cmd.getRecordId());
+			if (removeRecord(cmd.getRecordName(), cmd.getRecordIp(), cmd.getNetworkDomain(), false, cmd.isOverride())) {
+				needsExport = true;
+			}
+			
+			// remove reverse
+			String reverseGloboDnsName = generateReverseDomainNameFromNetworkIp(cmd.getRecordIp());
+			String reverseRecordName = generateReverseRecordNameFromNetworkIp(cmd.getRecordIp());
+			String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain();
+			
+			if (removeRecord(reverseRecordName, reverseRecordContent, reverseGloboDnsName, true, cmd.isOverride())) {
+				needsExport = true;
+			}
+			
 			return new Answer(cmd, true, "Record removed");
 		} catch (GloboDnsException e) {
 			return new Answer(cmd, false, e.getMessage());
+		} finally {
+			if (needsExport) {
+				scheduleExportChangesToBind();
+			}
 		}
 	}
 	
-	public Answer execute(ScheduleExportCommand cmd) {
+	public Answer execute(CreateOrUpdateRecordAndReverseCommand cmd) {
+		boolean needsExport = false;
+		try {
+			Domain domain = searchDomain(cmd.getNetworkDomain(), false);
+			if (domain == null) {
+				domain = _globoDns.getDomainAPI().createDomain(cmd.getNetworkDomain(), cmd.getReverseTemplateId(), DEFAULT_AUTHORITY_TYPE);
+				s_logger.warn("Domain " + cmd.getNetworkDomain() + " doesn't exist, maybe someone removed it. It was automatically created with template " + cmd.getReverseTemplateId());
+			}
+			
+			boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), IPV4_RECORD_TYPE, cmd.isOverride());
+			if (!created) {
+				String msg = "Unable to create record " + cmd.getRecordName() + " at " + cmd.getNetworkDomain();
+				if (!cmd.isOverride()) {
+					msg += ". Override record option is false, maybe record already exist.";
+				}
+				return new Answer(cmd, false, msg);
+			} else {
+				needsExport = true;
+			}
+			
+			String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain();
+			if (createOrUpdateReverse(cmd.getRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride())) {
+				needsExport = true;
+			} else {
+				if (!cmd.isOverride()) {
+					String msg = "Unable to create reverse record " + cmd.getRecordName() + " for ip " + cmd.getRecordIp();
+					msg += ". Override record option is false, maybe record already exist.";
+					return new Answer(cmd, false, msg);
+				}
+			}
+			
+			return new Answer(cmd);
+		} catch (GloboDnsException e) {
+			return new Answer(cmd, false, e.getMessage());
+		} finally {
+			if (needsExport) {
+				scheduleExportChangesToBind();
+			}
+		}
+	}
+	
+	protected boolean createOrUpdateReverse(String networkIp, String reverseRecordContent, Long templateId, boolean override) {
+		String reverseDomainName = generateReverseDomainNameFromNetworkIp(networkIp);
+		Domain reverseDomain = searchDomain(reverseDomainName, true);
+		if (reverseDomain == null) {
+			reverseDomain = _globoDns.getDomainAPI().createReverseDomain(reverseDomainName, templateId, DEFAULT_AUTHORITY_TYPE);
+			s_logger.info("Created reverse domain " + reverseDomainName + " with template " + templateId);
+		}
+
+		// create reverse
+		String reverseRecordName = generateReverseRecordNameFromNetworkIp(networkIp);
+		return createOrUpdateRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE, override);
+	}
+	
+	public Answer execute(CreateOrUpdateDomainCommand cmd) {
+		
+		boolean needsExport = false;
+		try {
+			Domain domain = searchDomain(cmd.getDomainName(), false);
+			if (domain == null) {
+				// create
+				domain = _globoDns.getDomainAPI().createDomain(cmd.getDomainName(), cmd.getTemplateId(), DEFAULT_AUTHORITY_TYPE);
+				s_logger.info("Created domain " + cmd.getDomainName() + " with template " + cmd.getTemplateId());
+				if (domain == null) {
+					return new Answer(cmd, false, "Unable to create domain " + cmd.getDomainName());
+				} else {
+					needsExport = true;
+				}
+			} else {
+				s_logger.warn("Domain " + cmd.getDomainName() + " already exist.");
+			}
+			return new Answer(cmd);
+		} catch (GloboDnsException e) {
+			return new Answer(cmd, false, e.getMessage());
+		} finally {
+			if (needsExport) {
+				scheduleExportChangesToBind();
+			}
+		}
+	}
+
+	/**
+	 * Try to remove a record from bindZoneName. If record was removed returns true.
+	 * @param recordName
+	 * @param bindZoneName
+	 * @return true if record exists and was removed.
+	 */
+	protected boolean removeRecord(String recordName, String recordValue, String bindZoneName, boolean reverse, boolean override) {
+		Domain domain = searchDomain(bindZoneName, reverse);
+		if (domain == null) {
+			s_logger.warn("Domain " + bindZoneName + " doesn't exists in GloboDNS. Record " + recordName + " has already been removed.");
+			return false;
+		}
+		Record record = searchRecord(recordName, domain.getId());
+		if (record == null) {
+			s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " has already been removed.");
+			return false;
+		} else {
+			if (!override && !record.getContent().equals(recordValue)) {
+				s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " have different value from " + recordValue + " and override is not enable. I will not delete it.");
+				return false;
+			}
+			_globoDns.getRecordAPI().removeRecord(record.getId());
+		}
+		
+		return true;
+	}
+
+	/**
+	 * Create a new record in Zone, or update it if record has been exists.
+	 * @param domainId
+	 * @param name
+	 * @param ip
+	 * @param type
+	 * @return if record was created or updated.
+	 */
+	private boolean createOrUpdateRecord(Long domainId, String name, String ip, String type, boolean override) {
+		Record record = this.searchRecord(name, domainId);
+		if (record == null) {
+			// Create new record
+			record = _globoDns.getRecordAPI().createRecord(domainId, name, ip, type);
+			s_logger.info("Created record " + name + " in domain " + domainId);
+		} else {
+			if (!ip.equals(record.getContent())) {
+				if (Boolean.TRUE.equals(override)) {
+					// ip is incorrect. Fix.
+					_globoDns.getRecordAPI().updateRecord(record.getId(), domainId, name, ip);
+				} else {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * GloboDns export all changes to Bind server.
+	 */
+	public void scheduleExportChangesToBind() {
 		try {
 			Export export = _globoDns.getExportAPI().scheduleExport();
 			if (export != null) {
-				return new GloboDnsExportResponse(cmd, export);
-			} else {
-				return new Answer(cmd, false, "Unable to schedule export in GloboDNS");
+				s_logger.info("GloboDns Export: " + export.getResult());
 			}
 		} catch (GloboDnsException e) {
-			return new Answer(cmd, false, e.getMessage());
+			s_logger.warn("Error on scheduling export. Although everything was persist, someone need to manually force export in GloboDns", e);
 		}
 	}
+
+	/**
+	 * Try to find bindZoneName in GloboDns.
+	 * @param name
+	 * @return Domain object or null if domain not exists.
+	 */
+	private Domain searchDomain(String name, boolean reverse) {
+		if (name == null) {
+			return null;
+		}
+		List<Domain> candidates;
+		if (reverse) {
+			candidates = _globoDns.getDomainAPI().listReverseByQuery(name);
+		} else {
+			candidates = _globoDns.getDomainAPI().listByQuery(name);
+		}
+		for (Domain candidate: candidates) {
+			if (name.equals(candidate.getName())) {
+				return candidate;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Find recordName in domain.
+	 * @param recordName
+	 * @param domainId Id of BindZoneName. Maybe you need use searchDomain before to use BindZoneName.
+	 * @return Record or null if not exists.
+	 */
+	private Record searchRecord(String recordName, Long domainId) {
+		if (recordName == null || domainId == null) {
+			return null;
+		}
+		List<Record> candidates = _globoDns.getRecordAPI().listByQuery(domainId, recordName);
+		// GloboDns search name in name and content. We need to iterate to check if recordName exists only in name
+		for (Record candidate: candidates) {
+			if (recordName.equalsIgnoreCase(candidate.getName())) {
+				s_logger.debug("Record " + recordName + " in domain id " + domainId + " found in GloboDNS");
+				return candidate;
+			}
+		}
+		s_logger.debug("Record " + recordName + " in domain id " + domainId + " not found in GloboDNS");
+		return null;
+	}
+	
+	/**
+	 * Generate reverseBindZoneName of network. We ALWAYS use /24.
+	 * @param networkIp
+	 * @return Bind Zone Name reverse of network specified by networkIp
+	 */
+	private String generateReverseDomainNameFromNetworkIp(String networkIp) {
+    	String[] octets = networkIp.split("\\.");
+    	String reverseDomainName = octets[2] + '.' + octets[1] + '.' + octets[0] + '.' + REVERSE_DOMAIN_SUFFIX;
+    	return reverseDomainName;
+	}
+	
+	private String generateReverseRecordNameFromNetworkIp(String networkIp) {
+    	String[] octets = networkIp.split("\\.");
+		String reverseRecordName = octets[3];
+    	return reverseRecordName;
+	}
+
 }
