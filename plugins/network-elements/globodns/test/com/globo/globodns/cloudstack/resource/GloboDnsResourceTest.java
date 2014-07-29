@@ -144,6 +144,18 @@ public class GloboDnsResourceTest {
     	verify(_exportApi, times(1)).scheduleExport();
     }
     
+	@Test
+	@SuppressWarnings("unused")
+    public void testCreateDomainWillSucceedWhenDomainAlreadyExistsAndOverrideIsFalse() throws Exception {
+    	String domainName = "domain.name.com";
+    	
+    	Domain domain = generateFakeDomain(domainName, false);
+
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateDomainCommand(domainName, TEMPLATE_ID));
+    	assertNotNull(answer);
+    	assertEquals(true, answer.getResult());
+    }
+    
     
     /////////////////////////
     // Create Record tests //
