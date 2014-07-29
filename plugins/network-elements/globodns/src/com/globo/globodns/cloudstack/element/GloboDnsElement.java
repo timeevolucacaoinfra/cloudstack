@@ -268,7 +268,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
 	@Override
 	public ConfigKey<?>[] getConfigKeys() {
-		return new ConfigKey<?>[] {GloboDNSTemplateId};
+		return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride};
 	}
 
 
