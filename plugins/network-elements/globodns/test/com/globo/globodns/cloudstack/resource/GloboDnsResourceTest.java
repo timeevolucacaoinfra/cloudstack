@@ -37,7 +37,6 @@ import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
 @DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
-@SuppressWarnings("unused")
 public class GloboDnsResourceTest {
 	
 	private GloboDnsResource _globoDnsResource;
@@ -131,6 +130,7 @@ public class GloboDnsResourceTest {
     /////////////////////////
     
     @Test
+    @SuppressWarnings("unused")
     public void testCreateRecordAndReverseWillSuccessWhenDomainExistsAndRecordDoesntExistAndOverrideIsTrue() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
@@ -154,6 +154,7 @@ public class GloboDnsResourceTest {
     }
 
     @Test
+    @SuppressWarnings("unused")
     public void testCreateRecordAndReverseWillFailWhenRecordAlreadyExistsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
     	String newIp = "10.10.10.10";
@@ -169,6 +170,7 @@ public class GloboDnsResourceTest {
     }
 
 	@Test
+	@SuppressWarnings("unused")
     public void testCreateRecordAndReverseWillFailWhenReverseRecordAlreadyExistsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
@@ -281,7 +283,6 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "10.10.10.in-addr.arpa";
     	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	Record record = generateFakeRecord(domain, recordName, recordIp, false);
@@ -328,9 +329,6 @@ public class GloboDnsResourceTest {
     	String recordName = "recordname";
     	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	Record record = generateFakeRecord(domain, recordName, "X", false);
@@ -345,12 +343,7 @@ public class GloboDnsResourceTest {
 
     @Test
     public void testRemoveDomainWithSuccessWhenDomainExistsAndThereAreOnlyNSRecordsAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	List<Record> recordList = new ArrayList<Record>();
@@ -364,6 +357,28 @@ public class GloboDnsResourceTest {
     	when(_recordApi.listAll(domain.getId())).thenReturn(recordList);
 
     	Answer answer = _globoDnsResource.execute(new RemoveDomainCommand(domainName, false));
+    	
+    	assertEquals(true, answer.getResult());
+    	verify(_domainApi, times(1)).removeDomain(eq(domain.getId()));
+    	verify(_exportApi, times(1)).scheduleExport();
+    }
+
+    @Test
+    public void testRemoveDomainWithSuccessWhenDomainExistsAndThereAreRecordsAndOverrideIsTrue() throws Exception {
+    	String domainName = "domain.name.com";
+    	
+    	Domain domain = generateFakeDomain(domainName, false);
+    	List<Record> recordList = new ArrayList<Record>();
+    	for (int i=0; i<10; i++) {
+    		Record record = new Record();
+    		record.getTypeNSRecordAttributes().setDomainId(domain.getId());
+    		record.getTypeNSRecordAttributes().setId(sequenceId++);
+    		record.getTypeNSRecordAttributes().setType(new String[] {"A", "NS", "PTR"}[i%3]);
+    		recordList.add(record);
+    	}
+    	when(_recordApi.listAll(domain.getId())).thenReturn(recordList);
+
+    	Answer answer = _globoDnsResource.execute(new RemoveDomainCommand(domainName, true));
     	
     	assertEquals(true, answer.getResult());
     	verify(_domainApi, times(1)).removeDomain(eq(domain.getId()));
