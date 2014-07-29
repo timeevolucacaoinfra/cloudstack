@@ -118,7 +118,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 			throw new CloudRuntimeException(
 					"Could not find zone associated to this network");
 		}
-		CreateOrUpdateDomainCommand cmd = new CreateOrUpdateDomainCommand(network.getNetworkDomain(), network.getCidr(), GloboDNSTemplateId.value());
+		CreateOrUpdateDomainCommand cmd = new CreateOrUpdateDomainCommand(network.getNetworkDomain(), GloboDNSTemplateId.value());
 		callCommand(cmd, zoneId);
 		return true;
     }

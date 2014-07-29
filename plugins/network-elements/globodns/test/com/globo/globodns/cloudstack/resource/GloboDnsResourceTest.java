@@ -30,6 +30,7 @@ import com.globo.globodns.client.api.ExportAPI;
 import com.globo.globodns.client.api.RecordAPI;
 import com.globo.globodns.client.model.Domain;
 import com.globo.globodns.client.model.Record;
+import com.globo.globodns.cloudstack.commands.CreateOrUpdateDomainCommand;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
@@ -127,15 +128,36 @@ public class GloboDnsResourceTest {
     
     
     /////////////////////////
+    // Create Domain tests //
+    /////////////////////////
+    
+    @Test
+    public void testCreateDomainWithSuccessWhenDomainDoesntExistAndOverrideIsTrue() throws Exception {
+    	String domainName = "domain.name.com";
+    	
+    	Domain domain = new Domain();
+    	domain.getDomainAttributes().setId(sequenceId++);
+    	domain.getDomainAttributes().setName(domainName);
+
+    	when(_domainApi.createDomain(eq(domain.getName()), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
+
+    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateDomainCommand(domainName, TEMPLATE_ID));
+    	assertNotNull(answer);
+    	assertEquals(true, answer.getResult());
+    	verify(_exportApi, times(1)).scheduleExport();
+    }
+    
+    
+    /////////////////////////
     // Create Record tests //
     /////////////////////////
     
     @Test
-    public void testCreateRecordAndReverseWillSuccessWhenDomainExistsAndRecordDoesntExistAndOverrideIsTrue() throws Exception {
+    public void testCreateRecordAndReverseWithSuccessWhenDomainExistsAndRecordDoesntExistAndOverrideIsTrue() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	String reverseRecordContent = recordName + "." + domainName;
     	
@@ -156,8 +178,8 @@ public class GloboDnsResourceTest {
     @Test
     public void testCreateRecordAndReverseWillFailWhenRecordAlreadyExistsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
-    	String newIp = "10.10.10.10";
-    	String oldIp = "20.20.20.20";
+    	String newIp = "40.30.20.10";
+    	String oldIp = "50.40.30.20";
     	String domainName = "domain.name.com";
 
     	Domain domain = generateFakeDomain(domainName, false);
@@ -171,9 +193,9 @@ public class GloboDnsResourceTest {
 	@Test
     public void testCreateRecordAndReverseWillFailWhenReverseRecordAlreadyExistsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	
     	Domain domain = generateFakeDomain(domainName, false);
@@ -189,7 +211,7 @@ public class GloboDnsResourceTest {
     @Test
     public void testCreateRecordAndReverseWhenDomainDoesNotExist() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
     	
     	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
@@ -209,10 +231,10 @@ public class GloboDnsResourceTest {
     @Test
     public void testUpdateRecordAndReverseWhenDomainExistsAndOverrideIsTrue() throws Exception {
     	String recordName = "recordname";
-    	String oldRecordIp = "10.10.10.10";
-    	String newRecordIp = "20.20.20.20";
+    	String oldRecordIp = "40.30.20.10";
+    	String newRecordIp = "50.40.30.20";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.20.20.in-addr.arpa";
+    	String reverseDomainName = "30.40.50.in-addr.arpa";
     	String reverseRecordName = "20";
     	String reverseRecordContent = recordName + "." + domainName;
     	
@@ -241,9 +263,9 @@ public class GloboDnsResourceTest {
     @Test
     public void testRemoveRecordWhenRecordExists() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	String reverseRecordContent = recordName + "." + domainName;
     	
@@ -264,9 +286,9 @@ public class GloboDnsResourceTest {
     @Test
     public void testRemoveRecordWithSuccessAndReverseRecordNotRemovedWhenReverseRecordExistsWithDifferentValueAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	String reverseRecordContent = recordName + "." + domainName;
     	
@@ -286,9 +308,9 @@ public class GloboDnsResourceTest {
     @Test
     public void testRemoveReverseRecordButNotRemoveRecordWhenRecordExistsWithDifferentValueAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	String reverseRecordContent = recordName + "." + domainName;
     	
@@ -313,9 +335,9 @@ public class GloboDnsResourceTest {
     @Test
     public void testRemoveDomainWithSuccessButDomainKeptWhenDomainExistsAndThereAreRecordsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	String reverseRecordContent = recordName + "." + domainName;
     	
@@ -333,9 +355,9 @@ public class GloboDnsResourceTest {
     @Test
     public void testRemoveDomainWithSuccessWhenDomainExistsAndThereAreOnlyNSRecordsAndOverrideIsFalse() throws Exception {
     	String recordName = "recordname";
-    	String recordIp = "10.10.10.10";
+    	String recordIp = "40.30.20.10";
     	String domainName = "domain.name.com";
-    	String reverseDomainName = "10.10.10.in-addr.arpa";
+    	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
     	String reverseRecordContent = recordName + "." + domainName;
     	

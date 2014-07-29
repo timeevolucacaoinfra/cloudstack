@@ -20,25 +20,18 @@ import com.cloud.agent.api.Command;
 
 public class CreateOrUpdateDomainCommand extends Command {
 	
-	private String networkAddress;
-	
 	private String domainName;
 	
 	private Long templateId;
 	
-	public CreateOrUpdateDomainCommand(String domainName, String networkAddress, Long templateId) {
+	public CreateOrUpdateDomainCommand(String domainName, Long templateId) {
 		this.domainName = domainName;
-		this.networkAddress = networkAddress;
 		this.templateId = templateId;
 	}
 	
 	@Override
 	public boolean executeInSequence() {
 		return false;
-	}
-
-	public String getNetworkAddress() {
-		return networkAddress;
 	}
 	
 	public String getDomainName() {
