@@ -10,16 +10,16 @@ case "$1" in
     MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -pl :cloud-client-ui jetty:run -Dsimulator
     ;;
   compile)
-    mvn -P developer,systemvm clean install -DskipTests
+    mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
     ;;
   compile-quick)
-    mvn -P developer,systemvm -pl :cloud-server,:cloud-api,:cloud-plugin-network-networkapi,:cloud-plugin-network-globodns,:cloud-client-ui clean install -DskipTests
-    ;;
-  compile-simulator)
-    mvn -Pdeveloper -Dsimulator clean package
+    mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-networkapi,:cloud-plugin-network-globodns,:cloud-client-ui install -DskipTests
     ;;
   deploydb)
-    mvn -P developer -pl developer,tools/devcloud -Ddeploydb
+    mvn -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
+    ;;
+  deploydb-simulator)
+    mvn -Pdeveloper -pl developer -Ddeploydb
     mvn -Pdeveloper -pl developer -Ddeploydb-simulator
     ;;
   populatedb)
@@ -70,10 +70,10 @@ RUN
 COMPILE
     compile           Compile cloudstack
     compile-quick     Compile only globo elements
-    compile-simulator Compile cloudstack w/ hypervisor simulator
 
 DB
     deploydb          Create Required SQL Schema
+    deploydb-simulator Create Required SQL Schema to use with simulator
     populatedb        Create a basic infrastructure on cloudstack
     db-migrate        SQL migrations
 
