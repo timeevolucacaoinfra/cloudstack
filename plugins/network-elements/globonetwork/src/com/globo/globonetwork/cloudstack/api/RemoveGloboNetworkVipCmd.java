@@ -23,52 +23,43 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.SuccessResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
-import com.cloud.api.ApiDBUtils;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "generateUrlForEditingVip", responseObject=SuccessResponse.class, description="Generate an url used to edit or to create new vip")
-public class GenerateUrlForEditingVipCmd extends BaseCmd {
+@APICommand(name = "removeNetworkApiVip", responseObject=SuccessResponse.class, description="Remove a VIP from Network API and network in Cloudstack")
+public class RemoveGloboNetworkVipCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(GenerateUrlForEditingVipCmd.class.getName());
-    private static final String s_name = "generateurlforeditingvipresponse";
+    public static final Logger s_logger = Logger.getLogger(RemoveGloboNetworkVipCmd.class.getName());
+    private static final String s_name = "removenetworkapivipresponse";
     
     @Inject
     GloboNetworkService _ntwkAPIService;
     
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = false, description="NetworkAPI VIP ID, when you want to edit. Otherwise, generated url will be to create a new vip")
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI VIP ID.")
     private Long napiVipId;
     
-    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID to be associated to VIP")
-    private Long networkId;
-
+//    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID associated to VIP")
+//    private Long networkId;
+    
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("createNetworkAPIVipUrlCmd command with napiVipId=" + napiVipId + " networkId=" + networkId);
-        	Network network = ApiDBUtils.findNetworkById(networkId);
-        	if (network == null) {
-        		throw new ServerApiException(ApiErrorCode.PARAM_ERROR, "Invalid network");
-        	}
+//        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId + " networkId=" + networkId);
+        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId);
+        	_ntwkAPIService.removeNapiVip(napiVipId);
         	
-        	String url = _ntwkAPIService.generateUrlForEditingVip(napiVipId, network);
-        	
-        	UrlResponse response = new UrlResponse();
-        	response.setUrl(url);
-        	response.setResponseName(getCommandName());
-        	response.setObjectName("editingurl");
+        	SuccessResponse response = new SuccessResponse(getCommandName());
+        	response.setSuccess(true);
         	this.setResponseObject(response);
         	
         }  catch (InvalidParameterValueException invalidParamExcp) {

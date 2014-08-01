@@ -15,6 +15,9 @@
 
 package com.globo.globonetwork.cloudstack.api;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.inject.Inject;
 
 import org.apache.cloudstack.api.APICommand;
@@ -23,61 +26,66 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.response.NetworkResponse;
-import org.apache.cloudstack.api.response.SuccessResponse;
+import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
-import com.cloud.api.ApiDBUtils;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
-import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipExternalResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
+import com.google.common.base.Joiner;
 
-@APICommand(name = "generateUrlForEditingVip", responseObject=SuccessResponse.class, description="Generate an url used to edit or to create new vip")
-public class GenerateUrlForEditingVipCmd extends BaseCmd {
+@APICommand(name = "listNetworkApiReals", responseObject=GloboNetworkVipExternalResponse.class, description="List NetworkAPI Reals")
+public class ListGloboNetworkRealsCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(GenerateUrlForEditingVipCmd.class.getName());
-    private static final String s_name = "generateurlforeditingvipresponse";
+    public static final Logger s_logger = Logger.getLogger(ListGloboNetworkRealsCmd.class);
+    private static final String s_name = "listnetworkapirealsresponse";
     
     @Inject
     GloboNetworkService _ntwkAPIService;
     
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = false, description="NetworkAPI VIP ID, when you want to edit. Otherwise, generated url will be to create a new vip")
-    private Long napiVipId;
+    @Parameter(name=ApiConstants.VIP_ID, required = true, type=CommandType.LONG, entityType = GloboNetworkVipResponse.class, description="the vip id")
+    private Long vipId;
     
-    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID to be associated to VIP")
-    private Long networkId;
-
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("createNetworkAPIVipUrlCmd command with napiVipId=" + napiVipId + " networkId=" + networkId);
-        	Network network = ApiDBUtils.findNetworkById(networkId);
-        	if (network == null) {
-        		throw new ServerApiException(ApiErrorCode.PARAM_ERROR, "Invalid network");
+        	s_logger.debug("listNetworkApiRealsCmd command with vipId=" + vipId);
+        	List<GloboNetworkVipResponse.Real> networkAPIReals = _ntwkAPIService.listNetworkAPIReals(this.vipId);
+    		
+        	List<GloboNetworkVipExternalResponse.Real> responseList = new ArrayList<GloboNetworkVipExternalResponse.Real>();
+        	
+        	for(GloboNetworkVipResponse.Real napiReal : networkAPIReals) {
+        		GloboNetworkVipExternalResponse.Real realResponse = new GloboNetworkVipExternalResponse.Real();
+    			realResponse.setVmname(napiReal.getVmName());
+    			realResponse.setIp(napiReal.getIp());
+        		realResponse.setNetwork(napiReal.getNetwork());
+    			realResponse.setPorts(Joiner.on(", ").join(napiReal.getPorts()));
+    			realResponse.setState(napiReal.getState());
+    			realResponse.setNic(napiReal.getNic());
+    			
+    			realResponse.setObjectName("networkapireal");
+    			responseList.add(realResponse);
         	}
         	
-        	String url = _ntwkAPIService.generateUrlForEditingVip(napiVipId, network);
-        	
-        	UrlResponse response = new UrlResponse();
-        	response.setUrl(url);
-        	response.setResponseName(getCommandName());
-        	response.setObjectName("editingurl");
-        	this.setResponseObject(response);
-        	
+        	ListResponse<GloboNetworkVipExternalResponse.Real> response = new ListResponse<GloboNetworkVipExternalResponse.Real>();
+        	response.setResponses(responseList);
+    		response.setResponseName(getCommandName());
+    		this.setResponseObject(response);
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage(), runtimeExcp);
         }
     }
-
+ 
     @Override
     public String getCommandName() {
         return s_name;
