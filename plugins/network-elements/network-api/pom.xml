@@ -29,9 +29,9 @@
   </parent>
   <dependencies>
     <dependency>
-      <groupId>com.globo.evolucaoinfra</groupId>
-      <artifactId>networkapi-client-java</artifactId>
-      <version>0.0.13</version>
+      <groupId>com.globo.globonetwork</groupId>
+      <artifactId>globonetwork-client</artifactId>
+      <version>0.0.14</version>
     </dependency>
     <dependency> 
       <groupId>org.slf4j</groupId>
