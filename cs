@@ -7,7 +7,7 @@ case "$1" in
     ;;
   run-simulator)
     rm -f *.log
-    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -pl :cloud-client-ui jetty:run -Dsimulator
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Dsimulator -pl :cloud-client-ui jetty:run
     ;;
   compile)
     mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
@@ -23,7 +23,10 @@ case "$1" in
     mvn -Pdeveloper -pl developer -Ddeploydb-simulator
     ;;
   populatedb)
-    python tools/marvin/marvin/deployDataCenter.py -i tools/marvin/marvin/cloudstack-local.cfg
+    python tools/marvin/marvin/deployDataCenter.py -i setup/dev/local-globo-xen.cfg
+    ;;
+  populatedb-simulator)
+    python tools/marvin/marvin/deployDataCenter.py -i setup/dev/local-globo-sim.cfg
     ;;
   db-migrate)
     [[ -z $WORKON_HOME ]] && WORKON_HOME=$HOME/.virtualenvs
@@ -75,6 +78,7 @@ DB
     deploydb          Create Required SQL Schema
     deploydb-simulator Create Required SQL Schema to use with simulator
     populatedb        Create a basic infrastructure on cloudstack
+    populatedb-simulator  Create a basic infrastructure on cloudstack
     db-migrate        SQL migrations
 
     tag               Create a git TAG
