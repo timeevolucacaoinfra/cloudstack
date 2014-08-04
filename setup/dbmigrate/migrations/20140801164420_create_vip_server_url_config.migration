@@ -1,0 +1,10 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	INSERT IGNORE INTO `cloud`.`configuration` (category, instance, component, name, value, description)
+		VALUES ('Network', 'DEFAULT', 'management-server', 'globonetwork.vip.server.url', 'https://cadvlan.globoi.com', 'Server URL to generate a new VIP request');
+"""
+
+SQL_DOWN = u"""
+	DELETE FROM `cloud`.`configuration`
+		WHERE `cloud`.`configuration`.`name` = 'globonetwork.vip.server.url';
+"""
