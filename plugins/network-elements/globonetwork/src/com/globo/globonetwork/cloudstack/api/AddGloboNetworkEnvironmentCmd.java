@@ -37,12 +37,12 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkAPIEnvironment", responseObject = GloboNetworkEnvironmentResponse.class, description = "Adds a NetworkAPI environment to a zone")
+@APICommand(name = "addNetworkAPIEnvironment", responseObject = GloboNetworkEnvironmentResponse.class, description = "Adds a GloboNetwork environment to a zone")
 public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 
 	private static final String s_name = "addnetworkapiresponse";
 	@Inject
-	GloboNetworkService _napiManager;
+	GloboNetworkService _globoNetworkService;
 
 	// ///////////////////////////////////////////////////
 	// ////////////// API parameters /////////////////////
@@ -51,11 +51,11 @@ public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
 	private Long physicalNetworkId;
 
-	@Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between zone and networkapi environment (like BACKEND, FRONTEND)")
+	@Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between zone and GloboNetwork environment (like BACKEND, FRONTEND)")
 	private String name;
 
-	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in NetworkAPI")
-	private Long napiEnvironmentId;
+	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
+	private Long globoNetworkEnvironmentId;
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
@@ -69,8 +69,8 @@ public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 		return name;
 	}
 
-	public Long getNapiEnvironmentId() {
-		return napiEnvironmentId;
+	public Long getGloboNetworkEnvironmentId() {
+		return globoNetworkEnvironmentId;
 	}
 
 	// ///////////////////////////////////////////////////
@@ -82,7 +82,7 @@ public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			GloboNetworkEnvironmentVO napiEnvironmentVO = _napiManager.addNetworkAPIEnvironment(physicalNetworkId, name, napiEnvironmentId);
+			GloboNetworkEnvironmentVO napiEnvironmentVO = _globoNetworkService.addGloboNetworkEnvironment(physicalNetworkId, name, globoNetworkEnvironmentId);
 			GloboNetworkEnvironmentResponse response = new GloboNetworkEnvironmentResponse();
 			response.setId(napiEnvironmentVO.getId());
 			response.setName(napiEnvironmentVO.getName());
@@ -119,7 +119,7 @@ public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 
 	@Override
 	public String getEventDescription() {
-		return "Adding a NetworkAPI Environment to Zone";
+		return "Adding a GloboNetwork Environment to Zone";
 	}
 
 }

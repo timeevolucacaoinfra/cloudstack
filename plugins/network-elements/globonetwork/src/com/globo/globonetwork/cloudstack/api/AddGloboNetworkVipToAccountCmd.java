@@ -37,16 +37,16 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkApiVipToAccountCmd", responseObject=SuccessResponse.class, description="Associates a VIP from Network API to an account and network in Cloudstack")
+@APICommand(name = "addNetworkApiVipToAccountCmd", responseObject=SuccessResponse.class, description="Associates a VIP from GloboNetwork to an account and network in Cloudstack")
 public class AddGloboNetworkVipToAccountCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddGloboNetworkVipToAccountCmd.class.getName());
     private static final String s_name = "addnetworkapiviptoaccountresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = true, description="NetworkAPI VIP ID.")
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = true, description="GloboNetwork VIP ID.")
     private Long napiVipId;
     
     @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID to be associated to VIP")
@@ -56,8 +56,8 @@ public class AddGloboNetworkVipToAccountCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkApiVipToAccountCmd command with napiVipId=" + napiVipId + " networkId=" + networkId);
-        	GloboNetworkVipAccVO napiVipVO = _ntwkAPIService.addNapiVipToAcc(napiVipId, networkId);
+        	s_logger.debug("addGloboNetworkVipToAccountCmd command with napiVipId=" + napiVipId + " networkId=" + networkId);
+        	GloboNetworkVipAccVO napiVipVO = _globoNetworkService.addGloboNetworkVipToAcc(napiVipId, networkId);
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess((napiVipVO == null ? false : true));

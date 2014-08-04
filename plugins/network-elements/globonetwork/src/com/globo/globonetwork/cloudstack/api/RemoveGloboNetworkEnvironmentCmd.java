@@ -36,12 +36,12 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "removeNetworkAPIEnvironment", responseObject = SuccessResponse.class, description = "Removes a NetworkAPI environment from a zone")
+@APICommand(name = "removeNetworkAPIEnvironment", responseObject = SuccessResponse.class, description = "Removes a GloboNetwork environment from a zone")
 public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 
 	private static final String s_name = "removenetworkapiresponse";
 	@Inject
-	GloboNetworkService _napiManager;
+	GloboNetworkService _globoNetworkService;
 
 	// ///////////////////////////////////////////////////
 	// ////////////// API parameters /////////////////////
@@ -50,8 +50,8 @@ public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
 	private Long physicalNetworkId;
 
-	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in NetworkAPI")
-	private Long napiEnvironmentId;
+	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
+	private Long globoNetworkEnvironmentId;
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
@@ -61,8 +61,8 @@ public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 		return physicalNetworkId;
 	}
 
-	public Long getNapiEnvironmentId() {
-		return napiEnvironmentId;
+	public Long getGloboNetworkEnvironmentId() {
+		return globoNetworkEnvironmentId;
 	}
 
 	// ///////////////////////////////////////////////////
@@ -74,7 +74,7 @@ public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			boolean result = _napiManager.removeNetworkAPIEnvironment(physicalNetworkId, napiEnvironmentId);
+			boolean result = _globoNetworkService.removeGloboNetworkEnvironment(physicalNetworkId, globoNetworkEnvironmentId);
 
 			if (result) {
 				SuccessResponse response = new SuccessResponse(getCommandName());

@@ -23,11 +23,11 @@ import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 
 public interface GloboNetworkVipAccDao extends GenericDao<GloboNetworkVipAccVO, Long> {
 
-	GloboNetworkVipAccVO findNetworkAPIVipAcct(long napiVipId, long accountId, long networkId);
+	GloboNetworkVipAccVO findGloboNetworkVipAcc(long vipId, long accountId, long networkId);
 	
 	List<GloboNetworkVipAccVO> listByNetworks(List<Long> networkIdList);
 
-	GloboNetworkVipAccVO findNetworkAPIVip(long napiVipId, long networkId);
+	GloboNetworkVipAccVO findGloboNetworkVip(long vipId, long networkId);
 
 	List<GloboNetworkVipAccVO> findByNetwork(long networkId);
 	

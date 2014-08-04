@@ -56,7 +56,7 @@ public class GloboNetworkNetworkVO implements InternalIdentity {
 		return id;
 	}
 
-	public long getNapiVlanId() {
+	public long getGloboNetworkVlanId() {
 		return napiVlanId;
 	}
 

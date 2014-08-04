@@ -39,14 +39,14 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkEnvironmentExternalResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 
-@APICommand(name = "listAllEnvironmentsFromNetworkApi", responseObject=GloboNetworkEnvironmentExternalResponse.class, description="Lists all environments from NetworkAPI")
+@APICommand(name = "listAllEnvironmentsFromNetworkApi", responseObject=GloboNetworkEnvironmentExternalResponse.class, description="Lists all environments from GloboNetwork")
 public class ListAllEnvironmentsFromGloboNetworkCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListAllEnvironmentsFromGloboNetworkCmd.class.getName());
     private static final String s_name = "listallenvironmentsfromnetworkapiresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
 	// ///////////////////////////////////////////////////
 	// ////////////// API parameters /////////////////////
@@ -66,8 +66,8 @@ public class ListAllEnvironmentsFromGloboNetworkCmd extends BaseCmd {
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
-    	s_logger.debug("listAllEnvironmentsFromNetworkApiCmd command");
-    	List<Environment> environmentList = _ntwkAPIService.listAllEnvironmentsFromNetworkApi(physicalNetworkId);
+    	s_logger.debug("listAllEnvironmentsFromGloboNetworkCmd command");
+    	List<Environment> environmentList = _globoNetworkService.listAllEnvironmentsFromGloboNetwork(physicalNetworkId);
     	if (environmentList != null) {
     		List<GloboNetworkEnvironmentExternalResponse> responseList = new ArrayList<GloboNetworkEnvironmentExternalResponse>();
     		for (Environment environment : environmentList) {
@@ -83,7 +83,7 @@ public class ListAllEnvironmentsFromGloboNetworkCmd extends BaseCmd {
     		response.setResponseName(getCommandName());
     		this.setResponseObject(response);
     	} else {
-    		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to retrieve all environments from NetworkAPI.");
+    		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to retrieve all environments from GloboNetwork.");
     	}
     }
  

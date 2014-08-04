@@ -45,9 +45,9 @@ public class AddGloboNetworkRealToVipCmd extends BaseCmd {
     private static final String s_name = "associatenetworkapirealtovipresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
 
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI Vip Id")
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="GloboNetwork Vip Id")
     private Long vipId;
 
     @Parameter(name=ApiConstants.NIC_ID, type=CommandType.UUID, entityType=NicResponse.class,
@@ -66,8 +66,8 @@ public class AddGloboNetworkRealToVipCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("associateNetworkApiRealToVip command with napiVipId=" + this.vipId + " nicId=" + this.nicId);
-        	_ntwkAPIService.associateNicToVip(this.vipId, this.getNic());
+        	s_logger.debug("associateGloboNetworkRealToVip command with VipId=" + this.vipId + " nicId=" + this.nicId);
+        	_globoNetworkService.associateNicToVip(this.vipId, this.getNic());
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess(true);

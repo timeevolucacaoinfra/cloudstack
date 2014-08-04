@@ -110,9 +110,9 @@ import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkNetworkVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
-import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
@@ -131,8 +131,8 @@ import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNet
 import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
+import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
@@ -185,11 +185,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	@Inject
 	NetworkServiceMapDao _ntwkSrvcDao;
 	@Inject
-	GloboNetworkNetworkDao _napiNetworkDao;
+	GloboNetworkNetworkDao _globoNetworkNetworkDao;
 	@Inject
-	GloboNetworkEnvironmentDao _napiEnvironmentDao;
+	GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
 	@Inject
-	GloboNetworkVipAccDao _napiVipAccDao;
+	GloboNetworkVipAccDao _globoNetworkVipAccDao;
 	
 	// Managers
 	@Inject
@@ -218,9 +218,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		if (physicalNetworkId == null) {
 			return false;
 		}
-		List<GloboNetworkEnvironmentVO> list = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
+		List<GloboNetworkEnvironmentVO> list = _globoNetworkEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 		if (list.isEmpty()) {
-			throw new CloudRuntimeException("Before enable NetworkAPI you must add NetworkAPI Environment to your physical interface");
+			throw new CloudRuntimeException("Before enabling GloboNetwork you must add an environment to your physical interface");
 		}
 		return true;
 	}
@@ -252,17 +252,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		if (napiEnvironmentId != null) {
 			GloboNetworkEnvironmentVO napiEnvironmentVO = null;
 			for (PhysicalNetwork pNtwk : _physicalNetworkDao.listByZone(zoneId)) {
-				napiEnvironmentVO = _napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(pNtwk.getId(), napiEnvironmentId);
+				napiEnvironmentVO = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(pNtwk.getId(), napiEnvironmentId);
 				if (napiEnvironmentVO != null) {
 					break;
 				}
 			}
 			if (napiEnvironmentVO == null) {
-				throw new InvalidParameterValueException("Unable to find a relationship between NetworkApi environment and physical network");
+				throw new InvalidParameterValueException("Unable to find a relationship between GloboNetwork environment and physical network");
 			}
 			physicalNetworkId = napiEnvironmentVO.getPhysicalNetworkId();
 		} else {
-			throw new InvalidParameterValueException("NetworkApi EnviromentId was not found");
+			throw new InvalidParameterValueException("GloboNetwork enviromentId was not found");
 		}
 		
 		Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId);
@@ -273,14 +273,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		Network network = null;
 		
 		try {
-			network = this.createNetworkFromNetworkAPIVlan(napiVlanId, napiEnvironmentId, zoneId,
+			network = this.createNetworkFromGloboNetworkVlan(napiVlanId, napiEnvironmentId, zoneId,
 				networkOfferingId, physicalNetworkId, networkDomain, aclType,
 				accountName, projectId, domainId, subdomainAccess,
 				displayNetwork, aclId);
 		} catch (Exception e) {
-			// Exception when creating network in Cloudstack. Roll back transaction in NetworkAPI
-			s_logger.error("Reverting network creation in Network API due to error creating network", e);
-			this.deallocateVlanFromNetworkAPI(zoneId, napiVlanId);
+			// Exception when creating network in Cloudstack. Roll back transaction in GloboNetwork
+			s_logger.error("Reverting network creation in GloboNetwork due to error creating network", e);
+			this.deallocateVlanFromGloboNetwork(zoneId, napiVlanId);
 			
 			throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.network);
 		}
@@ -289,7 +289,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		// network
 		// FIXME While we have same issues with ACL API with net not in equipment, all
 		// networks are considered persistent.
-		NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
+		// NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
 		if (true /*ntwkOff.getIsPersistent()*/) {
 			try {
 				if (network.getState() == Network.State.Setup) {
@@ -331,7 +331,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 	@Override
     @DB
-	public Network createNetworkFromNetworkAPIVlan(final Long vlanId, final Long napiEnvironmentId, Long zoneId,
+	public Network createNetworkFromGloboNetworkVlan(final Long vlanId, final Long napiEnvironmentId, Long zoneId,
 			final Long networkOfferingId, final Long physicalNetworkId,
 			final String networkDomain, final ACLType aclType, String accountName, Long projectId,
 			final Long domainId, final Boolean subdomainAccess, final Boolean displayNetwork,
@@ -369,7 +369,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			throw ex;
 		} else if (GuestType.Shared != ntwkOff.getGuestType()) {
 			InvalidParameterValueException ex = new InvalidParameterValueException(
-					"NetworkAPI can handle only network offering with guest type shared");
+					"GloboNetwork can handle only network offering with guest type shared");
 			if (ntwkOff != null) {
 				ex.addProxyObject(ntwkOff.getUuid(), "networkOfferingId");
 			}
@@ -422,11 +422,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 					"Network offering can't be used for VPC networks");
 		}
 
-//		CallContext.register(CallContext.current().getCallingUserId(), owner.getAccountId());
+		// CallContext.register(CallContext.current().getCallingUserId(), owner.getAccountId());
 
-		// /////// NetworkAPI specific code ///////
+		/////// GloboNetwork specific code ///////
 
-		// Get VlanInfo from NetworkAPI
+		// Get VlanInfo from GloboNetwork
 		GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
 		cmd.setVlanId(vlanId);
 
@@ -454,11 +454,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				+ " (" + response.getVlanId() + "), network " + networkAddress
 				+ " gateway " + gateway + " startIp " + startIP + " endIp "
 				+ endIP + " cidr " + cidr);
-		// /////// End of NetworkAPI specific code ///////
+		/////// End of GloboNetwork specific code ///////
 
 		 Network network = Transaction.execute(new TransactionCallbackWithException<Network, CloudException>() {
 
-			@SuppressWarnings("unchecked")
 			@Override
 			public Network doInTransaction(TransactionStatus status) throws CloudException {
 				Boolean newSubdomainAccess = subdomainAccess;
@@ -475,7 +474,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				String newNetworkDomain = networkDomain;
 				if (!StringUtils.isNotBlank(newNetworkDomain)) {
 					/* Create new domain in DNS */
-					String domainSuffix = _configDao.getValue(Config.NetworkAPIDomainSuffix.key());
+					String domainSuffix = _configDao.getValue(Config.GloboNetworkDomainSuffix.key());
 					// domainName is of form 'zoneName-vlanNum.domainSuffix'
 					if (domainSuffix == null) {
 						domainSuffix = "";
@@ -500,7 +499,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				// Save relashionship with napi and network
 				GloboNetworkNetworkVO napiNetworkVO = new GloboNetworkNetworkVO(vlanId,
 						network.getId(), napiEnvironmentId);
-				napiNetworkVO = _napiNetworkDao.persist(napiNetworkVO);
+				napiNetworkVO = _globoNetworkNetworkDao.persist(napiNetworkVO);
 
 				// if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN || caller.getType() == Account.ACCOUNT_TYPE_DOMAIN_ADMIN) {
 					// Create vlan ip range
@@ -516,21 +515,21 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 
 	protected GloboNetworkVlanResponse createNewVlan(Long zoneId, String name,
-			String description, Long networkAPIEnvironmentId) {
+			String description, Long globoNetworkEnvironmentId) {
 
 		CreateNewVlanInGloboNetworkCommand cmd = new CreateNewVlanInGloboNetworkCommand();
 		cmd.setVlanName(name);
 		cmd.setVlanDescription(description);
-		cmd.setNetworkAPIEnvironmentId(networkAPIEnvironmentId);
+		cmd.setGloboNetworkEnvironmentId(globoNetworkEnvironmentId);
 
 		return (GloboNetworkVlanResponse) callCommand(cmd, zoneId);
 	}
 
 	private Answer callCommand(Command cmd, Long zoneId) {
 		
-		HostVO napiHost = getNetworkAPIHost(zoneId);
+		HostVO napiHost = getGloboNetworkHost(zoneId);
 		if (napiHost == null) {
-			throw new CloudstackGloboNetworkException("Could not find the Network API resource");
+			throw new CloudstackGloboNetworkException("Could not find the GloboNetwork resource");
 		}
 		
 		Answer answer = _agentMgr.easySend(napiHost.getId(), cmd);
@@ -540,7 +539,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkErrorAnswer napiAnswer = (GloboNetworkErrorAnswer) answer; 
 				throw new CloudstackGloboNetworkException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription());
 			} else {
-				String msg = "Error executing command " + cmd + ". Maybe NetworkAPI Host is down";
+				String msg = "Error executing command " + cmd + ". Maybe GloboNetwork Host is down";
 				msg = answer == null ? msg : answer.getDetails();
 				throw new CloudRuntimeException(msg);
 			}
@@ -549,8 +548,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		return answer;
 	}
 	
-	private HostVO getNetworkAPIHost(Long zoneId) {
-		return _hostDao.findByTypeNameAndZoneId(zoneId, Provider.NetworkAPI.getName(), Type.L2Networking);
+	private HostVO getGloboNetworkHost(Long zoneId) {
+		return _hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Type.L2Networking);
 	}
 
 	@Override
@@ -561,7 +560,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 		ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
 		cmd.setNicIp(nicProfile.getIp4Address());
-		cmd.setVlanId(getNapiVlanId(network.getId()));
+		cmd.setVlanId(getGloboNetworkVlanId(network.getId()));
 		cmd.setVlanNum(Long.valueOf(getVlanNum(nicProfile.getBroadCastUri())));
 
 		String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
@@ -577,11 +576,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 	@Override
 	public void implementNetwork(Network network) throws ConfigurationException {
-		Long vlanId = getNapiVlanId(network.getId());
+		Long vlanId = getGloboNetworkVlanId(network.getId());
 		if (vlanId == null) {
 			throw new CloudRuntimeException("Inconsistency. Network "
 					+ network.getName()
-					+ " there is not relation with NetworkAPI");
+					+ " there is not relation with GloboNetwork");
 		}
 
 		GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
@@ -599,33 +598,33 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			Answer creation_answer = callCommand(cmd_creation, network.getDataCenterId());
 			if (creation_answer == null || !creation_answer.getResult()) {
 				throw new CloudRuntimeException(
-						"Unable to create network in NetworkAPI: VlanId "
+						"Unable to create network in GloboNetwork: VlanId "
 								+ vlanId + " networkId " + networkId);
 			}
 			s_logger.info("Network ready to use: VlanId " + vlanId
 					+ " networkId " + networkId);
 		} else {
-			s_logger.warn("Network already created in NetworkAPI: VlanId "
+			s_logger.warn("Network already created in GloboNetwork: VlanId "
 					+ vlanId + " networkId " + networkId);
 		}
 	}
 
 	/**
-	 * Returns VlanId (in NetworkAPI) given an Network. If network is not
-	 * associated with NetworkAPI, <code>null</code> will be returned.
+	 * Returns VlanId (in GloboNetwork) given an Network. If network is not
+	 * associated with GloboNetwork, <code>null</code> will be returned.
 	 * 
 	 * @param networkId
 	 * @return
 	 */
-	private Long getNapiVlanId(Long networkId) {
+	private Long getGloboNetworkVlanId(Long networkId) {
 		if (networkId == null) {
 			return null;
 		}
-		GloboNetworkNetworkVO vo = _napiNetworkDao.findByNetworkId(networkId);
+		GloboNetworkNetworkVO vo = _globoNetworkNetworkDao.findByNetworkId(networkId);
 		if (vo == null) {
 			return null;
 		}
-		return vo.getNapiVlanId();
+		return vo.getGloboNetworkVlanId();
 	}
 
 	/**
@@ -650,7 +649,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	
 	@Override
 	@DB
-	public GloboNetworkEnvironmentVO addNetworkAPIEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId) {
+	public GloboNetworkEnvironmentVO addGloboNetworkEnvironment(Long physicalNetworkId, String name, Long globoNetworkEnvironmentId) {
 		
 		if (name == null || name.trim().isEmpty()) {
 			throw new InvalidParameterValueException("Invalid name: " + name);
@@ -671,37 +670,37 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 		Long zoneId = pNtwk.getDataCenterId();
 		
-		// now, check if environment exists in NetworkAPI
-		if (napiEnvironmentId != null) {
-			Environment environment = getEnvironment(physicalNetworkId, napiEnvironmentId);
+		// now, check if environment exists in GloboNetwork
+		if (globoNetworkEnvironmentId != null) {
+			Environment environment = getEnvironment(physicalNetworkId, globoNetworkEnvironmentId);
 			if (environment == null) {
 				throw new InvalidParameterValueException(
-						"Unable to find in NetworkAPI an enviroment having the specified environment id");
+						"Unable to find in GloboNetwork an enviroment having the specified environment id");
 			}
 		} else {
-			throw new InvalidParameterValueException("Invalid networkapi EnvironmentId: " + napiEnvironmentId);
+			throw new InvalidParameterValueException("Invalid GloboNetwork environmentId: " + globoNetworkEnvironmentId);
 		}
 		
 		
 		// Check if there is a environment with same id or name in this zone.
-		List<GloboNetworkEnvironmentVO> napiEnvironments = listNetworkAPIEnvironmentsFromDB(null, zoneId);
-		for (GloboNetworkEnvironmentVO napiEnvironment: napiEnvironments) {
-			if (napiEnvironment.getName().equalsIgnoreCase(name)) {
-				throw new InvalidParameterValueException("NetworkAPI environment with name " + name + " already exists in zone " + zoneId);
+		List<GloboNetworkEnvironmentVO> globoNetworkEnvironments = listGloboNetworkEnvironmentsFromDB(null, zoneId);
+		for (GloboNetworkEnvironmentVO globoNetworkEnvironment: globoNetworkEnvironments) {
+			if (globoNetworkEnvironment.getName().equalsIgnoreCase(name)) {
+				throw new InvalidParameterValueException("GloboNetwork environment with name " + name + " already exists in zone " + zoneId);
 			}
-			if (napiEnvironment.getNapiEnvironmentId() == napiEnvironmentId) {
-				throw new InvalidParameterValueException("NetworkAPI environment with environmentId " + napiEnvironmentId + " already exists in zoneId " + zoneId);
+			if (globoNetworkEnvironment.getNapiEnvironmentId() == globoNetworkEnvironmentId) {
+				throw new InvalidParameterValueException("GloboNetwork environment with environmentId " + globoNetworkEnvironmentId + " already exists in zoneId " + zoneId);
 			}
 		}
 				
-	    GloboNetworkEnvironmentVO napiEnvironmentVO = new GloboNetworkEnvironmentVO(physicalNetworkId, name, napiEnvironmentId);
-	    _napiEnvironmentDao.persist(napiEnvironmentVO);
+	    GloboNetworkEnvironmentVO napiEnvironmentVO = new GloboNetworkEnvironmentVO(physicalNetworkId, name, globoNetworkEnvironmentId);
+	    _globoNetworkEnvironmentDao.persist(napiEnvironmentVO);
 	    return napiEnvironmentVO;
 	}
 
 	@Override
 	@DB
-	public Host addNetworkAPIHost(Long physicalNetworkId, String username, String password, String url) {
+	public Host addGloboNetworkHost(Long physicalNetworkId, String username, String password, String url) {
 		
 		if (username == null || username.trim().isEmpty()) {
 			throw new InvalidParameterValueException("Invalid username: " + username);
@@ -732,13 +731,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		final Long zoneId = pNtwk.getDataCenterId();
 
 		final Map<String, String> params = new HashMap<String, String>();
-		params.put("guid", "networkapi-" + String.valueOf(zoneId));
+		params.put("guid", "globonetwork-" + String.valueOf(zoneId));
 		params.put("zoneId", String.valueOf(zoneId));
-		params.put("name", Provider.NetworkAPI.getName());
+		params.put("name", Provider.GloboNetwork.getName());
 		
-		String readTimeout = _configDao.getValue(Config.NetworkAPIReadTimeout.key());
-		String connectTimeout = _configDao.getValue(Config.NetworkAPIConnectionTimeout.key());
-		String numberOfRetries = _configDao.getValue(Config.NetworkAPINumberOfRetries.key());
+		String readTimeout = _configDao.getValue(Config.GloboNetworkReadTimeout.key());
+		String connectTimeout = _configDao.getValue(Config.GloboNetworkConnectionTimeout.key());
+		String numberOfRetries = _configDao.getValue(Config.GloboNetworkNumberOfRetries.key());
 
 		params.put("url", url);
 		params.put("username", username);
@@ -757,7 +756,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkResource resource = new GloboNetworkResource();
 
 				try {
-					resource.configure(Provider.NetworkAPI.getName(), hostDetails);
+					resource.configure(Provider.GloboNetwork.getName(), hostDetails);
 					
 					Host host = _resourceMgr.addHost(zoneId, resource, resource.getType(),
 							params);
@@ -791,7 +790,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	@Override
-	public List<Environment> listAllEnvironmentsFromNetworkApi(Long physicalNetworkId) {
+	public List<Environment> listAllEnvironmentsFromGloboNetwork(Long physicalNetworkId) {
 		
 		// validate physical network and zone
 		// Check if physical network exists
@@ -827,7 +826,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		}
 		
 		Environment resultEnvironment = null;
-		for (Environment environment : listAllEnvironmentsFromNetworkApi(physicaNetworkId)) {
+		for (Environment environment : listAllEnvironmentsFromGloboNetwork(physicaNetworkId)) {
 			if (environmentId.equals(environment.getId())) {
 				resultEnvironment = environment;
 				break;
@@ -838,9 +837,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 	private void handleNetworkUnavaiableError(CloudstackGloboNetworkException e) {
 		if (e.getNapiCode() == 116) {
-			// If this is the return code, it means that the vlan/network no longer exists in Network API
+			// If this is the return code, it means that the vlan/network no longer exists in GloboNetwork
 			// and we should continue to remove it from CloudStack
-			s_logger.warn("Inconsistency between CloudStack and Network API");
+			s_logger.warn("Inconsistency between CloudStack and GloboNetwork");
 			return;
 		} else {
 			// Otherwise, there was a different error and we should abort the operation
@@ -849,14 +848,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	@Override
-	public void removeNetworkFromNetworkAPI(Network network) {
+	public void removeNetworkFromGloboNetwork(Network network) {
 		
 		try {
 			// Make sure the VLAN is valid
-			this.getVlanInfoFromNetworkAPI(network);
+			this.getVlanInfoFromGloboNetwork(network);
 		
 			RemoveNetworkInGloboNetworkCommand cmd = new RemoveNetworkInGloboNetworkCommand();
-			Long vlanId = getNapiVlanId(network.getId());
+			Long vlanId = getGloboNetworkVlanId(network.getId());
 			cmd.setVlanId(vlanId);
 
 			this.callCommand(cmd, network.getDataCenterId());
@@ -867,13 +866,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	
 	@Override
 	@DB
-	public void deallocateVlanFromNetworkAPI(Network network) {
+	public void deallocateVlanFromGloboNetwork(Network network) {
 
 		try {
-			GloboNetworkNetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
+			GloboNetworkNetworkVO napiNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
 			if (napiNetworkVO != null) {
-				this.deallocateVlanFromNetworkAPI(network.getDataCenterId(), napiNetworkVO.getNapiVlanId());
-				_napiNetworkDao.remove(napiNetworkVO.getId());
+				this.deallocateVlanFromGloboNetwork(network.getDataCenterId(), napiNetworkVO.getGloboNetworkVlanId());
+				_globoNetworkNetworkDao.remove(napiNetworkVO.getId());
 			}
 			
 		} catch (CloudstackGloboNetworkException e) {
@@ -881,7 +880,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		}
 	}
 	
-	public void deallocateVlanFromNetworkAPI(Long zoneId, Long vlanId) {
+	public void deallocateVlanFromGloboNetwork(Long zoneId, Long vlanId) {
 		
 		DeallocateVlanFromGloboNetworkCommand cmd = new DeallocateVlanFromGloboNetworkCommand();
 		cmd.setVlanId(vlanId);
@@ -890,8 +889,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	@Override
-	public List<GloboNetworkEnvironmentVO> listNetworkAPIEnvironmentsFromDB(Long physicalNetworkId, Long zoneId) {
-		List<GloboNetworkEnvironmentVO> napiEnvironmentsVOList;
+	public List<GloboNetworkEnvironmentVO> listGloboNetworkEnvironmentsFromDB(Long physicalNetworkId, Long zoneId) {
+		List<GloboNetworkEnvironmentVO> globoNetworkEnvironmentsVOList;
 
 		if (physicalNetworkId != null) {
 			// Check if physical network exists
@@ -901,7 +900,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 						"Unable to find a physical network having the specified physical network id");
 			}
 			
-			napiEnvironmentsVOList = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
+			globoNetworkEnvironmentsVOList = _globoNetworkEnvironmentDao.listByPhysicalNetworkId(physicalNetworkId);
 
 		} else if (zoneId != null) {
 			// Check if zone exists
@@ -911,49 +910,48 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 						"Specified zone id was not found");
 			}
 
-			napiEnvironmentsVOList = new ArrayList<GloboNetworkEnvironmentVO>();
+			globoNetworkEnvironmentsVOList = new ArrayList<GloboNetworkEnvironmentVO>();
 			for (PhysicalNetworkVO physicalNetwork : _physicalNetworkDao.listByZone(zoneId)) {
-				List<GloboNetworkEnvironmentVO> partialResult = _napiEnvironmentDao.listByPhysicalNetworkId(physicalNetwork.getId());
+				List<GloboNetworkEnvironmentVO> partialResult = _globoNetworkEnvironmentDao.listByPhysicalNetworkId(physicalNetwork.getId());
 				if (partialResult != null) {
-					napiEnvironmentsVOList.addAll(partialResult);
+					globoNetworkEnvironmentsVOList.addAll(partialResult);
 				}
 			}
 		} else {
-			napiEnvironmentsVOList = _napiEnvironmentDao.listAll();
+			globoNetworkEnvironmentsVOList = _globoNetworkEnvironmentDao.listAll();
 		}
 		
-		return napiEnvironmentsVOList;
+		return globoNetworkEnvironmentsVOList;
 	}
 
 	@Override
 	@DB
-	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId) {
+	public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId) {
 
-        // Check if there are any networks in this Network API environment
-        List<GloboNetworkNetworkVO> associationList = _napiNetworkDao.listByEnvironmentId(napiEnvironmentId);
+        // Check if there are any networks in this GloboNetwork environment
+        List<GloboNetworkNetworkVO> associationList = _globoNetworkNetworkDao.listByEnvironmentId(globoNetworkEnvironmentId);
         
         if (!associationList.isEmpty()) {
-        	throw new InvalidParameterValueException("There are active networks on environment " + napiEnvironmentId + ". Please delete them before removing this environment.");
+        	throw new InvalidParameterValueException("There are active networks on environment " + globoNetworkEnvironmentId + ". Please delete them before removing this environment.");
         }
         
 		// Retrieve napiEnvironment from DB
-		GloboNetworkEnvironmentVO napiEnvironment = _napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId);
+		GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId);
 		
-		if (napiEnvironment == null) {
+		if (globoNetworkEnvironment == null) {
 			// No physical network/environment pair registered in the database.
-			throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and NetworkAPI environment=" + napiEnvironmentId);
+			throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and GloboNetwork environment=" + globoNetworkEnvironmentId);
 		}
 		        
-        boolean result = _napiEnvironmentDao.remove(napiEnvironment.getId());
+        boolean result = _globoNetworkEnvironmentDao.remove(globoNetworkEnvironment.getId());
 
 		return result;
 	}
 	
 	@Override
-	public Vlan getVlanInfoFromNetworkAPI(Network network) {
-		// Get VlanInfo from NetworkAPI
+	public Vlan getVlanInfoFromGloboNetwork(Network network) {
 		GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
-		Long vlanId = getNapiVlanId(network.getId());
+		Long vlanId = getGloboNetworkVlanId(network.getId());
 		cmd.setVlanId(vlanId);
 	
 		GloboNetworkVlanResponse response = (GloboNetworkVlanResponse) callCommand(cmd, network.getDataCenterId());
@@ -968,60 +966,60 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	@Override
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm, Network network) {
+	public void registerNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm, Network network) {
 		
 		String msg = "Unable to register nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null) {
 			throw new CloudRuntimeException(msg + " Invalid nic, virtual machine or network.");
 		}
 		
-		GloboNetworkNetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(network.getId());
-		if (napiNetworkVO == null) {
-			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in Network API.");
+		GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
+		if (globoNetworkNetworkVO == null) {
+			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in GloboNetwork.");
 		}
 		
-		String equipmentGroup = _configDao.getValue(Config.NetworkAPIVmEquipmentGroup.key());
+		String equipmentGroup = _configDao.getValue(Config.GloboNetworkVmEquipmentGroup.key());
 		if (equipmentGroup == null || "".equals(equipmentGroup)) {
-			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
+			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your GloboNetwork global options.");
 		}
 
 		String equipmentModel = null;
 		switch(vm.getType()) {
 			case DomainRouter:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmDomainRouter.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmDomainRouter.key());
 				break;
 			case ConsoleProxy:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmConsoleProxy.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmConsoleProxy.key());
 				break;
 			case SecondaryStorageVm:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmSecondaryStorageVm.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmSecondaryStorageVm.key());
 				break;
 			case ElasticIpVm:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmElasticIpVm.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmElasticIpVm.key());
 				break;
 			case ElasticLoadBalancerVm:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmElasticLoadBalancerVm.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmElasticLoadBalancerVm.key());
 				break;
 			case InternalLoadBalancerVm:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmInternalLoadBalancerVm.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmInternalLoadBalancerVm.key());
 				break;
 			case UserBareMetal:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmUserBareMetal.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmUserBareMetal.key());
 				break;
 			default:
-				equipmentModel = _configDao.getValue(Config.NetworkAPIModelVmUser.key());
+				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmUser.key());
 				break;
 		}
 		if (equipmentModel == null) {
-			throw new CloudRuntimeException(msg + " Invalid equipment model for VM of type " + vm.getType() + ". Check your Network API global options.");
+			throw new CloudRuntimeException(msg + " Invalid equipment model for VM of type " + vm.getType() + ". Check your GloboNetwork global options.");
 		}
 		
 		RegisterEquipmentAndIpInGloboNetworkCommand cmd = new RegisterEquipmentAndIpInGloboNetworkCommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setNicDescription("");
 		cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
-		cmd.setVlanId(napiNetworkVO.getNapiVlanId());
-		cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+		cmd.setVlanId(globoNetworkNetworkVO.getGloboNetworkVlanId());
+		cmd.setEnvironmentId(globoNetworkNetworkVO.getNapiEnvironmentId());
 		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
 		cmd.setEquipmentModelId(Long.valueOf(equipmentModel));
 		
@@ -1044,25 +1042,25 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 
 	@Override
-	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm) {
+	public void unregisterNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm) {
 		
 		String msg = "Unable to unregister nic " + nic + " from VM " + vm + ".";
 		if (vm == null || nic == null) {
 			throw new CloudRuntimeException(msg + " Invalid nic or virtual machine.");
 		}
 		
-		String equipmentGroup = _configDao.getValue(Config.NetworkAPIVmEquipmentGroup.key());
+		String equipmentGroup = _configDao.getValue(Config.GloboNetworkVmEquipmentGroup.key());
 		if (equipmentGroup == null) {
-			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your Network API global options.");
+			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your GloboNetwork global options.");
 		}
 		
 		UnregisterEquipmentAndIpInGloboNetworkCommand cmd = new UnregisterEquipmentAndIpInGloboNetworkCommand();
 		cmd.setNicIp(nic.getIp4Address());
 		cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
 
-		GloboNetworkNetworkVO napiNetworkVO = _napiNetworkDao.findByNetworkId(nic.getNetworkId());
-		if (napiNetworkVO != null) {
-			cmd.setEnvironmentId(napiNetworkVO.getNapiEnvironmentId());
+		GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(nic.getNetworkId());
+		if (globoNetworkNetworkVO != null) {
+			cmd.setEnvironmentId(globoNetworkNetworkVO.getNapiEnvironmentId());
 		}
 		
 		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
@@ -1073,7 +1071,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 
 	@Override
-	public GloboNetworkVipAccVO addNapiVipToAcc(Long napiVipId, Long networkId) {
+	public GloboNetworkVipAccVO addGloboNetworkVipToAcc(Long globoNetworkVipId, Long networkId) {
 
 		Account caller = CallContext.current().getCallingAccount();
 		Network network = null;
@@ -1090,9 +1088,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
 		
         GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
-		cmd.setVipId(napiVipId);
+		cmd.setVipId(globoNetworkVipId);
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
-		String msg = "Could not validate VIP id with Network API";
+		String msg = "Could not validate VIP id with GloboNetwork";
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
@@ -1100,16 +1098,16 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		
 		// TODO Remove accountId
 		Long accountId = network.getAccountId();
-		GloboNetworkVipAccVO napiVipAcc = _napiVipAccDao.findNetworkAPIVipAcct(napiVipId, accountId, networkId);
-		if (napiVipAcc != null) {
+		GloboNetworkVipAccVO globoNetworkVipAcc = _globoNetworkVipAccDao.findGloboNetworkVipAcc(globoNetworkVipId, accountId, networkId);
+		if (globoNetworkVipAcc != null) {
 			// Already exists, continue
-			s_logger.info("Association between VIP " + napiVipId + " and network " + networkId + " already exists");
+			s_logger.info("Association between VIP " + globoNetworkVipId + " and network " + networkId + " already exists");
 		} else {
-			napiVipAcc = new GloboNetworkVipAccVO(napiVipId, accountId, networkId);
-			_napiVipAccDao.persist(napiVipAcc);
+			globoNetworkVipAcc = new GloboNetworkVipAccVO(globoNetworkVipId, accountId, networkId);
+			_globoNetworkVipAccDao.persist(globoNetworkVipAcc);
 		}
 
-	    return napiVipAcc;
+	    return globoNetworkVipAcc;
 	}
 
 	@Override
@@ -1119,14 +1117,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
 		}
 		
-		GloboNetworkVipAccVO napiVipVO = _napiVipAccDao.findNetworkAPIVip(vipId, nic.getNetworkId());
-		if (napiVipVO == null) {
-			throw new InvalidParameterValueException("Vip " + vipId + " is not associated with cloudstack");
+		GloboNetworkVipAccVO globoNetworkVipVO = _globoNetworkVipAccDao.findGloboNetworkVip(vipId, nic.getNetworkId());
+		if (globoNetworkVipVO == null) {
+			throw new InvalidParameterValueException("Vip " + vipId + " is not associated with Cloudstack");
 		}
 		
 		Network network = _ntwkDao.findById(nic.getNetworkId());
 		if (network == null) {
-			throw new InvalidParameterValueException("Network " + nic.getNetworkId() + " doesn't exists in cloudstack");
+			throw new InvalidParameterValueException("Network " + nic.getNetworkId() + " doesn't exist in Cloudstack");
 		}
 		
 		AddAndEnableRealInGloboNetworkCommand cmd = new AddAndEnableRealInGloboNetworkCommand();
@@ -1159,7 +1157,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 
 	@Override
-	public List<GloboNetworkVipResponse> listNetworkAPIVips(Long projectId) {
+	public List<GloboNetworkVipResponse> listGloboNetworkVips(Long projectId) {
 
 		Account caller = CallContext.current().getCallingAccount();
 		List<Long> permittedAccounts = new ArrayList<Long>();
@@ -1200,33 +1198,33 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		}
 		
 		// Get all vip Ids related to networks
-		List<GloboNetworkVipAccVO> napiVipAccList = _napiVipAccDao.listByNetworks(networkIds);
+		List<GloboNetworkVipAccVO> globoNetworkVipAccList = _globoNetworkVipAccDao.listByNetworks(networkIds);
 		
 		Map<Long, GloboNetworkVipResponse> vips = new HashMap<Long, GloboNetworkVipResponse>();
-		for (GloboNetworkVipAccVO napiVipAcc : napiVipAccList) {
+		for (GloboNetworkVipAccVO globoNetworkVipAcc : globoNetworkVipAccList) {
 
-			Network network = _ntwkDao.findById(napiVipAcc.getNetworkId());
+			Network network = _ntwkDao.findById(globoNetworkVipAcc.getNetworkId());
 			
 			GloboNetworkVipResponse vip;
 			
-			if (vips.get(napiVipAcc.getNapiVipId()) == null) {
+			if (vips.get(globoNetworkVipAcc.getNapiVipId()) == null) {
 				
-				// Vip is not in the returning map yet, get all info from Network API
+				// Vip is not in the returning map yet, get all info from GloboNetwork
 				GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
-				cmd.setVipId(napiVipAcc.getNapiVipId());
+				cmd.setVipId(globoNetworkVipAcc.getNapiVipId());
 				Answer answer = this.callCommand(cmd, network.getDataCenterId());
-				String msg = "Could not list VIPs from Network API";
+				String msg = "Could not list VIPs from GloboNetwork";
 				if (answer == null || !answer.getResult()) {
 					msg = answer == null ? msg : answer.getDetails();
 					throw new CloudRuntimeException(msg);
 				}
 				vip =  ((GloboNetworkVipResponse) answer);
 				
-				vips.put(napiVipAcc.getNapiVipId(), vip);
+				vips.put(globoNetworkVipAcc.getNapiVipId(), vip);
 				
 			} else {
 				// Vip is already in the returning map
-				vip = vips.get(napiVipAcc.getNapiVipId());
+				vip = vips.get(globoNetworkVipAcc.getNapiVipId());
 			}
 			
 			if (vip.getNetworkIds() == null) {
@@ -1243,7 +1241,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		
 		GenerateUrlForEditingVipCommand cmd = new GenerateUrlForEditingVipCommand(vipId, GloboNetworkVIPServerUrl.value());
 		Answer answer = callCommand(cmd, network.getDataCenterId());
-		String msg = "Could not list VIPs from Network API";
+		String msg = "Could not list VIPs from GloboNetwork";
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
@@ -1252,20 +1250,20 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	@Override
-	public void removeNapiVip(Long napiVipId) {
+	public void removeGloboNetworkVip(Long napiVipId) {
 
 		Account caller = CallContext.current().getCallingAccount();
 		
-		List<GloboNetworkVipAccVO> napiVipList = _napiVipAccDao.findByVipId(napiVipId);
+		List<GloboNetworkVipAccVO> globoNetworkVipList = _globoNetworkVipAccDao.findByVipId(napiVipId);
 		
-		if (napiVipList == null || napiVipList.isEmpty()) {
+		if (globoNetworkVipList == null || globoNetworkVipList.isEmpty()) {
 			throw new InvalidParameterValueException(
 					"Unable to find an association for VIP " + napiVipId);
 		}
 		
 		Network network = null;
-		for (GloboNetworkVipAccVO networkAPIVipAccVO : napiVipList) {
-			network = _ntwkDao.findById(networkAPIVipAccVO.getNetworkId());
+		for (GloboNetworkVipAccVO globoNetworkVipAccVO : globoNetworkVipList) {
+			network = _ntwkDao.findById(globoNetworkVipAccVO.getNetworkId());
 			if (network == null) {
 				throw new InvalidParameterValueException(
 						"Unable to find a network having the specified network id");
@@ -1273,7 +1271,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			// Perform account permission check on network
 	        _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
 	     
-	        _napiVipAccDao.remove(networkAPIVipAccVO.getId());
+	        _globoNetworkVipAccDao.remove(globoNetworkVipAccVO.getId());
 	    
 		}
 		
@@ -1282,7 +1280,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
 		
-		String msg = "Could not remove VIP " + napiVipId + " from Network API";
+		String msg = "Could not remove VIP " + napiVipId + " from GloboNetwork";
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
@@ -1290,34 +1288,34 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	@Override
-	public List<GloboNetworkVipResponse.Real> listNetworkAPIReals(Long vipId) {
+	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId) {
 		if (vipId == null) {
 			throw new InvalidParameterValueException("Invalid VIP id");
 		}
 		
-		List<GloboNetworkVipAccVO> napiVips = _napiVipAccDao.findByVipId(vipId);
+		List<GloboNetworkVipAccVO> globoNetworkVips = _globoNetworkVipAccDao.findByVipId(vipId);
 
-		if (napiVips == null) {
+		if (globoNetworkVips == null) {
 			throw new CloudRuntimeException("Could not find VIP " + vipId);
 		}
 		
 		List<GloboNetworkVipResponse.Real> reals = new ArrayList<GloboNetworkVipResponse.Real>();
 		
-		if (napiVips.isEmpty()) {
+		if (globoNetworkVips.isEmpty()) {
 			return reals;
 		}
 		
 		// We need a network to call commands, any network associated to this VIP will do
-		Network network = _ntwkDao.findById(napiVips.get(0).getNetworkId());
+		Network network = _ntwkDao.findById(globoNetworkVips.get(0).getNetworkId());
 
 		if (network == null) {
-			throw new CloudRuntimeException("Could not find network with networkId " + napiVips.get(0).getNetworkId());
+			throw new CloudRuntimeException("Could not find network with networkId " + globoNetworkVips.get(0).getNetworkId());
 		}
 		
 		GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
 		cmd.setVipId(vipId);
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
-		String msg = "Could not find VIP from Network API";
+		String msg = "Could not find VIP from GloboNetwork";
 		if (answer == null || !answer.getResult()) {
 			msg = answer == null ? msg : answer.getDetails();
 			throw new CloudRuntimeException(msg);
@@ -1325,8 +1323,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		GloboNetworkVipResponse vip =  ((GloboNetworkVipResponse) answer);
 		
 		for (Real real : vip.getReals()) {
-			for (GloboNetworkVipAccVO napiVipVO : napiVips) {
-				network = _ntwkDao.findById(napiVipVO.getNetworkId());
+			for (GloboNetworkVipAccVO globoNetworkVipVO : globoNetworkVips) {
+				network = _ntwkDao.findById(globoNetworkVipVO.getNetworkId());
 				
 				if(!NetUtils.isIpWithtInCidrRange(real.getIp(), network.getCidr())) {
 					// If real's IP is not within network range, skip it

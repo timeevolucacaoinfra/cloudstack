@@ -74,10 +74,10 @@ public class GloboNetworkVipAccDaoImpl extends
 	}
 
 	@Override
-	public GloboNetworkVipAccVO findNetworkAPIVipAcct(long napiVipId,
+	public GloboNetworkVipAccVO findGloboNetworkVipAcc(long vipId,
 			long accountId, long networkId) {
 		SearchCriteria<GloboNetworkVipAccVO> sc = allParamsSearch.create();
-		sc.setParameters("napi_vip_id", napiVipId);
+		sc.setParameters("napi_vip_id", vipId);
 		sc.setParameters("account_id", accountId);
 		sc.setParameters("network_id", networkId);
 		return findOneBy(sc);
@@ -97,9 +97,9 @@ public class GloboNetworkVipAccDaoImpl extends
 	}
 
 	@Override
-	public GloboNetworkVipAccVO findNetworkAPIVip(long napiVipId, long networkId) {
+	public GloboNetworkVipAccVO findGloboNetworkVip(long vipId, long networkId) {
 		SearchCriteria<GloboNetworkVipAccVO> sc = byNetworkAndVip.create();
-		sc.setParameters("napi_vip_id", napiVipId);
+		sc.setParameters("napi_vip_id", vipId);
 		sc.setParameters("network_id", networkId);
 		return findOneBy(sc);
 	}

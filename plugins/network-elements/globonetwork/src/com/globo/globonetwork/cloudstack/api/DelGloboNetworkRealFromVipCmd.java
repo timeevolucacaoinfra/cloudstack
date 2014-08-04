@@ -45,9 +45,9 @@ public class DelGloboNetworkRealFromVipCmd extends BaseCmd {
     private static final String s_name = "disassociatenetworkapirealfromvipresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
 
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI Vip Id")
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="GloboNetwork Vip Id")
     private Long vipId;
 
     @Parameter(name=ApiConstants.NIC_ID, type=CommandType.UUID, entityType=NicResponse.class,
@@ -66,8 +66,8 @@ public class DelGloboNetworkRealFromVipCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("disassociateNetworkApiRealFromVip command with napiVipId=" + this.vipId + " nicId=" + this.nicId);
-        	_ntwkAPIService.disassociateNicFromVip(this.vipId, this.getNic());
+        	s_logger.debug("disassociateGloboNetworkRealFromVip command with vipId=" + this.vipId + " nicId=" + this.nicId);
+        	_globoNetworkService.disassociateNicFromVip(this.vipId, this.getNic());
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess(true);

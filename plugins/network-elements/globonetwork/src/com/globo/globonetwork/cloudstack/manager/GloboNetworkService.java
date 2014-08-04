@@ -44,16 +44,16 @@ public interface GloboNetworkService {
 
 
 	/**
-	 * Add a NetworkAPI Environment to an specific zone.
+	 * Add a GloboNetwork Environment to an specific zone.
 	 * @param physicalNetworkId
 	 * @param name Name of the relationship, for example, BACKEND, FRONTEND
 	 * @param napiEnvironmentId
 	 * @return
 	 */
-	public GloboNetworkEnvironmentVO addNetworkAPIEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
+	public GloboNetworkEnvironmentVO addGloboNetworkEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
 
 	/**
-	 * Create a new network in sync with NetworkAPI.
+	 * Create a new network in sync with GloboNetwork.
 	 * 
 	 * @param zoneId
 	 * @param networkOfferingId
@@ -77,10 +77,10 @@ public interface GloboNetworkService {
 			ConcurrentOperationException, InsufficientCapacityException;
 
 	/**
-	 * Create a new network based on existed vlanId from NetworkAPI.
+	 * Create a new network based on existed vlanId from GloboNetwork.
 	 * 
 	 * @param vlanId Id (to the vlan number) of vlan.
-	 * @param napiEnvironmentId Id of the environment in NetworkAPI
+	 * @param globoNetworkEnvironmentId Id of the environment in GloboNetwork
 	 * @param zoneId
 	 * @param networkOfferingId
 	 * @param physicalNetworkId
@@ -91,7 +91,7 @@ public interface GloboNetworkService {
 	 * @throws ConcurrentOperationException
 	 * @throws InsufficientCapacityException
 	 */
-	public Network createNetworkFromNetworkAPIVlan(Long vlanId, Long napiEnvironmentId, Long zoneId,
+	public Network createNetworkFromGloboNetworkVlan(Long vlanId, Long globoNetworkEnvironmentId, Long zoneId,
 			Long networkOfferingId, Long physicalNetworkId,
 			String networkDomain, ACLType aclType, String accountName,
 			Long projectId, Long domainId, Boolean subdomainAccess,
@@ -115,106 +115,106 @@ public interface GloboNetworkService {
 			InsufficientAddressCapacityException;
 
 	/**
-	 * Ensure network is created and active in NetworkAPI. If network is not created, create it.
+	 * Ensure network is created and active in GloboNetwork. If network is not created, create it.
 	 * @param network
 	 * @throws ConfigurationException
 	 */
 	public void implementNetwork(Network network) throws ConfigurationException;
 	
 	/**
-	 * Remove network from NetworkAPI and inactive the vlan
+	 * Remove network from GloboNetwork and inactivate the vlan
 	 * @param network
 	 */
-	public void removeNetworkFromNetworkAPI(Network network);
+	public void removeNetworkFromGloboNetwork(Network network);
 	
 	/**
-	 * Deallocate Vlan from NetworkAPI. 
-	 * The vlan must have been previously inactivated with the 'removeNetworkFromNetworkAPI' method.
+	 * Deallocate Vlan from GloboNetwork. 
+	 * The vlan must have been previously inactivated with the 'removeNetworkFromGloboNetwork' method.
 	 * @param network
 	 */
-	public void deallocateVlanFromNetworkAPI(Network network);
+	public void deallocateVlanFromGloboNetwork(Network network);
 	
 	/**
-	 * List NetworkAPI environments from database with optional parameter physicalNetworkId or zoneId. If all parameters are null
-	 * all NetworkAPIEnvironments from database are returned.
+	 * List GloboNetwork environments from database with optional parameter physicalNetworkId or zoneId. If all parameters are null
+	 * all GloboNetwork environments from database are returned.
 	 * @param physicalNetworkId
 	 * @param zoneId
 	 */
-	public List<GloboNetworkEnvironmentVO> listNetworkAPIEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
+	public List<GloboNetworkEnvironmentVO> listGloboNetworkEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
 
 	/**
-	 * List all environments from NetworkAPI
+	 * List all environments from GloboNetwork
 	 * @param zoneId
 	 * @return
 	 */
-	public List<Environment> listAllEnvironmentsFromNetworkApi(Long zoneId);
+	public List<Environment> listAllEnvironmentsFromGloboNetwork(Long zoneId);
 	
 	boolean canEnable(Long physicalNetworkId);
 
 	/**
-	 * Removes the relationship between physical network and NetworkAPI environment
+	 * Removes the relationship between physical network and GloboNetwork environment
 	 * @param physicalNetworkId
-	 * @param napiEnvironmentId
+	 * @param globoNetworkEnvironmentId
 	 * @return
 	 */
-	public boolean removeNetworkAPIEnvironment(Long physicalNetworkId, Long napiEnvironmentId);
+	public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId);
 
 	/**
-	 * Add Network API host details (provider) to CloudStack
+	 * Add GloboNetwork host details (provider) to CloudStack
 	 * @param physicalNetworkId
 	 * @param username
 	 * @param password
 	 * @param url
 	 */
-	public Host addNetworkAPIHost(Long physicalNetworkId, String username,
+	public Host addGloboNetworkHost(Long physicalNetworkId, String username,
 			String password, String url);
 	
 	/**
-	 * Retrieve VLAN info from Network API
+	 * Retrieve VLAN info from GloboNetwork
 	 * @param network
 	 * @return
 	 */
-	public Vlan getVlanInfoFromNetworkAPI(Network network);
+	public Vlan getVlanInfoFromGloboNetwork(Network network);
 
 	/**
-	 * Register VM NIC in Network API
+	 * Register VM NIC in GloboNetwork
 	 * @param nic
 	 * @param vm
 	 * @param network
 	 */
-	public void registerNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm, Network network);
+	public void registerNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm, Network network);
 
 	/**
-	 * Unregister NIC in Network API
+	 * Unregister NIC in GloboNetwork
 	 * @param nic
 	 * @param vm
 	 */
-	public void unregisterNicInNetworkAPI(NicProfile nic, VirtualMachineProfile vm);
+	public void unregisterNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm);
 	
 	/**
-	 * List all Network API VIPs associated to an account/project
+	 * List all GloboNetwork VIPs associated to an account/project
 	 * @param projectId
 	 * @return
 	 */
-	public List<GloboNetworkVipResponse> listNetworkAPIVips(Long projectId);
+	public List<GloboNetworkVipResponse> listGloboNetworkVips(Long projectId);
 
 	/**
-	 * Associate Network API VIP to an account and network in Cloudstack
+	 * Associate GloboNetwork VIP to an account and network in Cloudstack
 	 * @param networkId
-	 * @param napiVipId
+	 * @param globoNetworkVipId
 	 * @return
 	 */
-	public GloboNetworkVipAccVO addNapiVipToAcc(Long networkId, Long napiVipId);
+	public GloboNetworkVipAccVO addGloboNetworkVipToAcc(Long networkId, Long globoNetworkVipId);
 	
 	/**
-	 * Associate nic (real) to NetworkAPI Vip.
+	 * Associate nic (real) to GloboNetwork Vip.
 	 * @param vipId
 	 * @param nicId
 	 */
 	public void associateNicToVip(Long vipId, Nic nic);
 
 	/**
-	 * Deassociate nic (real) from NetworkAPI Vip.
+	 * Deassociate nic (real) from GloboNetwork Vip.
 	 * @param vipId
 	 * @param nicId
 	 */
@@ -223,16 +223,16 @@ public interface GloboNetworkService {
 	public String generateUrlForEditingVip(Long vipId, Network network);
 
 	/**
-	 * Remove Load Balancer (VIP) from NetworkAPI
-	 * @param napiVipId
+	 * Remove Load Balancer (VIP) from GloboNetwork
+	 * @param globoNetworkVipId
 	 */
-	public void removeNapiVip(Long napiVipId);
+	public void removeGloboNetworkVip(Long globoNetworkVipId);
 
 	/**
-	 * Find a single Netowrk API VIP
+	 * Find a single GloboNetowrk VIP
 	 * @param vipId
 	 * @param networkId 
 	 * @return
 	 */
-	public List<GloboNetworkVipResponse.Real> listNetworkAPIReals(Long vipId);
+	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
 }

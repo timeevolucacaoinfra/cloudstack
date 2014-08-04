@@ -40,37 +40,15 @@ public class GloboNetworkResourceTest {
 	
 	@Before
 	public void setUp() throws ConfigurationException {
-
-		// ConcurrentMap<String, String> cfg = new ConcurrentHashMap<String, String>();
-		
-		// Long zoneId = Long.valueOf(cfg.get("zoneId"));
-		// Long zoneId = 1L;
-
-		// cfg.put("name", "napivlan");
-		// cfg.put("zoneId", String.valueOf(zoneId));
-		// cfg.put("podId", String.valueOf(1L /* FIXME */));
-		// cfg.put("clusterId", String.valueOf(1L /* FIXME */));
-
-		// String username = "x";
-		// String password = "y";
-		// String url = "z";
-		// cfg.putIfAbsent("guid", "networkapi"); // FIXME
-		// cfg.putIfAbsent("url", url);
-		// cfg.putIfAbsent("username", username);
-		// cfg.putIfAbsent("password", password);
-
 		_resource = new GloboNetworkResource();
-		// Map<String, Object> params = new HashMap<String, Object>();
-		// params.putAll(cfg);
-		// _resource.configure("networkapi", params);
 	}
 
 	@Test
 	public void testValidateNicReturnsAnswerResultTrue() throws Exception {
 
 		long vlanId = 100l;
-		_resource._napi = mock(HttpXMLRequestProcessor.class);
-		when(_resource._napi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
+		_resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
+		when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
 
 		// Returning objects
 		Vlan vlan = new Vlan();
@@ -93,7 +71,7 @@ public class GloboNetworkResourceTest {
 		vlan.setIpv4Networks(ipv4Networks);
 		
 		// Mocking return statement
-		when (_resource._napi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
+		when (_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
 		
 		ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
 		cmd.setVlanId(vlanId);
@@ -107,8 +85,8 @@ public class GloboNetworkResourceTest {
 	public void testValidateNicReturnsAnswerResultFalse() throws Exception {
 
 		long vlanId = 100L;
-		_resource._napi = mock(HttpXMLRequestProcessor.class);
-		when(_resource._napi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
+		_resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
+		when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
 
 		// Returning objects
 		Vlan vlan = new Vlan();
@@ -131,7 +109,7 @@ public class GloboNetworkResourceTest {
 		vlan.setIpv4Networks(ipv4Networks);
 		
 		// Mocking return statement
-		when (_resource._napi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
+		when (_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
 		
 		ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
 		cmd.setVlanId(vlanId);

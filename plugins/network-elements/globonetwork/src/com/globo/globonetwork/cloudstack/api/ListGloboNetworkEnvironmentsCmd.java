@@ -42,14 +42,14 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listNetworkApiEnvironments", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists NetworkAPI environments")
+@APICommand(name = "listNetworkApiEnvironments", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists GloboNetwork environments")
 public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkEnvironmentsCmd.class);
     private static final String s_name = "listnetworkapienvironmentsresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
     @Parameter(name=ApiConstants.PHYSICAL_NETWORK_ID, type=CommandType.UUID, entityType = PhysicalNetworkResponse.class,
             required=false, description="the Physical Network ID the network belongs to")
@@ -71,17 +71,17 @@ public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listNetworkApiEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId + " zoneId=" + zoneId);
-        	List<GloboNetworkEnvironmentVO> napiEnvironments = _ntwkAPIService.listNetworkAPIEnvironmentsFromDB(this.physicalNetworkId, this.zoneId);
+        	s_logger.debug("listGloboNetworkEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId + " zoneId=" + zoneId);
+        	List<GloboNetworkEnvironmentVO> globoNetworkEnvironments = _globoNetworkService.listGloboNetworkEnvironmentsFromDB(this.physicalNetworkId, this.zoneId);
         	
         	List<GloboNetworkEnvironmentResponse> responseList = new ArrayList<GloboNetworkEnvironmentResponse>();
     		
-    		for (GloboNetworkEnvironmentVO networkAPIEnvironmentVO : napiEnvironments) {
+    		for (GloboNetworkEnvironmentVO globoNetworkEnvironmentVO : globoNetworkEnvironments) {
 				GloboNetworkEnvironmentResponse envResponse = new GloboNetworkEnvironmentResponse();
-				envResponse.setId(networkAPIEnvironmentVO.getId());
-				envResponse.setName(networkAPIEnvironmentVO.getName());
-				envResponse.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(networkAPIEnvironmentVO.getPhysicalNetworkId()).getUuid());
-				envResponse.setNapiEnvironmentId(networkAPIEnvironmentVO.getNapiEnvironmentId());
+				envResponse.setId(globoNetworkEnvironmentVO.getId());
+				envResponse.setName(globoNetworkEnvironmentVO.getName());
+				envResponse.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(globoNetworkEnvironmentVO.getPhysicalNetworkId()).getUuid());
+				envResponse.setNapiEnvironmentId(globoNetworkEnvironmentVO.getNapiEnvironmentId());
 				envResponse.setObjectName("networkapienvironment");
 				responseList.add(envResponse);
 			}

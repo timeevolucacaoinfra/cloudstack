@@ -45,10 +45,10 @@ public class GenerateUrlForEditingVipCmd extends BaseCmd {
     private static final String s_name = "generateurlforeditingvipresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = false, description="NetworkAPI VIP ID, when you want to edit. Otherwise, generated url will be to create a new vip")
-    private Long napiVipId;
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required = false, description="GloboNetwork VIP ID, when you want to edit. Otherwise, generated url will be to create a new vip")
+    private Long globoNetworkVipId;
     
     @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID to be associated to VIP")
     private Long networkId;
@@ -57,13 +57,13 @@ public class GenerateUrlForEditingVipCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("createNetworkAPIVipUrlCmd command with napiVipId=" + napiVipId + " networkId=" + networkId);
+        	s_logger.debug("createGloboNetworkVipUrlCmd command with vipId=" + globoNetworkVipId + " networkId=" + networkId);
         	Network network = ApiDBUtils.findNetworkById(networkId);
         	if (network == null) {
         		throw new ServerApiException(ApiErrorCode.PARAM_ERROR, "Invalid network");
         	}
         	
-        	String url = _ntwkAPIService.generateUrlForEditingVip(napiVipId, network);
+        	String url = _globoNetworkService.generateUrlForEditingVip(globoNetworkVipId, network);
         	
         	UrlResponse response = new UrlResponse();
         	response.setUrl(url);

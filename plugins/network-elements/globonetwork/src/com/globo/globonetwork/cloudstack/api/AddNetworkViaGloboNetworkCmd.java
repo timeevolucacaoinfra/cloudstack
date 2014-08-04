@@ -42,14 +42,14 @@ import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkViaNetworkApiCmd", responseObject=NetworkResponse.class, description="Adds a vlan/network in cloudstack and Network API")
+@APICommand(name = "addNetworkViaNetworkApiCmd", responseObject=NetworkResponse.class, description="Adds a vlan/network in Cloudstack and GloboNetwork")
 public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddNetworkViaGloboNetworkCmd.class.getName());
     private static final String s_name = "addnetworkapivlanresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
 
     @Parameter(name=ApiConstants.NAME, type=CommandType.STRING, required=true, description="the name of the network")
     private String name;
@@ -95,8 +95,8 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
             description="Network ACL Id associated for the network")
     private Long aclId;
 
-    @Parameter(name="napienvironmentid", type=CommandType.LONG, required = true, description="NetworkAPI environment ID.")
-    private Long napiEnvironmentId;
+    @Parameter(name="napienvironmentid", type=CommandType.LONG, required = true, description="GloboNetwork environment ID.")
+    private Long globoNetworkEnvironmentId;
 
     public Long getZoneId() {
     	return zoneId;
@@ -123,17 +123,17 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkViaNetworkApiCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId +
+        	s_logger.debug("addNetworkViaGloboNetworkCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
-        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid=" + napiEnvironmentId);
-        	Network network = _ntwkAPIService.createNetwork(name, displayText, zoneId, networkOfferingId, napiEnvironmentId, networkDomain, getACLType(), accountName,
+        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid=" + globoNetworkEnvironmentId);
+        	Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
         		response.setResponseName(getCommandName());
         		this.setResponseObject(response);
         	} else {
-        		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from NetworkAPI.");
+        		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from GloboNetwork.");
         	}
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());

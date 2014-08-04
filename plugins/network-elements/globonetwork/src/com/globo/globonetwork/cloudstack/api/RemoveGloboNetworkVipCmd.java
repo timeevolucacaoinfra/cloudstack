@@ -35,28 +35,24 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "removeNetworkApiVip", responseObject=SuccessResponse.class, description="Remove a VIP from Network API and network in Cloudstack")
+@APICommand(name = "removeNetworkApiVip", responseObject=SuccessResponse.class, description="Remove a VIP from GloboNetwork and network in Cloudstack")
 public class RemoveGloboNetworkVipCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(RemoveGloboNetworkVipCmd.class.getName());
     private static final String s_name = "removenetworkapivipresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
-    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="NetworkAPI VIP ID.")
-    private Long napiVipId;
-    
-//    @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType=NetworkResponse.class, required=true, description="the network ID associated to VIP")
-//    private Long networkId;
+    @Parameter(name=ApiConstants.VIP_ID, type=CommandType.LONG, required=true, description="GloboNetwork VIP ID.")
+    private Long vipId;
     
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-//        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId + " networkId=" + networkId);
-        	s_logger.debug("removeNetworkApiVip command with napiVipId=" + napiVipId);
-        	_ntwkAPIService.removeNapiVip(napiVipId);
+        	s_logger.debug("removeGloboNetworkVip command with VipId=" + vipId);
+        	_globoNetworkService.removeGloboNetworkVip(vipId);
         	
         	SuccessResponse response = new SuccessResponse(getCommandName());
         	response.setSuccess(true);

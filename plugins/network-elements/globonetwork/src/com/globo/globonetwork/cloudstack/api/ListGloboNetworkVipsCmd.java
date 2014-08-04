@@ -41,14 +41,14 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipExternalResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
-@APICommand(name = "listNetworkApiVips", responseObject=GloboNetworkVipExternalResponse.class, description="Lists NetworkAPI Vips")
+@APICommand(name = "listNetworkApiVips", responseObject=GloboNetworkVipExternalResponse.class, description="Lists GloboNetwork Vips")
 public class ListGloboNetworkVipsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkVipsCmd.class);
     private static final String s_name = "listnetworkapivipsresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
     @Parameter(name=ApiConstants.PROJECT_ID, type=CommandType.UUID, entityType = ProjectResponse.class, description="the project id")
     private Long projectId;
@@ -57,24 +57,24 @@ public class ListGloboNetworkVipsCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listNetworkApiVipsCmd command with projectId=" + projectId);
-        	List<GloboNetworkVipResponse> napiVips = _ntwkAPIService.listNetworkAPIVips(this.projectId);
+        	s_logger.debug("listGloboNetworkVipsCmd command with projectId=" + projectId);
+        	List<GloboNetworkVipResponse> globoNetworkVips = _globoNetworkService.listGloboNetworkVips(this.projectId);
         	
         	List<GloboNetworkVipExternalResponse> responseList = new ArrayList<GloboNetworkVipExternalResponse>();
     		
-    		for (GloboNetworkVipResponse networkAPIVip : napiVips) {
+    		for (GloboNetworkVipResponse globoNetworkVip : globoNetworkVips) {
     			GloboNetworkVipExternalResponse vipResponse = new GloboNetworkVipExternalResponse();
-    			vipResponse.setId(networkAPIVip.getId());
-    			vipResponse.setName(networkAPIVip.getName());
-    			vipResponse.setIp(networkAPIVip.getIp());
-    			vipResponse.setCache(networkAPIVip.getCache());
-    			vipResponse.setMethod(networkAPIVip.getMethod());
-    			vipResponse.setPersistence(networkAPIVip.getPersistence());
-    			vipResponse.setHealthchecktype(networkAPIVip.getHealthcheckType());
-    			vipResponse.setHealthcheck(networkAPIVip.getHealthcheck());
-    			vipResponse.setMaxconn(networkAPIVip.getMaxConn());
-    			vipResponse.setPorts(networkAPIVip.getPorts());
-    			vipResponse.setNetworkids(networkAPIVip.getNetworkIds());
+    			vipResponse.setId(globoNetworkVip.getId());
+    			vipResponse.setName(globoNetworkVip.getName());
+    			vipResponse.setIp(globoNetworkVip.getIp());
+    			vipResponse.setCache(globoNetworkVip.getCache());
+    			vipResponse.setMethod(globoNetworkVip.getMethod());
+    			vipResponse.setPersistence(globoNetworkVip.getPersistence());
+    			vipResponse.setHealthchecktype(globoNetworkVip.getHealthcheckType());
+    			vipResponse.setHealthcheck(globoNetworkVip.getHealthcheck());
+    			vipResponse.setMaxconn(globoNetworkVip.getMaxConn());
+    			vipResponse.setPorts(globoNetworkVip.getPorts());
+    			vipResponse.setNetworkids(globoNetworkVip.getNetworkIds());
     			
     			vipResponse.setObjectName("networkapivip");
 				responseList.add(vipResponse);

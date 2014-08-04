@@ -44,20 +44,20 @@ import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkApiVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from Network API")
+@APICommand(name = "addNetworkApiVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from GloboNetwork")
 public class AddGloboNetworkVlanCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddGloboNetworkVlanCmd.class.getName());
     private static final String s_name = "addnetworkapivlanresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
 
     /* Parameters */
     @Parameter(name=ApiConstants.VLAN_ID, type=CommandType.LONG, required = true, description="VLAN ID.")
     private Long vlanId;
     
-	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in NetworkAPI")
+	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
 	private Long napiEnvironmentId;
     
     @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
@@ -135,14 +135,14 @@ public class AddGloboNetworkVlanCmd extends BaseCmd {
         	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
         			" domainId=" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
-        	Network network = _ntwkAPIService.createNetworkFromNetworkAPIVlan(vlanId, napiEnvironmentId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
+        	Network network = _globoNetworkService.createNetworkFromGloboNetworkVlan(vlanId, napiEnvironmentId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,
         			projectId, domainId, subdomainAccess, displayNetwork, aclId);
         	if (network != null) {
         		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
         		response.setResponseName(getCommandName());
         		this.setResponseObject(response);
         	} else {
-        		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from NetworkAPI.");
+        		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from GloboNetwork.");
         	}
         }  catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
