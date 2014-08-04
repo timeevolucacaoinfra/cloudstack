@@ -33,6 +33,7 @@ import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -151,7 +152,7 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 @Component
 @Local({GloboNetworkService.class, PluggableService.class})
-public class GloboNetworkManager implements GloboNetworkService, PluggableService {
+public class GloboNetworkManager implements GloboNetworkService, PluggableService, Configurable {
 
 	private static final Logger s_logger = Logger
 			.getLogger(GloboNetworkManager.class);
@@ -159,7 +160,20 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	static final int NUMBER_OF_RESERVED_IPS_FROM_START = 5;
 	static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 5;
 	
-	private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Advanced", String.class, "globonetwork.vip.server.url", "", "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Network", String.class, "globonetwork.vip.server.url", "", "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkConnectionTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.connectiontimeout", "120000", "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkReadTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.readtimeout", "120000", "GloboNetwork read timeout (in milliseconds)", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkNumberOfRetries = new ConfigKey<String>("Network", String.class, "globonetwork.numberofretries", "0", "GloboNetwork number of retries", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkVmEquipmentGroup = new ConfigKey<Long>("Network", Long.class, "globonetwork.vm.equipmentgroup", "", "Equipment group to be used when registering a VM NIC in GloboNetwork", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmUser = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.user", "83", "GloboNetwork model id to be used for User VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmDomainRouter = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.domain.router", "84", "GloboNetwork model id to be used for Domain Router VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmConsoleProxy = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.console.proxy", "85", "GloboNetwork model id to be used for Console Proxy VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmSecondaryStorageVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.secondary.storage", "86", "GloboNetwork model id to be used for Secondary Storage VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmElasticIpVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.elastic.ip", "87", "GloboNetwork model id to be used for Elastic IP VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmElasticLoadBalancerVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.elastic.load.balancer", "88", "GloboNetwork model id to be used for Elastic Load Balancer VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmInternalLoadBalancerVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.internal.load.balancer", "89", "GloboNetwork model id to be used for Internal Load Balancer VMs", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkModelVmUserBareMetal = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.user.bare.metal", "90", "GloboNetwork model id to be used for User Bare Metal", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkDomainSuffix = new ConfigKey<String>("Network", String.class, "globonetwork.domain.suffix", "", "Domain suffix for all networks created with GloboNetwork", true, ConfigKey.Scope.Global);
 
 	// DAOs
 	@Inject
@@ -474,7 +488,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				String newNetworkDomain = networkDomain;
 				if (!StringUtils.isNotBlank(newNetworkDomain)) {
 					/* Create new domain in DNS */
-					String domainSuffix = _configDao.getValue(Config.GloboNetworkDomainSuffix.key());
+					String domainSuffix = GloboNetworkDomainSuffix.value();
 					// domainName is of form 'zoneName-vlanNum.domainSuffix'
 					if (domainSuffix == null) {
 						domainSuffix = "";
@@ -735,9 +749,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		params.put("zoneId", String.valueOf(zoneId));
 		params.put("name", Provider.GloboNetwork.getName());
 		
-		String readTimeout = _configDao.getValue(Config.GloboNetworkReadTimeout.key());
-		String connectTimeout = _configDao.getValue(Config.GloboNetworkConnectionTimeout.key());
-		String numberOfRetries = _configDao.getValue(Config.GloboNetworkNumberOfRetries.key());
+		String readTimeout = GloboNetworkReadTimeout.value();
+		String connectTimeout = GloboNetworkConnectionTimeout.value();
+		String numberOfRetries = GloboNetworkNumberOfRetries.value();
 
 		params.put("url", url);
 		params.put("username", username);
@@ -978,36 +992,36 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			throw new CloudRuntimeException(msg + " Could not obtain mapping for network in GloboNetwork.");
 		}
 		
-		String equipmentGroup = _configDao.getValue(Config.GloboNetworkVmEquipmentGroup.key());
+		Long equipmentGroup = GloboNetworkVmEquipmentGroup.value();
 		if (equipmentGroup == null || "".equals(equipmentGroup)) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your GloboNetwork global options.");
 		}
 
-		String equipmentModel = null;
+		Long equipmentModel = null;
 		switch(vm.getType()) {
 			case DomainRouter:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmDomainRouter.key());
+				equipmentModel = GloboNetworkModelVmDomainRouter.value();
 				break;
 			case ConsoleProxy:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmConsoleProxy.key());
+				equipmentModel = GloboNetworkModelVmConsoleProxy.value();
 				break;
 			case SecondaryStorageVm:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmSecondaryStorageVm.key());
+				equipmentModel = GloboNetworkModelVmSecondaryStorageVm.value();
 				break;
 			case ElasticIpVm:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmElasticIpVm.key());
+				equipmentModel = GloboNetworkModelVmElasticIpVm.value();
 				break;
 			case ElasticLoadBalancerVm:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmElasticLoadBalancerVm.key());
+				equipmentModel = GloboNetworkModelVmElasticLoadBalancerVm.value();
 				break;
 			case InternalLoadBalancerVm:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmInternalLoadBalancerVm.key());
+				equipmentModel = GloboNetworkModelVmInternalLoadBalancerVm.value();
 				break;
 			case UserBareMetal:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmUserBareMetal.key());
+				equipmentModel = GloboNetworkModelVmUserBareMetal.value();
 				break;
 			default:
-				equipmentModel = _configDao.getValue(Config.GloboNetworkModelVmUser.key());
+				equipmentModel = GloboNetworkModelVmUser.value();
 				break;
 		}
 		if (equipmentModel == null) {
@@ -1049,7 +1063,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			throw new CloudRuntimeException(msg + " Invalid nic or virtual machine.");
 		}
 		
-		String equipmentGroup = _configDao.getValue(Config.GloboNetworkVmEquipmentGroup.key());
+		Long equipmentGroup = GloboNetworkVmEquipmentGroup.value();
 		if (equipmentGroup == null) {
 			throw new CloudRuntimeException(msg + " Invalid equipment group for VM. Check your GloboNetwork global options.");
 		}
@@ -1348,5 +1362,28 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		}
 			
 		return reals;
+	}
+
+	@Override
+	public String getConfigComponentName() {
+		return GloboNetworkManager.class.getSimpleName();
+	}
+
+	@Override
+	public ConfigKey<?>[] getConfigKeys() {
+		return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, 
+				GloboNetworkConnectionTimeout, 
+				GloboNetworkReadTimeout, 
+				GloboNetworkNumberOfRetries, 
+				GloboNetworkVmEquipmentGroup,
+				GloboNetworkModelVmUser,
+				GloboNetworkModelVmDomainRouter,
+				GloboNetworkModelVmConsoleProxy,
+				GloboNetworkModelVmSecondaryStorageVm,
+				GloboNetworkModelVmElasticIpVm,
+				GloboNetworkModelVmElasticLoadBalancerVm,
+				GloboNetworkModelVmInternalLoadBalancerVm,
+				GloboNetworkModelVmUserBareMetal,
+				GloboNetworkDomainSuffix};
 	}
 }

@@ -56,7 +56,6 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
@@ -96,8 +95,6 @@ import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetwork
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
-import com.globo.globonetwork.cloudstack.manager.GloboNetworkManager;
-import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -179,10 +176,6 @@ public class GloboNetworkManagerTest {
     	when(_physicalNetworkDao.listByZone(zoneId)).thenReturn(pNtwList);
     	String networkName = "MockTestNetwork";
     	when(_globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId)).thenReturn(new GloboNetworkEnvironmentVO(physicalNetworkId, networkName, globoNetworkEnvironmentId));
-
-    	when(_configDao.getValue(Config.GloboNetworkReadTimeout.key())).thenReturn("120");
-    	when(_configDao.getValue(Config.GloboNetworkConnectionTimeout.key())).thenReturn("120");
-    	when(_configDao.getValue(Config.GloboNetworkNumberOfRetries.key())).thenReturn("120");
     	
     	HostVO napiHost = new HostVO(globoNetworkHostId, null, null, null, null, null, null, 
     			null, null, null, null, null, null, null, null, null, null, zoneId, null,
@@ -250,11 +243,7 @@ public class GloboNetworkManagerTest {
     	
     	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
     	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
-    	
-    	when(_configDao.getValue(Config.GloboNetworkReadTimeout.key())).thenReturn("120000");
-    	when(_configDao.getValue(Config.GloboNetworkConnectionTimeout.key())).thenReturn("120000");
-    	when(_configDao.getValue(Config.GloboNetworkNumberOfRetries.key())).thenReturn("0");
-    	
+    	    	
     	HostVO globoNetworkHost = new HostVO(1L, "GloboNetwork", null, "Up", "L2Networking", "", null, 
     			null, "", null, null, null, null, null, null, null, null, zoneId, null,
     			0L, 0L, null, null, null, 0L, null);
