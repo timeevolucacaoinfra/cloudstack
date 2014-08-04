@@ -3,7 +3,7 @@ package com.globo.globonetwork.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 /**
- * Deallocates an inactive VLAN in NetworkAPI
+ * Deallocates an inactive VLAN in GloboNetwork
  * @author Daniel Vega
  *
  */

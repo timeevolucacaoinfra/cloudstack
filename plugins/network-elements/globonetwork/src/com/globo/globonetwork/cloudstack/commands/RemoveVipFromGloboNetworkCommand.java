@@ -3,7 +3,7 @@ package com.globo.globonetwork.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 /**
- * Remove VIP from NetworkAPI
+ * Remove VIP from GloboNetwork
  *
  */
 public class RemoveVipFromGloboNetworkCommand extends Command {

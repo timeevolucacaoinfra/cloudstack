@@ -2133,18 +2133,18 @@ function strOrFunc(arg, args) {
     return arg;
 }
 
-// BEGIN NETWORKAPI
-var addNetworkAPINetworkDialog = {
+// BEGIN GLOBONETWORK
+var addGloboNetworkNetworkDialog = {
     zoneObjs: [],
     physicalNetworkObjs: [],
     networkOfferingObjs: [],
-    networkApiEnvironmentsObjs: [],
+    globoNetworkEnvironmentsObjs: [],
     def: {
-        label: 'Add NetworkAPI Network', // Add NetworkAPI Network
+        label: 'Add GloboNetwork Network',
 
         messages: {
             notification: function(args) {
-                return 'Add NetworkAPI Network';
+                return 'Add GloboNetwork Network';
             }
         },
 
@@ -2153,7 +2153,7 @@ var addNetworkAPINetworkDialog = {
         },
 
         createForm: {
-            title: 'Add NetworkAPI Network',
+            title: 'Add GloboNetwork Network',
 
             preFilter: function(args) {
                 if ('zones' in args.context) {
@@ -2184,18 +2184,18 @@ var addNetworkAPINetworkDialog = {
                     },
                     select: function(args) {
                         if ('zones' in args.context) {
-                            addNetworkAPINetworkDialog.zoneObjs = args.context.zones;
+                            addGloboNetworkNetworkDialog.zoneObjs = args.context.zones;
                         } else {
                             $.ajax({
                                 url: createURL('listZones'),
                                 async: false,
                                 success: function(json) {
-                                    addNetworkAPINetworkDialog.zoneObjs = []; //reset
+                                    addGloboNetworkNetworkDialog.zoneObjs = []; //reset
                                     var items = json.listzonesresponse.zone;
                                     if (items !== null) {
                                         for (var i = 0; i < items.length; i++) {
                                             if (items[i].networktype == 'Advanced') {
-                                                addNetworkAPINetworkDialog.zoneObjs.push(items[i]);
+                                                addGloboNetworkNetworkDialog.zoneObjs.push(items[i]);
                                             }
                                         }
                                     }
@@ -2203,7 +2203,7 @@ var addNetworkAPINetworkDialog = {
                             });
                         }
                         args.response.success({
-                            data: $.map(addNetworkAPINetworkDialog.zoneObjs, function(zone) {
+                            data: $.map(addGloboNetworkNetworkDialog.zoneObjs, function(zone) {
                                 return {
                                     id: zone.id,
                                     description: zone.name
@@ -2218,9 +2218,8 @@ var addNetworkAPINetworkDialog = {
                     label: 'Environment',
                     dependsOn: 'zoneId',
                     select: function(args) {
-                        if ('networkApiEnvironmentsObjs' in args.context) {
-                            // FIXME
-                            addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = args.context.networkApiEnvironmentsObjs;
+                        if ('globoNetworkEnvironmentsObjs' in args.context) {
+                            addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs = args.context.globoNetworkEnvironmentsObjs;
                         } else {
                             var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
                             $.ajax({
@@ -2230,16 +2229,16 @@ var addNetworkAPINetworkDialog = {
                                 },
                                 async: false,
                                 success: function(json) {
-                                    addNetworkAPINetworkDialog.networkApiEnvironmentsObjs = json.listnetworkapienvironmentsresponse.networkapienvironment;
+                                    addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs = json.listnetworkapienvironmentsresponse.networkapienvironment;
                                 }
                             });
                         }
                         var items = [];
-                        if (addNetworkAPINetworkDialog.networkApiEnvironmentsObjs != null) {
-                            for (var i = 0; i < addNetworkAPINetworkDialog.networkApiEnvironmentsObjs.length; i++) {
+                        if (addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs != null) {
+                            for (var i = 0; i < addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs.length; i++) {
                                 items.push({
-                                    id: addNetworkAPINetworkDialog.networkApiEnvironmentsObjs[i].napienvironmentid,
-                                    description: addNetworkAPINetworkDialog.networkApiEnvironmentsObjs[i].name
+                                    id: addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs[i].napienvironmentid,
+                                    description: addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs[i].name
                                 });
                             }
                         }
@@ -2255,10 +2254,10 @@ var addNetworkAPINetworkDialog = {
                     select: function(args) {
                         var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
                         var selectedZoneObj = {};
-                        if (addNetworkAPINetworkDialog.zoneObjs != null && selectedZoneId != "") {
-                            for (var i = 0; i < addNetworkAPINetworkDialog.zoneObjs.length; i++) {
-                                if (addNetworkAPINetworkDialog.zoneObjs[i].id == selectedZoneId) {
-                                    selectedZoneObj = addNetworkAPINetworkDialog.zoneObjs[i];
+                        if (addGloboNetworkNetworkDialog.zoneObjs != null && selectedZoneId != "") {
+                            for (var i = 0; i < addGloboNetworkNetworkDialog.zoneObjs.length; i++) {
+                                if (addGloboNetworkNetworkDialog.zoneObjs[i].id == selectedZoneId) {
+                                    selectedZoneObj = addGloboNetworkNetworkDialog.zoneObjs[i];
                                     break;
                                 }
                             }
@@ -2342,10 +2341,10 @@ var addNetworkAPINetworkDialog = {
                         var items = [];
                         var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
                         var selectedZoneObj = {};
-                        if (addNetworkAPINetworkDialog.zoneObjs != null && selectedZoneId != "") {
-                            for (var i = 0; i < addNetworkAPINetworkDialog.zoneObjs.length; i++) {
-                                if (addNetworkAPINetworkDialog.zoneObjs[i].id == selectedZoneId) {
-                                    selectedZoneObj = addNetworkAPINetworkDialog.zoneObjs[i];
+                        if (addGloboNetworkNetworkDialog.zoneObjs != null && selectedZoneId != "") {
+                            for (var i = 0; i < addGloboNetworkNetworkDialog.zoneObjs.length; i++) {
+                                if (addGloboNetworkNetworkDialog.zoneObjs[i].id == selectedZoneId) {
+                                    selectedZoneObj = addGloboNetworkNetworkDialog.zoneObjs[i];
                                     break;
                                 }
                             }
@@ -2450,22 +2449,6 @@ var addNetworkAPINetworkDialog = {
                             zoneid: args.$form.find('.form-item[rel=zoneId]').find('select').val()
                         };
 
-                        /*var selectedPhysicalNetworkObj = [];
-                        var selectedPhysicalNetworkId = args.$form.find('.form-item[rel=physicalNetworkId]').find('select').val();
-                        if (addNetworkAPINetworkDialog.physicalNetworkObjs != null) {
-                            for (var i = 0; i < addNetworkAPINetworkDialog.physicalNetworkObjs.length; i++) {
-                                if (addNetworkAPINetworkDialog.physicalNetworkObjs[i].id == selectedPhysicalNetworkId) {
-                                    selectedPhysicalNetworkObj = addNetworkAPINetworkDialog.physicalNetworkObjs[i];
-                                    break;
-                                }
-                            }
-                        }
-                        if (selectedPhysicalNetworkObj.tags != null && selectedPhysicalNetworkObj.tags.length > 0) {
-                            $.extend(data, {
-                                tags: selectedPhysicalNetworkObj.tags
-                            });
-                        }*/
-
                         //Network tab in Guest Traffic Type in Infrastructure menu is only available when it's under Advanced zone.
                         //zone dropdown in add guest network dialog includes only Advanced zones.
                         if (args.scope == "zone-wide" || args.scope == "domain-specific") {
@@ -2480,24 +2463,24 @@ var addNetworkAPINetworkDialog = {
                             data: data,
                             async: false,
                             success: function(json) {
-                                addNetworkAPINetworkDialog.networkOfferingObjs = json.listnetworkofferingsresponse.networkoffering;
-                                if (addNetworkAPINetworkDialog.networkOfferingObjs != null && addNetworkAPINetworkDialog.networkOfferingObjs.length > 0) {
+                                addGloboNetworkNetworkDialog.networkOfferingObjs = json.listnetworkofferingsresponse.networkoffering;
+                                if (addGloboNetworkNetworkDialog.networkOfferingObjs != null && addGloboNetworkNetworkDialog.networkOfferingObjs.length > 0) {
                                     var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
                                     var selectedZoneObj = {};
-                                    if (addNetworkAPINetworkDialog.zoneObjs != null && selectedZoneId != "") {
-                                        for (var i = 0; i < addNetworkAPINetworkDialog.zoneObjs.length; i++) {
-                                            if (addNetworkAPINetworkDialog.zoneObjs[i].id == selectedZoneId) {
-                                                selectedZoneObj = addNetworkAPINetworkDialog.zoneObjs[i];
+                                    if (addGloboNetworkNetworkDialog.zoneObjs != null && selectedZoneId != "") {
+                                        for (var i = 0; i < addGloboNetworkNetworkDialog.zoneObjs.length; i++) {
+                                            if (addGloboNetworkNetworkDialog.zoneObjs[i].id == selectedZoneId) {
+                                                selectedZoneObj = addGloboNetworkNetworkDialog.zoneObjs[i];
                                                 break;
                                             }
                                         }
                                     }
-                                    for (var i = 0; i < addNetworkAPINetworkDialog.networkOfferingObjs.length; i++) {
+                                    for (var i = 0; i < addGloboNetworkNetworkDialog.networkOfferingObjs.length; i++) {
                                         //for zone-wide network in Advanced SG-enabled zone, list only SG network offerings
                                         if (selectedZoneObj.networktype == 'Advanced' && selectedZoneObj.securitygroupsenabled == true) {
                                             if (args.scope == "zone-wide") {
                                                 var includingSecurityGroup = false;
-                                                var serviceObjArray = addNetworkAPINetworkDialog.networkOfferingObjs[i].service;
+                                                var serviceObjArray = addGloboNetworkNetworkDialog.networkOfferingObjs[i].service;
                                                 for (var k = 0; k < serviceObjArray.length; k++) {
                                                     if (serviceObjArray[k].name == "SecurityGroup") {
                                                         includingSecurityGroup = true;
@@ -2509,8 +2492,8 @@ var addNetworkAPINetworkDialog = {
                                             }
                                         }
                                         items.push({
-                                            id: addNetworkAPINetworkDialog.networkOfferingObjs[i].id,
-                                            description: addNetworkAPINetworkDialog.networkOfferingObjs[i].displaytext
+                                            id: addGloboNetworkNetworkDialog.networkOfferingObjs[i].id,
+                                            description: addGloboNetworkNetworkDialog.networkOfferingObjs[i].displaytext
                                         });
                                     }
                                 }
@@ -2519,44 +2502,24 @@ var addNetworkAPINetworkDialog = {
                         args.response.success({
                             data: items
                         });
-
-                        /*args.$select.change(function() {
-                            var $form = $(this).closest("form");
-                            var selectedNetworkOfferingId = $(this).val();
-                            $(addNetworkAPINetworkDialog.networkOfferingObjs).each(function() {
-                                if (this.id == selectedNetworkOfferingId) {
-                                    // Never require vlanId!
-                                    // if (this.specifyvlan == false) {
-                                        $form.find('.form-item[rel=vlanId]').hide();
-                                        cloudStack.dialog.createFormField.validation.required.remove($form.find('.form-item[rel=vlanId]')); //make vlanId optional
-
-                                    // } else {
-                                    //     $form.find('.form-item[rel=vlanId]').css('display', 'inline-block');
-                                    //     cloudStack.dialog.createFormField.validation.required.add($form.find('.form-item[rel=vlanId]')); //make vlanId required
-
-                                    // }
-                                    return false; //break each loop
-                                }
-                            });
-                        });*/
                     }
                 }
             }
         }, 
 
-        action: function(args) { //Add NetworkAPI network in advanced zone
+        action: function(args) { //Add GloboNetwork network in advanced zone
             var $form = args.$form;
 
             var array1 = [];
             array1.push("&zoneId=" + args.data.zoneId);
             array1.push("&networkOfferingId=" + args.data.networkOfferingId);
 
-            //Pass physical network ID to addNetworkViaNetworkApiCmd API only when network offering's guestiptype is Shared.
+            //Pass physical network ID to addNetworkViaGloboNetworkCmd API only when network offering's guestiptype is Shared.
             var selectedNetworkOfferingObj;
-            if (addNetworkAPINetworkDialog.networkOfferingObjs != null) {
-                for (var i = 0; i < addNetworkAPINetworkDialog.networkOfferingObjs.length; i++) {
-                    if (addNetworkAPINetworkDialog.networkOfferingObjs[i].id == args.data.networkOfferingId) {
-                        selectedNetworkOfferingObj = addNetworkAPINetworkDialog.networkOfferingObjs[i]
+            if (addGloboNetworkNetworkDialog.networkOfferingObjs != null) {
+                for (var i = 0; i < addGloboNetworkNetworkDialog.networkOfferingObjs.length; i++) {
+                    if (addGloboNetworkNetworkDialog.networkOfferingObjs[i].id == args.data.networkOfferingId) {
+                        selectedNetworkOfferingObj = addGloboNetworkNetworkDialog.networkOfferingObjs[i]
                         break;
                     }
                 }
@@ -2605,7 +2568,6 @@ var addNetworkAPINetworkDialog = {
                 url: createURL("addNetworkViaNetworkApiCmd" + array1.join(""), {
                     ignoreProject: true
                 }),
-                // url: createURL("addNetworkViaNetworkApiCmd" + array1.join("")),
                 dataType: "json",
                 success: function(json) {
                     var item = json.addnetworkapivlanresponse.network;
@@ -2626,4 +2588,4 @@ var addNetworkAPINetworkDialog = {
         }
     }
 }
-// END NETWORKAPI
+// END GLOBONETWORK

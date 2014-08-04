@@ -41,14 +41,14 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkVipExternalRespons
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.google.common.base.Joiner;
 
-@APICommand(name = "listNetworkApiReals", responseObject=GloboNetworkVipExternalResponse.class, description="List NetworkAPI Reals")
+@APICommand(name = "listNetworkApiReals", responseObject=GloboNetworkVipExternalResponse.class, description="List GloboNetwork Reals")
 public class ListGloboNetworkRealsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkRealsCmd.class);
     private static final String s_name = "listnetworkapirealsresponse";
     
     @Inject
-    GloboNetworkService _ntwkAPIService;
+    GloboNetworkService _globoNetworkService;
     
     @Parameter(name=ApiConstants.VIP_ID, required = true, type=CommandType.LONG, entityType = GloboNetworkVipResponse.class, description="the vip id")
     private Long vipId;
@@ -57,19 +57,19 @@ public class ListGloboNetworkRealsCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listNetworkApiRealsCmd command with vipId=" + vipId);
-        	List<GloboNetworkVipResponse.Real> networkAPIReals = _ntwkAPIService.listNetworkAPIReals(this.vipId);
+        	s_logger.debug("listGloboNetworkRealsCmd command with vipId=" + vipId);
+        	List<GloboNetworkVipResponse.Real> globoNetworkReals = _globoNetworkService.listGloboNetworkReals(this.vipId);
     		
         	List<GloboNetworkVipExternalResponse.Real> responseList = new ArrayList<GloboNetworkVipExternalResponse.Real>();
         	
-        	for(GloboNetworkVipResponse.Real napiReal : networkAPIReals) {
+        	for(GloboNetworkVipResponse.Real globoNetworkReal : globoNetworkReals) {
         		GloboNetworkVipExternalResponse.Real realResponse = new GloboNetworkVipExternalResponse.Real();
-    			realResponse.setVmname(napiReal.getVmName());
-    			realResponse.setIp(napiReal.getIp());
-        		realResponse.setNetwork(napiReal.getNetwork());
-    			realResponse.setPorts(Joiner.on(", ").join(napiReal.getPorts()));
-    			realResponse.setState(napiReal.getState());
-    			realResponse.setNic(napiReal.getNic());
+    			realResponse.setVmname(globoNetworkReal.getVmName());
+    			realResponse.setIp(globoNetworkReal.getIp());
+        		realResponse.setNetwork(globoNetworkReal.getNetwork());
+    			realResponse.setPorts(Joiner.on(", ").join(globoNetworkReal.getPorts()));
+    			realResponse.setState(globoNetworkReal.getState());
+    			realResponse.setNic(globoNetworkReal.getNic());
     			
     			realResponse.setObjectName("networkapireal");
     			responseList.add(realResponse);

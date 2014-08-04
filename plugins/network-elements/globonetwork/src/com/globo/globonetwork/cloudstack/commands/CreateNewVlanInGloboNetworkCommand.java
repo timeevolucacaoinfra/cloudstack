@@ -8,7 +8,7 @@ public class CreateNewVlanInGloboNetworkCommand extends Command {
 	
 	private String vlanDescription;
 
-	private Long networkAPIEnvironmentId;
+	private Long globoNetworkEnvironmentId;
 
 	@Override
 	public boolean executeInSequence() {
@@ -31,12 +31,12 @@ public class CreateNewVlanInGloboNetworkCommand extends Command {
 		this.vlanDescription = vlanDescription;
 	}
 
-	public Long getNetworkAPIEnvironmentId() {
-		return networkAPIEnvironmentId;
+	public Long getGloboNetworkEnvironmentId() {
+		return globoNetworkEnvironmentId;
 	}
 
-	public void setNetworkAPIEnvironmentId(Long networkAPIEnvironmentId) {
-		this.networkAPIEnvironmentId = networkAPIEnvironmentId;
+	public void setGloboNetworkEnvironmentId(Long globoNetworkEnvironmentId) {
+		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
 	}
 
 }

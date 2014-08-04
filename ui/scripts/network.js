@@ -666,7 +666,7 @@
                         // rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
                             // isHeader: true
                         // })
-                        addNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
+                        addGloboNetworkNetwork: $.extend({}, addGloboNetworkNetworkDialog.def, {
                             isHeader: true
                         }),
                     },

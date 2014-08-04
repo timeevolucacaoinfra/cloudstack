@@ -9,7 +9,6 @@ import javax.naming.ConfigurationException;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
-import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.deploy.DeploymentPlan;
@@ -33,7 +32,6 @@ import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.User;
 import com.cloud.utils.db.Transaction;
-import com.cloud.utils.db.TransactionCallback;
 import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -53,19 +51,19 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
     // by default traffic type is TrafficType.Guest
     
     @Inject
-    GloboNetworkService _networkAPIService;
+    GloboNetworkService _globoNetworkService;
     @Inject
     VpcVirtualNetworkApplianceManager _routerMgr;
     @Inject
     AccountManager _accountMgr;
     @Inject
-    GloboNetworkVipAccDao _napiVipDao;
+    GloboNetworkVipAccDao _globoNetworkVipDao;
 
     protected NetworkType _networkType = NetworkType.Advanced;
     
     public GloboNetworkGuru() {
         _isolationMethods = new IsolationMethod[] { IsolationMethod.VLAN };
-        setName("NetworkAPIGuru");
+        setName("GloboNetworkGuru");
     }
     
     public boolean isMyNetworkType(NetworkType networkType) {
@@ -85,15 +83,15 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
                 && isMyTrafficType(offering.getTrafficType()) 
                 && isMyIsolationMethod(physicalNetwork)) {
 
-        	if (_networkModel.isProviderEnabledInZone(physicalNetwork.getDataCenterId(), Provider.NetworkAPI.getName())) {
-        		s_logger.debug("NetworkAPI can handle this network"
+        	if (_networkModel.isProviderEnabledInZone(physicalNetwork.getDataCenterId(), Provider.GloboNetwork.getName())) {
+        		s_logger.debug("GloboNetwork can handle this network"
         				+ " with traffic type " + offering.getTrafficType()
         				+ " guest type " + Network.GuestType.Shared
         				+ " network type " + networkType 
         				+ " and physical network " + physicalNetwork);
         		return true;
         	} else {
-        		s_logger.debug("NetworkAPI is not enabled for zone" + physicalNetwork.getDataCenterId());
+        		s_logger.debug("GloboNetwork is not enabled for zone" + physicalNetwork.getDataCenterId());
                 return false;
         	}
         } else {
@@ -124,10 +122,10 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 	public Network implement(Network network, NetworkOffering offering,
 			DeployDestination dest, ReservationContext context)
 			throws InsufficientVirtualNetworkCapcityException {
-		s_logger.debug("Creating network " + network.getName() + " in equipment using NetworkAPI");
+		s_logger.debug("Creating network " + network.getName() + " in equipment using GloboNetwork");
 		
 		try {
-			_networkAPIService.implementNetwork(network);
+			_globoNetworkService.implementNetwork(network);
 		} catch (ConfigurationException e) {
 			throw new CloudRuntimeException("Unable to activate network " + network, e);
 		}
@@ -147,8 +145,8 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 				@Override
 				public NicProfile doInTransaction(TransactionStatus status) throws InsufficientNetworkCapacityException {
 					NicProfile nicProf = GloboNetworkGuru.super.allocate(network, nic, vm);
-					s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in Network API");
-					_networkAPIService.registerNicInNetworkAPI(nic, vm, network);
+					s_logger.debug("Registering NIC " + nic.toString() + " from VM " + vm.toString() + " in GloboNetwork");
+					_globoNetworkService.registerNicInGloboNetwork(nic, vm, network);
 					return nicProf;
 				}
 			});
@@ -172,7 +170,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 
 		super.reserve(nic, network, vm, dest, context);
 
-		_networkAPIService.validateNic(nic, vm, network);
+		_globoNetworkService.validateNic(nic, vm, network);
 
 	}
 	
@@ -183,16 +181,14 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
 		
-		// FIXME When NetworkAPI use a effective LoadBalancerImplementation
-		// move the code bellow to NetworkElement
 		long networkId = nic.getNetworkId();
-		List<GloboNetworkVipAccVO> vips = _napiVipDao.findByNetwork(networkId);
+		List<GloboNetworkVipAccVO> vips = _globoNetworkVipDao.findByNetwork(networkId);
 		for (GloboNetworkVipAccVO vip: vips) {
 			NicVO nicVO = _nicDao.findById(nic.getId());
-			_networkAPIService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
+			_globoNetworkService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
 		}
 
-		_networkAPIService.unregisterNicInNetworkAPI(nic, vm);
+		_globoNetworkService.unregisterNicInGloboNetwork(nic, vm);
 		
 		super.deallocate(network, nic, vm);
 	}
@@ -200,7 +196,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 	@Override
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
 		
-		List<GloboNetworkVipAccVO> vips = _napiVipDao.findByNetwork(profile.getId());
+		List<GloboNetworkVipAccVO> vips = _globoNetworkVipDao.findByNetwork(profile.getId());
 	    if (vips != null && !vips.isEmpty()) {
 	    	throw new CloudRuntimeException("There is VIPs related to this network. Network destroyed will be aborted. Delete VIP before.");
 	    }
@@ -211,8 +207,8 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 					_routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
 			}
 
-			s_logger.debug("Removing networks from NetworkAPI");
-			_networkAPIService.removeNetworkFromNetworkAPI(profile);
+			s_logger.debug("Removing networks from GloboNetwork");
+			_globoNetworkService.removeNetworkFromGloboNetwork(profile);
 		
 			s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
 			// never call super.shutdown because it clear broadcastUri, and sometimes this
@@ -229,8 +225,8 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 	@Override
 	public boolean trash(Network network, NetworkOffering offering) {
 		
-		s_logger.debug("Deallocating VLAN networks from NetworkAPI");
-		_networkAPIService.deallocateVlanFromNetworkAPI(network);
+		s_logger.debug("Deallocating VLAN networks from GloboNetwork");
+		_globoNetworkService.deallocateVlanFromGloboNetwork(network);
 		
 		s_logger.debug("VLAN networks released. Passing on to GuestNetworkGuru to trash network " + network.getName());
 		return super.trash(network, offering);

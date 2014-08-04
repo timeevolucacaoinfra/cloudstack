@@ -28,16 +28,16 @@ import org.apache.cloudstack.api.EntityReference;
 @EntityReference(value = GloboNetworkEnvironmentVO.class)
 public class GloboNetworkEnvironmentResponse extends BaseResponse {
 
-	@SerializedName("id") @Param(description = "id of the NetworkAPI Environment ref")
+	@SerializedName("id") @Param(description = "id of the GloboNetwork Environment ref")
 	private Long id;
 
-	@SerializedName(ApiConstants.PHYSICAL_NETWORK_ID) @Param(description = "the physicalNetworkId of networkapi environment belongs to")
+	@SerializedName(ApiConstants.PHYSICAL_NETWORK_ID) @Param(description = "the physicalNetworkId of GloboNetwork environment belongs to")
 	private String physicalNetworkId;
 
 	@SerializedName(ApiConstants.NAME) @Param(description = "name of the provider")
 	private String name;
 
-	@SerializedName("napienvironmentid") @Param(description = "id of environment in networkapi")
+	@SerializedName("napienvironmentid") @Param(description = "id of environment in GloboNetwork")
 	private Long napiEnvironmentId;
 
 	public void setId(Long id) {

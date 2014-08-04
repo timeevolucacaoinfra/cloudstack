@@ -3,7 +3,7 @@ package com.globo.globonetwork.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 /**
- * Removes network from a specific VLAN in NetworkAPI
+ * Removes network from a specific VLAN in GloboNetwork
  * @author Daniel Vega
  *
  */

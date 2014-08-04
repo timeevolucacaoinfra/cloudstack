@@ -424,19 +424,19 @@ public enum Config {
     ManagementServerVendor("Advanced", ManagementServer.class, String.class, "mgt.server.vendor", "ACS", "the vendor of management server", null),
 
     // NetworkAPI
-    NetworkAPIConnectionTimeout("Network", ManagementServer.class, String.class, "networkapi.connectiontimeout", "120000", "Networkapi connection timeout (in milliseconds)", null),
-    NetworkAPIReadTimeout("Network", ManagementServer.class, String.class, "networkapi.readtimeout", "120000", "Networkapi read timeout (in milliseconds)", null),
-    NetworkAPINumberOfRetries("Network", ManagementServer.class, String.class, "networkapi.numberofretries", "0", "Networkapi number of retries", null),
-    NetworkAPIVmEquipmentGroup("Network", ManagementServer.class, Long.class, "networkapi.vm.equipmentgroup", "", "Equipment group to be used when registering a VM NIC in Network API", null),
-    NetworkAPIModelVmUser("Network", ManagementServer.class, Long.class, "networkapi.model.vm.user", "83", "Network API model id to be used for User VMs", null),
-    NetworkAPIModelVmDomainRouter("Network", ManagementServer.class, Long.class, "networkapi.model.vm.domain.router", "84", "Network API model id to be used for Domain Router VMs", null),
-    NetworkAPIModelVmConsoleProxy("Network", ManagementServer.class, Long.class, "networkapi.model.vm.console.proxy", "85", "Network API model id to be used for Console Proxy VMs", null),
-    NetworkAPIModelVmSecondaryStorageVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.secondary.storage", "86", "Network API model id to be used for Secondary Storage VMs", null),
-    NetworkAPIModelVmElasticIpVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.elastic.ip", "87", "Network API model id to be used for Elastic IP VMs", null),
-    NetworkAPIModelVmElasticLoadBalancerVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.elastic.load.balancer", "88", "Network API model id to be used for Elastic Load Balancer VMs", null),
-    NetworkAPIModelVmInternalLoadBalancerVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.internal.load.balancer", "89", "Network API model id to be used for Internal Load Balancer VMs", null),
-    NetworkAPIModelVmUserBareMetal("Network", ManagementServer.class, Long.class, "networkapi.model.vm.user.bare.metal", "90", "Network API model id to be used for User Bare Metal", null),
-    NetworkAPIDomainSuffix("Network", ManagementServer.class, String.class, "networkapi.domain.suffix", "", "Domain suffix for all domains created in DNS API", null),
+    GloboNetworkConnectionTimeout("Network", ManagementServer.class, String.class, "networkapi.connectiontimeout", "120000", "Networkapi connection timeout (in milliseconds)", null),
+    GloboNetworkReadTimeout("Network", ManagementServer.class, String.class, "networkapi.readtimeout", "120000", "Networkapi read timeout (in milliseconds)", null),
+    GloboNetworkNumberOfRetries("Network", ManagementServer.class, String.class, "networkapi.numberofretries", "0", "Networkapi number of retries", null),
+    GloboNetworkVmEquipmentGroup("Network", ManagementServer.class, Long.class, "networkapi.vm.equipmentgroup", "", "Equipment group to be used when registering a VM NIC in Network API", null),
+    GloboNetworkModelVmUser("Network", ManagementServer.class, Long.class, "networkapi.model.vm.user", "83", "Network API model id to be used for User VMs", null),
+    GloboNetworkModelVmDomainRouter("Network", ManagementServer.class, Long.class, "networkapi.model.vm.domain.router", "84", "Network API model id to be used for Domain Router VMs", null),
+    GloboNetworkModelVmConsoleProxy("Network", ManagementServer.class, Long.class, "networkapi.model.vm.console.proxy", "85", "Network API model id to be used for Console Proxy VMs", null),
+    GloboNetworkModelVmSecondaryStorageVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.secondary.storage", "86", "Network API model id to be used for Secondary Storage VMs", null),
+    GloboNetworkModelVmElasticIpVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.elastic.ip", "87", "Network API model id to be used for Elastic IP VMs", null),
+    GloboNetworkModelVmElasticLoadBalancerVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.elastic.load.balancer", "88", "Network API model id to be used for Elastic Load Balancer VMs", null),
+    GloboNetworkModelVmInternalLoadBalancerVm("Network", ManagementServer.class, Long.class, "networkapi.model.vm.internal.load.balancer", "89", "Network API model id to be used for Internal Load Balancer VMs", null),
+    GloboNetworkModelVmUserBareMetal("Network", ManagementServer.class, Long.class, "networkapi.model.vm.user.bare.metal", "90", "Network API model id to be used for User Bare Metal", null),
+    GloboNetworkDomainSuffix("Network", ManagementServer.class, String.class, "networkapi.domain.suffix", "", "Domain suffix for all domains created in DNS API", null),
 
     // DNS API
     DNSAPITemplateId("Network", ManagementServer.class, Long.class, "dnsapi.domain.templateid", "1", "Template id to be used when creating domains in DNS API", null);

@@ -91,15 +91,15 @@ public class GloboNetworkManagerTest {
 
     private static long zoneId = 5L;
     private static long networkOfferingId = 10L;
-    private static long napiEnvironmentId = 120L;
+    private static long globoNetworkEnvironmentId = 120L;
     private static long physicalNetworkId = 200L;
-    private static long napiHostId = 7L;
+    private static long globoNetworkHostId = 7L;
     private static long domainId = 10L;
     private AccountVO acct = null;
 	private UserVO user = null;
 	
 	@Inject
-	GloboNetworkService _napiService;
+	GloboNetworkService _globoNetworkService;
  
 	@Inject
 	DataCenterDao _dcDao;
@@ -108,7 +108,7 @@ public class GloboNetworkManagerTest {
 	PhysicalNetworkDao _physicalNetworkDao;
 	
 	@Inject
-	GloboNetworkEnvironmentDao _napiEnvironmentDao;
+	GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
 	
 	@Inject
 	HostDao _hostDao;
@@ -153,7 +153,7 @@ public class GloboNetworkManagerTest {
     }
  
     @Test
-    public void revertNetworkAPICreationWhenFailureNetworkCreation() throws CloudException {
+    public void revertGloboNetworkCreationWhenFailureNetworkCreation() throws CloudException {
 
     	DataCenterVO dc = new DataCenterVO(0L, null, null, null, null, null, null, null, null, null, null, null, null);
     	when(_dcDao.findById(anyLong())).thenReturn(dc);
@@ -162,39 +162,39 @@ public class GloboNetworkManagerTest {
     	pNtwList.add(new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null));
     	when(_physicalNetworkDao.listByZone(zoneId)).thenReturn(pNtwList);
     	String networkName = "MockTestNetwork";
-    	when(_napiEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, napiEnvironmentId)).thenReturn(new GloboNetworkEnvironmentVO(physicalNetworkId, networkName, napiEnvironmentId));
+    	when(_globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId)).thenReturn(new GloboNetworkEnvironmentVO(physicalNetworkId, networkName, globoNetworkEnvironmentId));
 
-    	when(_configDao.getValue(Config.NetworkAPIReadTimeout.key())).thenReturn("120");
-    	when(_configDao.getValue(Config.NetworkAPIConnectionTimeout.key())).thenReturn("120");
-    	when(_configDao.getValue(Config.NetworkAPINumberOfRetries.key())).thenReturn("120");
+    	when(_configDao.getValue(Config.GloboNetworkReadTimeout.key())).thenReturn("120");
+    	when(_configDao.getValue(Config.GloboNetworkConnectionTimeout.key())).thenReturn("120");
+    	when(_configDao.getValue(Config.GloboNetworkNumberOfRetries.key())).thenReturn("120");
     	
-    	HostVO napiHost = new HostVO(napiHostId, null, null, null, null, null, null, 
+    	HostVO napiHost = new HostVO(globoNetworkHostId, null, null, null, null, null, null, 
     			null, null, null, null, null, null, null, null, null, null, zoneId, null,
     			0L, 0L, null, null, null, 0L, null);    	
-    	when(_hostDao.findByTypeNameAndZoneId(zoneId, Provider.NetworkAPI.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
+    	when(_hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
     	
     	Answer answer = new GloboNetworkVlanResponse(new CreateNewVlanInGloboNetworkCommand(), null, null, null, null, null, null, null, false);
-    	when(_agentMgr.easySend(eq(napiHostId), any(CreateNewVlanInGloboNetworkCommand.class))).thenReturn(answer);
+    	when(_agentMgr.easySend(eq(globoNetworkHostId), any(CreateNewVlanInGloboNetworkCommand.class))).thenReturn(answer);
     	
     	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(null);
     	
     	try {
-	    	_napiService.createNetwork(networkName, networkName, zoneId, networkOfferingId, napiEnvironmentId, null, 
+	    	_globoNetworkService.createNetwork(networkName, networkName, zoneId, networkOfferingId, globoNetworkEnvironmentId, null, 
 	    			ACLType.Domain, null, null, null, null, true, null);
 	    	// This command must throw InvalidParameterValueException, otherwise fails
 	    	Assert.fail();
     	} catch (ResourceAllocationException e) {
-		   verify(_agentMgr, atLeastOnce()).easySend(eq(napiHostId), any(DeallocateVlanFromGloboNetworkCommand.class));
+		   verify(_agentMgr, atLeastOnce()).easySend(eq(globoNetworkHostId), any(DeallocateVlanFromGloboNetworkCommand.class));
     	}
     }
     
     @Test
-    public void checkPermissionsBeforeCreateVlanOnNetworkAPI() throws CloudException {
+    public void checkPermissionsBeforeCreatingVlanOnGloboNetwork() throws CloudException {
     	try {
     		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
 
     		acct.setDomainId(domainId+1);
-        	_napiService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, napiEnvironmentId, null, ACLType.Domain, acct.getAccountName(), null, domainId, null, true, null);
+        	_globoNetworkService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, globoNetworkEnvironmentId, null, ACLType.Domain, acct.getAccountName(), null, domainId, null, true, null);
         	fail();
     	} catch (PermissionDeniedException e) {
     		verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));
@@ -202,7 +202,7 @@ public class GloboNetworkManagerTest {
     }
 
     @Test(expected = InvalidParameterValueException.class)
-    public void addNetworkAPIHostInvalidParameters() throws CloudException {
+    public void addGloboNetworkHostInvalidParameters() throws CloudException {
     	
     	String username = null;
     	String password = null;
@@ -210,11 +210,11 @@ public class GloboNetworkManagerTest {
     	
     	CallContext.register(user, acct);
     	
-	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
+	    _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url); 
     }
     
     @Test(expected = InvalidParameterValueException.class)
-    public void addNetworkAPIHostEmptyParameters() throws CloudException {
+    public void addGloboNetworkHostEmptyParameters() throws CloudException {
     	
     	String username = "";
     	String password = "";
@@ -222,11 +222,11 @@ public class GloboNetworkManagerTest {
     	
     	CallContext.register(user, acct);
     	
-	    _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url); 
+	    _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url); 
     }
       
     @Test
-    public void addNetworkAPIHost() throws CloudException {
+    public void addGloboNetworkHost() throws CloudException {
     	
     	String username = "testUser";
     	String password = "testPwd";
@@ -235,24 +235,24 @@ public class GloboNetworkManagerTest {
     	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
     	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
     	
-    	when(_configDao.getValue(Config.NetworkAPIReadTimeout.key())).thenReturn("120000");
-    	when(_configDao.getValue(Config.NetworkAPIConnectionTimeout.key())).thenReturn("120000");
-    	when(_configDao.getValue(Config.NetworkAPINumberOfRetries.key())).thenReturn("0");
+    	when(_configDao.getValue(Config.GloboNetworkReadTimeout.key())).thenReturn("120000");
+    	when(_configDao.getValue(Config.GloboNetworkConnectionTimeout.key())).thenReturn("120000");
+    	when(_configDao.getValue(Config.GloboNetworkNumberOfRetries.key())).thenReturn("0");
     	
-    	HostVO napiHost = new HostVO(1L, "NetworkAPI", null, "Up", "L2Networking", "", null, 
+    	HostVO globoNetworkHost = new HostVO(1L, "GloboNetwork", null, "Up", "L2Networking", "", null, 
     			null, "", null, null, null, null, null, null, null, null, zoneId, null,
     			0L, 0L, null, null, null, 0L, null);
 
-    	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(napiHost);
+    	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(globoNetworkHost);
     	
     	TransactionLegacy tx = TransactionLegacy.open(TransactionLegacy.CLOUD_DB);
     	try {
     		CallContext.register(user, acct);
 	    	
-		    Host host = _napiService.addNetworkAPIHost(physicalNetworkId, username, password, url);
+		    Host host = _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
 		    assertNotNull(host);
 		    assertEquals(host.getDataCenterId(), zoneId);
-		    assertEquals(host.getName(), "NetworkAPI");
+		    assertEquals(host.getName(), "GloboNetwork");
     	} finally {
     		tx.rollback();
     	}
@@ -299,15 +299,15 @@ public class GloboNetworkManagerTest {
     		return mock(NetworkServiceMapDao.class);
     	}
     	@Bean
-    	public GloboNetworkNetworkDao networkAPINetworkDao() {
+    	public GloboNetworkNetworkDao globoNetworkNetworkDao() {
     		return mock(GloboNetworkNetworkDao.class);
     	}
     	@Bean
-    	public GloboNetworkEnvironmentDao networkAPIEnvironmentDao() {
+    	public GloboNetworkEnvironmentDao globoNetworkEnvironmentDao() {
     		return mock(GloboNetworkEnvironmentDao.class);
     	}
     	@Bean
-    	public GloboNetworkVipAccDao networkAPIVipAccDao() {
+    	public GloboNetworkVipAccDao globoNetworkVipAccDao() {
     		return mock(GloboNetworkVipAccDao.class);
     	}
     	@Bean

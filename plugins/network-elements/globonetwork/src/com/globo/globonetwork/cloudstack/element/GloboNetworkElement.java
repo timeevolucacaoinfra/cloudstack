@@ -86,7 +86,7 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
     @Inject
     NetworkServiceMapDao _ntwkSrvcDao;
     @Inject
-    GloboNetworkService _networkAPIService;
+    GloboNetworkService _globoNetworkService;
     @Inject
     ResourceManager _resourceMgr;
 	@Inject
@@ -146,11 +146,11 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
 	@Override
 	public Provider getProvider() {
-		return Provider.NetworkAPI;
+		return Provider.GloboNetwork;
 	}
 
 	protected boolean canHandle(Network network, Service service) {
-		s_logger.trace("Checking if NetworkAPI can handle service "
+		s_logger.trace("Checking if GloboNetwork can handle service "
 				+ service.getName() + " on network " + network.getDisplayText());
 		
         DataCenter zone = _dcDao.findById(network.getDataCenterId());
@@ -162,7 +162,7 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
             return false;
         }
 
-        return (_networkManager.isProviderForNetwork(getProvider(), network.getId()) && _ntwkSrvcDao.canProviderSupportServiceInNetwork(network.getId(), service, Network.Provider.NetworkAPI));
+        return (_networkManager.isProviderForNetwork(getProvider(), network.getId()) && _ntwkSrvcDao.canProviderSupportServiceInNetwork(network.getId(), service, Network.Provider.GloboNetwork));
 	}
 
 	@Override
@@ -170,29 +170,6 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
-		
-		try {
-			s_logger.debug("\n\n\n*** entering networkapiElement implement function for network "
-					+ network.getDisplayText()
-					+ " (state "
-					+ network.getState()
-					+ ")");
-			
-//			try {
-//				_networkAPIService.allocateVlan(network, dest.getCluster());
-//			} catch (ConfigurationException e) {
-//				throw new InsufficientNetworkCapacityException("Unable to configure NetworkAPI as resource", Network.class, network.getId());
-//			}
-
-		
-		} finally {
-			s_logger.debug("leaving networkapiElement implement function for network "
-					+ network.getDisplayText()
-					+ " (state "
-					+ network.getState()
-					+ ")");
-		}
-
 		return true;
 	}
 
@@ -202,8 +179,6 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 			DeployDestination dest, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException,
 			InsufficientCapacityException {
-		s_logger.debug("***** Here we call networkapi to alocate VLAN");
-
 		return true;
 	}
 
@@ -212,7 +187,6 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 			VirtualMachineProfile vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-		s_logger.debug("*** Here we call networkapi to unallocate VLAN");
 		return true;
 	}
 
@@ -220,14 +194,12 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 	public boolean shutdown(Network network, ReservationContext context,
 			boolean cleanup) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-		s_logger.debug("shutdown method");
 		return true;
 	}
 
 	@Override
 	public boolean destroy(Network network, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
-		s_logger.debug("destroy method");
 		if (!canHandle(network, Service.Lb)) {
 			return false;
 		}
@@ -237,7 +209,7 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
 	@Override
 	public boolean isReady(PhysicalNetworkServiceProvider provider) {
-		return _networkAPIService.canEnable(provider.getPhysicalNetworkId());
+		return _globoNetworkService.canEnable(provider.getPhysicalNetworkId());
 	}
 
 	@Override
@@ -245,7 +217,7 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 			PhysicalNetworkServiceProvider provider, ReservationContext context)
 			throws ConcurrentOperationException, ResourceUnavailableException {
     	PhysicalNetwork pNtwk = _physicalNetworkDao.findById(provider.getPhysicalNetworkId());
-    	Host host = _hostDao.findByTypeNameAndZoneId(pNtwk.getDataCenterId(), Provider.NetworkAPI.getName(), Type.L2Networking);
+    	Host host = _hostDao.findByTypeNameAndZoneId(pNtwk.getDataCenterId(), Provider.GloboNetwork.getName(), Type.L2Networking);
     	if (host != null) {
     		_resourceMgr.deleteHost(host.getId(), true, false);
     	}
@@ -254,19 +226,11 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
 	@Override
 	public boolean canEnableIndividualServices() {
-		s_logger.debug("canEnableIndividualServices method");
 		return true;
 	}
 
 	@Override
 	public boolean verifyServicesCombination(Set<Service> services) {
-		// This element can only function in a Nicra Nvp based
-		// SDN network, so Connectivity needs to be present here
-		s_logger.debug("verifyServicesCombination method" + services);
-//		if (!services.contains(Service.Connectivity)) {
-//			s_logger.warn("Unable to provide services without Connectivity service enabled for this element");
-//			return false;
-//		}
 		return true;
 	}
 
@@ -277,26 +241,17 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
     @Override
     public boolean applyLBRules(Network config, List<LoadBalancingRule> rules) throws ResourceUnavailableException {
-//        if (!canHandle(config, rules)) {
-//            return false;
-//        }
-		s_logger.debug("Called applyLBRules config " + config + " rules " + rules);
-        s_logger.debug("**** Configuring LB in networkapi");
-//        return applyLoadBalancerRules(config, rules);
         return false;
     }
 
 	@Override
 	public boolean validateLBRule(Network network, LoadBalancingRule rule) {
-		s_logger.debug("Called validateLBRule Network " + network + " rule " + rule);
-        s_logger.debug("**** Validating LB in networkapi (???)");
 		return true;
 	}
 
 	@Override
 	public List<LoadBalancerTO> updateHealthChecks(Network network,
 			List<LoadBalancingRule> lbrules) {
-		s_logger.debug("Called updateHealthChecks Network " + network + " lbrules " + lbrules);
 		return null;
 	}
 
@@ -304,9 +259,6 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 	public boolean applyIps(Network network,
 			List<? extends PublicIpAddress> ipAddress, Set<Service> services)
 			throws ResourceUnavailableException {
-        // return true, as IP will be associated as part of LB rule configuration
-		s_logger.debug("Called applyIps Network " + network + " ipAddress " + ipAddress + " services " + services);
-        s_logger.debug("**** Adicionando reals in networkapi");
         return true;
 	}
 

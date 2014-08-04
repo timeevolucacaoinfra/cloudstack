@@ -60,10 +60,10 @@ public class GloboNetworkGuruTest {
 	private UserVO user = null;
 	
 	@Inject
-	GloboNetworkGuru _napiGuru;
+	GloboNetworkGuru _globoNetworkGuru;
 	
 	@Inject
-	GloboNetworkService _napiService;
+	GloboNetworkService _globoNetworkService;
 	
 	@Inject
 	AccountManager _acctMgr; 
@@ -97,7 +97,7 @@ public class GloboNetworkGuruTest {
     }
     
     @Test
-    public void removeNetworkInCSWhenNetworkDoesntExistInNetworkAPI() throws CloudException {
+    public void removeNetworkInCSWhenNetworkDoesntExistInGloboNetwork() throws CloudException {
     	
     	// _napiGuru.trash(network, offering, acct);
     }
@@ -143,7 +143,7 @@ public class GloboNetworkGuruTest {
     		return mock(PhysicalNetworkDao.class);
     	}
     	@Bean
-    	public GloboNetworkVipAccDao networkAPIVipAccDao() {
+    	public GloboNetworkVipAccDao globoNetworkVipAccDao() {
     	   return mock(GloboNetworkVipAccDao.class);
     	}
     	@Bean
@@ -159,7 +159,7 @@ public class GloboNetworkGuruTest {
     		return mock(ConfigurationServer.class);
     	}
     	@Bean
-    	public GloboNetworkService networkAPIService() {
+    	public GloboNetworkService globoNetworkService() {
     		return mock(GloboNetworkService.class);
     	}
     	@Bean

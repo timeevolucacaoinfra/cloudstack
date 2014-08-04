@@ -1,9 +1,9 @@
 (function (cloudStack) {
 
-    cloudStack.plugins.napiVipPlugin = function(plugin) {
+    cloudStack.plugins.globoNetworkVipPlugin = function(plugin) {
         plugin.ui.addSection({
-            id: 'napiVipPlugin',
-            title: 'Network API VIPs',
+            id: 'globoNetworkVipPlugin',
+            title: 'GloboNetwork VIPs',
             preFilter: function(args) {
                 return true; // isAdmin();
             },
@@ -12,7 +12,6 @@
                 fields: {
                     name: { label: 'label.name' },
                     ip: { label: 'IP' },
-                    // network: { label: 'label.network' },
                 },
                 dataProvider: function(args) {
                     plugin.ui.apiCall('listNetworkApiVips', {
@@ -80,13 +79,6 @@
                                     ip: { label: 'IP' },
                                     network: { label: 'Network' },
                                     ports: { label: 'Ports' },
-                                    // state: {
-                                    //     label: 'label.state',
-                                    //     indicator: {
-                                    //         'On': 'on',
-                                    //         'Off': 'off',
-                                    //     }
-                                    // }
                                 },
                                 dataProvider: function(args) {
                                     plugin.ui.apiCall('listNetworkApiReals', {
@@ -230,7 +222,7 @@
                                 return 'Are you sure you want to remove VIP ' + args.context.vips[0].name + ' (' + args.context.vips[0].ip + ')?';
                             },
                             notification: function(args) {
-                                return 'Remove Network API VIP';
+                                return 'Remove GloboNetwork VIP';
                             }
                         },
                         action: function(args) {

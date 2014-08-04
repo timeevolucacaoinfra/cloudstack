@@ -37,12 +37,12 @@ import com.cloud.host.Host;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkApiHost", responseObject = SuccessResponse.class, description = "Adds the NetworkAPI external host")
+@APICommand(name = "addNetworkApiHost", responseObject = SuccessResponse.class, description = "Adds the GloboNetwork external host")
 public class AddGloboNetworkHostCmd extends BaseAsyncCmd {
 
 	private static final String s_name = "addnetworkapihostresponse";
 	@Inject
-	GloboNetworkService _napiManager;
+	GloboNetworkService _globoNetworkManager;
 
 	// ///////////////////////////////////////////////////
 	// ////////////// API parameters /////////////////////
@@ -51,13 +51,13 @@ public class AddGloboNetworkHostCmd extends BaseAsyncCmd {
 	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
 	private Long physicalNetworkId;
 
-	@Parameter(name = ApiConstants.USERNAME, type = CommandType.STRING, required = true, description="Username for Network API")
+	@Parameter(name = ApiConstants.USERNAME, type = CommandType.STRING, required = true, description="Username for GloboNetwork")
 	private String username;
 	
-	@Parameter(name=ApiConstants.PASSWORD, type=CommandType.STRING, required = true, description="Password for Network API")
+	@Parameter(name=ApiConstants.PASSWORD, type=CommandType.STRING, required = true, description="Password for GloboNetwork")
     private String password;
 	
-	@Parameter(name = ApiConstants.URL, type=CommandType.STRING, required = true, description="Network API url")
+	@Parameter(name = ApiConstants.URL, type=CommandType.STRING, required = true, description="GloboNetwork url")
 	private String url;
 
 	// ///////////////////////////////////////////////////
@@ -89,7 +89,7 @@ public class AddGloboNetworkHostCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			Host host = _napiManager.addNetworkAPIHost(physicalNetworkId, username, password, url);
+			Host host = _globoNetworkManager.addGloboNetworkHost(physicalNetworkId, username, password, url);
 
 			SuccessResponse response = new SuccessResponse(getCommandName());
 			response.setSuccess((host == null ? false : true));
@@ -116,13 +116,12 @@ public class AddGloboNetworkHostCmd extends BaseAsyncCmd {
 
 	@Override
 	public String getEventType() {
-		//EventTypes.EVENT_NETWORK_CREATE
 		return EventTypes.EVENT_NETWORK_CREATE;
 	}
 
 	@Override
 	public String getEventDescription() {
-		return "Adding a NetworkAPI Environment to Zone";
+		return "Adding a GloboNetwork Environment to Zone";
 	}
 
 }
