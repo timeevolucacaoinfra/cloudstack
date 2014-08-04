@@ -47,7 +47,6 @@ import com.cloud.user.UserVO;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.dao.NicDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
-import com.globo.globonetwork.cloudstack.guru.GloboNetworkGuru;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 
@@ -108,7 +107,7 @@ public class GloboNetworkGuruTest {
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
     	
     	@Bean
-    	public GloboNetworkGuru networkAPIGuru() {
+    	public GloboNetworkGuru globoNetworkGuru() {
     		return new GloboNetworkGuru();
     	}
     	@Bean
