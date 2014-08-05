@@ -26,30 +26,35 @@ import javax.persistence.Table;
 import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
-@Table(name = "networkapi_network_ref")
+@Table(name = "globonetwork_network_ref")
 public class GloboNetworkNetworkVO implements InternalIdentity {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1119504366663225252L;
 
 	@Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name = "id")
 	private long id;
 
-	@Column(name = "napi_vlan_id")
-	private long napiVlanId;
+	@Column(name = "globonetwork_vlan_id")
+	private long globoNetworkVlanId;
 
 	@Column(name = "network_id")
 	private long networkId;
 	
-	@Column(name = "napi_environment_id")
-	private long napiEnvironmentId;
+	@Column(name = "globonetwork_environment_id")
+	private long globoNetworkEnvironmentId;
 
 	public GloboNetworkNetworkVO() {
 	}
 
-	public GloboNetworkNetworkVO(long napiVlanId, long networkId, long napiEnvironmentId) {
-		this.napiVlanId = napiVlanId;
+	public GloboNetworkNetworkVO(long globoNetworkVlanId, long networkId, long globoNetworkEnvironmentId) {
+		this.globoNetworkVlanId = globoNetworkVlanId;
 		this.networkId = networkId;
-		this.napiEnvironmentId = napiEnvironmentId;
+		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
 	}
 
 	public long getId() {
@@ -57,15 +62,15 @@ public class GloboNetworkNetworkVO implements InternalIdentity {
 	}
 
 	public long getGloboNetworkVlanId() {
-		return napiVlanId;
+		return globoNetworkVlanId;
 	}
 
 	public long getNetworkId() {
 		return networkId;
 	}
 	
-	public long getNapiEnvironmentId() {
-		return napiEnvironmentId;
+	public long getGloboNetworkEnvironmentId() {
+		return globoNetworkEnvironmentId;
 	}
 
 }

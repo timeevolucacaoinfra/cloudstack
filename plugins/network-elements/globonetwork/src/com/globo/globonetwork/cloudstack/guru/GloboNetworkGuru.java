@@ -201,7 +201,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 		List<GloboNetworkVipAccVO> vips = _globoNetworkVipDao.findByNetwork(networkId);
 		for (GloboNetworkVipAccVO vip: vips) {
 			NicVO nicVO = _nicDao.findById(nic.getId());
-			_globoNetworkService.disassociateNicFromVip(vip.getNapiVipId(), nicVO);
+			_globoNetworkService.disassociateNicFromVip(vip.getGloboNetworkVipId(), nicVO);
 		}
 
 		_globoNetworkService.unregisterNicInGloboNetwork(nic, vm);

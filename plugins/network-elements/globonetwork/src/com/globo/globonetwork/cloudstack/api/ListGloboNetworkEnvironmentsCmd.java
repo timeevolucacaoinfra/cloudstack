@@ -81,7 +81,7 @@ public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
 				envResponse.setId(globoNetworkEnvironmentVO.getId());
 				envResponse.setName(globoNetworkEnvironmentVO.getName());
 				envResponse.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(globoNetworkEnvironmentVO.getPhysicalNetworkId()).getUuid());
-				envResponse.setNapiEnvironmentId(globoNetworkEnvironmentVO.getNapiEnvironmentId());
+				envResponse.setNapiEnvironmentId(globoNetworkEnvironmentVO.getGloboNetworkEnvironmentId());
 				envResponse.setObjectName("globonetworkenvironment");
 				responseList.add(envResponse);
 			}

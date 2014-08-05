@@ -48,7 +48,7 @@ public class GloboNetworkEnvironmentDaoImpl extends
 
 		physicalNetworkIdAndEnvironmentIdSearch = createSearchBuilder();
 		physicalNetworkIdAndEnvironmentIdSearch.and("physical_network_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
-		physicalNetworkIdAndEnvironmentIdSearch.and("napi_environment_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getNapiEnvironmentId(), Op.EQ);
+		physicalNetworkIdAndEnvironmentIdSearch.and("napi_environment_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getGloboNetworkEnvironmentId(), Op.EQ);
 		physicalNetworkIdAndEnvironmentIdSearch.done();
 
 	}

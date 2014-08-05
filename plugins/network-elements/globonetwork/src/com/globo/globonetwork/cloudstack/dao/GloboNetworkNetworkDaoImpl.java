@@ -44,7 +44,7 @@ public class GloboNetworkNetworkDaoImpl extends GenericDaoBase<GloboNetworkNetwo
      networkIdSearch.done();
      
      environmentIdSearch = createSearchBuilder();
-     environmentIdSearch.and("napi_environment_id", environmentIdSearch.entity().getNapiEnvironmentId(), Op.EQ);
+     environmentIdSearch.and("napi_environment_id", environmentIdSearch.entity().getGloboNetworkEnvironmentId(), Op.EQ);
      environmentIdSearch.done();
  }
 

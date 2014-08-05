@@ -50,7 +50,7 @@ public class GloboNetworkVipAccDaoImpl extends
 		super();
 
 		allParamsSearch = createSearchBuilder();
-		allParamsSearch.and("napi_vip_id", allParamsSearch.entity().getNapiVipId(), Op.EQ);
+		allParamsSearch.and("napi_vip_id", allParamsSearch.entity().getGloboNetworkVipId(), Op.EQ);
 		allParamsSearch.and("account_id", allParamsSearch.entity().getAccountId(), Op.EQ);
 		allParamsSearch.and("network_id", allParamsSearch.entity().getNetworkId(), Op.EQ);
 		allParamsSearch.done();
@@ -64,12 +64,12 @@ public class GloboNetworkVipAccDaoImpl extends
 		byNetwork.done();
 		
 		byVip = createSearchBuilder();
-		byVip.and("napi_vip_id", byVip.entity().getNapiVipId(), Op.EQ);
+		byVip.and("napi_vip_id", byVip.entity().getGloboNetworkVipId(), Op.EQ);
 		byVip.done();
 		
 		byNetworkAndVip = createSearchBuilder();
 		byNetworkAndVip.and("network_id", byNetworkAndVip.entity().getNetworkId(), Op.EQ);
-		byNetworkAndVip.and("napi_vip_id", byNetworkAndVip.entity().getNapiVipId(), Op.EQ);
+		byNetworkAndVip.and("napi_vip_id", byNetworkAndVip.entity().getGloboNetworkVipId(), Op.EQ);
 		byNetworkAndVip.done();
 	}
 

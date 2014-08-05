@@ -26,8 +26,13 @@ import javax.persistence.Table;
 import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
-@Table(name = "networkapi_environment_ref")
+@Table(name = "globonetwork_environment_ref")
 public class GloboNetworkEnvironmentVO implements InternalIdentity {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2510501870987500493L;
 
 	@Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
@@ -40,24 +45,24 @@ public class GloboNetworkEnvironmentVO implements InternalIdentity {
 	@Column(name = "name")
 	private String name;
 
-	@Column(name = "napi_environment_id")
-	private long napiEnvironmentId;
+	@Column(name = "globonetwork_environment_id")
+	private long globoNetworkEnvironmentId;
 
 	public GloboNetworkEnvironmentVO() {
 	}
 
-	public GloboNetworkEnvironmentVO(long physicalNetworkId, String name, long napiEnvironmentId) {
+	public GloboNetworkEnvironmentVO(long physicalNetworkId, String name, long globoNetworkEnvironmentId) {
 		this.physicalNetworkId = physicalNetworkId;
 		this.name = name;
-		this.napiEnvironmentId = napiEnvironmentId;
+		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
 	}
 
 	public long getId() {
 		return id;
 	}
 
-	public long getNapiEnvironmentId() {
-		return napiEnvironmentId;
+	public long getGloboNetworkEnvironmentId() {
+		return globoNetworkEnvironmentId;
 	}
 
 	public long getPhysicalNetworkId() {

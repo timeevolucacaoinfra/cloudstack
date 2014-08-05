@@ -26,16 +26,21 @@ import javax.persistence.Table;
 import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
-@Table(name = "networkapi_vip_acc_ref")
+@Table(name = "globonetwork_vip_acc_ref")
 public class GloboNetworkVipAccVO implements InternalIdentity {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6276857308303296742L;
 
 	@Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name = "id")
 	private long id;
 
-	@Column(name = "napi_vip_id")
-	private long napiVipId;
+	@Column(name = "globonetwork_vip_id")
+	private long globoNetworkVipId;
 
 	@Column(name = "account_id")
 	private long accountId;
@@ -46,8 +51,8 @@ public class GloboNetworkVipAccVO implements InternalIdentity {
 	public GloboNetworkVipAccVO() {
 	}
 
-	public GloboNetworkVipAccVO(long napiVipId, long accountId, long networkId) {
-		this.napiVipId = napiVipId;
+	public GloboNetworkVipAccVO(long globoNetworkVipId, long accountId, long networkId) {
+		this.globoNetworkVipId = globoNetworkVipId;
 		this.accountId = accountId;
 		this.networkId = networkId;
 	}
@@ -56,8 +61,8 @@ public class GloboNetworkVipAccVO implements InternalIdentity {
 		return id;
 	}
 
-	public long getNapiVipId() {
-		return napiVipId;
+	public long getGloboNetworkVipId() {
+		return globoNetworkVipId;
 	}
 	
 	public long getAccountId() {

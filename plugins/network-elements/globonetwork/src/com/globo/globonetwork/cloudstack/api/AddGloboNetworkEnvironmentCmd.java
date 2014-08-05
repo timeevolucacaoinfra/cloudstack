@@ -87,7 +87,7 @@ public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 			response.setId(napiEnvironmentVO.getId());
 			response.setName(napiEnvironmentVO.getName());
 			response.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(napiEnvironmentVO.getPhysicalNetworkId()).getUuid());
-			response.setNapiEnvironmentId(napiEnvironmentVO.getNapiEnvironmentId());
+			response.setNapiEnvironmentId(napiEnvironmentVO.getGloboNetworkEnvironmentId());
 			response.setObjectName("globonetworkenvironment");
 			response.setResponseName(getCommandName());
 			this.setResponseObject(response);

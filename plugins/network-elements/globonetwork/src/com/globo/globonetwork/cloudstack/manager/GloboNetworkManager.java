@@ -702,7 +702,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			if (globoNetworkEnvironment.getName().equalsIgnoreCase(name)) {
 				throw new InvalidParameterValueException("GloboNetwork environment with name " + name + " already exists in zone " + zoneId);
 			}
-			if (globoNetworkEnvironment.getNapiEnvironmentId() == globoNetworkEnvironmentId) {
+			if (globoNetworkEnvironment.getGloboNetworkEnvironmentId() == globoNetworkEnvironmentId) {
 				throw new InvalidParameterValueException("GloboNetwork environment with environmentId " + globoNetworkEnvironmentId + " already exists in zoneId " + zoneId);
 			}
 		}
@@ -1033,7 +1033,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		cmd.setNicDescription("");
 		cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
 		cmd.setVlanId(globoNetworkNetworkVO.getGloboNetworkVlanId());
-		cmd.setEnvironmentId(globoNetworkNetworkVO.getNapiEnvironmentId());
+		cmd.setEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
 		cmd.setEquipmentGroupId(Long.valueOf(equipmentGroup));
 		cmd.setEquipmentModelId(Long.valueOf(equipmentModel));
 		
@@ -1074,7 +1074,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 		GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(nic.getNetworkId());
 		if (globoNetworkNetworkVO != null) {
-			cmd.setEnvironmentId(globoNetworkNetworkVO.getNapiEnvironmentId());
+			cmd.setEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
 		}
 		
 		Answer answer = this.callCommand(cmd, vm.getVirtualMachine().getDataCenterId());
@@ -1221,11 +1221,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			
 			GloboNetworkVipResponse vip;
 			
-			if (vips.get(globoNetworkVipAcc.getNapiVipId()) == null) {
+			if (vips.get(globoNetworkVipAcc.getGloboNetworkVipId()) == null) {
 				
 				// Vip is not in the returning map yet, get all info from GloboNetwork
 				GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
-				cmd.setVipId(globoNetworkVipAcc.getNapiVipId());
+				cmd.setVipId(globoNetworkVipAcc.getGloboNetworkVipId());
 				Answer answer = this.callCommand(cmd, network.getDataCenterId());
 				String msg = "Could not list VIPs from GloboNetwork";
 				if (answer == null || !answer.getResult()) {
@@ -1234,11 +1234,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				}
 				vip =  ((GloboNetworkVipResponse) answer);
 				
-				vips.put(globoNetworkVipAcc.getNapiVipId(), vip);
+				vips.put(globoNetworkVipAcc.getGloboNetworkVipId(), vip);
 				
 			} else {
 				// Vip is already in the returning map
-				vip = vips.get(globoNetworkVipAcc.getNapiVipId());
+				vip = vips.get(globoNetworkVipAcc.getGloboNetworkVipId());
 			}
 			
 			if (vip.getNetworkIds() == null) {
