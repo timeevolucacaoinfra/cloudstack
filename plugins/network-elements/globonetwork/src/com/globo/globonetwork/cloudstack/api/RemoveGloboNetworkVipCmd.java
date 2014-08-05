@@ -35,11 +35,11 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "removeNetworkApiVip", responseObject=SuccessResponse.class, description="Remove a VIP from GloboNetwork and network in Cloudstack")
+@APICommand(name = "removeGloboNetworkVip", responseObject=SuccessResponse.class, description="Remove a VIP from GloboNetwork and network in Cloudstack")
 public class RemoveGloboNetworkVipCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(RemoveGloboNetworkVipCmd.class.getName());
-    private static final String s_name = "removenetworkapivipresponse";
+    private static final String s_name = "removeglobonetworkvipresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;

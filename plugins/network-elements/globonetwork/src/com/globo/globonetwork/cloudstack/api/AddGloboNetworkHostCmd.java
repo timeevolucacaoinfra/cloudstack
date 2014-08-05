@@ -37,10 +37,10 @@ import com.cloud.host.Host;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkApiHost", responseObject = SuccessResponse.class, description = "Adds the GloboNetwork external host")
+@APICommand(name = "addGloboNetworkHost", responseObject = SuccessResponse.class, description = "Adds the GloboNetwork external host")
 public class AddGloboNetworkHostCmd extends BaseAsyncCmd {
 
-	private static final String s_name = "addnetworkapihostresponse";
+	private static final String s_name = "addglobonetworkhostresponse";
 	@Inject
 	GloboNetworkService _globoNetworkManager;
 

@@ -42,11 +42,11 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listNetworkApiEnvironments", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists GloboNetwork environments")
+@APICommand(name = "listGloboNetworkEnvironments", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists GloboNetwork environments")
 public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkEnvironmentsCmd.class);
-    private static final String s_name = "listnetworkapienvironmentsresponse";
+    private static final String s_name = "listglobonetworkenvironmentsresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -82,7 +82,7 @@ public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
 				envResponse.setName(globoNetworkEnvironmentVO.getName());
 				envResponse.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(globoNetworkEnvironmentVO.getPhysicalNetworkId()).getUuid());
 				envResponse.setNapiEnvironmentId(globoNetworkEnvironmentVO.getNapiEnvironmentId());
-				envResponse.setObjectName("networkapienvironment");
+				envResponse.setObjectName("globonetworkenvironment");
 				responseList.add(envResponse);
 			}
     		 

@@ -6112,9 +6112,9 @@
 
                                         var items = [];
                                         $.ajax({
-                                            url: createURL("listNetworkApiEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            url: createURL("listGloboNetworkEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                             success: function(json) {
-                                                $(json.listnetworkapienvironmentsresponse.networkapienvironment).each(function() {
+                                                $(json.listglobonetworkenvironmentsresponse.globonetworkenvironment).each(function() {
                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                         items.push({
                                                             name: this.name,
@@ -6147,12 +6147,12 @@
                                                         },
                                                         select: function(args) {
                                                             $.ajax({
-                                                                url: createURL("listAllEnvironmentsFromNetworkApi&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                                                url: createURL("listAllEnvironmentsFromGloboNetwork&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                                                 dataType: "json",
                                                                 async: false,
                                                                 success: function(json) {
                                                                     var items = [];
-                                                                    $(json.listallenvironmentsfromnetworkapiresponse.networkapienvironment).each(function() {
+                                                                    $(json.listallenvironmentsfromglobonetworkresponse.globonetworkenvironment).each(function() {
                                                                         items.push({
                                                                             id: this.environmentId,
                                                                             description: this.environmentFullName
@@ -6168,7 +6168,7 @@
                                                 }
                                             },
                                             action: function(args) {
-                                                addGloboNetworkEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment");
+                                                addGloboNetworkEnvironment(args, selectedPhysicalNetworkObj, "addGloboNetworkEnvironment", "addglobonetworkenvironmentresponse", "globonetworkenvironment");
                                             },
                                             messages: {
                                                 notification: function(args) {
@@ -6191,9 +6191,9 @@
                                             },
                                             action: function(args) {
                                                 var physicalnetworkid = args.context.physicalNetworks[0].id;
-                                                var napienvironmentid = args.context.napienvironments[0].environmentid;
+                                                var environmentid = args.context.napienvironments[0].environmentid;
                                                 $.ajax({
-                                                    url: createURL("removeNetworkAPIEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + napienvironmentid),
+                                                    url: createURL("removeGloboNetworkEnvironment&physicalnetworkid=" + physicalnetworkid + "&environmentid=" + environmentid),
                                                     dataType: "json",
                                                     async: true,
                                                     success: function(json) {
@@ -6263,7 +6263,7 @@
                                                                 clearInterval(addGloboNetworkProviderIntervalID);
                                                                 if (result.jobstatus == 1) {
                                                                     nspMap["GloboNetwork"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
-                                                                    addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
+                                                                    addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addGloboNetworkHost", "addglobonetworkhostresponse");
                                                                 } else if (result.jobstatus == 2) {
                                                                     alert("addNetworkServiceProvider&name=GloboNetwork failed. Error: " + _s(result.jobresult.errortext));
                                                                 }
@@ -6278,7 +6278,7 @@
                                             }
                                         });
                                     } else {
-                                        addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
+                                        addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addGloboNetworkHost", "addglobonetworkhostresponse");
                                     }
                                 },
                                 messages: {

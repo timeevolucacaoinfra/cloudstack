@@ -38,11 +38,11 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.Nic;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "disassociateNetworkApiRealFromVip", responseObject=SuccessResponse.class, description="Disassociates a nic (real) from one specific VIP")
+@APICommand(name = "disassociateGloboNetworkRealFromVip", responseObject=SuccessResponse.class, description="Disassociates a nic (real) from one specific VIP")
 public class DelGloboNetworkRealFromVipCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(DelGloboNetworkRealFromVipCmd.class.getName());
-    private static final String s_name = "disassociatenetworkapirealfromvipresponse";
+    private static final String s_name = "disassociateglobonetworkrealfromvipresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;

@@ -39,11 +39,11 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkEnvironmentExternalResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 
-@APICommand(name = "listAllEnvironmentsFromNetworkApi", responseObject=GloboNetworkEnvironmentExternalResponse.class, description="Lists all environments from GloboNetwork")
+@APICommand(name = "listAllEnvironmentsFromGloboNetwork", responseObject=GloboNetworkEnvironmentExternalResponse.class, description="Lists all environments from GloboNetwork")
 public class ListAllEnvironmentsFromGloboNetworkCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListAllEnvironmentsFromGloboNetworkCmd.class.getName());
-    private static final String s_name = "listallenvironmentsfromnetworkapiresponse";
+    private static final String s_name = "listallenvironmentsfromglobonetworkresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -74,7 +74,7 @@ public class ListAllEnvironmentsFromGloboNetworkCmd extends BaseCmd {
     			GloboNetworkEnvironmentExternalResponse envResponse = new GloboNetworkEnvironmentExternalResponse();
     			envResponse.setEnvironmentId(environment.getId());
     			envResponse.setEnvironmentFullName(environment.getDcDivisionName() + " - " + environment.getLogicalEnvironmentName() + " - " + environment.getL3GroupName());
-    			envResponse.setObjectName("networkapienvironment");
+    			envResponse.setObjectName("globonetworkenvironment");
     			responseList.add(envResponse);
 			}
     		

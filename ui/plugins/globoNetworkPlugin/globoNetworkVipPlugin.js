@@ -14,9 +14,9 @@
                     ip: { label: 'IP' },
                 },
                 dataProvider: function(args) {
-                    plugin.ui.apiCall('listNetworkApiVips', {
+                    plugin.ui.apiCall('listGloboNetworkVips', {
                         success: function(json) {
-                            var vips = json.listnetworkapivipsresponse.networkapivip || [];
+                            var vips = json.listglobonetworkvipsresponse.globonetworkvip || [];
                             vips.forEach(function(vip) {
                                 vip.ports = vip.ports.join(", ");
                             });
@@ -81,12 +81,12 @@
                                     ports: { label: 'Ports' },
                                 },
                                 dataProvider: function(args) {
-                                    plugin.ui.apiCall('listNetworkApiReals', {
+                                    plugin.ui.apiCall('listGloboNetworkReals', {
                                         data: {
                                             vipid: args.context.vips[0].id,
                                         },
                                         success: function(json) {
-                                            var reals = json.listnetworkapirealsresponse.networkapireal || [];
+                                            var reals = json.listglobonetworkrealsresponse.globonetworkreal || [];
                                             args.response.success({ data: reals });
                                         },
                                         error: function(errorMessage) {
@@ -136,14 +136,14 @@
                                         },
                                         action: function(args) {
                                             $.ajax({
-                                                url: createURL("associateNetworkApiRealToVip&vipid=" + args.context.vips[0].id + "&nicid=" + args.data.nic),
+                                                url: createURL("associateGloboNetworkRealToVip&vipid=" + args.context.vips[0].id + "&nicid=" + args.data.nic),
                                                 dataType: "json",
                                                 async: true,
                                                 success: function(json) {
                                                     $(window).trigger('cloudStack.fullRefresh');
                                                 },
                                                 error: function(errorMessage) {
-                                                    var error = (jQuery.parseJSON(errorMessage.responseText)).associatenetworkapirealtovipresponse;
+                                                    var error = (jQuery.parseJSON(errorMessage.responseText)).associateglobonetworkrealtovipresponse;
                                                     args.response.error(error.errorcode + " : " + error.errortext);
                                                 }
                                             });
@@ -185,14 +185,14 @@
                                         label: 'label.remove',
                                         action: function(args) {
                                             $.ajax({
-                                                url: createURL("disassociateNetworkApiRealFromVip&vipid=" + args.context.vips[0].id + "&nicid=" + args.context.reals[0].nic),
+                                                url: createURL("disassociateGloboNetworkRealFromVip&vipid=" + args.context.vips[0].id + "&nicid=" + args.context.reals[0].nic),
                                                 dataType: "json",
                                                 async: true,
                                                 success: function(json) {
                                                     $(window).trigger('cloudStack.fullRefresh');
                                                 },
                                                 error: function(errorMessage) {
-                                                    var error = (jQuery.parseJSON(errorMessage.responseText)).disassociatenetworkapirealfromvipresponse;
+                                                    var error = (jQuery.parseJSON(errorMessage.responseText)).disassociateglobonetworkrealfromvipresponse;
                                                     args.response.error(error.errorcode + " : " + error.errortext);
                                                 }
                                             });
@@ -227,14 +227,14 @@
                         },
                         action: function(args) {
                             $.ajax({
-                                url: createURL("removeNetworkApiVip&vipid=" + args.context.vips[0].id),
+                                url: createURL("removeGloboNetworkVip&vipid=" + args.context.vips[0].id),
                                 dataType: "json",
                                 async: true,
                                 success: function(json) {
                                     $(window).trigger('cloudStack.fullRefresh');
                                 },
                                 error: function(errorMessage) {
-                                    var error = (jQuery.parseJSON(errorMessage.responseText)).removenetworkapivipresponse;
+                                    var error = (jQuery.parseJSON(errorMessage.responseText)).removeglobonetworkvipresponse;
                                     args.response.error(error.errorcode + " : " + error.errortext);
                                 }
                             });
@@ -292,7 +292,7 @@
                                 var vipId = message.data.requestVip;
 
                                 $.ajax({
-                                    url: createURL('addNetworkApiVipToAccountCmd&networkid=' + args.data.networkId + '&vipid=' + vipId),
+                                    url: createURL('addGloboNetworkVipToAccountCmd&networkid=' + args.data.networkId + '&vipid=' + vipId),
                                     async: false,
                                     success: function(vipJson) {
                                         $(window).unbind('message.vip');

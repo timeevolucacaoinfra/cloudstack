@@ -41,11 +41,11 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipExternalResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
-@APICommand(name = "listNetworkApiVips", responseObject=GloboNetworkVipExternalResponse.class, description="Lists GloboNetwork Vips")
+@APICommand(name = "listGloboNetworkVips", responseObject=GloboNetworkVipExternalResponse.class, description="Lists GloboNetwork Vips")
 public class ListGloboNetworkVipsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkVipsCmd.class);
-    private static final String s_name = "listnetworkapivipsresponse";
+    private static final String s_name = "listglobonetworkvipsresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -76,7 +76,7 @@ public class ListGloboNetworkVipsCmd extends BaseCmd {
     			vipResponse.setPorts(globoNetworkVip.getPorts());
     			vipResponse.setNetworkids(globoNetworkVip.getNetworkIds());
     			
-    			vipResponse.setObjectName("networkapivip");
+    			vipResponse.setObjectName("globonetworkvip");
 				responseList.add(vipResponse);
 			}
     		 

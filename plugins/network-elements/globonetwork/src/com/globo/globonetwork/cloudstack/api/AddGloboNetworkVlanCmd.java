@@ -44,11 +44,11 @@ import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkApiVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from GloboNetwork")
+@APICommand(name = "addGloboNetworkVlan", responseObject=NetworkResponse.class, description="Adds a vlan/network from GloboNetwork")
 public class AddGloboNetworkVlanCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddGloboNetworkVlanCmd.class.getName());
-    private static final String s_name = "addnetworkapivlanresponse";
+    private static final String s_name = "addglobonetworkvlanresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -132,7 +132,7 @@ public class AddGloboNetworkVlanCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkAPIVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
+        	s_logger.debug("addGloboNetworkVlan command with vlanId=" + vlanId + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId + " physicalNetworkId=" + physicalNetworkId +
         			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
         			" domainId=" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId);
         	Network network = _globoNetworkService.createNetworkFromGloboNetworkVlan(vlanId, napiEnvironmentId, zoneId, networkOfferingId, physicalNetworkId, networkDomain, getACLType(), accountName,

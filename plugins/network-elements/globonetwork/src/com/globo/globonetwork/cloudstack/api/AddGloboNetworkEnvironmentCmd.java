@@ -37,10 +37,10 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkAPIEnvironment", responseObject = GloboNetworkEnvironmentResponse.class, description = "Adds a GloboNetwork environment to a zone")
+@APICommand(name = "addGloboNetworkEnvironment", responseObject = GloboNetworkEnvironmentResponse.class, description = "Adds a GloboNetwork environment to a zone")
 public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 
-	private static final String s_name = "addnetworkapiresponse";
+	private static final String s_name = "addglobonetworkenvironmentresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
@@ -88,7 +88,7 @@ public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 			response.setName(napiEnvironmentVO.getName());
 			response.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(napiEnvironmentVO.getPhysicalNetworkId()).getUuid());
 			response.setNapiEnvironmentId(napiEnvironmentVO.getNapiEnvironmentId());
-			response.setObjectName("networkapienvironment");
+			response.setObjectName("globonetworkenvironment");
 			response.setResponseName(getCommandName());
 			this.setResponseObject(response);
 			

@@ -41,11 +41,11 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkVipExternalRespons
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.google.common.base.Joiner;
 
-@APICommand(name = "listNetworkApiReals", responseObject=GloboNetworkVipExternalResponse.class, description="List GloboNetwork Reals")
+@APICommand(name = "listGloboNetworkReals", responseObject=GloboNetworkVipExternalResponse.class, description="List GloboNetwork Reals")
 public class ListGloboNetworkRealsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkRealsCmd.class);
-    private static final String s_name = "listnetworkapirealsresponse";
+    private static final String s_name = "listglobonetworkrealsresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -71,7 +71,7 @@ public class ListGloboNetworkRealsCmd extends BaseCmd {
     			realResponse.setState(globoNetworkReal.getState());
     			realResponse.setNic(globoNetworkReal.getNic());
     			
-    			realResponse.setObjectName("networkapireal");
+    			realResponse.setObjectName("globonetworkreal");
     			responseList.add(realResponse);
         	}
         	

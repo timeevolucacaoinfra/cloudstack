@@ -57,7 +57,7 @@ public class GenerateUrlForEditingVipCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("createGloboNetworkVipUrlCmd command with vipId=" + globoNetworkVipId + " networkId=" + networkId);
+        	s_logger.debug("generateUrlForEditingVipCmd command with vipId=" + globoNetworkVipId + " networkId=" + networkId);
         	Network network = ApiDBUtils.findNetworkById(networkId);
         	if (network == null) {
         		throw new ServerApiException(ApiErrorCode.PARAM_ERROR, "Invalid network");

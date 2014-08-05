@@ -38,11 +38,11 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.Nic;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "associateNetworkApiRealToVip", responseObject=SuccessResponse.class, description="Associates a nic (real) to one specific VIP")
+@APICommand(name = "associateGloboNetworkRealToVip", responseObject=SuccessResponse.class, description="Associates a nic (real) to one specific VIP")
 public class AddGloboNetworkRealToVipCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddGloboNetworkRealToVipCmd.class.getName());
-    private static final String s_name = "associatenetworkapirealtovipresponse";
+    private static final String s_name = "associateglobonetworkrealtovipresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;

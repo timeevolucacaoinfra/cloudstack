@@ -36,10 +36,10 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "removeNetworkAPIEnvironment", responseObject = SuccessResponse.class, description = "Removes a GloboNetwork environment from a zone")
+@APICommand(name = "removeGloboNetworkEnvironment", responseObject = SuccessResponse.class, description = "Removes a GloboNetwork environment from a zone")
 public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 
-	private static final String s_name = "removenetworkapiresponse";
+	private static final String s_name = "removeglobonetworkresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
@@ -50,7 +50,7 @@ public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
 	private Long physicalNetworkId;
 
-	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
+	@Parameter(name = "environmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
 	private Long globoNetworkEnvironmentId;
 
 	// ///////////////////////////////////////////////////
