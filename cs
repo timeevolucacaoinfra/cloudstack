@@ -56,8 +56,22 @@ case "$1" in
     fi
     ;;
   lazy)
-    echo "In construction, bye!!!"
-    exit 1
+    # compile
+    # if $?
+    [[ $2 == 'compile' ]] && mvn -Pdeveloper -Dsimulator clean package -DskipTests
+    # DB requisites
+    mvn -P developer -pl developer,tools/devcloud -Ddeploydb
+    mvn -Pdeveloper -pl developer -Ddeploydb-simulator
+    [[ -z $WORKON_HOME ]] && WORKON_HOME=$HOME/.virtualenvs
+    source $WORKON_HOME/cloudstack/bin/activate
+    (cd setup/dbmigrate && db-migrate --env=localhost)
+    # run simulator in background
+    rm -f *.log
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -pl :cloud-client-ui jetty:run -Dsimulator
+    # populate
+    # workon cloudstack
+    # python tools/marvin/marvin/deployDataCenter.py -i test/integration/globo/cfg/advanced-globo.cfg
+    # restart
     ;;
   *)
     echo "Usage: $0 [action]
