@@ -169,7 +169,7 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
+    	String reverseRecordContent = recordName + "." + domainName + '.';
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	Record record = generateFakeRecord(domain, recordName, recordIp, false);
@@ -227,7 +227,7 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
+    	String reverseRecordContent = recordName + "." + domainName + '.';
     	
     	Domain domain = new Domain();
     	domain.getDomainAttributes().setId(sequenceId++);
@@ -255,7 +255,7 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
+    	String reverseRecordContent = recordName + "." + domainName + '.';
     	
     	Domain domain = new Domain();
     	domain.getDomainAttributes().setId(sequenceId++);
@@ -289,7 +289,7 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "30.40.50.in-addr.arpa";
     	String reverseRecordName = "20";
-    	String reverseRecordContent = recordName + "." + domainName;
+    	String reverseRecordContent = recordName + "." + domainName + '.';
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	Record record = generateFakeRecord(domain, recordName, oldRecordIp, false);
@@ -320,7 +320,7 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
+    	String reverseRecordContent = recordName + "." + domainName + '.';
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	Record record = generateFakeRecord(domain, recordName, recordIp, false);
@@ -364,7 +364,7 @@ public class GloboDnsResourceTest {
     	String domainName = "domain.name.com";
     	String reverseDomainName = "20.30.40.in-addr.arpa";
     	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
+    	String reverseRecordContent = recordName + "." + domainName + '.';
     	
     	Domain domain = generateFakeDomain(domainName, false);
     	Record record = generateFakeRecord(domain, recordName, "X", false);
