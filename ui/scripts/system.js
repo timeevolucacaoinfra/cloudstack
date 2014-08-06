@@ -1513,7 +1513,7 @@
                                         rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
                                             isHeader: true
                                         }),
-                                        addNetworkAPINetwork: $.extend({}, addNetworkAPINetworkDialog.def, {
+                                        addGloboNetworkNetwork: $.extend({}, addGloboNetworkNetworkDialog.def, {
                                             isHeader: true
                                         })
                                     },
@@ -6059,12 +6059,12 @@
                         }
                     },
 
-                    // NetworkAPI provider detail view
-                    NetworkAPI: {
+                    // GloboNetwork provider detail view
+                    GloboNetwork: {
                         isMaximized: true,
                         type: 'detailView',
-                        id: 'networkAPIProvider',
-                        label: 'label.networkAPI',
+                        id: 'globoNetworkProvider',
+                        label: 'label.globoNetwork',
                         tabs: {
                             details: {
                                 title: 'label.details',
@@ -6077,17 +6077,17 @@
                                     }
                                 }],
                                 dataProvider: function(args) {
-                                    refreshNspData("NetworkAPI");
+                                    refreshNspData("GloboNetwork");
                                     var providerObj;
                                     $(nspHardcodingArray).each(function() {
-                                        if (this.id == "NetworkAPI") {
+                                        if (this.id == "GloboNetwork") {
                                             providerObj = this;
                                             return false; //break each loop
                                         }
                                     });
                                     args.response.success({
                                         data: providerObj,
-                                        actionFilter: networkProviderActionFilter('NetworkAPI')
+                                        actionFilter: networkProviderActionFilter('GloboNetwork')
                                     });
                                 }
                             },
@@ -6101,7 +6101,7 @@
                                             label: 'Local Name'
                                         },
                                         environmentid: {
-                                            label: 'Network API Environment ID'
+                                            label: 'GloboNetwork Environment ID'
                                         }
                                     },
                                     dataProvider: function(args) {
@@ -6112,9 +6112,9 @@
 
                                         var items = [];
                                         $.ajax({
-                                            url: createURL("listNetworkApiEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            url: createURL("listGloboNetworkEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                             success: function(json) {
-                                                $(json.listnetworkapienvironmentsresponse.networkapienvironment).each(function() {
+                                                $(json.listglobonetworkenvironmentsresponse.globonetworkenvironment).each(function() {
                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                         items.push({
                                                             name: this.name,
@@ -6132,7 +6132,7 @@
                                         add: {
                                             label: 'Add Environment',
                                             createForm: {
-                                                title: 'Add a Network API Environment',
+                                                title: 'Add a GloboNetwork Environment',
                                                 fields: {
                                                     name: {
                                                         label: 'Name',
@@ -6147,12 +6147,12 @@
                                                         },
                                                         select: function(args) {
                                                             $.ajax({
-                                                                url: createURL("listAllEnvironmentsFromNetworkApi&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                                                url: createURL("listAllEnvironmentsFromGloboNetwork&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                                                 dataType: "json",
                                                                 async: false,
                                                                 success: function(json) {
                                                                     var items = [];
-                                                                    $(json.listallenvironmentsfromnetworkapiresponse.networkapienvironment).each(function() {
+                                                                    $(json.listallenvironmentsfromglobonetworkresponse.globonetworkenvironment).each(function() {
                                                                         items.push({
                                                                             id: this.environmentId,
                                                                             description: this.environmentFullName
@@ -6168,7 +6168,7 @@
                                                 }
                                             },
                                             action: function(args) {
-                                                addNetworkApiEnvironment(args, selectedPhysicalNetworkObj, "addNetworkAPIEnvironment", "addnetworkapiresponse", "networkapienvironment");
+                                                addGloboNetworkEnvironment(args, selectedPhysicalNetworkObj, "addGloboNetworkEnvironment", "addglobonetworkenvironmentresponse", "globonetworkenvironment");
                                             },
                                             messages: {
                                                 notification: function(args) {
@@ -6186,14 +6186,14 @@
                                                     return 'Are you sure you want to remove environment ' + args.context.napienvironments[0].name + '(' + args.context.napienvironments[0].environmentid + ')?';
                                                 },
                                                 notification: function(args) {
-                                                    return 'Remove Network API environment';
+                                                    return 'Remove GloboNetwork environment';
                                                 }
                                             },
                                             action: function(args) {
                                                 var physicalnetworkid = args.context.physicalNetworks[0].id;
-                                                var napienvironmentid = args.context.napienvironments[0].environmentid;
+                                                var environmentid = args.context.napienvironments[0].environmentid;
                                                 $.ajax({
-                                                    url: createURL("removeNetworkAPIEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + napienvironmentid),
+                                                    url: createURL("removeGloboNetworkEnvironment&physicalnetworkid=" + physicalnetworkid + "&environmentid=" + environmentid),
                                                     dataType: "json",
                                                     async: true,
                                                     success: function(json) {
@@ -6218,9 +6218,9 @@
                         },
                         actions: {
                             add: {
-                                label: 'Network API Configuration',
+                                label: 'GloboNetwork Configuration',
                                 createForm: {
-                                    title: 'Network API Configuration',
+                                    title: 'GloboNetwork Configuration',
                                     fields: {
                                         username: {
                                             label: 'Username',
@@ -6244,14 +6244,14 @@
                                     }
                                 },
                                 action: function(args) {
-                                    if (nspMap["NetworkAPI"] == null) {
+                                    if (nspMap["GloboNetwork"] == null) {
                                         $.ajax({
-                                            url: createURL("addNetworkServiceProvider&name=NetworkAPI&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            url: createURL("addNetworkServiceProvider&name=GloboNetwork&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
                                             dataType: "json",
                                             async: true,
                                             success: function(json) {
                                                 var jobId = json.addnetworkserviceproviderresponse.jobid;
-                                                var addNetworkAPIProviderIntervalID = setInterval(function() {
+                                                var addGloboNetworkProviderIntervalID = setInterval(function() {
                                                     $.ajax({
                                                         url: createURL("queryAsyncJobResult&jobId=" + jobId),
                                                         dataType: "json",
@@ -6260,30 +6260,30 @@
                                                             if (result.jobstatus == 0) {
                                                                 return; //Job has not completed
                                                             } else {
-                                                                clearInterval(addNetworkAPIProviderIntervalID);
+                                                                clearInterval(addGloboNetworkProviderIntervalID);
                                                                 if (result.jobstatus == 1) {
-                                                                    nspMap["NetworkAPI"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
-                                                                    addNetworkApiHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
+                                                                    nspMap["GloboNetwork"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
+                                                                    addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addGloboNetworkHost", "addglobonetworkhostresponse");
                                                                 } else if (result.jobstatus == 2) {
-                                                                    alert("addNetworkServiceProvider&name=NetworkAPI failed. Error: " + _s(result.jobresult.errortext));
+                                                                    alert("addNetworkServiceProvider&name=GloboNetwork failed. Error: " + _s(result.jobresult.errortext));
                                                                 }
                                                             }
                                                         },
                                                         error: function(XMLHttpResponse) {
                                                             var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
-                                                            alert("addNetworkServiceProvider&name=NetworkAPI failed. Error: " + errorMsg);
+                                                            alert("addNetworkServiceProvider&name=GloboNetwork failed. Error: " + errorMsg);
                                                         }
                                                     });
                                                 }, g_queryAsyncJobResultInterval);
                                             }
                                         });
                                     } else {
-                                        addNetworkApiHost(args, selectedPhysicalNetworkObj, "addNetworkApiHost", "addnetworkapihostresponse");
+                                        addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addGloboNetworkHost", "addglobonetworkhostresponse");
                                     }
                                 },
                                 messages: {
                                     notification: function(args) {
-                                        return 'label.add.NetworkAPI.device';
+                                        return 'label.globonetwork.add.device';
                                     }
                                 },
                                 notification: {
@@ -6294,7 +6294,7 @@
                                 label: 'label.enable.provider',
                                 action: function(args) {
                                     $.ajax({
-                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id + "&state=Enabled"),
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["GloboNetwork"].id + "&state=Enabled"),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.updatenetworkserviceproviderresponse.jobid;
@@ -6325,7 +6325,7 @@
                                 label: 'label.disable.provider',
                                 action: function(args) {
                                     $.ajax({
-                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id + "&state=Disabled"),
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["GloboNetwork"].id + "&state=Disabled"),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.updatenetworkserviceproviderresponse.jobid;
@@ -6356,7 +6356,7 @@
                                 label: 'label.shutdown.provider',
                                 action: function(args) {
                                     $.ajax({
-                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["NetworkAPI"].id),
+                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["GloboNetwork"].id),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.deletenetworkserviceproviderresponse.jobid;
@@ -18120,7 +18120,7 @@
         });
     }
 
-    function addNetworkApiHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+    function addGloboNetworkHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
         var array1 = [];
         array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
         array1.push("&username=" + todb(args.data.username));
@@ -18142,7 +18142,7 @@
         });
     }
 
-    function addNetworkApiEnvironment(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
+    function addGloboNetworkEnvironment(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
         var array1 = [];
         array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
         array1.push("&napienvironmentid=" + todb(args.data.napiEnvironmentId));
@@ -18881,8 +18881,8 @@
                             case "BigSwitchVns":
                                 nspMap["bigswitchVns"] = items[i];
                                 break;
-                            case "NetworkAPI":
-                                nspMap["NetworkAPI"] = items[i];
+                            case "GloboNetwork":
+                                nspMap["GloboNetwork"] = items[i];
                                 break;
                             case "GloboDns":
                                 nspMap["GloboDns"] = items[i];
@@ -18965,9 +18965,9 @@
                 state: nspMap.pa ? nspMap.pa.state : 'Disabled'
             });
             nspHardcodingArray.push({
-                id: 'NetworkAPI',
-                name: 'Network API',
-                state: nspMap.NetworkAPI ? nspMap.NetworkAPI.state : 'Disabled'
+                id: 'GloboNetwork',
+                name: 'GloboNetwork',
+                state: nspMap.GloboNetwork ? nspMap.GloboNetwork.state : 'Disabled'
             });
             nspHardcodingArray.push({
                 id: 'GloboDns',

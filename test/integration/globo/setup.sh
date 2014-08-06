@@ -11,14 +11,14 @@ maven_log='/tmp/cloudstack.log'
 
 debug=1
 
-[[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
-
 PrintLog() {
     level=$1
     msg=$2
     timestamp=$(date +"%d/%b/%Y:%H:%M:%S %z")
     echo "[${timestamp}] [${level}] ${msg}"
 }
+
+[[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
 
 StartJetty() {
     max_retries=15

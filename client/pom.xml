@@ -308,7 +308,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.cloudstack</groupId>
-      <artifactId>cloud-plugin-network-networkapi</artifactId>
+      <artifactId>cloud-plugin-network-globonetwork</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
