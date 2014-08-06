@@ -261,7 +261,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 				needsExport = true;
 			}
 			
-			String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain();
+			String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain() + '.';
 			if (createOrUpdateReverse(cmd.getRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride())) {
 				needsExport = true;
 			} else {
