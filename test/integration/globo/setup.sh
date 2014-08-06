@@ -94,7 +94,7 @@ PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
 source $WORKON_HOME/${virtualenv_name}/bin/activate
 
 PrintLog INFO "Compiling cloudstack..."
-mvn -Pdeveloper -Dsimulator clean package
+mvn -Pdeveloper -Dsimulator clean install
 [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile ACS" && exit 1
 PrintLog INFO "Compiling and packing marvin..."
 mvn -P developer -pl :cloud-marvin
