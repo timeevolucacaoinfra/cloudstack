@@ -14,8 +14,12 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-(function($, cloudStack) {
-  cloudStack.plugins = [
-    'globoNetworkVipPlugin'
-  ];
-}(jQuery, cloudStack));
+(function (cloudStack) {
+  cloudStack.plugins.globoNetworkVipPlugin.config = {
+    title: 'GloboNetwork VIPs',
+    desc: 'Manager for VIPs in GloboNetwork',
+    externalLink: '',
+    authorName: 'Globo.com',
+    authorEmail: ''
+  };
+}(cloudStack));

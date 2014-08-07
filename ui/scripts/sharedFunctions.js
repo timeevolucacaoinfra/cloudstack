@@ -109,7 +109,7 @@ var pollAsyncJobResult = function(args) {
         },
         error: function(XMLHttpResponse) {
             args.error({
-            	message: parseXMLHttpResponse(XMLHttpResponse)
+                message: parseXMLHttpResponse(XMLHttpResponse)
             });
         }
     });
@@ -247,32 +247,32 @@ var addGuestNetworkDialog = {
                                 },
                                 async: false,
                                 success: function(json) {                                    
-                                	var items = [];
-                                	var physicalnetworks = json.listphysicalnetworksresponse.physicalnetwork;
-                                	if (physicalnetworks != null) {
-                                	    for (var i = 0; i < physicalnetworks.length; i++) {
-                                	    	$.ajax({
-                                	    		url: createURL('listTrafficTypes'),
-                                	    		data: {
-                                	    			physicalnetworkid: physicalnetworks[i].id
-                                	    		},
-                                	    		async: false,
-                                	    		success: function(json) {                                	    			
-                                	    			var traffictypes = json.listtraffictypesresponse.traffictype;
-                                	    			if (traffictypes != null) {
-                                	    				for (var k = 0; k < traffictypes.length; k++) {
-                                	    					if (traffictypes[k].traffictype == 'Guest') {
-                                	    						items.push(physicalnetworks[i]);
-                                	    						break;
-                                	    					}
-                                	    				}
-                                	    			} 
-                                	    		}
-                                	    	});
-                                	    }	
-                                	}  
-                                	
-                                	addGuestNetworkDialog.physicalNetworkObjs = items;                                	
+                                    var items = [];
+                                    var physicalnetworks = json.listphysicalnetworksresponse.physicalnetwork;
+                                    if (physicalnetworks != null) {
+                                        for (var i = 0; i < physicalnetworks.length; i++) {
+                                            $.ajax({
+                                                url: createURL('listTrafficTypes'),
+                                                data: {
+                                                    physicalnetworkid: physicalnetworks[i].id
+                                                },
+                                                async: false,
+                                                success: function(json) {                                                   
+                                                    var traffictypes = json.listtraffictypesresponse.traffictype;
+                                                    if (traffictypes != null) {
+                                                        for (var k = 0; k < traffictypes.length; k++) {
+                                                            if (traffictypes[k].traffictype == 'Guest') {
+                                                                items.push(physicalnetworks[i]);
+                                                                break;
+                                                            }
+                                                        }
+                                                    } 
+                                                }
+                                            });
+                                        }   
+                                    }  
+                                    
+                                    addGuestNetworkDialog.physicalNetworkObjs = items;                                  
                                 }
                             });
                         }
@@ -476,14 +476,14 @@ var addGuestNetworkDialog = {
                     label: 'label.network.offering',
                     docID: 'helpGuestNetworkZoneNetworkOffering',
                     dependsOn: ['zoneId', 'scope'],
-                    select: function(args) {                    	
-                    	if(args.$form.find('.form-item[rel=zoneId]').find('select').val() == null || args.$form.find('.form-item[rel=zoneId]').find('select').val().length == 0) {
-                    		args.response.success({
+                    select: function(args) {                        
+                        if(args.$form.find('.form-item[rel=zoneId]').find('select').val() == null || args.$form.find('.form-item[rel=zoneId]').find('select').val().length == 0) {
+                            args.response.success({
                                 data: null
                             });
-                    		return;
-                    	}
-                    	
+                            return;
+                        }
+                        
                         var data = {
                             state: 'Enabled',
                             zoneid: args.$form.find('.form-item[rel=zoneId]').find('select').val()
@@ -839,6 +839,14 @@ cloudStack.validate = {
             cloudStack.dialog.notice({
                 message: 'message.validate.instance.name'
             });
+
+        // Only lower case letters for DNS (DNSAPI)
+        if (args.toLowerCase() !== args) {
+            cloudStack.dialog.notice({
+                message: 'Only lower case letters!'
+            });
+            return false;
+        }
         return b;
     }
 }
@@ -885,10 +893,11 @@ cloudStack.actionFilter = {
             allowedActions.push('restart');
             allowedActions.push('remove');
         } else if (jsonObj.type == 'Shared') {
-            if (isAdmin()) {
-                allowedActions.push('restart');
-                allowedActions.push('remove');
-            }
+            // if (isAdmin()) {
+            // FIXME Originally, shared networks actions are only available to Root Admins
+            allowedActions.push('restart');
+            allowedActions.push('remove');
+            // }
         }
         return allowedActions;
     }
@@ -900,9 +909,9 @@ var roleTypeDomainAdmin = "2";
 
 cloudStack.converters = {
     convertBytes: function(bytes) {
-	    if (bytes == undefined)
-	    	return '';
-	
+        if (bytes == undefined)
+            return '';
+    
         if (bytes < 1024 * 1024) {
             return (bytes / 1024).toFixed(2) + " KB";
         } else if (bytes < 1024 * 1024 * 1024) {
@@ -927,16 +936,16 @@ cloudStack.converters = {
         }
         return localDate;
     },
-    toBooleanText: function(booleanValue) {    	
+    toBooleanText: function(booleanValue) {     
         var text1;
-    	if (booleanValue == true) {
-    		text1 = "Yes";
+        if (booleanValue == true) {
+            text1 = "Yes";
         } else if (booleanValue == false) {
-        	text1 = "No";
+            text1 = "No";
         } else { //booleanValue == undefined
-        	text1 = "";
+            text1 = "";
         }
-    	return text1;        
+        return text1;        
     },
     convertHz: function(hz) {
         if (hz == null)
@@ -1188,26 +1197,26 @@ var addExtraPropertiesToGuestNetworkObject = function(jsonObj) {
         jsonObj.vlan = jsonObj.broadcasturi.replace("vlan://", "");
     }
     if(jsonObj.vxlan == null && jsonObj.broadcasturi != null && jsonObj.broadcasturi.substring(0,8) == "vxlan://") {
-        jsonObj.vxlan = jsonObj.broadcasturi.replace("vxlan://", "");   	
+        jsonObj.vxlan = jsonObj.broadcasturi.replace("vxlan://", "");       
     }
 }
 
 //used by infrastructure page
 var addExtraPropertiesToUcsBladeObject = function(jsonObj) {
-	var array1 = jsonObj.bladedn.split('/');
-	jsonObj.chassis = array1[1];
-	jsonObj.bladeid = array1[2];
+    var array1 = jsonObj.bladedn.split('/');
+    jsonObj.chassis = array1[1];
+    jsonObj.bladeid = array1[2];
 }
 
-var processPropertiesInImagestoreObject = function(jsonObj) {	
-	if (jsonObj.url != undefined) {
-		var url = jsonObj.url; //e.g. 'cifs://10.1.1.1/aaa/aaa2/aaa3?user=bbb&password=ccc&domain=ddd'
-		var passwordIndex = url.indexOf('&password='); //38
-		var domainIndex = url.indexOf('&domain=');    //51
-		if (passwordIndex >= 0) {
-			jsonObj.url = url.substring(0, passwordIndex) + url.substring(domainIndex); //remove '&password=ccc' from jsonObj.url
-		}
-	}	
+var processPropertiesInImagestoreObject = function(jsonObj) {   
+    if (jsonObj.url != undefined) {
+        var url = jsonObj.url; //e.g. 'cifs://10.1.1.1/aaa/aaa2/aaa3?user=bbb&password=ccc&domain=ddd'
+        var passwordIndex = url.indexOf('&password='); //38
+        var domainIndex = url.indexOf('&domain=');    //51
+        if (passwordIndex >= 0) {
+            jsonObj.url = url.substring(0, passwordIndex) + url.substring(domainIndex); //remove '&password=ccc' from jsonObj.url
+        }
+    }   
 }
 
 //find service object in network object
@@ -1253,7 +1262,7 @@ var processPropertiesInImagestoreObject = function(jsonObj) {
     function smbURL(server, path, smbUsername, smbPassword, smbDomain) {
         var url = '';
         if (server.indexOf('://') == -1) {
-        	url += 'cifs://';
+            url += 'cifs://';
         }
         
         url += (server + path);
@@ -1292,9 +1301,9 @@ var processPropertiesInImagestoreObject = function(jsonObj) {
         var url;
 
         /*
-	Replace the + and / symbols by - and _ to have URL-safe base64 going to the API
-	It's hacky, but otherwise we'll confuse java.net.URI which splits the incoming URI
-	*/
+    Replace the + and / symbols by - and _ to have URL-safe base64 going to the API
+    It's hacky, but otherwise we'll confuse java.net.URI which splits the incoming URI
+    */
         secret = secret.replace("+", "-");
         secret = secret.replace("/", "_");
 
@@ -2077,11 +2086,11 @@ cloudStack.api = {
                 }
             },
             dataProvider: function(args) {
-            	args.response.success({
+                args.response.success({
                     data: args.jsonObj.tags
                 });
-            	
-            	/*
+                
+                /*
                 var resourceId = args.context[contextId][0].id;
                 var data = {
                     resourceId: resourceId,
@@ -2123,3 +2132,460 @@ function strOrFunc(arg, args) {
         return arg(args);
     return arg;
 }
+
+// BEGIN GLOBONETWORK
+var addGloboNetworkNetworkDialog = {
+    zoneObjs: [],
+    physicalNetworkObjs: [],
+    networkOfferingObjs: [],
+    globoNetworkEnvironmentsObjs: [],
+    def: {
+        label: 'Add GloboNetwork Network',
+
+        messages: {
+            notification: function(args) {
+                return 'Add GloboNetwork Network';
+            }
+        },
+
+        preFilter: function(args) {
+            return true; // No restrictions
+        },
+
+        createForm: {
+            title: 'Add GloboNetwork Network',
+
+            preFilter: function(args) {
+                if ('zones' in args.context) {
+                    args.$form.find('.form-item[rel=zoneId]').hide();
+                } else {
+                    args.$form.find('.form-item[rel=zoneId]').css('display', 'inline-block');
+                }
+            },
+
+            fields: {
+                name: {
+                    label: 'label.name',
+                    validation: {
+                        required: true
+                    }
+                },
+                description: {
+                    label: 'label.description',
+                    validation: {
+                        required: true
+                    }
+                },
+
+                zoneId: {
+                    label: 'label.zone',
+                    validation: {
+                        required: true
+                    },
+                    select: function(args) {
+                        if ('zones' in args.context) {
+                            addGloboNetworkNetworkDialog.zoneObjs = args.context.zones;
+                        } else {
+                            $.ajax({
+                                url: createURL('listZones'),
+                                async: false,
+                                success: function(json) {
+                                    addGloboNetworkNetworkDialog.zoneObjs = []; //reset
+                                    var items = json.listzonesresponse.zone;
+                                    if (items !== null) {
+                                        for (var i = 0; i < items.length; i++) {
+                                            if (items[i].networktype == 'Advanced') {
+                                                addGloboNetworkNetworkDialog.zoneObjs.push(items[i]);
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        args.response.success({
+                            data: $.map(addGloboNetworkNetworkDialog.zoneObjs, function(zone) {
+                                return {
+                                    id: zone.id,
+                                    description: zone.name
+                                };
+                            })
+                        });
+                    },
+                    isHidden: true
+                },
+
+                napiEnvironmentId: {
+                    label: 'Environment',
+                    dependsOn: 'zoneId',
+                    select: function(args) {
+                        if ('globoNetworkEnvironmentsObjs' in args.context) {
+                            addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs = args.context.globoNetworkEnvironmentsObjs;
+                        } else {
+                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
+                            $.ajax({
+                                url: createURL('listGloboNetworkEnvironments'),
+                                data: {
+                                    zoneid: selectedZoneId
+                                },
+                                async: false,
+                                success: function(json) {
+                                    addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs = json.listglobonetworkenvironmentsresponse.globonetworkenvironment;
+                                }
+                            });
+                        }
+                        var items = [];
+                        if (addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs != null) {
+                            for (var i = 0; i < addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs.length; i++) {
+                                items.push({
+                                    id: addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs[i].napienvironmentid,
+                                    description: addGloboNetworkNetworkDialog.globoNetworkEnvironmentsObjs[i].name
+                                });
+                            }
+                        }
+                        args.response.success({
+                            data: items
+                        });
+                    },
+                    isHidden: false
+                },
+
+                scope: {
+                    label: 'label.scope',
+                    select: function(args) {
+                        var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
+                        var selectedZoneObj = {};
+                        if (addGloboNetworkNetworkDialog.zoneObjs != null && selectedZoneId != "") {
+                            for (var i = 0; i < addGloboNetworkNetworkDialog.zoneObjs.length; i++) {
+                                if (addGloboNetworkNetworkDialog.zoneObjs[i].id == selectedZoneId) {
+                                    selectedZoneObj = addGloboNetworkNetworkDialog.zoneObjs[i];
+                                    break;
+                                }
+                            }
+                        }
+
+                        var array1 = [];
+                        if (selectedZoneObj.networktype == "Advanced" && selectedZoneObj.securitygroupsenabled == true) {
+                            array1.push({
+                                id: 'zone-wide',
+                                description: 'All'
+                            });
+                        } else {
+                            if (isAdmin()) {
+                                array1.push({
+                                    id: 'zone-wide',
+                                    description: 'All'
+                                });
+                            } 
+                            if (isAdmin() || isDomainAdmin()) {
+                                array1.push({
+                                    id: 'domain-specific',
+                                    description: 'Domain'
+                                });
+                                array1.push({
+                                    id: 'account-specific',
+                                    description: 'Account'
+                                });
+                                array1.push({
+                                    id: 'project-specific',
+                                    description: 'Project'
+                                });
+                            } else if (isUser()) {
+                                array1.push({
+                                    id: 'my-account',
+                                    description: 'My Account'
+                                });
+                                array1.push({
+                                    id: 'project-specific',
+                                    description: 'Project'
+                                });
+                            }
+                        }
+                        args.response.success({
+                            data: array1
+                        });
+
+                        args.$select.change(function() {
+                            var $form = $(this).closest('form');
+                            if ($(this).val() == "zone-wide" || $(this).val() == "my-account") {
+                                $form.find('.form-item[rel=domainId]').hide();
+                                $form.find('.form-item[rel=subdomainaccess]').hide();
+                                $form.find('.form-item[rel=account]').hide();
+                                $form.find('.form-item[rel=projectId]').hide();
+                            } else if ($(this).val() == "domain-specific") {
+                                $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
+                                $form.find('.form-item[rel=subdomainaccess]').css('display', 'inline-block');
+                                $form.find('.form-item[rel=account]').hide();
+                                $form.find('.form-item[rel=projectId]').hide();
+                            } else if ($(this).val() == "account-specific") {
+                                $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
+                                $form.find('.form-item[rel=subdomainaccess]').hide();
+                                $form.find('.form-item[rel=account]').css('display', 'inline-block');
+                                $form.find('.form-item[rel=projectId]').hide();
+                            } else if ($(this).val() == "project-specific") {
+                                if (isAdmin() || isDomainAdmin()) {                                
+                                    $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
+                                    $form.find('.form-item[rel=subdomainaccess]').hide();
+                                    $form.find('.form-item[rel=account]').hide();
+                                }
+                                $form.find('.form-item[rel=projectId]').css('display', 'inline-block');
+                            }
+                        });
+                    }
+                },
+                domainId: {
+                    label: 'label.domain',
+                    validation: {
+                        required: true
+                    },
+                    select: function(args) {
+                        var items = [];
+                        var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
+                        var selectedZoneObj = {};
+                        if (addGloboNetworkNetworkDialog.zoneObjs != null && selectedZoneId != "") {
+                            for (var i = 0; i < addGloboNetworkNetworkDialog.zoneObjs.length; i++) {
+                                if (addGloboNetworkNetworkDialog.zoneObjs[i].id == selectedZoneId) {
+                                    selectedZoneObj = addGloboNetworkNetworkDialog.zoneObjs[i];
+                                    break;
+                                }
+                            }
+                        }
+                        if (isUser()) {
+                            // If it is a regular user, send his own domainID
+                            items.push({
+                                id: args.context.users[0].domainid,
+                            });
+                        } else if (selectedZoneObj.domainid != null) { //list only domains under selectedZoneObj.domainid
+                            $.ajax({
+                                url: createURL("listDomainChildren&id=" + selectedZoneObj.domainid + "&isrecursive=true"),
+                                dataType: "json",
+                                async: false,
+                                success: function(json) {
+                                    var domainObjs = json.listdomainchildrenresponse.domain;
+                                    $(domainObjs).each(function() {
+                                        items.push({
+                                            id: this.id,
+                                            description: this.path
+                                        });
+                                    });
+                                }
+                            });
+                            $.ajax({
+                                url: createURL("listDomains&id=" + selectedZoneObj.domainid),
+                                dataType: "json",
+                                async: false,
+                                success: function(json) {
+                                    var domainObjs = json.listdomainsresponse.domain;
+                                    $(domainObjs).each(function() {
+                                        items.push({
+                                            id: this.id,
+                                            description: this.path
+                                        });
+                                    });
+                                }
+                            });
+                        } else { //list all domains
+                            $.ajax({
+                                url: createURL("listDomains&listAll=true"),
+                                dataType: "json",
+                                async: false,
+                                success: function(json) {
+                                    var domainObjs = json.listdomainsresponse.domain;
+                                    $(domainObjs).each(function() {
+                                        items.push({
+                                            id: this.id,
+                                            description: this.path
+                                        });
+                                    });
+                                }
+                            });
+                        }
+                        args.response.success({
+                            data: items
+                        });
+                    }
+                },
+                subdomainaccess: {
+                    label: 'label.subdomain.access',
+                    isBoolean: true,
+                    isHidden: true,
+                },
+                account: {
+                    label: 'label.account'
+                },
+
+                projectId: {
+                    label: 'label.project',
+                    validation: {
+                        required: true
+                    },
+                    select: function(args) {
+                        var items = [];
+                        $.ajax({
+                            url: createURL("listProjects&listAll=true"),
+                            dataType: "json",
+                            async: false,
+                            success: function(json) {
+                                projectObjs = json.listprojectsresponse.project;
+                                $(projectObjs).each(function() {
+                                    items.push({
+                                        id: this.id,
+                                        description: this.name
+                                    });
+                                });
+                            }
+                        });
+                        args.response.success({
+                            data: items
+                        });
+                    }
+                },
+
+                networkOfferingId: {
+                    label: 'label.network.offering',
+                    dependsOn: ['zoneId', 'scope'],
+                    select: function(args) {
+                        var data = {
+                            state: 'Enabled',
+                            zoneid: args.$form.find('.form-item[rel=zoneId]').find('select').val()
+                        };
+
+                        //Network tab in Guest Traffic Type in Infrastructure menu is only available when it's under Advanced zone.
+                        //zone dropdown in add guest network dialog includes only Advanced zones.
+                        if (args.scope == "zone-wide" || args.scope == "domain-specific") {
+                            $.extend(data, {
+                                guestiptype: 'Shared'
+                            });
+                        }
+
+                        var items = [];
+                        $.ajax({
+                            url: createURL('listNetworkOfferings'),
+                            data: data,
+                            async: false,
+                            success: function(json) {
+                                addGloboNetworkNetworkDialog.networkOfferingObjs = json.listnetworkofferingsresponse.networkoffering;
+                                if (addGloboNetworkNetworkDialog.networkOfferingObjs != null && addGloboNetworkNetworkDialog.networkOfferingObjs.length > 0) {
+                                    var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
+                                    var selectedZoneObj = {};
+                                    if (addGloboNetworkNetworkDialog.zoneObjs != null && selectedZoneId != "") {
+                                        for (var i = 0; i < addGloboNetworkNetworkDialog.zoneObjs.length; i++) {
+                                            if (addGloboNetworkNetworkDialog.zoneObjs[i].id == selectedZoneId) {
+                                                selectedZoneObj = addGloboNetworkNetworkDialog.zoneObjs[i];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    for (var i = 0; i < addGloboNetworkNetworkDialog.networkOfferingObjs.length; i++) {
+                                        //for zone-wide network in Advanced SG-enabled zone, list only SG network offerings
+                                        if (selectedZoneObj.networktype == 'Advanced' && selectedZoneObj.securitygroupsenabled == true) {
+                                            if (args.scope == "zone-wide") {
+                                                var includingSecurityGroup = false;
+                                                var serviceObjArray = addGloboNetworkNetworkDialog.networkOfferingObjs[i].service;
+                                                for (var k = 0; k < serviceObjArray.length; k++) {
+                                                    if (serviceObjArray[k].name == "SecurityGroup") {
+                                                        includingSecurityGroup = true;
+                                                        break;
+                                                    }
+                                                }
+                                                if (includingSecurityGroup == false)
+                                                    continue; //skip to next network offering
+                                            }
+                                        }
+                                        items.push({
+                                            id: addGloboNetworkNetworkDialog.networkOfferingObjs[i].id,
+                                            description: addGloboNetworkNetworkDialog.networkOfferingObjs[i].displaytext
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                        args.response.success({
+                            data: items
+                        });
+                    }
+                }
+            }
+        }, 
+
+        action: function(args) { //Add GloboNetwork network in advanced zone
+            var $form = args.$form;
+
+            var array1 = [];
+            array1.push("&zoneId=" + args.data.zoneId);
+            array1.push("&networkOfferingId=" + args.data.networkOfferingId);
+
+            //Pass physical network ID to addNetworkViaGloboNetworkCmd API only when network offering's guestiptype is Shared.
+            var selectedNetworkOfferingObj;
+            if (addGloboNetworkNetworkDialog.networkOfferingObjs != null) {
+                for (var i = 0; i < addGloboNetworkNetworkDialog.networkOfferingObjs.length; i++) {
+                    if (addGloboNetworkNetworkDialog.networkOfferingObjs[i].id == args.data.networkOfferingId) {
+                        selectedNetworkOfferingObj = addGloboNetworkNetworkDialog.networkOfferingObjs[i]
+                        break;
+                    }
+                }
+            }
+
+            if (selectedNetworkOfferingObj.guestiptype == "Shared")
+                array1.push("&napienvironmentid=" + args.data.napiEnvironmentId);
+
+
+            array1.push("&name=" + todb(args.data.name));
+            array1.push("&displayText=" + todb(args.data.description));
+
+            if ($form.find('.form-item[rel=domainId]').css("display") != "none") {
+                array1.push("&domainId=" + args.data.domainId);
+
+                if ($form.find('.form-item[rel=account]').css("display") != "none") { //account-specific
+                    array1.push("&account=" + args.data.account);
+                    array1.push("&acltype=account");
+                } else if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific
+                    array1.push("&projectid=" + args.data.projectId);
+                    array1.push("&acltype=account");
+                } else { //domain-specific
+                    array1.push("&acltype=domain");
+
+                    if ($form.find('.form-item[rel=subdomainaccess]:visible input:checked').size())
+                        array1.push("&subdomainaccess=true");
+                    else
+                        array1.push("&subdomainaccess=false");
+                }
+            } else { //zone-wide
+                if (isAdmin() || isDomainAdmin()) {
+                    array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
+                } else if (isUser()) {
+                    array1.push("&acltype=account");
+
+                    if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific for user
+                        array1.push("&projectid=" + args.data.projectId);
+                    } else { // account-specific for user
+                        array1.push("&domainId=" + args.data.domainId); // user's domain
+                        array1.push("&account=" + args.context.users[0].account); // current user's account
+                    }
+                }
+            }
+
+            $.ajax({
+                url: createURL("addNetworkViaGloboNetworkCmd" + array1.join(""), {
+                    ignoreProject: true
+                }),
+                dataType: "json",
+                success: function(json) {
+                    var item = json.addnetworkviaglobonetworkresponse.network;
+                    args.response.success({
+                        data: item
+                    });
+                },
+                error: function(XMLHttpResponse) {
+                    var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                    args.response.error(errorMsg);
+                }
+            });
+        },
+        notification: {
+            poll: function(args) {
+                args.complete();
+            }
+        }
+    }
+}
+// END GLOBONETWORK
