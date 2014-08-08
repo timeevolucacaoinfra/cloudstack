@@ -90,6 +90,8 @@ rm -f ${maven_log}
 cd ${project_basedir}
 PrintLog INFO "Checking out to branch '${project_branch}'"
 git checkout ${project_branch} >/dev/null 2>/dev/null
+PrintLog INFO "Pulling latest modifications"
+git pull
 PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
 source $WORKON_HOME/${virtualenv_name}/bin/activate
 
