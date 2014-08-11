@@ -3282,8 +3282,10 @@ public class ApiResponseHelper implements ResponseGenerator {
         if (account.getType() == Account.ACCOUNT_TYPE_PROJECT) {
             //find the project
             Project project = ApiDBUtils.findProjectByProjectAccountId(account.getId());
-            usageRecResponse.setProjectId(project.getUuid());
-            usageRecResponse.setProjectName(project.getName());
+            if (project != null) {
+            	usageRecResponse.setProjectId(project.getUuid());
+            	usageRecResponse.setProjectName(project.getName());
+	    }
         } else {
             usageRecResponse.setAccountId(account.getUuid());
             usageRecResponse.setAccountName(account.getAccountName());
