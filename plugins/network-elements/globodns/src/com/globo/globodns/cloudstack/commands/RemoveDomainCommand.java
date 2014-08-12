@@ -19,26 +19,26 @@ package com.globo.globodns.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 public class RemoveDomainCommand extends Command {
-	
-	private String networkDomain;
-	
-	private boolean override;
-	
-	public RemoveDomainCommand(String networkDomain, boolean override) {
-		this.networkDomain = networkDomain;
-		this.override = override;
-	}
-	
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
-	
-	public String getNetworkDomain() {
-		return this.networkDomain;
-	}
-	
-	public boolean isOverride() {
-		return override;
-	}
+
+    private String networkDomain;
+
+    private boolean override;
+
+    public RemoveDomainCommand(String networkDomain, boolean override) {
+        this.networkDomain = networkDomain;
+        this.override = override;
+    }
+
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
+
+    public String getNetworkDomain() {
+        return this.networkDomain;
+    }
+
+    public boolean isOverride() {
+        return override;
+    }
 }

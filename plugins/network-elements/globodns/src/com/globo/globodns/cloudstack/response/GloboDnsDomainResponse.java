@@ -6,15 +6,15 @@ import com.globo.globodns.client.model.Domain;
 
 public class GloboDnsDomainResponse extends Answer {
 
-	private Domain domain;
-	
+    private Domain domain;
+
     public GloboDnsDomainResponse(Command command, Domain domain) {
-    	super(command, true, null);
-    	this.domain = domain;
+        super(command, true, null);
+        this.domain = domain;
     }
 
-	public Domain getDomain() {
-		return domain;
-	}
+    public Domain getDomain() {
+        return domain;
+    }
 
 }

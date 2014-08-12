@@ -310,7 +310,7 @@
       <groupId>org.apache.cloudstack</groupId>
       <artifactId>cloud-plugin-network-globodns</artifactId>
       <version>${project.version}</version>
-    </dependency>        
+    </dependency>
   </dependencies>
   <build>
     <plugins>

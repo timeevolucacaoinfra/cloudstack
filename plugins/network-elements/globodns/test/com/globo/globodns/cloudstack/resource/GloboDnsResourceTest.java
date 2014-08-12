@@ -1,7 +1,7 @@
 package com.globo.globodns.cloudstack.resource;
 
-
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -35,24 +35,24 @@ import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
-@DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class GloboDnsResourceTest {
-	
-	private GloboDnsResource _globoDnsResource;
-	
-	private GloboDns _globoDnsApi;
-	private DomainAPI _domainApi;
-	private RecordAPI _recordApi;
-	private ExportAPI _exportApi;
-	
-	private static final Long TEMPLATE_ID = 1l;
-	
-	private static long sequenceId = 10l;
 
-	@Before
-	public void setUp() throws Exception {
+    private GloboDnsResource _globoDnsResource;
+
+    private GloboDns _globoDnsApi;
+    private DomainAPI _domainApi;
+    private RecordAPI _recordApi;
+    private ExportAPI _exportApi;
+
+    private static final Long TEMPLATE_ID = 1l;
+
+    private static long sequenceId = 10l;
+
+    @Before
+    public void setUp() throws Exception {
         // ComponentContext.initComponentsLifeCycle();
-        
+
         String name = "GloboDNS";
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("zoneId", "1");
@@ -61,388 +61,382 @@ public class GloboDnsResourceTest {
         params.put("url", "http://example.com");
         params.put("username", "username");
         params.put("password", "password");
-        
+
         _globoDnsResource = new GloboDnsResource();
         _globoDnsResource.configure(name, params);
-        
+
         _globoDnsApi = spy(_globoDnsResource._globoDns);
         _globoDnsResource._globoDns = _globoDnsApi;
-        
+
         _domainApi = mock(DomainAPI.class);
         when(_globoDnsApi.getDomainAPI()).thenReturn(_domainApi);
-        
+
         _recordApi = mock(RecordAPI.class);
         when(_globoDnsApi.getRecordAPI()).thenReturn(_recordApi);
-        
+
         _exportApi = mock(ExportAPI.class);
         when(_globoDnsApi.getExportAPI()).thenReturn(_exportApi);
     }
-    
+
     @After
-	public void tearDown() throws Exception {
+    public void tearDown() throws Exception {
     }
-    
-    
+
     ///////////////////////
     // Auxiliary Methods //
     ///////////////////////
-    
+
     private Domain generateFakeDomain(String domainName, boolean reverse) {
-    	Domain domain = new Domain();
-    	domain.getDomainAttributes().setId(sequenceId++);
-    	domain.getDomainAttributes().setName(domainName);
-    	List<Domain> domainList = new ArrayList<Domain>();
-    	domainList.add(domain);
-    	if (reverse) {
-        	when(_domainApi.listReverseByQuery(eq(domainName))).thenReturn(domainList);
-    	} else {
-        	when(_domainApi.listByQuery(eq(domainName))).thenReturn(domainList);
-    	}
-    	return domain;
+        Domain domain = new Domain();
+        domain.getDomainAttributes().setId(sequenceId++);
+        domain.getDomainAttributes().setName(domainName);
+        List<Domain> domainList = new ArrayList<Domain>();
+        domainList.add(domain);
+        if (reverse) {
+            when(_domainApi.listReverseByQuery(eq(domainName))).thenReturn(domainList);
+        } else {
+            when(_domainApi.listByQuery(eq(domainName))).thenReturn(domainList);
+        }
+        return domain;
     }
-    
+
     private Record generateFakeRecord(Domain domain, String recordName, String recordContent, boolean reverse) {
-    	Record record = new Record();
+        Record record = new Record();
 //    	String recordType;
-    	if (reverse) {
+        if (reverse) {
 //    		recordType = "PTR";
-        	record.getTypePTRRecordAttributes().setName(recordName);
-        	record.getTypePTRRecordAttributes().setContent(recordContent);
-        	record.getTypePTRRecordAttributes().setDomainId(domain.getId());
-        	record.getTypePTRRecordAttributes().setId(sequenceId++);
-    	} else {
+            record.getTypePTRRecordAttributes().setName(recordName);
+            record.getTypePTRRecordAttributes().setContent(recordContent);
+            record.getTypePTRRecordAttributes().setDomainId(domain.getId());
+            record.getTypePTRRecordAttributes().setId(sequenceId++);
+        } else {
 //    		recordType = "A";
-        	record.getTypeARecordAttributes().setName(recordName);
-        	record.getTypeARecordAttributes().setContent(recordContent);
-        	record.getTypeARecordAttributes().setDomainId(domain.getId());
-        	record.getTypeARecordAttributes().setId(sequenceId++);
-    	}
-    	List<Record> recordList = new ArrayList<Record>();
-    	recordList.add(record);
-    	when(_recordApi.listByQuery(eq(domain.getId()), eq(recordName))).thenReturn(recordList);
-    	return record;
+            record.getTypeARecordAttributes().setName(recordName);
+            record.getTypeARecordAttributes().setContent(recordContent);
+            record.getTypeARecordAttributes().setDomainId(domain.getId());
+            record.getTypeARecordAttributes().setId(sequenceId++);
+        }
+        List<Record> recordList = new ArrayList<Record>();
+        recordList.add(record);
+        when(_recordApi.listByQuery(eq(domain.getId()), eq(recordName))).thenReturn(recordList);
+        return record;
     }
-    
-    
+
     /////////////////////////
     // Create Domain tests //
     /////////////////////////
-    
+
     @Test
     public void testCreateDomainWithSuccessWhenDomainDoesntExistAndOverrideIsTrue() throws Exception {
-    	String domainName = "domain.name.com";
-    	
-    	Domain domain = new Domain();
-    	domain.getDomainAttributes().setId(sequenceId++);
-    	domain.getDomainAttributes().setName(domainName);
+        String domainName = "domain.name.com";
 
-    	when(_domainApi.createDomain(eq(domain.getName()), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
+        Domain domain = new Domain();
+        domain.getDomainAttributes().setId(sequenceId++);
+        domain.getDomainAttributes().setName(domainName);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateDomainCommand(domainName, TEMPLATE_ID));
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
-    	verify(_exportApi, times(1)).scheduleExport();
+        when(_domainApi.createDomain(eq(domain.getName()), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
+
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateDomainCommand(domainName, TEMPLATE_ID));
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
+        verify(_exportApi, times(1)).scheduleExport();
     }
-    
-	@Test
-	@SuppressWarnings("unused")
+
+    @Test
+    @SuppressWarnings("unused")
     public void testCreateDomainWillSucceedWhenDomainAlreadyExistsAndOverrideIsFalse() throws Exception {
-    	String domainName = "domain.name.com";
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
+        String domainName = "domain.name.com";
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateDomainCommand(domainName, TEMPLATE_ID));
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
+        Domain domain = generateFakeDomain(domainName, false);
+
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateDomainCommand(domainName, TEMPLATE_ID));
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
     }
-    
-    
+
     /////////////////////////
     // Create Record tests //
     /////////////////////////
-    
+
     @Test
     @SuppressWarnings("unused")
     public void testCreateRecordAndReverseWithSuccessWhenDomainExistsAndRecordDoesntExistAndOverrideIsTrue() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, recordIp, false);
-    	Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
-    	Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
+        String reverseRecordContent = recordName + "." + domainName;
 
-    	when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
-    	when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, recordIp, false);
+        Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
+        Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, true));
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
-    	verify(_exportApi, times(1)).scheduleExport();
+        when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
+        when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, true));
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
     @Test
     @SuppressWarnings("unused")
     public void testCreateRecordAndReverseWillFailWhenRecordAlreadyExistsAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String newIp = "40.30.20.10";
-    	String oldIp = "50.40.30.20";
-    	String domainName = "domain.name.com";
+        String recordName = "recordname";
+        String newIp = "40.30.20.10";
+        String oldIp = "50.40.30.20";
+        String domainName = "domain.name.com";
 
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, oldIp, false);
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, oldIp, false);
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newIp, domainName, TEMPLATE_ID, false));
-    	assertNotNull(answer);
-    	assertEquals(false, answer.getResult());
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newIp, domainName, TEMPLATE_ID, false));
+        assertNotNull(answer);
+        assertEquals(false, answer.getResult());
     }
 
-	@Test
-	@SuppressWarnings("unused")
+    @Test
+    @SuppressWarnings("unused")
     public void testCreateRecordAndReverseWillFailWhenReverseRecordAlreadyExistsAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, recordIp, false);
-    	Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
-    	Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, false));
-    	assertNotNull(answer);
-    	assertEquals(false, answer.getResult());
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, recordIp, false);
+        Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
+        Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
+
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, false));
+        assertNotNull(answer);
+        assertEquals(false, answer.getResult());
     }
 
     @Test
     public void testCreateRecordAndReverseWhenDomainDoesNotExist() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
-    	
-    	Domain domain = new Domain();
-    	domain.getDomainAttributes().setId(sequenceId++);
-    	Domain reverseDomain = new Domain();
-    	reverseDomain.getDomainAttributes().setId(sequenceId++);
-    	
-    	Record record = new Record();
-    	
-    	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
-    	when(_domainApi.createDomain(eq(domainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
-    	when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
-    	when(_domainApi.createReverseDomain(eq(reverseDomainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(reverseDomain);
-    	when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
+        String reverseRecordContent = recordName + "." + domainName;
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, true));
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = new Domain();
+        domain.getDomainAttributes().setId(sequenceId++);
+        Domain reverseDomain = new Domain();
+        reverseDomain.getDomainAttributes().setId(sequenceId++);
+
+        Record record = new Record();
+
+        when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
+        when(_domainApi.createDomain(eq(domainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
+        when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
+        when(_domainApi.createReverseDomain(eq(reverseDomainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(reverseDomain);
+        when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, true));
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
     @Test
     public void testCreateRecordAndReverseWhenDomainDoesNotExistAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
-    	
-    	Domain domain = new Domain();
-    	domain.getDomainAttributes().setId(sequenceId++);
-    	Domain reverseDomain = new Domain();
-    	reverseDomain.getDomainAttributes().setId(sequenceId++);
-    	
-    	Record record = new Record();
-    	
-    	when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
-    	when(_domainApi.createDomain(eq(domainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
-    	when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
-    	when(_domainApi.createReverseDomain(eq(reverseDomainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(reverseDomain);
-    	when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
+        String reverseRecordContent = recordName + "." + domainName;
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, false));
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = new Domain();
+        domain.getDomainAttributes().setId(sequenceId++);
+        Domain reverseDomain = new Domain();
+        reverseDomain.getDomainAttributes().setId(sequenceId++);
+
+        Record record = new Record();
+
+        when(_domainApi.listByQuery(domainName)).thenReturn(new ArrayList<Domain>());
+        when(_domainApi.createDomain(eq(domainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(domain);
+        when(_recordApi.createRecord(eq(domain.getId()), eq(recordName), eq(recordIp), eq("A"))).thenReturn(record);
+        when(_domainApi.createReverseDomain(eq(reverseDomainName), eq(TEMPLATE_ID), eq("M"))).thenReturn(reverseDomain);
+        when(_recordApi.createRecord(eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent), eq("PTR"))).thenReturn(record);
+
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, recordIp, domainName, TEMPLATE_ID, false));
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
-    
     /////////////////////////
     // Update Record tests //
     /////////////////////////
 
     @Test
     public void testUpdateRecordAndReverseWhenDomainExistsAndOverrideIsTrue() throws Exception {
-    	String recordName = "recordname";
-    	String oldRecordIp = "40.30.20.10";
-    	String newRecordIp = "50.40.30.20";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "30.40.50.in-addr.arpa";
-    	String reverseRecordName = "20";
-    	String reverseRecordContent = recordName + "." + domainName;
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, oldRecordIp, false);
-    	Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
-    	Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
+        String recordName = "recordname";
+        String oldRecordIp = "40.30.20.10";
+        String newRecordIp = "50.40.30.20";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "30.40.50.in-addr.arpa";
+        String reverseRecordName = "20";
+        String reverseRecordContent = recordName + "." + domainName;
 
-    	Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName, TEMPLATE_ID, true));
-    	
-    	// ensure calls in sequence to ensure this call are the only ones.
-    	InOrder inOrder = inOrder(_recordApi);
-    	inOrder.verify(_recordApi, times(1)).updateRecord(eq(record.getId()), eq(domain.getId()), eq(recordName), eq(newRecordIp));
-    	inOrder.verify(_recordApi, times(1)).updateRecord(eq(reverseRecord.getId()), eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent));
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, oldRecordIp, false);
+        Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
+        Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
 
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
-    	verify(_exportApi, times(1)).scheduleExport();
+        Answer answer = _globoDnsResource.execute(new CreateOrUpdateRecordAndReverseCommand(recordName, newRecordIp, domainName, TEMPLATE_ID, true));
+
+        // ensure calls in sequence to ensure this call are the only ones.
+        InOrder inOrder = inOrder(_recordApi);
+        inOrder.verify(_recordApi, times(1)).updateRecord(eq(record.getId()), eq(domain.getId()), eq(recordName), eq(newRecordIp));
+        inOrder.verify(_recordApi, times(1)).updateRecord(eq(reverseRecord.getId()), eq(reverseDomain.getId()), eq(reverseRecordName), eq(reverseRecordContent));
+
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
+        verify(_exportApi, times(1)).scheduleExport();
     }
-    
-    
+
     /////////////////////////
     // Remove Record tests //
     /////////////////////////
-    
+
     @Test
     public void testRemoveRecordWhenRecordExists() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, recordIp, false);
-    	Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
-    	Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
+        String reverseRecordContent = recordName + "." + domainName;
 
-    	Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, true));
-    	
-    	assertNotNull(answer);
-    	assertEquals(true, answer.getResult());
-    	verify(_recordApi, times(1)).removeRecord(eq(record.getId()));
-    	verify(_recordApi, times(1)).removeRecord(eq(reverseRecord.getId()));
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, recordIp, false);
+        Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
+        Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
+
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, true));
+
+        assertNotNull(answer);
+        assertEquals(true, answer.getResult());
+        verify(_recordApi, times(1)).removeRecord(eq(record.getId()));
+        verify(_recordApi, times(1)).removeRecord(eq(reverseRecord.getId()));
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
     @Test
     public void testRemoveRecordWithSuccessAndReverseRecordNotRemovedWhenReverseRecordExistsWithDifferentValueAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, recordIp, false);
-    	Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
-    	Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
 
-    	Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
-    	
-    	assertEquals(true, answer.getResult());
-    	verify(_recordApi, times(1)).removeRecord(eq(record.getId()));
-    	verify(_recordApi, never()).removeRecord(eq(reverseRecord.getId()));
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, recordIp, false);
+        Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
+        Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
+
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
+
+        assertEquals(true, answer.getResult());
+        verify(_recordApi, times(1)).removeRecord(eq(record.getId()));
+        verify(_recordApi, never()).removeRecord(eq(reverseRecord.getId()));
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
     @Test
     public void testRemoveReverseRecordButNotRemoveRecordWhenRecordExistsWithDifferentValueAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	String reverseDomainName = "20.30.40.in-addr.arpa";
-    	String reverseRecordName = "10";
-    	String reverseRecordContent = recordName + "." + domainName;
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, "X", false);
-    	Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
-    	Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
+        String reverseDomainName = "20.30.40.in-addr.arpa";
+        String reverseRecordName = "10";
+        String reverseRecordContent = recordName + "." + domainName;
 
-    	Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
-    	
-    	assertEquals(true, answer.getResult());
-    	verify(_recordApi, never()).removeRecord(eq(record.getId()));
-    	verify(_recordApi, times(1)).removeRecord(eq(reverseRecord.getId()));
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, "X", false);
+        Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
+        Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
+
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
+
+        assertEquals(true, answer.getResult());
+        verify(_recordApi, never()).removeRecord(eq(record.getId()));
+        verify(_recordApi, times(1)).removeRecord(eq(reverseRecord.getId()));
+        verify(_exportApi, times(1)).scheduleExport();
     }
-    
-    
+
     /////////////////////////
     // Remove Domain tests //
     /////////////////////////
 
     @Test
     public void testRemoveDomainWithSuccessButDomainKeptWhenDomainExistsAndThereAreRecordsAndOverrideIsFalse() throws Exception {
-    	String recordName = "recordname";
-    	String recordIp = "40.30.20.10";
-    	String domainName = "domain.name.com";
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	Record record = generateFakeRecord(domain, recordName, "X", false);
-    	when(_recordApi.listAll(domain.getId())).thenReturn(Arrays.asList(record));
+        String recordName = "recordname";
+        String recordIp = "40.30.20.10";
+        String domainName = "domain.name.com";
 
-    	Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
-    	
-    	assertEquals(true, answer.getResult());
-    	verify(_domainApi, never()).removeDomain(any(Long.class));
-    	verify(_exportApi, never()).scheduleExport();
+        Domain domain = generateFakeDomain(domainName, false);
+        Record record = generateFakeRecord(domain, recordName, "X", false);
+        when(_recordApi.listAll(domain.getId())).thenReturn(Arrays.asList(record));
+
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
+
+        assertEquals(true, answer.getResult());
+        verify(_domainApi, never()).removeDomain(any(Long.class));
+        verify(_exportApi, never()).scheduleExport();
     }
 
     @Test
     public void testRemoveDomainWithSuccessWhenDomainExistsAndThereAreOnlyNSRecordsAndOverrideIsFalse() throws Exception {
-    	String domainName = "domain.name.com";
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	List<Record> recordList = new ArrayList<Record>();
-    	for (int i=0; i<10; i++) {
-    		Record record = new Record();
-    		record.getTypeNSRecordAttributes().setDomainId(domain.getId());
-    		record.getTypeNSRecordAttributes().setId(sequenceId++);
-    		record.getTypeNSRecordAttributes().setType("NS");
-    		recordList.add(record);
-    	}
-    	when(_recordApi.listAll(domain.getId())).thenReturn(recordList);
+        String domainName = "domain.name.com";
 
-    	Answer answer = _globoDnsResource.execute(new RemoveDomainCommand(domainName, false));
-    	
-    	assertEquals(true, answer.getResult());
-    	verify(_domainApi, times(1)).removeDomain(eq(domain.getId()));
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = generateFakeDomain(domainName, false);
+        List<Record> recordList = new ArrayList<Record>();
+        for (int i = 0; i < 10; i++) {
+            Record record = new Record();
+            record.getTypeNSRecordAttributes().setDomainId(domain.getId());
+            record.getTypeNSRecordAttributes().setId(sequenceId++);
+            record.getTypeNSRecordAttributes().setType("NS");
+            recordList.add(record);
+        }
+        when(_recordApi.listAll(domain.getId())).thenReturn(recordList);
+
+        Answer answer = _globoDnsResource.execute(new RemoveDomainCommand(domainName, false));
+
+        assertEquals(true, answer.getResult());
+        verify(_domainApi, times(1)).removeDomain(eq(domain.getId()));
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
     @Test
     public void testRemoveDomainWithSuccessWhenDomainExistsAndThereAreRecordsAndOverrideIsTrue() throws Exception {
-    	String domainName = "domain.name.com";
-    	
-    	Domain domain = generateFakeDomain(domainName, false);
-    	List<Record> recordList = new ArrayList<Record>();
-    	for (int i=0; i<10; i++) {
-    		Record record = new Record();
-    		record.getTypeNSRecordAttributes().setDomainId(domain.getId());
-    		record.getTypeNSRecordAttributes().setId(sequenceId++);
-    		record.getTypeNSRecordAttributes().setType(new String[] {"A", "NS", "PTR"}[i%3]);
-    		recordList.add(record);
-    	}
-    	when(_recordApi.listAll(domain.getId())).thenReturn(recordList);
+        String domainName = "domain.name.com";
 
-    	Answer answer = _globoDnsResource.execute(new RemoveDomainCommand(domainName, true));
-    	
-    	assertEquals(true, answer.getResult());
-    	verify(_domainApi, times(1)).removeDomain(eq(domain.getId()));
-    	verify(_exportApi, times(1)).scheduleExport();
+        Domain domain = generateFakeDomain(domainName, false);
+        List<Record> recordList = new ArrayList<Record>();
+        for (int i = 0; i < 10; i++) {
+            Record record = new Record();
+            record.getTypeNSRecordAttributes().setDomainId(domain.getId());
+            record.getTypeNSRecordAttributes().setId(sequenceId++);
+            record.getTypeNSRecordAttributes().setType(new String[] {"A", "NS", "PTR"}[i % 3]);
+            recordList.add(record);
+        }
+        when(_recordApi.listAll(domain.getId())).thenReturn(recordList);
+
+        Answer answer = _globoDnsResource.execute(new RemoveDomainCommand(domainName, true));
+
+        assertEquals(true, answer.getResult());
+        verify(_domainApi, times(1)).removeDomain(eq(domain.getId()));
+        verify(_exportApi, times(1)).scheduleExport();
     }
 
 }

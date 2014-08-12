@@ -22,15 +22,15 @@ import com.globo.globodns.client.model.Record;
 
 public class GloboDnsRecordResponse extends Answer {
 
-	private Record record;
-	
+    private Record record;
+
     public GloboDnsRecordResponse(Command command, Record record) {
-    	super(command, true, null);
-    	this.record = record;
+        super(command, true, null);
+        this.record = record;
     }
 
-	public Record getRecord() {
-		return record;
-	}
+    public Record getRecord() {
+        return record;
+    }
 
 }

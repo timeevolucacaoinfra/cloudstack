@@ -22,15 +22,15 @@ import com.globo.globodns.client.model.Export;
 
 public class GloboDnsExportResponse extends Answer {
 
-	private Export export;
-	
+    private Export export;
+
     public GloboDnsExportResponse(Command command, Export export) {
-    	super(command, true, null);
-    	this.export = export;
+        super(command, true, null);
+        this.export = export;
     }
 
-	public Export getExport() {
-		return export;
-	}
+    public Export getExport() {
+        return export;
+    }
 
 }

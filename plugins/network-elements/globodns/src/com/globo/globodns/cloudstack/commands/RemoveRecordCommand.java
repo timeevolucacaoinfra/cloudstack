@@ -19,41 +19,41 @@ package com.globo.globodns.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 public class RemoveRecordCommand extends Command {
-	
-	private String recordName;
-	
-	private String recordIp;
-	
-	private String networkDomain;
-	
-	private boolean override;
-	
-	public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean override) {
-		this.recordName = recordName;
-		this.recordIp = recordIp;
-		this.networkDomain = networkDomain;
-		this.override = override;
-	}
-	
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
 
-	public String getRecordName() {
-		return recordName;
-	}
+    private String recordName;
 
-	public String getRecordIp() {
-		return recordIp;
-	}
+    private String recordIp;
 
-	public String getNetworkDomain() {
-		return networkDomain;
-	}
+    private String networkDomain;
 
-	public boolean isOverride() {
-		return override;
-	}
-	
+    private boolean override;
+
+    public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean override) {
+        this.recordName = recordName;
+        this.recordIp = recordIp;
+        this.networkDomain = networkDomain;
+        this.override = override;
+    }
+
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
+
+    public String getRecordName() {
+        return recordName;
+    }
+
+    public String getRecordIp() {
+        return recordIp;
+    }
+
+    public String getNetworkDomain() {
+        return networkDomain;
+    }
+
+    public boolean isOverride() {
+        return override;
+    }
+
 }

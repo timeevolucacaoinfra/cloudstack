@@ -21,5 +21,5 @@ import com.cloud.utils.component.PluggableService;
 
 public interface GloboDnsElementService extends PluggableService {
 
-	public Host addGloboDnsHost(Long pNtwkId, String username, String password, String url);
+    public Host addGloboDnsHost(Long pNtwkId, String username, String password, String url);
 }

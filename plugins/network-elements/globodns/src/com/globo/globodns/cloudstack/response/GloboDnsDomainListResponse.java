@@ -24,15 +24,15 @@ import com.globo.globodns.client.model.Domain;
 
 public class GloboDnsDomainListResponse extends Answer {
 
-	private List<Domain> domainList;
-	
+    private List<Domain> domainList;
+
     public GloboDnsDomainListResponse(Command command, List<Domain> domainList) {
-    	super(command, true, null);
-    	this.domainList = domainList;
+        super(command, true, null);
+        this.domainList = domainList;
     }
 
-	public List<Domain> getDomainList() {
-		return domainList;
-	}
+    public List<Domain> getDomainList() {
+        return domainList;
+    }
 
 }

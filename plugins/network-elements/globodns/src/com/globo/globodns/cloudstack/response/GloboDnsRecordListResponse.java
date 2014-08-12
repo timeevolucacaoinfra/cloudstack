@@ -24,15 +24,15 @@ import com.globo.globodns.client.model.Record;
 
 public class GloboDnsRecordListResponse extends Answer {
 
-	private List<Record> recordList;
-	
+    private List<Record> recordList;
+
     public GloboDnsRecordListResponse(Command command, List<Record> recordList) {
-    	super(command, true, null);
-    	this.recordList = recordList;
+        super(command, true, null);
+        this.recordList = recordList;
     }
 
-	public List<Record> getRecordList() {
-		return recordList;
-	}
+    public List<Record> getRecordList() {
+        return recordList;
+    }
 
 }

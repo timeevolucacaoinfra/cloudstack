@@ -19,48 +19,48 @@ package com.globo.globodns.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 public class CreateOrUpdateRecordAndReverseCommand extends Command {
-	
-	private String recordName;
-	
-	private String recordIp;
-	
-	private String networkDomain;
-	
-	private Long reverseTemplateId;
-	
-	private boolean override;
 
-	public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId, boolean override) {
-		this.recordName = recordName;
-		this.recordIp = recordIp;
-		this.networkDomain = networkDomain;
-		this.reverseTemplateId = reverseTemplateId;
-		this.override = override;
-	}
-	
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
+    private String recordName;
 
-	public String getRecordName() {
-		return this.recordName;
-	}
-	
-	public String getRecordIp() {
-		return this.recordIp;
-	}
-	
-	public String getNetworkDomain() {
-		return this.networkDomain;
-	}
+    private String recordIp;
 
-	public Long getReverseTemplateId() {
-		return reverseTemplateId;
-	}
-	
-	public boolean isOverride() {
-		return override;
-	}
+    private String networkDomain;
+
+    private Long reverseTemplateId;
+
+    private boolean override;
+
+    public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId, boolean override) {
+        this.recordName = recordName;
+        this.recordIp = recordIp;
+        this.networkDomain = networkDomain;
+        this.reverseTemplateId = reverseTemplateId;
+        this.override = override;
+    }
+
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
+
+    public String getRecordName() {
+        return this.recordName;
+    }
+
+    public String getRecordIp() {
+        return this.recordIp;
+    }
+
+    public String getNetworkDomain() {
+        return this.networkDomain;
+    }
+
+    public Long getReverseTemplateId() {
+        return reverseTemplateId;
+    }
+
+    public boolean isOverride() {
+        return override;
+    }
 
 }

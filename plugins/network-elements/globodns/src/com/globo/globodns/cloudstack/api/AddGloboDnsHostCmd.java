@@ -40,87 +40,85 @@ import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 @APICommand(name = "addGloboDnsHost", responseObject = SuccessResponse.class, description = "Adds the GloboDNS external host")
 public class AddGloboDnsHostCmd extends BaseAsyncCmd {
 
-	private static final String s_name = "addglobodnshostresponse";
-	@Inject
-	GloboDnsElementService _globoDnsElementService;
+    private static final String s_name = "addglobodnshostresponse";
+    @Inject
+    GloboDnsElementService _globoDnsElementService;
 
-	// ///////////////////////////////////////////////////
-	// ////////////// API parameters /////////////////////
-	// ///////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////
+    // ////////////// API parameters /////////////////////
+    // ///////////////////////////////////////////////////
 
-	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
-	private Long physicalNetworkId;
+    @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
+    private Long physicalNetworkId;
 
-	@Parameter(name = ApiConstants.USERNAME, type = CommandType.STRING, required = true, description="Username for GloboDNS")
-	private String username;
-	
-	@Parameter(name=ApiConstants.PASSWORD, type=CommandType.STRING, required = true, description="Password for GloboDNS")
+    @Parameter(name = ApiConstants.USERNAME, type = CommandType.STRING, required = true, description = "Username for GloboDNS")
+    private String username;
+
+    @Parameter(name = ApiConstants.PASSWORD, type = CommandType.STRING, required = true, description = "Password for GloboDNS")
     private String password;
-	
-	@Parameter(name = ApiConstants.URL, type=CommandType.STRING, required = true, description="GloboDNS url")
-	private String url;
 
-	// ///////////////////////////////////////////////////
-	// ///////////////// Accessors ///////////////////////
-	// ///////////////////////////////////////////////////
+    @Parameter(name = ApiConstants.URL, type = CommandType.STRING, required = true, description = "GloboDNS url")
+    private String url;
 
-	public Long getPhysicalNetworkId() {
-		return physicalNetworkId;
-	}
+    // ///////////////////////////////////////////////////
+    // ///////////////// Accessors ///////////////////////
+    // ///////////////////////////////////////////////////
 
-	public String getUsername() {
-		return username;
-	}
+    public Long getPhysicalNetworkId() {
+        return physicalNetworkId;
+    }
 
-	public String getPassword() {
-		return password;
-	}
-	
-	public String getUrl() {
-		return url;
-	}
+    public String getUsername() {
+        return username;
+    }
 
-	// ///////////////////////////////////////////////////
-	// ///////////// API Implementation///////////////////
-	// ///////////////////////////////////////////////////
+    public String getPassword() {
+        return password;
+    }
 
-	@Override
-	public void execute() throws ResourceUnavailableException,
-			InsufficientCapacityException, ServerApiException,
-			ConcurrentOperationException, ResourceAllocationException {
-		try {
-			Host host = _globoDnsElementService.addGloboDnsHost(physicalNetworkId, username, password, url);
+    public String getUrl() {
+        return url;
+    }
 
-			SuccessResponse response = new SuccessResponse(getCommandName());
-			response.setSuccess((host == null ? false : true));
-			this.setResponseObject(response);
-			
-		} catch (InvalidParameterValueException invalidParamExcp) {
-			throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
-		} catch (CloudRuntimeException runtimeExcp) {
-			throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
-		}
-	}
+    // ///////////////////////////////////////////////////
+    // ///////////// API Implementation///////////////////
+    // ///////////////////////////////////////////////////
 
     @Override
-	public String getCommandName() {
-		return s_name;
-	}
+    public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
+        try {
+            Host host = _globoDnsElementService.addGloboDnsHost(physicalNetworkId, username, password, url);
 
-	@Override
-	public long getEntityOwnerId() {
-		return CallContext.current().getCallingAccountId();
-	}
+            SuccessResponse response = new SuccessResponse(getCommandName());
+            response.setSuccess((host == null ? false : true));
+            this.setResponseObject(response);
 
-	@Override
-	public String getEventType() {
-		//EventTypes.EVENT_NETWORK_CREATE
-		return EventTypes.EVENT_NETWORK_CREATE;
-	}
+        } catch (InvalidParameterValueException invalidParamExcp) {
+            throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
+        } catch (CloudRuntimeException runtimeExcp) {
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
+        }
+    }
 
-	@Override
-	public String getEventDescription() {
-		return "Add GloboDNS provider";
-	}
+    @Override
+    public String getCommandName() {
+        return s_name;
+    }
+
+    @Override
+    public long getEntityOwnerId() {
+        return CallContext.current().getCallingAccountId();
+    }
+
+    @Override
+    public String getEventType() {
+        //EventTypes.EVENT_NETWORK_CREATE
+        return EventTypes.EVENT_NETWORK_CREATE;
+    }
+
+    @Override
+    public String getEventDescription() {
+        return "Add GloboDNS provider";
+    }
 
 }
