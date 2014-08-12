@@ -1,7 +1,7 @@
 package com.globo.globodns.cloudstack.element;
 
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
-import static org.junit.Assert.*;
 
 import java.io.IOException;
 
@@ -57,11 +57,8 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
-import com.globo.globodns.cloudstack.GloboDnsNetworkVO;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
-import com.globo.globodns.cloudstack.dao.GloboDnsNetworkDao;
-import com.globo.globodns.cloudstack.dao.GloboDnsVirtualMachineDao;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
@@ -78,13 +75,7 @@ public class GloboDnsElementTest {
 	DataCenterDao _datacenterDao;
 	
 	@Inject
-	GloboDnsVirtualMachineDao _globodnsVMDao;
-	
-	@Inject
 	GloboDnsElement _globodnsElement;
-	
-	@Inject
-	GloboDnsNetworkDao _globodnsNetworkDao;
 	
 	@Inject
 	HostDao _hostDao;
@@ -134,7 +125,6 @@ public class GloboDnsElementTest {
 		when(vm.getHostName()).thenReturn("UPPERCASENAME");
 		when(vm.getType()).thenReturn(VirtualMachine.Type.User);
 		when(_datacenterDao.findById(zoneId)).thenReturn(mock(DataCenterVO.class));
-		when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
 		DeployDestination dest = new DeployDestination();
 		ReservationContext context = new ReservationContextImpl(null, null, user);
 		_globodnsElement.prepare(network, nic, vm, dest, context);
@@ -153,7 +143,6 @@ public class GloboDnsElementTest {
 		DataCenterVO dataCenterVO = mock(DataCenterVO.class);
 		when(dataCenterVO.getId()).thenReturn(zoneId);
 		when(_datacenterDao.findById(zoneId)).thenReturn(dataCenterVO);
-		when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
 		DeployDestination dest = new DeployDestination();
 		ReservationContext context = new ReservationContextImpl(null, null, user);
 		
@@ -187,7 +176,6 @@ public class GloboDnsElementTest {
 		DataCenterVO dataCenterVO = mock(DataCenterVO.class);
 		when(dataCenterVO.getId()).thenReturn(zoneId);
 		when(_datacenterDao.findById(zoneId)).thenReturn(dataCenterVO);
-		when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
 		ReservationContext context = new ReservationContextImpl(null, null, user);
 		
 		HostVO hostVO = mock(HostVO.class);
@@ -211,14 +199,6 @@ public class GloboDnsElementTest {
     @ComponentScan(basePackageClasses = {GloboDnsElement.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
 
-    	@Bean
-    	public GloboDnsNetworkDao globodnsNetworkDao() {
-    		return mock(GloboDnsNetworkDao.class);
-    	}
-    	@Bean
-    	public GloboDnsVirtualMachineDao dnsAPIVirtualMachineDao() {
-    		return mock(GloboDnsVirtualMachineDao.class);
-    	}
     	@Bean
     	public HostDao hostDao() {
     		return mock(HostDao.class);
