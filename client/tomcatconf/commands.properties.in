@@ -711,21 +711,21 @@ importLdapUsers=3
 #### juniper-contrail commands
 createServiceInstance=1
 
-### Network API commands
-addNetworkApiVlan=15
-addNetworkViaNetworkApiCmd=15
-addNetworkAPIEnvironment=1
-addNetworkApiHost=1
-listNetworkApiEnvironments=15
-removeNetworkAPIEnvironment=1
-listAllEnvironmentsFromNetworkApi=1
-addNetworkApiVipToAccountCmd=15
-listNetworkApiVips=15
-listNetworkApiReals=15
-associateNetworkApiRealToVip=15
-disassociateNetworkApiRealFromVip=15
+### GloboNetwork commands
+addGloboNetworkVlan=15
+addNetworkViaGloboNetworkCmd=15
+addGloboNetworkEnvironment=1
+addGloboNetworkHost=1
+listGloboNetworkEnvironments=15
+removeGloboNetworkEnvironment=1
+listAllEnvironmentsFromGloboNetwork=1
+addGloboNetworkVipToAccountCmd=15
+listGloboNetworkVips=15
+listGloboNetworkReals=15
+associateGloboNetworkRealToVip=15
+disassociateGloboNetworkRealFromVip=15
 generateUrlForEditingVip=15
-removeNetworkApiVip=15
+removeGloboNetworkVip=15
 
 ### GloboDNS commands
 addGloboDnsHost=1

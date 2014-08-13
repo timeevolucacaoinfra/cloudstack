@@ -7,23 +7,26 @@ case "$1" in
     ;;
   run-simulator)
     rm -f *.log
-    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -pl :cloud-client-ui jetty:run -Dsimulator
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Dsimulator -pl :cloud-client-ui jetty:run
     ;;
   compile)
-    mvn -P developer,systemvm clean install -DskipTests
+    mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
     ;;
   compile-quick)
-    mvn -P developer,systemvm -pl :cloud-server,:cloud-api,:cloud-plugin-network-networkapi,:cloud-plugin-network-globodns,:cloud-client-ui clean install -DskipTests
-    ;;
-  compile-simulator)
-    mvn -Pdeveloper -Dsimulator clean package
+    mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-client-ui install -DskipTests
     ;;
   deploydb)
-    mvn -P developer -pl developer,tools/devcloud -Ddeploydb
+    mvn -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
+    ;;
+  deploydb-simulator)
+    mvn -Pdeveloper -pl developer -Ddeploydb
     mvn -Pdeveloper -pl developer -Ddeploydb-simulator
     ;;
   populatedb)
-    python tools/marvin/marvin/deployDataCenter.py -i tools/marvin/marvin/cloudstack-local.cfg
+    python tools/marvin/marvin/deployDataCenter.py -i setup/dev/local-globo-xen.cfg
+    ;;
+  populatedb-simulator)
+    python tools/marvin/marvin/deployDataCenter.py -i setup/dev/local-globo-sim.cfg
     ;;
   db-migrate)
     [[ -z $WORKON_HOME ]] && WORKON_HOME=$HOME/.virtualenvs
@@ -56,8 +59,22 @@ case "$1" in
     fi
     ;;
   lazy)
-    echo "In construction, bye!!!"
-    exit 1
+    # compile
+    # if $?
+    [[ $2 == 'compile' ]] && mvn -Pdeveloper -Dsimulator clean package -DskipTests
+    # DB requisites
+    mvn -P developer -pl developer,tools/devcloud -Ddeploydb
+    mvn -Pdeveloper -pl developer -Ddeploydb-simulator
+    [[ -z $WORKON_HOME ]] && WORKON_HOME=$HOME/.virtualenvs
+    source $WORKON_HOME/cloudstack/bin/activate
+    (cd setup/dbmigrate && db-migrate --env=localhost)
+    # run simulator in background
+    rm -f *.log
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -pl :cloud-client-ui jetty:run -Dsimulator
+    # populate
+    # workon cloudstack
+    # python tools/marvin/marvin/deployDataCenter.py -i test/integration/globo/cfg/advanced-globo.cfg
+    # restart
     ;;
   *)
     echo "Usage: $0 [action]
@@ -70,11 +87,12 @@ RUN
 COMPILE
     compile           Compile cloudstack
     compile-quick     Compile only globo elements
-    compile-simulator Compile cloudstack w/ hypervisor simulator
 
 DB
     deploydb          Create Required SQL Schema
+    deploydb-simulator Create Required SQL Schema to use with simulator
     populatedb        Create a basic infrastructure on cloudstack
+    populatedb-simulator  Create a basic infrastructure on cloudstack
     db-migrate        SQL migrations
 
     tag               Create a git TAG

@@ -1,0 +1,46 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+RENAME TABLE `cloud`.`networkapi_environment_ref` TO `cloud`.`globonetwork_environment_ref`,
+             `cloud`.`networkapi_network_ref` TO `cloud`.`globonetwork_network_ref`,
+             `cloud`.`networkapi_vip_acc_ref` TO `cloud`.`globonetwork_vip_acc_ref`;
+ALTER IGNORE TABLE `cloud`.`globonetwork_environment_ref` CHANGE `napi_environment_id` `globonetwork_environment_id` bigint(20) unsigned;
+ALTER IGNORE TABLE `cloud`.`globonetwork_network_ref` CHANGE `napi_vlan_id` `globonetwork_vlan_id` bigint(20) unsigned;
+ALTER IGNORE TABLE `cloud`.`globonetwork_network_ref` CHANGE `napi_environment_id` `globonetwork_environment_id` bigint(20) unsigned;
+ALTER IGNORE TABLE `cloud`.`globonetwork_vip_acc_ref` CHANGE `napi_vip_id` `globonetwork_vip_id` bigint(20) unsigned;
+
+UPDATE IGNORE `cloud`.`host` SET `name` = 'GloboNetwork', `resource` = 'com.globo.globonetwork.cloudstack.resource.GloboNetworkResource', `guid` = (SELECT CONCAT ('globonetwork-', data_center_id)) WHERE `resource` = 'com.globo.networkapi.resource.NetworkAPIResource';
+
+UPDATE IGNORE `cloud`.`ntwk_offering_service_map` SET `provider` = 'GloboNetwork' WHERE `provider` = 'NetworkAPI';
+UPDATE IGNORE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.guid WHERE host_details.host_id = host.id AND host.name = 'GloboNetwork' AND host_details.name = 'guid';
+UPDATE IGNORE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.name WHERE host_details.host_id = host.id AND host.name = 'GloboNetwork' AND host_details.name = 'name';
+UPDATE IGNORE `cloud`.`physical_network_service_providers` SET `provider_name` = 'GloboNetwork' WHERE `provider_name` = 'NetworkAPI';
+UPDATE IGNORE `cloud`.`ntwk_service_map` SET `provider` = 'GloboNetwork' WHERE `provider` = 'NetworkAPI';
+
+UPDATE IGNORE `cloud`.`networks` SET `guru_name` = 'GloboNetworkGuru' WHERE `guru_name` = 'NetworkAPIGuru';
+UPDATE IGNORE `cloud`.`nics` SET `reserver_name` = 'GloboNetworkGuru' WHERE `reserver_name` = 'NetworkAPIGuru';
+
+UPDATE `cloud`.`configuration` SET `name` = replace(`name`,'networkapi.','globonetwork.');
+"""
+
+SQL_DOWN = u"""
+RENAME TABLE `cloud`.`globonetwork_environment_ref` TO `cloud`.`networkapi_environment_ref`,
+             `cloud`.`globonetwork_network_ref` TO `cloud`.`networkapi_network_ref`,
+             `cloud`.`globonetwork_vip_acc_ref` TO `cloud`.`networkapi_vip_acc_ref`;
+ALTER IGNORE TABLE `cloud`.`networkapi_environment_ref` CHANGE `globonetwork_environment_id` `napi_environment_id` bigint(20) unsigned;
+ALTER IGNORE TABLE `cloud`.`networkapi_network_ref` CHANGE `globonetwork_vlan_id` `napi_vlan_id` bigint(20) unsigned;
+ALTER IGNORE TABLE `cloud`.`networkapi_network_ref` CHANGE `globonetwork_environment_id` `napi_environment_id` bigint(20) unsigned;
+ALTER IGNORE TABLE `cloud`.`networkapi_vip_acc_ref` CHANGE `globonetwork_vip_id` `napi_vip_id` bigint(20) unsigned;
+
+UPDATE IGNORE `cloud`.`host` SET `name` = 'NetworkAPI', `resource` = 'com.globo.networkapi.resource.NetworkAPIResource', `guid` = (SELECT CONCAT ('networkapi-', data_center_id)) WHERE `resource` = 'com.globo.globonetwork.cloudstack.resource.GloboNetworkResource';
+
+UPDATE IGNORE `cloud`.`ntwk_offering_service_map` SET `provider` = 'NetworkAPI' WHERE `provider` = 'GloboNetwork';
+UPDATE IGNORE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.guid WHERE host_details.host_id = host.id AND host.name = 'NetworkAPI' AND host_details.name = 'guid';
+UPDATE IGNORE `cloud`.`host_details`, `cloud`.`host` SET `value` = host.name WHERE host_details.host_id = host.id AND host.name = 'NetworkAPI' AND host_details.name = 'name';
+UPDATE IGNORE `cloud`.`physical_network_service_providers` SET `provider_name` = 'NetworkAPI' WHERE `provider_name` = 'GloboNetwork';
+UPDATE IGNORE `cloud`.`ntwk_service_map` SET `provider` = 'NetworkAPI' WHERE `provider` = 'GloboNetwork';
+
+UPDATE IGNORE `cloud`.`networks` SET `guru_name` = 'NetworkAPIGuru' WHERE `guru_name` = 'GloboNetworkGuru';
+UPDATE IGNORE `cloud`.`nics` SET `reserver_name` = 'NetworkAPIGuru' WHERE `reserver_name` = 'GloboNetworkGuru';
+
+UPDATE `cloud`.`configuration` SET `name` = replace(`name`,'globonetwork.','networkapi.');
+"""

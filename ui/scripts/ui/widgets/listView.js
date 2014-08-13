@@ -808,7 +808,7 @@
 
         // Actions column
         var actionsArray = actions ? $.map(actions, function(v, k) {
-            if (k == 'add' || k == 'rootAdminAddGuestNetwork' || k === 'addNetworkAPINetwork') {
+            if (k == 'add' || k == 'rootAdminAddGuestNetwork' || k === 'addGloboNetworkNetwork') {
                 v.isAdd = true;
             }
 

@@ -16,6 +16,6 @@
 // under the License.
 (function($, cloudStack) {
   cloudStack.plugins = [
-    'napiVipPlugin'
+    'globoNetworkVipPlugin'
   ];
 }(jQuery, cloudStack));

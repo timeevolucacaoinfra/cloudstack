@@ -44,7 +44,7 @@
     </bean>
     <!--
     //// Removing this so that networks created ////
-    ////  with Network API are not duplicated   ////
+    ////  with GloboNetwork are not duplicated   ////
     <bean id="DirectNetworkGuru" class="com.cloud.network.guru.DirectNetworkGuru">
         <property name="name" value="DirectNetworkGuru" />
     </bean>
