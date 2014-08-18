@@ -18187,7 +18187,6 @@
         });
     }
 
->>>>>>> github/4.3.0-globonetwork
     function addBigSwitchVnsDevice(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
         var array1 = [];
         array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
