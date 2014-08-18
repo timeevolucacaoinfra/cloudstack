@@ -542,6 +542,7 @@ public class ApiConstants {
     public static final String PASSIVE = "passive";
     public static final String VERSION = "version";
     public static final String START = "start";
+    public static final String VIP_ID = "vipid";
 
     public enum HostDetails {
         all, capacity, events, stats, min;

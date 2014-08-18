@@ -663,10 +663,12 @@
                             }
                         },
 
-                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                        // rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                            // isHeader: true
+                        // })
+                        addGloboNetworkNetwork: $.extend({}, addGloboNetworkNetworkDialog.def, {
                             isHeader: true
-                        })
-
+                        }),
                     },
                     id: 'networks',
                     fields: {

@@ -651,15 +651,15 @@
                             poll: pollAsyncJobResult
                         }
                     },
-                    restore: {
-                        label: 'label.action.restore.instance',
-                        compactLabel: 'label.restore',
+                    recover: {
+                        label: 'label.recover.vm',
+                        compactLabel: 'label.recover.vm',
                         messages: {
                             confirm: function(args) {
-                                return 'message.action.restore.instance';
+                                return 'message.recover.vm';
                             },
                             notification: function(args) {
-                                return 'label.action.restore.instance';
+                                return 'label.recover.vm';
                             }
                         },
                         action: function(args) {
@@ -685,15 +685,14 @@
                             }
                         }
                     },
-                    reset: {
-                        label: 'Reset VM',
-                        textLabel: 'Reset VM',
+                    reinstall: {
+                        label: 'label.reinstall.vm',
                         messages: {
                             confirm: function(args) {
-                                return 'Do you want to restore the VM ?';
+                                return 'message.reinstall.vm';
                             },
                             notification: function(args) {
-                                return 'Reset VM';
+                                return 'label.reinstall.vm';
                             },
                             complete: function(args) {
                             	if (args.password != null && args.password.length > 0)
@@ -2187,7 +2186,7 @@
 
         if (jsonObj.state == 'Destroyed') {
             if (isAdmin() || isDomainAdmin()) {
-                allowedActions.push("restore");
+                allowedActions.push("recover");
             }
             if (isAdmin() || isDomainAdmin())
                 allowedActions.push("expunge");
@@ -2197,7 +2196,7 @@
             if (jsonObj.hypervisor != 'KVM' || g_kvmsnapshotenabled == true)
                 allowedActions.push("snapshot");
             allowedActions.push("destroy");            
-            allowedActions.push("reset");
+            allowedActions.push("reinstall");
              
             //when userVm is running, scaleUp is not supported for KVM
             if (jsonObj.hypervisor != 'KVM') {
@@ -2223,7 +2222,7 @@
             allowedActions.push("edit");
             allowedActions.push("start");
             allowedActions.push("destroy");
-            allowedActions.push("reset");
+            allowedActions.push("reinstall");
             if (jsonObj.hypervisor != 'KVM' || g_kvmsnapshotenabled == true)
                 allowedActions.push("snapshot");
             allowedActions.push("scaleUp");  //when vm is stopped, scaleUp is supported for all hypervisors 

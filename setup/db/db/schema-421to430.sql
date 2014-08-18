@@ -1107,3 +1107,45 @@ UPDATE `cloud`.`disk_offering_details` set `display_detail`=1 where id> 0;
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name) VALUES (168, UUID(), 6, 'Windows Server 2012 R2 (64-bit)');
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name, guest_os_id) VALUES  ("XenServer", 'Windows Server 2012 R2 (64-bit)', 168);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name, guest_os_id) VALUES  ("VmWare", 'Windows Server 2012 R2 (64-bit)', 168);
+
+
+-- globonetwork_environment_ref
+CREATE TABLE `cloud`.`globonetwork_environment_ref` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `globonetwork_environment_id` bigint(20) unsigned DEFAULT NULL,
+  `physical_network_id` bigint(20) unsigned NOT NULL COMMENT 'physical network id',
+  `name` varchar(255) NOT NULL COMMENT 'name',
+  PRIMARY KEY (`id`),
+  KEY `fk_napi_network_ref__physical_network_id` (`physical_network_id`),
+  KEY `fk_napi_network_ref__napi_environment_id` (`globonetwork_environment_id`),
+  CONSTRAINT `fk_napi_environment_ref__physical_network_id` FOREIGN KEY (`physical_network_id`) REFERENCES `physical_network` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
+-- globonetwork_network_ref
+CREATE TABLE `cloud`.`globonetwork_network_ref` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `globonetwork_vlan_id` bigint(20) unsigned DEFAULT NULL,
+  `network_id` bigint(20) unsigned NOT NULL COMMENT 'network id',
+  `globonetwork_environment_id` bigint(20) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_napi_network_ref__network_id` (`network_id`),
+  KEY `fk_napi_network_ref__napi_vlan_id` (`globonetwork_vlan_id`),
+  KEY `napi_environment_index` (`globonetwork_environment_id`),
+  CONSTRAINT `fk_napi_network_ref__network_id` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- globonetwork_vip_acc_ref
+CREATE TABLE `cloud`.`globonetwork_vip_acc_ref` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `globonetwork_vip_id` bigint(20) unsigned DEFAULT NULL,
+  `account_id` bigint(20) unsigned NOT NULL,
+  `network_id` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `networkapi_vip_acc_ref_ix1` (`globonetwork_vip_id`),
+  KEY `networkapi_vip_acc_ref_fk2` (`account_id`),
+  KEY `networkapi_vip_acc_ref_fk3` (`network_id`),
+  CONSTRAINT `networkapi_vip_acc_ref_fk2` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `networkapi_vip_acc_ref_fk3` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

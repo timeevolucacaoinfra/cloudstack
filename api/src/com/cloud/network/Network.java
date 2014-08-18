@@ -132,6 +132,7 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         public static final Provider CiscoVnmc = new Provider("CiscoVnmc", true);
         public static final Provider Ovs = new Provider("Ovs", false);
         public static final Provider GloboDns = new Provider("GloboDns", true);
+        public static final Provider GloboNetwork = new Provider("GloboNetwork", true);
 
         private final String name;
         private final boolean isExternal;
