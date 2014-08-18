@@ -1,7 +1,9 @@
 # Apache CloudStack - 4.3.0-globo-stable
 
 This is a version of ACS with changes made by Globo.com. This version have two
-additionals plugins, GloboDNS and GloboNetwork, and many fixes made by ACS community (fixes made by Globo are always shared with the community)
+additionals plugins, GloboDNS and GloboNetwork, and many fixes made by ACS community (fixes made by Globo are always shared with the community).
+
+To know what we changed, go to: https://github.com/globocom/cloudstack/compare/apache:4.3.0...4.3.0-globo-stable
 
 To build this version, follow the instructions at: https://cwiki.apache.org/confluence/display/CLOUDSTACK/How+to+build+CloudStack
 
