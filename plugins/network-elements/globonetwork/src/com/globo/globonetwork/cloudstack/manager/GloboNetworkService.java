@@ -235,4 +235,16 @@ public interface GloboNetworkService {
 	 * @return
 	 */
 	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
+	
+	/**
+	 * Domain suffix for all networks.
+	 * @return
+	 */
+	public String getDomainSuffix();
+	
+	/**
+	 * If custom network domain is supported
+	 * @return
+	 */
+	public boolean isSupportedCustomNetworkDomain();
 }

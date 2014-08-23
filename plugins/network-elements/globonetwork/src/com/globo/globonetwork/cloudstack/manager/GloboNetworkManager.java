@@ -36,6 +36,12 @@ import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.log4j.Logger;
+import org.springframework.context.expression.MapAccessor;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.common.TemplateParserContext;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
 import com.cloud.agent.AgentManager;
@@ -119,6 +125,7 @@ import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkCapabilitiesCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
@@ -173,7 +180,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	private static final ConfigKey<Long> GloboNetworkModelVmElasticLoadBalancerVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.elastic.load.balancer", "88", "GloboNetwork model id to be used for Elastic Load Balancer VMs", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkModelVmInternalLoadBalancerVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.internal.load.balancer", "89", "GloboNetwork model id to be used for Internal Load Balancer VMs", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkModelVmUserBareMetal = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.user.bare.metal", "90", "GloboNetwork model id to be used for User Bare Metal", true, ConfigKey.Scope.Global);
-	private static final ConfigKey<String> GloboNetworkDomainSuffix = new ConfigKey<String>("Network", String.class, "globonetwork.domain.suffix", "", "Domain suffix for all networks created with GloboNetwork", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<String> GloboNetworkDomainPattern = new ConfigKey<String>("Network", String.class, "globonetwork.domain.pattern", "", "Domain pattern to ensure in all networks created with GloboNetwork", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkDomainSuffix = new ConfigKey<String>("Network", String.class, "globonetwork.domain.suffix", "", "Domain suffix to ensure in all networks created with GloboNetwork (empty you are free to create in any domain)", true, ConfigKey.Scope.Global);
 
 	// DAOs
 	@Inject
@@ -277,6 +285,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			physicalNetworkId = napiEnvironmentVO.getPhysicalNetworkId();
 		} else {
 			throw new InvalidParameterValueException("GloboNetwork enviromentId was not found");
+		}
+		
+		// to avoid create a new vlan in GloboNetworkAPI, check first if networkDomain is valid
+		if (isSupportedCustomNetworkDomain()) {
+            String domainSuffix = GloboNetworkDomainSuffix.value();
+            if (StringUtils.isNotBlank(domainSuffix) && !networkDomain.endsWith(domainSuffix)) {
+                throw new InvalidParameterValueException("Network domain need ends with " + domainSuffix);
+            }
 		}
 		
 		Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId);
@@ -444,11 +460,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
 		cmd.setVlanId(vlanId);
 
-		final GloboNetworkVlanResponse response = (GloboNetworkVlanResponse) callCommand(cmd, zoneId);
+		final GloboNetworkVlanResponse vlanResponse = (GloboNetworkVlanResponse) callCommand(cmd, zoneId);
 
-		long networkAddresLong = response.getNetworkAddress().toLong();
+		long networkAddresLong = vlanResponse.getNetworkAddress().toLong();
 		String networkAddress = NetUtils.long2Ip(networkAddresLong);
-		final String netmask = response.getMask().ip4();
+		final String netmask = vlanResponse.getMask().ip4();
 		final String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, netmask);
 
 		String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
@@ -457,15 +473,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				+ NUMBER_OF_RESERVED_IPS_FROM_START);
 		final String endIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[1])
 				- NUMBER_OF_RESERVED_IPS_BEFORE_END);
-		final Long vlanNum = response.getVlanNum();
+		final Long vlanNum = vlanResponse.getVlanNum();
 		// NO IPv6 support yet
 		final String startIPv6 = null;
 		final String endIPv6 = null;
 		final String ip6Gateway = null;
 		final String ip6Cidr = null;
 
-		s_logger.info("Creating network with name " + response.getVlanName()
-				+ " (" + response.getVlanId() + "), network " + networkAddress
+		s_logger.info("Creating network with name " + vlanResponse.getVlanName()
+				+ " (" + vlanResponse.getVlanId() + "), network " + networkAddress
 				+ " gateway " + gateway + " startIp " + startIP + " endIp "
 				+ endIP + " cidr " + cidr);
 		/////// End of GloboNetwork specific code ///////
@@ -486,22 +502,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				}
 				
 				String newNetworkDomain = networkDomain;
-				if (!StringUtils.isNotBlank(newNetworkDomain)) {
-					/* Create new domain in DNS */
-					String domainSuffix = GloboNetworkDomainSuffix.value();
-					// domainName is of form 'zoneName-vlanNum.domainSuffix'
-					if (domainSuffix == null) {
-						domainSuffix = "";
-					} else if (!domainSuffix.startsWith(".")) {
-						domainSuffix = "." + domainSuffix;
-					}
-			    	newNetworkDomain = (zone.getName() + "-" + String.valueOf(response.getVlanNum()) + domainSuffix).toLowerCase();
+				if (!isSupportedCustomNetworkDomain()) {
+				    // overwrite networkDomain
+				    newNetworkDomain = generateNetworkDomain(zone, vlanResponse);
 				}
-
+				
 				Network network = _networkMgr.createGuestNetwork(
-						networkOfferingId.longValue(), response.getVlanName(),
-						response.getVlanDescription(), gateway, cidr,
-						String.valueOf(response.getVlanNum()), newNetworkDomain, owner,
+						networkOfferingId.longValue(), vlanResponse.getVlanName(),
+						vlanResponse.getVlanDescription(), gateway, cidr,
+						String.valueOf(vlanResponse.getVlanNum()), newNetworkDomain, owner,
 						sharedDomainId, pNtwk, zone.getId(), aclType, newSubdomainAccess, 
 						null, // vpcId,
 						ip6Gateway,
@@ -527,7 +536,34 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		});
 		return network;
 	}
+	
+	protected String generateNetworkDomain(DataCenter zone, GloboNetworkVlanResponse vlan) {
+        Map<String, Object> context = new HashMap<String, Object>();
+        context.put("zone", zone);
+        context.put("vlan", vlan);
+        
+        String newNetworkDomain = formatter(GloboNetworkDomainPattern.value(), context);
+        newNetworkDomain += GloboNetworkDomainSuffix.value();
+        return newNetworkDomain;
+	}
 
+	/**
+	 * Replace variables in a string template: #{obj.property}.
+	 * @see http://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html
+	 * @param template
+	 * @param context
+	 * @return
+	 */
+	protected String formatter(String template, Map<String, Object> context) {
+        StandardEvaluationContext evalContext = new StandardEvaluationContext(context);
+        evalContext.addPropertyAccessor(new MapAccessor());
+
+        ExpressionParser parser = new SpelExpressionParser();
+        Expression exp = parser.parseExpression(template, new TemplateParserContext());
+        String formatted = exp.getValue(evalContext, String.class);
+        return formatted;
+	}
+	
 	protected GloboNetworkVlanResponse createNewVlan(Long zoneId, String name,
 			String description, Long globoNetworkEnvironmentId) {
 
@@ -800,6 +836,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		cmdList.add(GenerateUrlForEditingVipCmd.class);
 		cmdList.add(RemoveGloboNetworkVipCmd.class);
 		cmdList.add(ListGloboNetworkRealsCmd.class);
+		cmdList.add(ListGloboNetworkCapabilitiesCmd.class);
 		return cmdList;
 	}
 	
@@ -1384,6 +1421,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkModelVmElasticLoadBalancerVm,
 				GloboNetworkModelVmInternalLoadBalancerVm,
 				GloboNetworkModelVmUserBareMetal,
-				GloboNetworkDomainSuffix};
+				GloboNetworkDomainSuffix,
+				GloboNetworkDomainPattern};
 	}
+
+    @Override
+    public String getDomainSuffix() {
+        return GloboNetworkDomainSuffix.value();
+    }
+
+    @Override
+    public boolean isSupportedCustomNetworkDomain() {
+        return !StringUtils.isNotBlank(GloboNetworkDomainPattern.value());
+    }
 }

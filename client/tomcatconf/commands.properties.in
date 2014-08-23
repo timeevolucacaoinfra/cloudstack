@@ -729,3 +729,4 @@ associateGloboNetworkRealToVip=15
 disassociateGloboNetworkRealFromVip=15
 generateUrlForEditingVip=15
 removeGloboNetworkVip=15
+listGloboNetworkCapabilities=15
