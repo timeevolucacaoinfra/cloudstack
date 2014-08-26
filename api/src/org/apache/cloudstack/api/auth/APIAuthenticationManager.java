@@ -14,27 +14,11 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package com.cloud.serializer;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+package org.apache.cloudstack.api.auth;
 
-import org.apache.cloudstack.acl.RoleType;
+import com.cloud.utils.component.PluggableService;
 
-@Retention(RetentionPolicy.RUNTIME)
-public @interface Param {
-    String name() default "";
-
-    String propName() default "";
-
-    String description() default "";
-
-    // 2 parameters below are used by cloudstack api
-    Class<?> responseObject() default Object.class;
-
-    boolean includeInApiDoc() default true;
-
-    String since() default "";
-
-    RoleType[] authorized() default {};
+public interface APIAuthenticationManager extends PluggableService {
+    public APIAuthenticator getAPIAuthenticator(String name);
 }

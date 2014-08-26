@@ -48,6 +48,7 @@ public class ApiConstants {
     public static final String CLUSTER_ID = "clusterid";
     public static final String CLUSTER_NAME = "clustername";
     public static final String CLUSTER_TYPE = "clustertype";
+    public static final String COMMAND = "command";
     public static final String COMPONENT = "component";
     public static final String CPU_NUMBER = "cpunumber";
     public static final String CPU_SPEED = "cpuspeed";
@@ -77,6 +78,7 @@ public class ApiConstants {
     public static final String IP6_DNS2 = "ip6dns2";
     public static final String DOMAIN = "domain";
     public static final String DOMAIN_ID = "domainid";
+    public static final String DOMAIN__ID = "domainId";
     public static final String DURATION = "duration";
     public static final String EMAIL = "email";
     public static final String END_DATE = "enddate";
@@ -193,6 +195,7 @@ public class ApiConstants {
     public static final String RESOURCE_TYPE = "resourcetype";
     public static final String RESPONSE = "response";
     public static final String REVERTABLE = "revertable";
+    public static final String REGISTERED = "registered";
     public static final String QUERY_FILTER = "queryfilter";
     public static final String SCHEDULE = "schedule";
     public static final String SCOPE = "scope";
@@ -207,6 +210,7 @@ public class ApiConstants {
     public static final String SENT = "sent";
     public static final String SENT_BYTES = "sentbytes";
     public static final String SERVICE_OFFERING_ID = "serviceofferingid";
+    public static final String SESSIONKEY = "sessionkey";
     public static final String SHOW_CAPACITIES = "showcapacities";
     public static final String SHOW_REMOVED = "showremoved";
     public static final String SIZE = "size";
@@ -275,6 +279,7 @@ public class ApiConstants {
     public static final String NETWORKRATE = "networkrate";
     public static final String HOST_TAGS = "hosttags";
     public static final String SSH_KEYPAIR = "keypair";
+    public static final String HTTPMETHOD = "httpmethod";
     public static final String HOST_CPU_CAPACITY = "hostcpucapacity";
     public static final String HOST_CPU_NUM = "hostcpunum";
     public static final String HOST_MEM_CAPACITY = "hostmemcapacity";

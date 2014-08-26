@@ -101,10 +101,16 @@
                     var clickAction = function() {
                         $('#user-options a').eq(0).trigger('click');
                     };
+
+                    if ($('.notification-box:visible').size()) {
+                        $('.notification-box, div.overlay:first').remove();
+                    }
+
                     cloudStack.dialog.notice({
                         message: _l('label.session.expired'),
                         clickAction: clickAction
-                    });
+                    }).closest('.ui-dialog').overlay();
+
                     return false;
                 }
             }
@@ -123,17 +129,25 @@
            i.e. calling listCapabilities API with g_sessionKey from $.cookie('sessionKey') will succeed,
            then userValid will be set to true, then an user object (instead of "false") will be returned, then login screen will be bypassed.
            */
+                    var unBoxCookieValue = function (cookieName) {
+                        var cookieValue = $.cookie(cookieName);
+                        if (cookieValue && cookieValue.length > 2 && cookieValue[0] === '"' && cookieValue[cookieValue.length-1] === '"') {
+                            cookieValue = cookieValue.slice(1, cookieValue.length-1);
+                            $.cookie(cookieName, cookieValue, { expires: 1 });
+                        }
+                        return cookieValue;
+                    };
                     g_mySession = $.cookie('JSESSIONID');
-                    g_sessionKey = $.cookie('sessionKey');
-                    g_role = $.cookie('role');
-                    g_username = $.cookie('username');
-                    g_userid = $.cookie('userid');
-                    g_account = $.cookie('account');
-                    g_domainid = $.cookie('domainid');
-                    g_userfullname = $.cookie('userfullname');
-                    g_timezone = $.cookie('timezone');
+                    g_sessionKey = unBoxCookieValue('sessionKey');
+                    g_role = unBoxCookieValue('role');
+                    g_userid = unBoxCookieValue('userid');
+                    g_domainid = unBoxCookieValue('domainid');
+                    g_account = unBoxCookieValue('account');
+                    g_username = unBoxCookieValue('username');
+                    g_userfullname = unBoxCookieValue('userfullname');
+                    g_timezone = unBoxCookieValue('timezone');
                     if ($.cookie('timezoneoffset') != null)
-                        g_timezoneoffset = isNaN($.cookie('timezoneoffset')) ? null : parseFloat($.cookie('timezoneoffset'));
+                        g_timezoneoffset = isNaN(unBoxCookieValue('timezoneoffset')) ? null : parseFloat(unBoxCookieValue('timezoneoffset'));
                     else
                         g_timezoneoffset = null;
                 } else { //single-sign-on	(bypass login screen)
@@ -474,8 +488,6 @@
             loginArgs.hideLoginScreen = true;
         }
 
-        cloudStack.uiCustom.login(loginArgs);
-
         // Localization
         if (!$.isFunction(cloudStack.localizationFn)) { // i.e., localize is overridden by a plugin/module
             cloudStack.localizationFn = function(str) {
@@ -483,6 +495,8 @@
             };
         }
 
-        document.title = _l('label.app.name');
+        cloudStack.uiCustom.login(loginArgs);
+
+        document.title = _l('label.app.name');            
     });
 })(cloudStack, jQuery);
