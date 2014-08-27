@@ -77,10 +77,25 @@ if ($.urlParam("direct") !== "true") {
                 return true;
             }
         });
-	} else if ($.urlParam("oauth")) {
-		window.location.href = clientApiUrl + "?command=oAuth2Login&redirect_uri=" + escape(window.location);
+	} else {
+		console.log('passei');
+		$.ajax({
+			url: clientApiUrl + "?command=oauthRedirect&response=json&redirect_uri=" + escape(window.location.href),
+			dataType: "json",
+			async: false,
+			success: function(json) {
+				console.log('passei2222');
+				console.log(json);
+				if (json.oauth2urlresponse.redirectUri) {
+					window.location.href = json.oauth2urlresponse.redirectUri;
+				}
+			},
+	        error: function(json) {
+	        	console.log('parei aqui');
+	        	console.log(json);
+	        },
+		});
 	}
-	
 }
 
 $(document).ready(function() {
