@@ -214,10 +214,13 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
 
     protected OAuthProviderType getProviderType() {
         try {
-            return OAuthProviderType.valueOf(AuthorizationProvider.value());
+            if (StringUtils.isNotBlank(AuthorizationProvider.value())) {
+                return OAuthProviderType.valueOf(AuthorizationProvider.value());
+            }
         } catch (IllegalArgumentException e) {
-            return null;
+            s_logger.warn("Unknown authorization provider: " + AuthorizationProvider.value());
         }
+        return null;
     }
     
     protected String getAuthorizationLocation() {
