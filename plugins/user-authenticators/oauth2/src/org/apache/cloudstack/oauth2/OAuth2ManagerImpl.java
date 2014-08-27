@@ -152,7 +152,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         }
     }
     
-    protected String changeCodeToAccessToken(String code) {
+    protected String changeCodeToAccessToken(String code, String redirectUri) {
         try {
             TokenRequestBuilder builder;
             if (getProviderType() != null) {
@@ -165,6 +165,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                     .setClientSecret(getClientSecret())
                     .setGrantType(GrantType.AUTHORIZATION_CODE)
                     .setCode(code)
+                    .setRedirectURI(redirectUri)
                     .setScope(getAccessScopeWithProvider())
                     .buildQueryMessage();
             OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
@@ -216,9 +217,9 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         return domain;
     }
     
-    public UserAccount authenticate(String code) {
+    public UserAccount authenticate(String code, String redirectUri) {
 
-        String accessToken = changeCodeToAccessToken(code);
+        String accessToken = changeCodeToAccessToken(code, redirectUri);
         String username = requestUsernameFromUserInfoProviderAPI(accessToken);
         if (username == null) {
             return null;

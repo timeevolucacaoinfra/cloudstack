@@ -62,9 +62,10 @@ public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {
     @Override
     public String authenticate(final String command, final Map<String, Object[]> params, final HttpSession session, final String remoteAddress, final String responseType, final StringBuilder auditTrailSb, final HttpServletResponse resp) throws ServerApiException {
         // FIXME Put string constants in ApiConstants
-        if (params.containsKey("code")) {
+        if (params.containsKey("code") && params.containsKey("redirect_uri")) {
             String code = String.valueOf(params.get("code")[0]);
-            UserAccount userAcc = _oauth2Manager.authenticate(code);
+            String redirectUri = String.valueOf(params.get("redirect_uri")[0]);
+            UserAccount userAcc = _oauth2Manager.authenticate(code, redirectUri);
             if (userAcc != null) {
                 try {
                     if (_apiServer.verifyUser(userAcc.getId())) {

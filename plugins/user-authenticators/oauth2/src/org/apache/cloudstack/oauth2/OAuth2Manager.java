@@ -6,8 +6,8 @@ import com.cloud.user.UserAccount;
 
 public interface OAuth2Manager extends PluggableAPIAuthenticator {
     
-    public String generateAuthenticationUrl(String returnUrl);
+    public String generateAuthenticationUrl(String redirectUri);
     
-    public UserAccount authenticate(String code);
+    public UserAccount authenticate(String code, String redirectUri);
 
 }
