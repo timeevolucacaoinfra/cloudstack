@@ -8,6 +8,6 @@ public interface OAuth2Manager extends PluggableAPIAuthenticator {
     
     public String generateAuthenticationUrl(String returnUrl);
     
-    public UserAccount authenticate(String code, String domainPath);
+    public UserAccount authenticate(String code);
 
 }

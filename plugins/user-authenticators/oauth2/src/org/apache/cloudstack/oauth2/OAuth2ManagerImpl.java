@@ -120,10 +120,19 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             "Attribute to be used for user authentication if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
     
     protected String getUserAttribute() { return UserAttribute.value(); }
+
+    /* OAuth2 Domain */
+    private static final ConfigKey<String> UserDomain = new ConfigKey<String>("Authentication", String.class, "oauth2.user.domain", "/",
+            "Domain name of OAuth2 Users", true, ConfigKey.Scope.Global);
     
+    protected String getUserDomain() { return UserDomain.value(); }
+
     
     /* Implementation */
     public String generateAuthenticationUrl(String returnUrl) {
+        if (!isProviderEnabled()) {
+            return null;
+        }
         try {
             AuthenticationRequestBuilder builder;
             if (getProviderType() != null) {
@@ -143,12 +152,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         }
     }
     
-    public UserAccount authenticate(String code, String domainPath) {
-        Domain domain = _domainMgr.findDomainByPath(domainPath);
-        if (domain == null) {
-            throw new IllegalArgumentException("Invalid domain: " + domainPath);
-        }
-
+    protected String changeCodeToAccessToken(String code) {
         try {
             TokenRequestBuilder builder;
             if (getProviderType() != null) {
@@ -171,10 +175,20 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                 tokenResponse = oAuthClient.accessToken(request);
             }
             String accessToken = tokenResponse.getAccessToken();
-            // FIXME Persist
-            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURLWithProvider())
+            return accessToken;
+        } catch (OAuthSystemException e) {
+            throw new CloudRuntimeException(e.getLocalizedMessage(), e);
+        } catch (OAuthProblemException e) {
+            throw new CloudRuntimeException(e.getLocalizedMessage(), e);
+        }
+    }
+    
+    protected String requestUsernameFromUserInfoProviderAPI(String accessToken) {
+        try {
+            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURL())
             .setAccessToken(accessToken).buildQueryMessage();
     
+            OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
             OAuthResourceResponse resourceResponse = oAuthClient.resource(bearerClientRequest, OAuth.HttpMethod.GET, OAuthResourceResponse.class);
             if (resourceResponse.getResponseCode() != 200 || "application/json".equalsIgnoreCase(resourceResponse.getContentType())) {
                 throw new CloudRuntimeException("Error getting user info in " + getUserInfoURLWithProvider() +
@@ -183,25 +197,39 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             }
             Map<String, Object> json = JSONUtils.parseJSON(resourceResponse.getBody());
             String username = (String) json.get(getUserAttributeWithProvider());
-            if (username == null) {
-                // FIXME
-                throw new IllegalArgumentException("Invalid username");
+            if (StringUtils.isNotBlank(username)) {
+                if (username.contains("@")) {
+                    // remove content after @
+                    username = username.substring(0, username.indexOf('@'));
+                }
             }
-            if (username.contains("@")) {
-                // remove content after @
-                username = username.substring(0, username.indexOf('@'));
-            }
-            
-            UserAccount userAcc = _userAccDao.getUserAccount(username, domain.getId());
-            if (userAcc == null) {
-                throw new IllegalArgumentException("User not found");
-            }
-            return userAcc;
+            return username;
         } catch (OAuthSystemException e) {
             throw new CloudRuntimeException(e.getLocalizedMessage(), e);
         } catch (OAuthProblemException e) {
             throw new CloudRuntimeException(e.getLocalizedMessage(), e);
         }
+    }
+    
+    protected Domain getUserDomainVO() {
+        Domain domain = _domainMgr.findDomainByPath(getUserDomain());
+        return domain;
+    }
+    
+    public UserAccount authenticate(String code) {
+
+        String accessToken = changeCodeToAccessToken(code);
+        String username = requestUsernameFromUserInfoProviderAPI(accessToken);
+        if (username == null) {
+            return null;
+        }
+        
+        Domain domain = getUserDomainVO();
+        UserAccount userAcc = _userAccDao.getUserAccount(username, domain.getId());
+        if (userAcc == null) {
+            throw new IllegalArgumentException("User " + username + " not found. Contact administrator.");
+        }
+        return userAcc;
     }
 
     @Override
@@ -221,7 +249,10 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     public boolean isProviderEnabled() {
         if ((getProviderType() != null || (StringUtils.isNotBlank(getAuthorizationURL()) && StringUtils.isNotBlank(getTokenURL()))
                 && StringUtils.isNotBlank(getClientID()) && StringUtils.isNotBlank(getClientSecret()))) {
-            return true;
+            // check domain is valid
+            if (getUserDomainVO() != null) {
+                return true;
+            }
         }
         return false;
     }
@@ -249,7 +280,8 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                 ClientID,
                 AccessScope,
                 UserInfoURL,
-                UserAttribute
+                UserAttribute,
+                UserDomain
         };
     }
 
