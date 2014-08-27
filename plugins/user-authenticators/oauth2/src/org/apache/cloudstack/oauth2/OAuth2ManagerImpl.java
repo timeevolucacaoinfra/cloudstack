@@ -63,10 +63,19 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     UserAccountDao _userAccDao;
     @Inject
     DomainManager _domainMgr;
+    
+    /* Constants */
+    private String DEFAULT_ACCESS_SCOPE_GITHUB = "user";
+    private String DEFAULT_USER_INFO_URL_GITHUB = "https://api.github.com/user";
+    private String DEFAULT_USER_ATTRIBUTE_GITHUB = "login";
+    private String DEFAULT_ACCESS_SCOPE_GOOGLE = "openid profile email";
+    private String DEFAULT_USER_INFO_URL_GOOGLE = "https://www.googleapis.com/oauth2/v1/userinfo";
+    private String DEFAULT_USER_ATTRIBUTE_GOOGLE = "email";
+
 
     /* Authorization Provider */
     private static final ConfigKey<String> AuthorizationProvider = new ConfigKey<String>("Authentication", String.class, "oauth2.authorization.provider", "",
-            "OAuth2 provider name. Options are: GOOGLE, MICROSOFT, GITHUB or FACEBOOK. Leave it blank to use your own OAuth2 provider.", true, ConfigKey.Scope.Global);
+            "OAuth2 provider name. Options are: GITHUB or GOOGLE. Leave it blank to use your own OAuth2 provider.", true, ConfigKey.Scope.Global);
 
     protected String getAuthorizationProvider() { return AuthorizationProvider.value(); }
     
@@ -152,7 +161,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                     .setClientSecret(getClientSecret())
                     .setGrantType(GrantType.AUTHORIZATION_CODE)
                     .setCode(code)
-                    .setScope(getAccessScope())
+                    .setScope(getAccessScopeWithProvider())
                     .buildQueryMessage();
             OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
             OAuthAccessTokenResponse tokenResponse;
@@ -163,17 +172,17 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             }
             String accessToken = tokenResponse.getAccessToken();
             // FIXME Persist
-            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURL())
+            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURLWithProvider())
             .setAccessToken(accessToken).buildQueryMessage();
     
             OAuthResourceResponse resourceResponse = oAuthClient.resource(bearerClientRequest, OAuth.HttpMethod.GET, OAuthResourceResponse.class);
             if (resourceResponse.getResponseCode() != 200 || "application/json".equalsIgnoreCase(resourceResponse.getContentType())) {
-                throw new CloudRuntimeException("Error getting user info in " + getUserInfoURL() +
+                throw new CloudRuntimeException("Error getting user info in " + getUserInfoURLWithProvider() +
                         ". Http status code = " + resourceResponse.getResponseCode() +
                         " content type = " + resourceResponse.getContentType());
             }
             Map<String, Object> json = JSONUtils.parseJSON(resourceResponse.getBody());
-            String username = (String) json.get(getUserAttribute());
+            String username = (String) json.get(getUserAttributeWithProvider());
             if (username == null) {
                 // FIXME
                 throw new IllegalArgumentException("Invalid username");
@@ -253,5 +262,74 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             s_logger.warn("Unknown authorization provider: " + getAuthorizationProvider());
         }
         return null;
+    }
+
+    protected String getAccessScopeWithProvider() {
+        if (StringUtils.isNotBlank(getAccessScope())) {
+            // If it's set, return whatever was set
+            return getAccessScope();
+        } else {
+            // If it's blank, return according to provider
+            OAuthProviderType providerType = getProviderType();
+            if (providerType == null) {
+                // Custom provider
+                return getAccessScope();
+            } else {
+                switch (providerType) {
+                    case GITHUB:
+                        return DEFAULT_ACCESS_SCOPE_GITHUB;
+                    case GOOGLE:
+                        return DEFAULT_ACCESS_SCOPE_GOOGLE;
+                    default:
+                        return getAccessScope();
+                }
+            }
+        }
+    }
+    
+    protected String getUserInfoURLWithProvider() {
+        if (StringUtils.isNotBlank(getUserInfoURL())) {
+            // If it's set, return whatever was set
+            return getUserInfoURL();
+        } else {
+            // If it's blank, return according to provider
+            OAuthProviderType providerType = getProviderType();
+            if (providerType == null) {
+                // Custom provider
+                return getUserInfoURL();
+            } else {
+                switch (providerType) {
+                    case GITHUB:
+                        return DEFAULT_USER_INFO_URL_GITHUB;
+                    case GOOGLE:
+                        return DEFAULT_USER_INFO_URL_GOOGLE;
+                    default:
+                        return getUserInfoURL();
+                }
+            }
+        }        
+    }
+    
+    protected String getUserAttributeWithProvider() {
+        if (StringUtils.isNotBlank(getUserAttribute())) {
+            // If it's set, return whatever was set
+            return getUserAttribute();
+        } else {
+            // If it's blank, return according to provider
+            OAuthProviderType providerType = getProviderType();
+            if (providerType == null) {
+                // Custom provider
+                return getUserAttribute();
+            } else {
+                switch (providerType) {
+                    case GITHUB:
+                        return DEFAULT_USER_ATTRIBUTE_GITHUB;
+                    case GOOGLE:
+                        return DEFAULT_USER_ATTRIBUTE_GOOGLE;
+                    default:
+                        return getUserAttribute();
+                }
+            }
+        }        
     }
 }
