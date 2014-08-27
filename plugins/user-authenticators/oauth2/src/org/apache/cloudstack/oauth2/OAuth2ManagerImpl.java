@@ -175,7 +175,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             String username = (String) json.get(getUserAttribute());
             if (username == null) {
                 // FIXME
-                throw new IllegalArgumentException("username invalido");
+                throw new IllegalArgumentException("Invalid username");
             }
             if (username.contains("@")) {
                 // remove content after @
@@ -184,7 +184,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             
             UserAccount userAcc = _userAccDao.getUserAccount(username, domain.getId());
             if (userAcc == null) {
-                throw new IllegalArgumentException("usuario não encontrado");
+                throw new IllegalArgumentException("User not found");
             }
             return userAcc;
         } catch (OAuthSystemException e) {
@@ -199,7 +199,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         if (!isProviderEnabled()) {
             s_logger.info("OAuth2 Authentication provider is not enabled");
         } else {
-            if (getProviderType() != null) {
+            if (getProviderType() == null) {
                 s_logger.info("OAuth2 Authentication provider is using custom provider");
             } else {
                 s_logger.info("OAuth2 Authentication provider is using provider " + getProviderType());
