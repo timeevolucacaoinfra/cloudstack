@@ -48,7 +48,7 @@ public class OAuth2AuthenticatorTest {
 		ComponentContext.initComponentsLifeCycle();
 		_oAuth2Auth = spy(_oAuth2Auth);
 		
-		when(_oAuth2Auth.getAuthorizationLocation()).thenReturn(AUTHLOCATION);
+		when(_oAuth2Auth.getAuthorizationURL()).thenReturn(AUTHLOCATION);
 		when(_oAuth2Auth.getClientID()).thenReturn(CLIENTID);
 	}
 	

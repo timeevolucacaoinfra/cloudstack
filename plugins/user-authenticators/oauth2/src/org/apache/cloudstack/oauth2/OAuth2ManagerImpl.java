@@ -63,37 +63,67 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     @Inject
     DomainManager _domainMgr;
 
-    // FIXME Review descriptions
+    /* Authorization Provider */
     private static final ConfigKey<String> AuthorizationProvider = new ConfigKey<String>("Authentication", String.class, "oauth2.authorization.provider", "",
-            "OAuth2 provider name (GOOGLE, MICROSOFT, GITHUB, FACEBOOK or blank to custom)", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<String> AuthorizationLocation = new ConfigKey<String>("Authentication", String.class, "oauth2.authorization.location", "",
-            "URL for OAuth2 authentication if provider is custom", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<String> TokenLocation = new ConfigKey<String>("Authentication", String.class, "oauth2.token.location", "",
-            "URL of your OAuth2 provider to change code token to access token", true, ConfigKey.Scope.Global);
-//    private static final ConfigKey<String> AuthGrantType = new ConfigKey<String>("Authentication", String.class, "oauth2.grant.type", "AUTHORIZATION_CODE",
-//            "XX", true, ConfigKey.Scope.Global);
+            "OAuth2 provider name. Options are: GOOGLE, MICROSOFT, GITHUB or FACEBOOK. Leave it blank to use your own OAuth2 provider.", true, ConfigKey.Scope.Global);
+
+    protected String getAuthorizationProvider() { return AuthorizationProvider.value(); }
+    
+    /* Client ID */
     private static final ConfigKey<String> ClientID = new ConfigKey<String>("Authentication", String.class, "oauth2.client.id", "",
             "Client ID to be used for OAuth2 authentication", true, ConfigKey.Scope.Global);
+
+    protected String getClientID() { return ClientID.value(); }
+    
+    /* Client Secret */
     private static final ConfigKey<String> ClientSecret = new ConfigKey<String>("Authentication", String.class, "oauth2.client.secret", "",
-            "Client secret to be used for OAuth2 authentication", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<String> Scope = new ConfigKey<String>("Authentication", String.class, "oauth2.scope", "",
-            "XXX", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<String> UserInfoEndPoint = new ConfigKey<String>("Authentication", String.class, "oauth2.userinfo.endpoint", "",
-            "XX", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<String> UsernameAttribute = new ConfigKey<String>("Authentication", String.class, "oauth2.username.attribute", "login",
-            "XX", true, ConfigKey.Scope.Global);
-   
+            "Client Secret to be used for OAuth2 authentication", true, ConfigKey.Scope.Global);
+
+    protected String getClientSecret() { return ClientSecret.value(); }
+
+    /* Access Scope */
+    private static final ConfigKey<String> AccessScope = new ConfigKey<String>("Authentication", String.class, "oauth2.access.scope", "",
+            "Access scope the user will be prompted to accept by the OAuth2 provider. If set, it should be a list of values separated by commas.", true, ConfigKey.Scope.Global);
+    
+    protected String getAccessScope() { return AccessScope.value(); }
+
+    /* Authorization URL */
+    private static final ConfigKey<String> AuthorizationURL = new ConfigKey<String>("Authentication", String.class, "oauth2.url.authorization", "",
+            "URL for OAuth2 authentication if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
+    
+    protected String getAuthorizationURL() { return AuthorizationURL.value(); }
+    
+    /* Token URL */
+    private static final ConfigKey<String> TokenURL = new ConfigKey<String>("Authentication", String.class, "oauth2.url.token", "",
+            "URL for OAuth2 code validation if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
+    
+    protected String getTokenURL() { return TokenURL.value(); }
+    
+    /* User Info URL */
+    private static final ConfigKey<String> UserInfoURL = new ConfigKey<String>("Authentication", String.class, "oauth2.url.user", "",
+            "URL to retrieve user information if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
+    
+    protected String getUserInfoURL() { return UserInfoURL.value(); }
+    
+    /* User Attribute */
+    private static final ConfigKey<String> UserAttribute = new ConfigKey<String>("Authentication", String.class, "oauth2.user.attribute", "",
+            "Attribute to be used for user authentication if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
+    
+    protected String getUserAttribute() { return UserAttribute.value(); }
+    
+    
+    /* Implementation */
     public String generateAuthenticationUrl(String returnUrl) {
         try {
             AuthenticationRequestBuilder builder;
             if (getProviderType() != null) {
                 builder = OAuthClientRequest.authorizationProvider(getProviderType());
             } else {
-                builder = OAuthClientRequest.authorizationLocation(getAuthorizationLocation());
+                builder = OAuthClientRequest.authorizationLocation(getAuthorizationURL());
             }
             OAuthClientRequest request = builder
                     .setClientId(getClientID())
-                    .setScope(Scope.value())
+                    .setScope(getAccessScope())
                     .setResponseType("code")
                     .setRedirectURI(returnUrl)
                     .buildQueryMessage();
@@ -114,14 +144,14 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             if (getProviderType() != null) {
                 builder = OAuthClientRequest.tokenProvider(getProviderType());
             } else {
-                builder = OAuthClientRequest.tokenLocation(TokenLocation.value());
+                builder = OAuthClientRequest.tokenLocation(getTokenURL());
             }
             OAuthClientRequest request = builder
                     .setClientId(getClientID())
-                    .setClientSecret(ClientSecret.value())
+                    .setClientSecret(getClientSecret())
                     .setGrantType(GrantType.AUTHORIZATION_CODE)
                     .setCode(code)
-                    .setScope(Scope.value())
+                    .setScope(getAccessScope())
                     .buildQueryMessage();
             OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
             OAuthAccessTokenResponse tokenResponse;
@@ -132,17 +162,17 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             }
             String accessToken = tokenResponse.getAccessToken();
             // FIXME Persist
-            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(UserInfoEndPoint.value())
+            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURL())
             .setAccessToken(accessToken).buildQueryMessage();
     
             OAuthResourceResponse resourceResponse = oAuthClient.resource(bearerClientRequest, OAuth.HttpMethod.GET, OAuthResourceResponse.class);
             if (resourceResponse.getResponseCode() != 200 || "application/json".equalsIgnoreCase(resourceResponse.getContentType())) {
-                throw new CloudRuntimeException("Error getting user info in " + UserInfoEndPoint.value() +
+                throw new CloudRuntimeException("Error getting user info in " + getUserInfoURL() +
                         ". Http status code = " + resourceResponse.getResponseCode() +
                         " content type = " + resourceResponse.getContentType());
             }
             Map<String, Object> json = JSONUtils.parseJSON(resourceResponse.getBody());
-            String username = (String) json.get(UsernameAttribute.value());
+            String username = (String) json.get(getUserAttribute());
             if (username == null) {
                 // FIXME
                 throw new IllegalArgumentException("username invalido");
@@ -179,8 +209,8 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     }
 
     public boolean isProviderEnabled() {
-        if ((getProviderType() != null || (StringUtils.isNotBlank(getAuthorizationLocation()) && StringUtils.isNotBlank(TokenLocation.value()))
-                && StringUtils.isNotBlank(ClientID.value()) && StringUtils.isNotBlank(ClientSecret.value()))) {
+        if ((getProviderType() != null || (StringUtils.isNotBlank(getAuthorizationURL()) && StringUtils.isNotBlank(getTokenURL()))
+                && StringUtils.isNotBlank(getClientID()) && StringUtils.isNotBlank(getClientSecret()))) {
             return true;
         }
         return false;
@@ -202,33 +232,24 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     public ConfigKey<?>[] getConfigKeys() {
         return new ConfigKey<?>[] {
                 AuthorizationProvider,
-                AuthorizationLocation,
-                TokenLocation,
+                AuthorizationURL,
+                TokenURL,
                 ClientSecret,
                 ClientID,
-                Scope,
-                UserInfoEndPoint,
-                UsernameAttribute
+                AccessScope,
+                UserInfoURL,
+                UserAttribute
         };
     }
 
     protected OAuthProviderType getProviderType() {
         try {
-            if (StringUtils.isNotBlank(AuthorizationProvider.value())) {
-                return OAuthProviderType.valueOf(AuthorizationProvider.value());
+            if (StringUtils.isNotBlank(getAuthorizationProvider())) {
+                return OAuthProviderType.valueOf(getAuthorizationProvider());
             }
         } catch (IllegalArgumentException e) {
-            s_logger.warn("Unknown authorization provider: " + AuthorizationProvider.value());
+            s_logger.warn("Unknown authorization provider: " + getAuthorizationProvider());
         }
         return null;
     }
-    
-    protected String getAuthorizationLocation() {
-        return AuthorizationLocation.value();
-    }
-
-    protected String getClientID() {
-        return ClientID.value();
-    }
-
 }
