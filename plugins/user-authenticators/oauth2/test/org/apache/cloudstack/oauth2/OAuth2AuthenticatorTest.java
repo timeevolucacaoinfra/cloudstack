@@ -28,6 +28,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
+import com.cloud.user.DomainManager;
 import com.cloud.user.dao.UserAccountDao;
 import com.cloud.utils.component.ComponentContext;
 
@@ -62,7 +63,7 @@ public class OAuth2AuthenticatorTest {
 		
 		String authUrl = _oAuth2Auth.generateAuthenticationUrl(returnUrl);
 		assertNotNull(authUrl);
-		assertEquals(AUTHLOCATION + "?redirect_uri=" + encodedUrl + "&client_id=" + CLIENTID, authUrl);
+		assertEquals(AUTHLOCATION + "?response_type=code&redirect_uri=" + encodedUrl + "&client_id=" + CLIENTID, authUrl);
 	}
 	
 	@Test
@@ -90,6 +91,10 @@ public class OAuth2AuthenticatorTest {
         @Bean
         public UserAccountDao userAccountDao() {
             return mock(UserAccountDao.class);
+        }
+        @Bean
+        public DomainManager domainManager() {
+            return mock(DomainManager.class);
         }
 
         public static class Library implements TypeFilter {
