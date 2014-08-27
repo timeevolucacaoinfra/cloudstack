@@ -55,14 +55,24 @@ public class APIAuthenticationManagerImpl extends ManagerBase implements APIAuth
     @Override
     public boolean start() {
         s_authenticators = new HashMap<String, Class<?>>();
-        for (Class<?> authenticator: getCommands()) {
-            APICommand command = authenticator.getAnnotation(APICommand.class);
-            if (command != null && !command.name().isEmpty()
-                    && APIAuthenticator.class.isAssignableFrom(authenticator)) {
-                s_authenticators.put(command.name(), authenticator);
+        for (Class<?> authenticatorCommand: getCommands()) {
+            registerCommandsInAPIAuthenticator(authenticatorCommand);
+        }
+        // Register all external APIAuthenticator(s)
+        for (PluggableAPIAuthenticator apiAuthenticator: _apiAuthenticators) {
+            for (Class<?> authenticatorCommand: apiAuthenticator.getCommands()) {
+                registerCommandsInAPIAuthenticator(authenticatorCommand);
             }
         }
         return true;
+    }
+
+    private void registerCommandsInAPIAuthenticator(Class<?> authenticator) {
+        APICommand command = authenticator.getAnnotation(APICommand.class);
+        if (command != null && !command.name().isEmpty()
+                && APIAuthenticator.class.isAssignableFrom(authenticator)) {
+            s_authenticators.put(command.name(), authenticator);
+        }
     }
 
     @Override
@@ -70,9 +80,6 @@ public class APIAuthenticationManagerImpl extends ManagerBase implements APIAuth
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
         cmdList.add(DefaultLoginAPIAuthenticatorCmd.class);
         cmdList.add(DefaultLogoutAPIAuthenticatorCmd.class);
-        for (PluggableAPIAuthenticator apiAuthenticator: _apiAuthenticators) {
-            cmdList.addAll(apiAuthenticator.getAuthCommands());
-        }
         return cmdList;
     }
 

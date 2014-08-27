@@ -59,6 +59,30 @@ Below is a sample login attempt
 var clientApiUrl = "/client/api";
 var clientConsoleUrl = "/client/console";
 
+//FIXME: Colocar num arquivo js a parte
+if ($.urlParam("direct") !== "true") {
+	if ($.urlParam("code")) {
+        $.ajax({
+            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + $.urlParam("code"),
+            dataType: "json",
+            async: false,
+            success: function(json) {
+                g_loginResponse = json.loginresponse;
+            },
+            error: function() {
+                onLogoutCallback();
+                // This means the login failed.  You should redirect to your login page.
+            },
+            beforeSend: function(XMLHttpRequest) {
+                return true;
+            }
+        });
+	} else if ($.urlParam("oauth")) {
+		window.location.href = clientApiUrl + "?command=oAuth2Login&redirect_uri=" + escape(window.location);
+	}
+	
+}
+
 $(document).ready(function() {
 
     var url = $.urlParam("loginUrl");

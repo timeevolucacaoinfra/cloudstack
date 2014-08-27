@@ -17,9 +17,10 @@
 package org.apache.cloudstack.api.auth;
 
 import com.cloud.utils.component.Adapter;
+import com.cloud.utils.component.PluggableService;
 
 import java.util.List;
 
-public interface PluggableAPIAuthenticator extends Adapter {
-    public List<Class<?>> getAuthCommands();
+public interface PluggableAPIAuthenticator extends Adapter, PluggableService {
+//    public List<Class<?>> getAuthCommands();
 }
