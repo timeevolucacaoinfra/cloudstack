@@ -45,7 +45,7 @@
 			history.replaceState(null, null, removeParam("code", window.location.href));
 
 			$.ajax({
-	            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + $.urlParam("code"),
+	            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code,
 	            dataType: "json",
 	            async: false,
 	            success: function(json) {
