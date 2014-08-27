@@ -187,7 +187,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     protected String requestUsernameFromUserInfoProviderAPI(String accessToken) {
         try {
             OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURLWithProvider())
-            .setAccessToken(accessToken).buildQueryMessage();
+            .setAccessToken(accessToken).buildHeaderMessage();
     
             OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
             OAuthResourceResponse resourceResponse = oAuthClient.resource(bearerClientRequest, OAuth.HttpMethod.GET, OAuthResourceResponse.class);
