@@ -40,12 +40,13 @@
 	// if direct=true, don't use oauth2
 	if ($.urlParam("direct") !== "true") {
 		var code = $.urlParam("code");
-		if (code) {
+		var redirectUri = $.cookie('oauth_redirect');
+		if (code && redirectUri) {
 			// remove parameter code from url
 			history.replaceState(null, null, removeParam("code", window.location.href));
-
+			
 			$.ajax({
-	            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code,
+	            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code + '&redirect_uri=' + escape(redirectUri),
 	            dataType: "json",
 	            async: false,
 	            success: function(json) {
@@ -59,6 +60,7 @@
 		} else {
 			// don't put querystring in url
 			var redirectUri = location.origin + location.pathname;
+			$.cookie('oauth_redirect', redirectUri);
 			$.ajax({
 				url: clientApiUrl + "?command=oauthRedirect&response=json&redirect_uri=" + escape(redirectUri),
 				dataType: "json",
