@@ -142,7 +142,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             }
             OAuthClientRequest request = builder
                     .setClientId(getClientID())
-                    .setScope(getAccessScope())
+                    .setScope(getAccessScopeWithProvider())
                     .setResponseType("code")
                     .setRedirectURI(returnUrl)
                     .buildQueryMessage();
@@ -185,7 +185,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     
     protected String requestUsernameFromUserInfoProviderAPI(String accessToken) {
         try {
-            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURL())
+            OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURLWithProvider())
             .setAccessToken(accessToken).buildQueryMessage();
     
             OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
