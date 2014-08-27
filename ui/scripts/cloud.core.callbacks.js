@@ -59,10 +59,33 @@ Below is a sample login attempt
 var clientApiUrl = "/client/api";
 var clientConsoleUrl = "/client/console";
 
+
+function removeParam(key, sourceURL) {
+    var rtn = sourceURL.split("?")[0],
+        param,
+        params_arr = [],
+        queryString = (sourceURL.indexOf("?") !== -1) ? sourceURL.split("?")[1] : "";
+    if (queryString !== "") {
+        params_arr = queryString.split("&");
+        for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+            param = params_arr[i].split("=")[0];
+            if (param === key) {
+                params_arr.splice(i, 1);
+            }
+        }
+        rtn = rtn + "?" + params_arr.join("&");
+    }
+    return rtn;
+}
+
 //FIXME: Colocar num arquivo js a parte
 if ($.urlParam("direct") !== "true") {
-	if ($.urlParam("code")) {
-        $.ajax({
+	var code = $.urlParam("code");
+	if (code) {
+		// remove parameter code from url
+		history.replaceState(null, null, removeParam("code", window.location.href));
+
+		$.ajax({
             url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + $.urlParam("code"),
             dataType: "json",
             async: false,
@@ -72,28 +95,23 @@ if ($.urlParam("direct") !== "true") {
             error: function() {
                 onLogoutCallback();
                 // This means the login failed.  You should redirect to your login page.
-            },
-            beforeSend: function(XMLHttpRequest) {
-                return true;
             }
         });
 	} else {
-		console.log('passei');
+		// don't put querystring in url
+		var redirectUri = location.origin + location.pathname;
 		$.ajax({
-			url: clientApiUrl + "?command=oauthRedirect&response=json&redirect_uri=" + escape(window.location.href),
+			url: clientApiUrl + "?command=oauthRedirect&response=json&redirect_uri=" + escape(redirectUri),
 			dataType: "json",
 			async: false,
 			success: function(json) {
-				console.log('passei2222');
-				console.log(json);
-				if (json.oauth2urlresponse.redirectUri) {
-					window.location.href = json.oauth2urlresponse.redirectUri;
+				// to ensure never will break
+				var redirectUri = json && json.oauth2urlresponse &&
+					json.oauth2urlresponse.authenticationurl && json.oauth2urlresponse.authenticationurl.redirectUri;
+				if (redirectUri) {
+					window.location = redirectUri;
 				}
-			},
-	        error: function(json) {
-	        	console.log('parei aqui');
-	        	console.log(json);
-	        },
+			}
 		});
 	}
 }
