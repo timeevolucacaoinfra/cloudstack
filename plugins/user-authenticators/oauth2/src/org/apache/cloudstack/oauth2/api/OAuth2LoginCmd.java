@@ -17,12 +17,10 @@
 package org.apache.cloudstack.oauth2.api;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
@@ -36,18 +34,14 @@ import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.auth.APIAuthenticationType;
 import org.apache.cloudstack.api.auth.APIAuthenticator;
 import org.apache.cloudstack.api.auth.PluggableAPIAuthenticator;
-import org.apache.cloudstack.api.response.LoginCmdResponse;
 import org.apache.cloudstack.oauth2.OAuth2Manager;
 import org.apache.cloudstack.oauth2.response.OAuth2UrlResponse;
 import org.apache.log4j.Logger;
 
 import com.cloud.api.response.ApiResponseSerializer;
-import com.cloud.configuration.Config;
 import com.cloud.exception.CloudAuthenticationException;
 import com.cloud.user.Account;
-import com.cloud.user.User;
 import com.cloud.user.UserAccount;
-import com.cloud.utils.HttpUtils;
 
 @APICommand(name = "oAuth2Login", description = "Authenticates using OAuth2", responseObject = OAuth2UrlResponse.class, since = "4.5.0")
 public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {

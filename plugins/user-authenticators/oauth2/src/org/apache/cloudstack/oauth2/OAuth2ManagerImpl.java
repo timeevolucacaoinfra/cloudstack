@@ -115,6 +115,9 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     
     /* Implementation */
     public String generateAuthenticationUrl(String returnUrl) {
+        if (!isProviderEnabled()) {
+            return null;
+        }
         try {
             AuthenticationRequestBuilder builder;
             if (getProviderType() != null) {
