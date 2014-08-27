@@ -26,6 +26,7 @@ import org.apache.cloudstack.api.auth.PluggableAPIAuthenticator;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.oauth2.api.OAuth2LoginCmd;
+import org.apache.cloudstack.oauth2.api.OAuth2RedirectCmd;
 import org.apache.log4j.Logger;
 import org.apache.oltu.oauth2.client.OAuthClient;
 import org.apache.oltu.oauth2.client.URLConnectionClient;
@@ -220,6 +221,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     public List<Class<?>> getCommands() {
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
         cmdList.add(OAuth2LoginCmd.class);
+        cmdList.add(OAuth2RedirectCmd.class);
         return cmdList;
     }
 

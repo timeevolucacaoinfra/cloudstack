@@ -20,13 +20,13 @@ import org.apache.cloudstack.api.BaseResponse;
 
 public class OAuth2UrlResponse extends BaseResponse {
 
-	private String returnUrl;
+	private String redirectUri;
 
-	public String getReturnUrl() {
-		return returnUrl;
+	public String getRedirectUri() {
+		return redirectUri;
 	}
 
-	public void setReturnUrl(String returnUrl) {
-		this.returnUrl = returnUrl;
+	public void setReturnUrl(String redirectUri) {
+		this.redirectUri = redirectUri;
 	}	
 }
