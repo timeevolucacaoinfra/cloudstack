@@ -68,9 +68,11 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     private String DEFAULT_ACCESS_SCOPE_GITHUB = "user";
     private String DEFAULT_USER_INFO_URL_GITHUB = "https://api.github.com/user";
     private String DEFAULT_USER_ATTRIBUTE_GITHUB = "login";
+    private String DEFAULT_LOGOUT_URL_GITHUB = "https://github.com/logout";
     private String DEFAULT_ACCESS_SCOPE_GOOGLE = "openid profile email";
     private String DEFAULT_USER_INFO_URL_GOOGLE = "https://www.googleapis.com/oauth2/v1/userinfo";
     private String DEFAULT_USER_ATTRIBUTE_GOOGLE = "email";
+    private String DEFAULT_LOGOUT_URL_GOOGLE = "https://accounts.google.com/logout";
 
 
     /* Authorization Provider */
@@ -102,6 +104,12 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             "URL for OAuth2 authentication if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
     
     protected String getAuthorizationURL() { return AuthorizationURL.value(); }
+    
+    /* Logout URL */
+    private static final ConfigKey<String> LogoutURL = new ConfigKey<String>("Authentication", String.class, "oauth2.url.logout", "",
+            "URL for logging out using OAuth2 if you use your own OAuth2 provider. Otherwise, leave it blank.", true, ConfigKey.Scope.Global);
+    
+    protected String getLogoutURL() { return LogoutURL.value(); }
     
     /* Token URL */
     private static final ConfigKey<String> TokenURL = new ConfigKey<String>("Authentication", String.class, "oauth2.url.token", "",
@@ -150,6 +158,10 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         } catch (OAuthSystemException e) {
             throw new CloudRuntimeException(e.getLocalizedMessage());
         }
+    }
+    
+    public String getLogoutUrl() {
+        return getLogoutUrlWithProvider();
     }
     
     protected String changeCodeToAccessToken(String code, String redirectUri) {
@@ -361,6 +373,29 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                         return DEFAULT_USER_ATTRIBUTE_GOOGLE;
                     default:
                         return getUserAttribute();
+                }
+            }
+        }        
+    }
+    
+    protected String getLogoutUrlWithProvider() {
+        if (StringUtils.isNotBlank(getLogoutUrl())) {
+            // If it's set, return whatever was set
+            return getLogoutUrl();
+        } else {
+            // If it's blank, return according to provider
+            OAuthProviderType providerType = getProviderType();
+            if (providerType == null) {
+                // Custom provider
+                return getLogoutUrl();
+            } else {
+                switch (providerType) {
+                    case GITHUB:
+                        return DEFAULT_LOGOUT_URL_GITHUB;
+                    case GOOGLE:
+                        return DEFAULT_LOGOUT_URL_GOOGLE;
+                    default:
+                        return getLogoutUrl();
                 }
             }
         }        

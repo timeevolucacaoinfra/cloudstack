@@ -10,4 +10,6 @@ public interface OAuth2Manager extends PluggableAPIAuthenticator {
     
     public UserAccount authenticate(String code, String redirectUri);
 
+    public String getLogoutUrl();
+
 }
