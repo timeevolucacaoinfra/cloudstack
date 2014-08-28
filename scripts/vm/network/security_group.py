@@ -538,7 +538,7 @@ def post_default_network_rules(vm_name, vm_id, vm_ip, vm_mac, vif, brname, dhcpS
             logging.debug("Failed to log default network rules, ignoring")
 def delete_rules_for_vm_in_bridge_firewall_chain(vmName):
     vm_name = vmName
-    if vm_name.startswith('i-') or vm_name.startswith('r-'):
+    if vm_name.startswith('i-'):
 	vm_name = '-'.join(vm_name.split('-')[:-1]) + "-def"
 
     vmchain = vm_name
@@ -547,6 +547,8 @@ def delete_rules_for_vm_in_bridge_firewall_chain(vmName):
     delcmds = execute(delcmd).split('\n')
     delcmds.pop()
     for cmd in delcmds:
+        if cmd == "":
+            continue
         try:
             execute("iptables " + cmd)
         except:
@@ -683,38 +685,43 @@ def cleanup_rules_for_dead_vms():
 
 def cleanup_rules():
     try:
-        chainscmd = """iptables-save | grep -P '^:(?!.*-(def|eg))' | awk '{sub(/^:/, "", $1) ; print $1}'"""
+        chainscmd = """iptables-save | awk '{for(i=1;i<=NF;i++){ if($i ~ /[i|r|s|v]-[0-9]/){print $i} } }'"""
         chains = execute(chainscmd).split('\n')
-        cleanup = []
+        cleanup = set()
+        results = []
+        results = virshlist('paused', 'running')
         for chain in chains:
-            if 1 in [ chain.startswith(c) for c in ['r-', 'i-', 's-', 'v-'] ]:
-                vm_name = chain
+            if chain == "":
+                continue
+            elif chain.startswith(":"):
+                chain = chain[1:]
+            if chain.endswith("-eg"):
+                chain = chain[:-3]
+            elif chain.endswith("-def"):
+                chain = chain[:-3] + "VM"
 
-                result = virshdomstate(vm_name)
+            vm_name = chain
 
-                if result == None or len(result) == 0:
-                    logging.debug("chain " + chain + " does not correspond to a vm, cleaning up iptable rules")
-                    cleanup.append(vm_name)
-                    continue
-                if not (result == "running" or result == "paused"):
-                    logging.debug("vm " + vm_name + " is not running or paused, cleaning up iptable rules")
-                    cleanup.append(vm_name)
+            if not vm_name in results:
+                logging.debug("chain " + chain + " does not correspond to a vm or vm is not running or paused, cleaning up iptable rules")
+                cleanup.add(vm_name)
 
-        chainscmd = """ebtables-save | awk '/:i/ { gsub(/(^:|-(in|out|ips))/, "") ; print $1}'"""
+        chainscmd = """ebtables-save | awk '{for(i=1;i<=NF;i++){ if($i ~ /[i|r|s|v]-[0-9]/){print $i} } }'"""
         chains = execute(chainscmd).split('\n')
         for chain in chains:
-            if 1 in [ chain.startswith(c) for c in ['r-', 'i-', 's-', 'v-'] ]:
-                vm_name = chain
+            if chain == "":
+                continue
+            elif chain.startswith(":"):
+                chain = chain[1:]
+            if not chain.endswith("VM"):
+                chain = chain.split("VM")[0] + "VM"
 
-                result = virshdomstate(vm_name)
+            vm_name = chain
 
-                if result == None or len(result) == 0:
-                    logging.debug("chain " + chain + " does not correspond to a vm, cleaning up ebtable rules")
-                    cleanup.append(vm_name)
-                    continue
-                if not (result == "running" or result == "paused"):
-                    logging.debug("vm " + vm_name + " is not running or paused, cleaning up ebtable rules")
-                    cleanup.append(vm_name)
+            if not vm_name in results:
+                logging.debug("chain " + chain + " does not correspond to a vm or vm is not running or paused, cleaning up ebtable rules")
+                cleanup.add(vm_name)
+
 
         for vmname in cleanup:
             destroy_network_rules_for_vm(vmname)

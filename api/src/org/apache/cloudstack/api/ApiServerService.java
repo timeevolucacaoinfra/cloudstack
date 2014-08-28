@@ -14,25 +14,29 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package com.cloud.api;
-
-import java.util.Map;
-
-import javax.servlet.http.HttpSession;
-
-import org.apache.cloudstack.api.ServerApiException;
+package org.apache.cloudstack.api;
 
 import com.cloud.exception.CloudAuthenticationException;
+import javax.servlet.http.HttpSession;
+import java.util.Map;
 
 public interface ApiServerService {
     public boolean verifyRequest(Map<String, Object[]> requestParameters, Long userId) throws ServerApiException;
+
     public Long fetchDomainId(String domainUUID);
-    public void loginUser(HttpSession session, String username, String password, Long domainId, String domainPath, String loginIpAddress ,Map<String, Object[]> requestParameters) throws CloudAuthenticationException;
+
+    public ResponseObject loginUser(HttpSession session, String username, String password, Long domainId, String domainPath, String loginIpAddress,
+                                    Map<String, Object[]> requestParameters) throws CloudAuthenticationException;
+
     public void logoutUser(long userId);
+
     public boolean verifyUser(Long userId);
 
     public String getSerializedApiError(int errorCode, String errorText, Map<String, Object[]> apiCommandParams, String responseType);
+
     public String getSerializedApiError(ServerApiException ex, Map<String, Object[]> apiCommandParams, String responseType);
 
-    public String handleRequest(Map params, String responseType, StringBuffer auditTrailSb) throws ServerApiException;
+    public String handleRequest(Map params, String responseType, StringBuilder auditTrailSb) throws ServerApiException;
+
+    public Class<?> getCmdClass(String cmdName);
 }
