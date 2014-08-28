@@ -42,9 +42,9 @@
                     	old_onLogoutCallback();
                     	if (logoutUrl) {
 	                    	window.location.assign(logoutUrl);
-	                    	return true;
+	                    	return false;
                     	} else {
-                    		return false;
+                    		return true;
                     	}
                     }
                 },
@@ -72,7 +72,7 @@
                     redirectUri = json && json.oauth2urlresponse &&
                         json.oauth2urlresponse.authenticationurl && json.oauth2urlresponse.authenticationurl.redirectUri;
                     if (redirectUri) {
-			            $.cookie('logout_redirect', json.oauth2urlresponse.authenticationurl.logoutUrl);
+			            $.cookie('logout_redirect', json.oauth2urlresponse.authenticationurl.logoutUri);
                         window.location.assign(redirectUri);
                     }
                 },
