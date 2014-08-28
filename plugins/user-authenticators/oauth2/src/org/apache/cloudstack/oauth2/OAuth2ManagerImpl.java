@@ -46,6 +46,7 @@ import org.apache.oltu.oauth2.common.utils.JSONUtils;
 import org.springframework.stereotype.Component;
 
 import com.cloud.domain.Domain;
+import com.cloud.exception.CloudAuthenticationException;
 import com.cloud.user.DomainManager;
 import com.cloud.user.UserAccount;
 import com.cloud.user.dao.UserAccountDao;
@@ -217,18 +218,18 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         return domain;
     }
     
-    public UserAccount authenticate(String code, String redirectUri) {
+    public UserAccount authenticate(String code, String redirectUri) throws CloudAuthenticationException {
 
         String accessToken = changeCodeToAccessToken(code, redirectUri);
         String username = requestUsernameFromUserInfoProviderAPI(accessToken);
         if (username == null) {
-            return null;
+            throw new CloudRuntimeException("Can't get username from OAuth Server.");
         }
         
         Domain domain = getUserDomainVO();
         UserAccount userAcc = _userAccDao.getUserAccount(username, domain.getId());
         if (userAcc == null) {
-            throw new IllegalArgumentException("User " + username + " not found. Contact administrator.");
+            throw new CloudAuthenticationException("User " + username + " not found. Contact administrator.");
         }
         return userAcc;
     }

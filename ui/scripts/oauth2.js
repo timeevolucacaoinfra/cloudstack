@@ -48,13 +48,19 @@
 			$.ajax({
 	            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code + '&redirect_uri=' + escape(redirectUri),
 	            dataType: "json",
-	            async: false,
+	            async: true,
 	            success: function(json) {
 	                g_loginResponse = json.loginresponse;
 	            },
-	            error: function() {
-	                onLogoutCallback();
-	                // This means the login failed.  You should redirect to your login page.
+	            error: function(jqXHR) {
+            		notice = parseXMLHttpResponse(jqXHR);
+                    cloudStack.dialog.notice({
+                        message: notice,
+                        clickAction: onLogoutCallback
+                    });
+	            },
+	            beforeSend: function(XMLHttpRequest) {
+	                return true;
 	            }
 	        });
 		} else {
@@ -72,7 +78,10 @@
 					if (redirectUri) {
 						window.location = redirectUri;
 					}
-				}
+	            },
+	            beforeSend: function(XMLHttpRequest) {
+	                return true;
+	            }
 			});
 		}
 	}

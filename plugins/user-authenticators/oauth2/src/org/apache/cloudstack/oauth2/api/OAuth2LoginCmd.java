@@ -65,21 +65,22 @@ public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {
         if (params.containsKey("code") && params.containsKey("redirect_uri")) {
             String code = String.valueOf(params.get("code")[0]);
             String redirectUri = String.valueOf(params.get("redirect_uri")[0]);
-            UserAccount userAcc = _oauth2Manager.authenticate(code, redirectUri);
-            if (userAcc != null) {
-                try {
-                    if (_apiServer.verifyUser(userAcc.getId())) {
-                        return ApiResponseSerializer.toSerializedString(
-                                _apiServer.loginUser(session, userAcc.getUsername(), userAcc.getPassword(), userAcc.getDomainId(), null, remoteAddress, params),
-                                responseType);
-                    }
-                } catch (final CloudAuthenticationException ignored) {
+            try {
+                UserAccount userAcc = _oauth2Manager.authenticate(code, redirectUri);
+                if (_apiServer.verifyUser(userAcc.getId())) {
+                    return ApiResponseSerializer.toSerializedString(
+                            _apiServer.loginUser(session, userAcc.getUsername(), userAcc.getPassword(), userAcc.getDomainId(), null, remoteAddress, params),
+                            responseType);
                 }
+                throw new ServerApiException(ApiErrorCode.PARAM_ERROR,
+                    "Unable to authenticate or retrieve user while performing OAuth2 based SSO");
+            } catch (final CloudAuthenticationException ex) {
+                s_logger.error("Unable to authenticate user using OAuth2 plugin: " + ex.getLocalizedMessage());
+                throw new ServerApiException(ApiErrorCode.ACCOUNT_ERROR,
+                        _apiServer.getSerializedApiError(ApiErrorCode.ACCOUNT_ERROR.getHttpCode(), ex.getLocalizedMessage(), params, responseType));
             }
         }
-        throw new ServerApiException(ApiErrorCode.ACCOUNT_ERROR, _apiServer.getSerializedApiError(ApiErrorCode.ACCOUNT_ERROR.getHttpCode(),
-                "Unable to authenticate or retrieve user while performing OAuth2 based SSO",
-                params, responseType));
+        throw new ServerApiException(ApiErrorCode.PARAM_ERROR, "Invalid call to OAuth2 Command");
     }
 	
 	@Override
@@ -105,7 +106,7 @@ public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {
             }
         }
         if (_oauth2Manager == null) {
-            s_logger.error("No suitable Pluggable Authentication Manager found for SAML2 Login Cmd");
+            s_logger.error("No suitable Pluggable Authentication Manager found for OAuth2 Login Cmd");
         }
     }
 
