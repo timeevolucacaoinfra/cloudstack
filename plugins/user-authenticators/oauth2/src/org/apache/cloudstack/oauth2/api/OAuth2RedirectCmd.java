@@ -71,7 +71,7 @@ public class OAuth2RedirectCmd extends BaseCmd implements APIAuthenticator {
             redirectUri = (String) redirectUriObj[0];
         }
         String url = _oauth2Manager.generateAuthenticationUrl(redirectUri);
-        String logoutUrl = _oauth2Manager.getLogoutUrl();
+        String logoutUrl = _oauth2Manager.getLogoutUrlWithProvider();
         OAuth2UrlResponse response = new OAuth2UrlResponse();
         response.setRedirectUri(url);
         response.setLogoutUri(logoutUrl);

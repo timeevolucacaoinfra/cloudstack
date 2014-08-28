@@ -161,10 +161,6 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         }
     }
     
-    public String getLogoutUrl() {
-        return getLogoutUrlWithProvider();
-    }
-    
     protected String changeCodeToAccessToken(String code, String redirectUri) {
         try {
             TokenRequestBuilder builder;
@@ -290,6 +286,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                 AuthorizationProvider,
                 AuthorizationURL,
                 TokenURL,
+                LogoutURL,
                 ClientSecret,
                 ClientID,
                 AccessScope,
@@ -379,16 +376,16 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         }        
     }
     
-    protected String getLogoutUrlWithProvider() {
-        if (StringUtils.isNotBlank(getLogoutUrl())) {
+    public String getLogoutUrlWithProvider() {
+        if (StringUtils.isNotBlank(getLogoutURL())) {
             // If it's set, return whatever was set
-            return getLogoutUrl();
+            return getLogoutURL();
         } else {
             // If it's blank, return according to provider
             OAuthProviderType providerType = getProviderType();
             if (providerType == null) {
                 // Custom provider
-                return getLogoutUrl();
+                return getLogoutURL();
             } else {
                 switch (providerType) {
                     case GITHUB:
@@ -396,7 +393,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                     case GOOGLE:
                         return DEFAULT_LOGOUT_URL_GOOGLE;
                     default:
-                        return getLogoutUrl();
+                        return getLogoutURL();
                 }
             }
         }        
