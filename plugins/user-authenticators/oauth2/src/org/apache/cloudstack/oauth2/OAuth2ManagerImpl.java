@@ -167,7 +167,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                     .setCode(code)
                     .setRedirectURI(redirectUri)
                     .setScope(getAccessScopeWithProvider())
-                    .buildQueryMessage();
+                    .buildBodyMessage();
             OAuthClient oAuthClient = new OAuthClient(new URLConnectionClient());
             OAuthAccessTokenResponse tokenResponse;
             if (getProviderType() == OAuthProviderType.GITHUB) {
