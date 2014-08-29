@@ -13,7 +13,7 @@ case "$1" in
     mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
     ;;
   compile-quick)
-    mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-client-ui install -DskipTests
+    mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
   deploydb)
     mvn -Pdeveloper -pl developer,tools/devcloud -Ddeploydb

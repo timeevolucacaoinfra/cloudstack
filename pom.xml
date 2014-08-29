@@ -97,23 +97,6 @@
     </site>
   </distributionManagement>
 
-  <repositories>
-    <repository>
-      <id>archiva.internal</id>
-      <name>Maven Internal Repository</name>
-      <url>http://cvs.globoi.com/archiva/repository/internal</url>
-    </repository>
-    <repository>
-      <id>archiva.snapshots</id>
-      <name>Maven Internal Snapshots Repository</name>
-      <url>http://cvs.globoi.com/archiva/repository/snapshots</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
-    </repository>
-  </repositories>
-
   <inceptionYear>2012</inceptionYear>
 
   <mailingLists>
