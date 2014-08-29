@@ -16,64 +16,76 @@
 // under the License.
 
 (function() {
-	// put all code in a private scope, but not in document.ready event
-	// to run this code before cloud.core.callback.js document.ready
+    // put all code in a private scope, but not in document.ready event
+    // to run this code before cloud.core.callback.js document.ready
+    var redirectUri,
+    	code;
 
-	function removeParam(key, sourceURL) {
-	    var rtn = sourceURL.split("?")[0],
-	        param,
-	        params_arr = [],
-	        queryString = (sourceURL.indexOf("?") !== -1) ? sourceURL.split("?")[1] : "";
-	    if (queryString !== "") {
-	        params_arr = queryString.split("&");
-	        for (var i = params_arr.length - 1; i >= 0; i -= 1) {
-	            param = params_arr[i].split("=")[0];
-	            if (param === key) {
-	                params_arr.splice(i, 1);
-	            }
-	        }
-	        rtn = rtn + "?" + params_arr.join("&");
-	    }
-	    return rtn;
-	}
-
-	// if direct=true, don't use oauth2
-	if ($.urlParam("direct") !== "true") {
-		var code = $.urlParam("code");
-		var redirectUri = $.cookie('oauth_redirect');
-		if (code && redirectUri) {
-			// remove parameter code from url
-			history.replaceState(null, null, removeParam("code", window.location.href));
-			
-			$.ajax({
-	            url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code + '&redirect_uri=' + escape(redirectUri),
-	            dataType: "json",
-	            async: false,
-	            success: function(json) {
-	                g_loginResponse = json.loginresponse;
-	            },
-	            error: function() {
-	                onLogoutCallback();
-	                // This means the login failed.  You should redirect to your login page.
-	            }
-	        });
-		} else {
-			// don't put querystring in url
-			var redirectUri = location.origin + location.pathname;
-			$.cookie('oauth_redirect', redirectUri);
-			$.ajax({
-				url: clientApiUrl + "?command=oauthRedirect&response=json&redirect_uri=" + escape(redirectUri),
-				dataType: "json",
-				async: false,
-				success: function(json) {
-					// to ensure never will break
-					var redirectUri = json && json.oauth2urlresponse &&
-						json.oauth2urlresponse.authenticationurl && json.oauth2urlresponse.authenticationurl.redirectUri;
-					if (redirectUri) {
-						window.location = redirectUri;
-					}
-				}
-			});
-		}
-	}
+    // if direct=true, don't use oauth2
+    if ($.urlParam("direct") !== "true") {
+        code = $.urlParam("code");
+        redirectUri = $.cookie('oauth_redirect');
+        if (code && redirectUri) {
+            // remove parameter code from url
+            history.replaceState(null, null, location.origin + location.pathname);
+            
+            $.ajax({
+                url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code + '&redirect_uri=' + escape(redirectUri),
+                dataType: "json",
+                async: false,
+                success: function(json) {
+                    var logoutUrl = $.cookie('logout_redirect');
+                    var old_onLogoutCallback = onLogoutCallback;
+                    g_loginResponse = json.loginresponse;
+                    $.cookie('logout_redirect', null); // remove cookie
+                    onLogoutCallback = function() {
+                    	old_onLogoutCallback();
+                    	if (logoutUrl) {
+	                    	window.location.assign(logoutUrl);
+	                    	return false;
+                    	} else {
+                    		return true;
+                    	}
+                    }
+                },
+                error: function(jqXHR) {
+                    var notice;
+                    if (jqXHR.status == 531 || jqXHR.status == 431) {
+                        var error = $.parseJSON(jqXHR.responseText);
+                        notice = error.oauth2urlresponse.errortext;
+                    } else {
+                        notice = "Error authenticating with OAuth2. Use login/password credentials";
+                    }
+                    cloudStack.dialog.notice({
+                        message: notice,
+                        clickAction: onLogoutCallback
+                    });
+                },
+                beforeSend: function(XMLHttpRequest) {
+                    return true;
+                }
+            });
+        } else {
+            // don't put querystring in url
+            redirectUri = location.origin + location.pathname;
+            $.cookie('oauth_redirect', redirectUri);
+            $.ajax({
+                url: clientApiUrl + "?command=oauthRedirect&response=json&redirect_uri=" + escape(redirectUri),
+                dataType: "json",
+                async: false,
+                success: function(json) {
+                    // to ensure never will break
+                    redirectUri = json && json.oauth2urlresponse &&
+                        json.oauth2urlresponse.authenticationurl && json.oauth2urlresponse.authenticationurl.redirectUri;
+                    if (redirectUri) {
+			            $.cookie('logout_redirect', json.oauth2urlresponse.authenticationurl.logoutUri);
+                        window.location.assign(redirectUri);
+                    }
+                },
+                beforeSend: function(XMLHttpRequest) {
+                    return true;
+                }
+            });
+        }
+    }
 }());
