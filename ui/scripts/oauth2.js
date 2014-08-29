@@ -32,7 +32,7 @@
             $.ajax({
                 url: clientApiUrl + '?command=oAuth2Login&response=json&code=' + code + '&redirect_uri=' + escape(redirectUri),
                 dataType: "json",
-                async: true,
+                async: false,
                 success: function(json) {
                     var logoutUrl = $.cookie('logout_redirect');
                     var old_onLogoutCallback = onLogoutCallback;
