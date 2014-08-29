@@ -34,6 +34,7 @@
                 dataType: "json",
                 async: false,
                 success: function(json) {
+                    console.info('aqui', json);
                     var logoutUrl = $.cookie('logout_redirect');
                     var old_onLogoutCallback = onLogoutCallback;
                     g_loginResponse = json.loginresponse;
@@ -49,7 +50,13 @@
                     }
                 },
                 error: function(jqXHR) {
-                    notice = parseXMLHttpResponse(jqXHR);
+                    var notice;
+                    if (jqXHR.status == 531 || jqXHR.status == 431) {
+                        var error = $.parseJSON(jqXHR.responseText);
+                        notice = error.oauth2urlresponse.errortext;
+                    } else {
+                        notice = "Error authenticating with OAuth2. Use login/password credentials";
+                    }
                     cloudStack.dialog.notice({
                         message: notice,
                         clickAction: onLogoutCallback
