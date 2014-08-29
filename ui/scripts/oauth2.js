@@ -34,7 +34,6 @@
                 dataType: "json",
                 async: false,
                 success: function(json) {
-                    console.info('aqui', json);
                     var logoutUrl = $.cookie('logout_redirect');
                     var old_onLogoutCallback = onLogoutCallback;
                     g_loginResponse = json.loginresponse;
