@@ -37,7 +37,7 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addGloboNetworkVipToAccountCmd", responseObject=SuccessResponse.class, description="Associates a VIP from GloboNetwork to an account and network in Cloudstack")
+@APICommand(name = "addGloboNetworkVipToAccount", responseObject=SuccessResponse.class, description="Associates a VIP from GloboNetwork to an account and network in Cloudstack")
 public class AddGloboNetworkVipToAccountCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddGloboNetworkVipToAccountCmd.class.getName());

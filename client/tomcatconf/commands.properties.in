@@ -713,13 +713,13 @@ createServiceInstance=1
 
 ### GloboNetwork commands
 addGloboNetworkVlan=15
-addNetworkViaGloboNetworkCmd=15
+addNetworkViaGloboNetwork=15
 addGloboNetworkEnvironment=1
 addGloboNetworkHost=1
 listGloboNetworkEnvironments=15
 removeGloboNetworkEnvironment=1
 listAllEnvironmentsFromGloboNetwork=1
-addGloboNetworkVipToAccountCmd=15
+addGloboNetworkVipToAccount=15
 listGloboNetworkVips=15
 listGloboNetworkReals=15
 associateGloboNetworkRealToVip=15
