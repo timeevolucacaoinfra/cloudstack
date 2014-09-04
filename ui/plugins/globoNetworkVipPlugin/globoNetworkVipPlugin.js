@@ -292,7 +292,7 @@
                                 var vipId = message.data.requestVip;
 
                                 $.ajax({
-                                    url: createURL('addGloboNetworkVipToAccountCmd&networkid=' + args.data.networkId + '&vipid=' + vipId),
+                                    url: createURL('addGloboNetworkVipToAccount&networkid=' + args.data.networkId + '&vipid=' + vipId),
                                     async: false,
                                     success: function(vipJson) {
                                         $(window).unbind('message.vip');
