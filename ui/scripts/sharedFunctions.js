@@ -2515,7 +2515,7 @@ var addGloboNetworkNetworkDialog = {
             array1.push("&zoneId=" + args.data.zoneId);
             array1.push("&networkOfferingId=" + args.data.networkOfferingId);
 
-            //Pass physical network ID to addNetworkViaGloboNetworkCmd API only when network offering's guestiptype is Shared.
+            //Pass physical network ID to addNetworkViaGloboNetwork API only when network offering's guestiptype is Shared.
             var selectedNetworkOfferingObj;
             if (addGloboNetworkNetworkDialog.networkOfferingObjs != null) {
                 for (var i = 0; i < addGloboNetworkNetworkDialog.networkOfferingObjs.length; i++) {
@@ -2566,7 +2566,7 @@ var addGloboNetworkNetworkDialog = {
             }
 
             $.ajax({
-                url: createURL("addNetworkViaGloboNetworkCmd" + array1.join(""), {
+                url: createURL("addNetworkViaGloboNetwork" + array1.join(""), {
                     ignoreProject: true
                 }),
                 dataType: "json",

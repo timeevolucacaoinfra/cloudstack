@@ -42,7 +42,7 @@ import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkViaGloboNetworkCmd", responseObject=NetworkResponse.class, description="Adds a vlan/network in Cloudstack and GloboNetwork")
+@APICommand(name = "addNetworkViaGloboNetwork", responseObject=NetworkResponse.class, description="Adds a vlan/network in Cloudstack and GloboNetwork")
 public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddNetworkViaGloboNetworkCmd.class.getName());
