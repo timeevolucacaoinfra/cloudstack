@@ -27,47 +27,47 @@ import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
 @Table(name = "globonetwork_environment_ref")
-public class GloboNetworkEnvironmentVO implements InternalIdentity {
+public class GloboNetworkLBEnvironmentVO implements InternalIdentity {
 
-	private static final long serialVersionUID = -2510501870987500493L;
+	private static final long serialVersionUID = 1L;
 
 	@Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name = "id")
 	private long id;
 
-	@Column(name = "physical_network_id")
-	private long physicalNetworkId;
-
 	@Column(name = "name")
 	private String name;
 
-	@Column(name = "globonetwork_environment_id")
-	private long globoNetworkEnvironmentId;
+	@Column(name = "globonetwork_environment_ref_id")
+	private long globoNetworkEnvironmentRefId;
 
-	public GloboNetworkEnvironmentVO() {
+	@Column(name = "globonetwork_lb_environment_id")
+    private long globoNetworkLbEnvironmentId;
+
+	public GloboNetworkLBEnvironmentVO() {
 	}
 
-	public GloboNetworkEnvironmentVO(long physicalNetworkId, String name, long globoNetworkEnvironmentId) {
-		this.physicalNetworkId = physicalNetworkId;
+	public GloboNetworkLBEnvironmentVO(String name,
+	        long globoNetworkEnvironmentId, long globoNetworkLbEnvironmentId) {
 		this.name = name;
-		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
+		this.globoNetworkEnvironmentRefId = globoNetworkEnvironmentId;
+        this.globoNetworkLbEnvironmentId = globoNetworkLbEnvironmentId;
 	}
 
 	public long getId() {
 		return id;
 	}
 
-	public long getGloboNetworkEnvironmentId() {
-		return globoNetworkEnvironmentId;
-	}
-
-	public long getPhysicalNetworkId() {
-		return physicalNetworkId;
-	}
-	
 	public String getName() {
 		return name;
 	}
 
+    public long getGloboNetworkEnvironmentRefId() {
+        return globoNetworkEnvironmentRefId;
+    }
+
+    public long getGloboNetworkLbEnvironmentId() {
+        return globoNetworkLbEnvironmentId;
+    }
 }
