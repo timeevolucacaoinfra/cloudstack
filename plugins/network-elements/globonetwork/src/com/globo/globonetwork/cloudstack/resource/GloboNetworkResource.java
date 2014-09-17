@@ -50,6 +50,7 @@ import com.globo.globonetwork.client.model.Ip;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.Vlan;
+import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
@@ -228,6 +229,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 			return execute((GenerateUrlForEditingVipCommand) cmd);
 		} else if (cmd instanceof RemoveVipFromGloboNetworkCommand) {
 			return execute((RemoveVipFromGloboNetworkCommand) cmd);
+        } else if (cmd instanceof AcquireNewIpForLbCommand) {
+            return execute((AcquireNewIpForLbCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -588,6 +591,20 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 		} catch (GloboNetworkException e) {
 			return handleGloboNetworkException(cmd, e);
 		}
+	}
+	
+	public Answer execute(AcquireNewIpForLbCommand cmd) {
+	    try {
+    	    long vipEnvironmentId = cmd.getVipEnvironmentId();
+    	    Ip ip = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(vipEnvironmentId, "");
+    	    if (ip == null) {
+    	        return new Answer(cmd, false, "Acquired new Ip for environment vip " + vipEnvironmentId + " returns no answer");
+    	    }
+    	    // FIXME Parei aqui
+    	    return null;
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
 	}
 
 	private Answer createResponse(Vlan vlan, Command cmd) {

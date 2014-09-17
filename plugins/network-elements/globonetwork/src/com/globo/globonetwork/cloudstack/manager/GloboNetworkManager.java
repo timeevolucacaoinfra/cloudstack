@@ -64,6 +64,7 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
@@ -108,6 +109,7 @@ import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkNetworkVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
@@ -140,6 +142,7 @@ import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkComma
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkLBEnvironmentDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.exception.CloudstackGloboNetworkException;
@@ -204,6 +207,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
 	@Inject
 	GloboNetworkVipAccDao _globoNetworkVipAccDao;
+	@Inject
+	GloboNetworkLBEnvironmentDao _globoNetworkLBEnvDao;
 	
 	// Managers
 	@Inject
@@ -1386,4 +1391,49 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkModelVmUserBareMetal,
 				GloboNetworkDomainSuffix};
 	}
+
+    @Override
+    public IpAddress acquireLbIp(Long networkId) {
+
+        // First of all, check user permission
+        Account caller = CallContext.current().getCallingAccount();
+
+        Network network;
+        if (networkId != null) {
+            network = _ntwkDao.findById(networkId);
+            if (network == null) {
+                throw new InvalidParameterValueException(
+                        "Unable to find a network having the specified network id");
+            }
+        } else {
+            throw new InvalidParameterValueException("Invalid networkId: " + networkId);
+        }
+        // Perform account permission check on network
+        _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
+
+        // The code below is to acquire environmentVip Id, used to request new ip 
+        GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+        if (glbNetworkVO == null) {
+            throw new InvalidParameterValueException("Network " + networkId + " there is not environment");
+        }
+        
+        GloboNetworkEnvironmentVO networkEnvironmentVO = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbNetworkVO.getGloboNetworkEnvironmentId());
+        if (networkEnvironmentVO == null) {
+            throw new InvalidParameterValueException("Network " + networkId + " there is not association between physical network and GloboNetwork environment");
+        }
+        
+        Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
+        
+        GloboNetworkLBEnvironmentVO lbEnvironmentVO = _globoNetworkLBEnvDao.findByEnvironmentRefId(globoNetworkEnvironmentRefId);
+        if (lbEnvironmentVO == null) {
+            throw new InvalidParameterValueException("Environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " of network " + networkId +
+                    "can't acquire ip to load balancer");
+        }
+        
+        long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
+        
+        
+        
+        return null;
+    }
 }

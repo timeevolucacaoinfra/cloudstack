@@ -30,6 +30,7 @@ import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
+import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
@@ -235,4 +236,6 @@ public interface GloboNetworkService {
 	 * @return
 	 */
 	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
+
+    public IpAddress acquireLbIp(Long networkId);
 }
