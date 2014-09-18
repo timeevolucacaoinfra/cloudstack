@@ -32,6 +32,7 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
+import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
@@ -229,13 +230,9 @@ public interface GloboNetworkService {
 	 */
 	public void removeGloboNetworkVip(Long globoNetworkVipId);
 
-	/**
-	 * Find a single GloboNetowrk VIP
-	 * @param vipId
-	 * @param networkId 
-	 * @return
-	 */
 	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
 
+	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
+	
     public IpAddress acquireLbIp(Long networkId);
 }

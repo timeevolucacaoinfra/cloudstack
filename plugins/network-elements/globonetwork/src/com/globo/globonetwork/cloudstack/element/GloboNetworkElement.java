@@ -241,7 +241,14 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
     @Override
     public boolean applyLBRules(Network config, List<LoadBalancingRule> rules) throws ResourceUnavailableException {
-        return false;
+        boolean returnValue = true;
+        boolean result = false;
+        for (LoadBalancingRule loadBalancingRule : rules) {
+            result = _globoNetworkService.applyLbRuleInGloboNetwork(config, loadBalancingRule);
+            // Make sure the method returns false if there is at least one false return
+            returnValue = returnValue && result;
+        }
+        return returnValue;
     }
 
 	@Override

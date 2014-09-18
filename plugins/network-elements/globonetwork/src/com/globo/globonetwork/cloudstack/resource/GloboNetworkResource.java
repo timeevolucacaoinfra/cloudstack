@@ -53,14 +53,15 @@ import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
+import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
@@ -528,56 +529,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 			long vipId = cmd.getVipId();
 			Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
 			
-			if (vip == null) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
-			}
-
-			// Using a map rather than a list because different ports come in different objects
-			// even though they have the same ID
-			// Example
-            // {
-            //    "id_ip": "33713",
-            //    "port_real": "8180",
-            //    "port_vip": "80",
-            //    "real_ip": "10.20.30.40",
-            //    "real_name": "MACHINE01"
-            // },
-            // {
-            //    "id_ip": "33713",
-            //    "port_real": "8280",
-            //    "port_vip": "80",
-            //    "real_ip": "10.20.30.40",
-            //    "real_name": "MACHINE01"
-            // },
-
-			Map<Long, Real> reals = new HashMap<Long, Real>();
-			for(RealIP real : vip.getRealsIp()) {
-				Real realResponse = reals.get(real.getIpId());
-				if (realResponse == null) {
-					// Doesn't exist yet, first time iterating, so add IP parameter and add to list
-					realResponse = new Real();
-					realResponse.setIp(real.getRealIp());
-					realResponse.setVmName(real.getName());
-					reals.put(real.getIpId(), realResponse);
-				}
-				realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
-			}
-
-			GloboNetworkVipResponse vipResponse = new GloboNetworkVipResponse(cmd,
-					vipId, // id
-					vip.getHost(), // name
-					vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString(), // ip
-					null, // network
-					vip.getCache(), // cache
-					vip.getMethod(), // method
-					vip.getPersistence(), // persistence
-					vip.getHealthcheckType(), // healtcheck type
-					vip.getHealthcheck(), // healthcheck
-					vip.getMaxConn(), // maxconn,
-					vip.getPorts(),
-					reals.values());
-			 
-			return vipResponse;
+			return this.createVipResponse(vip, cmd);
 		} catch (GloboNetworkException e) {
 			return handleGloboNetworkException(cmd, e);
 		}
@@ -606,6 +558,106 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return handleGloboNetworkException(cmd, e);
         }
 	}
+	
+   public Answer execute(AddVipInGloboNetworkCommand cmd) {
+        try {
+            // Retrieve command data for creating VIP
+            // params (method, cache, persistence, healthcheck, timeout, maxconn ...)
+            // reals, ports, IPs
+            
+            // FIXME! These parameters will always be null?
+            Long expectedHealthcheckId = null;
+            List<Integer> realsPriorities = null;
+            String l7Filter = null;
+            List<Integer> realsWeights = null;
+            String healthcheck = null;
+            
+            // FIXME! Remove hard coded values
+            String persistence = "(nenhum)";
+            Integer timeout = 10;
+            String cache = "(nenhum)";
+            Integer maxConn = 5;
+            String healthcheckType = "TCP";
+            List<RealIP> realsIp = new ArrayList<RealIP>();
+            
+            String balancingMethod = cmd.getMethodBal();
+            String businessArea = cmd.getBusinessArea();
+            String host = cmd.getHost();
+            String serviceName = cmd.getServiceName();
+            List<String> ports = cmd.getPorts();
+            
+            Long ipv4Id = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(cmd.getIpv4(), idEnvironment);
+            
+            // VIPEnvironment vipEnvironment = _globoNetworkApi.getVipEnvironmentAPI().getById(cmd.getVipEnvironmentId());
+            // String finality = vipEnvironment.getFinality();
+            String finality = null;
+            // String client = vipEnvironment.getClient();
+            String client = null;
+            // String environment = vipEnvironment.getEnvironment();
+            String environment = null;
+            Vip vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId,
+                    finality, client, environment, cache, balancingMethod, persistence, 
+                    healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, 
+                    l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+            
+            return this.createVipResponse(vip, cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+   
+    private Answer createVipResponse(Vip vip, Command cmd) {
+        if (vip == null) {
+            return new Answer(cmd, false, "Vip request was not created in GloboNetwork");
+        }
+
+        // Using a map rather than a list because different ports come in different objects
+        // even though they have the same ID
+        // Example
+        // {
+        //    "id_ip": "33713",
+        //    "port_real": "8180",
+        //    "port_vip": "80",
+        //    "real_ip": "10.20.30.40",
+        //    "real_name": "MACHINE01"
+        // },
+        // {
+        //    "id_ip": "33713",
+        //    "port_real": "8280",
+        //    "port_vip": "80",
+        //    "real_ip": "10.20.30.40",
+        //    "real_name": "MACHINE01"
+        // },
+
+        Map<Long, Real> reals = new HashMap<Long, Real>();
+        for(RealIP real : vip.getRealsIp()) {
+            Real realResponse = reals.get(real.getIpId());
+            if (realResponse == null) {
+                // Doesn't exist yet, first time iterating, so add IP parameter and add to list
+                realResponse = new Real();
+                realResponse.setIp(real.getRealIp());
+                realResponse.setVmName(real.getName());
+                reals.put(real.getIpId(), realResponse);
+            }
+            realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
+        }
+
+        GloboNetworkVipResponse vipResponse = new GloboNetworkVipResponse(cmd,
+                vip.getId(), // id
+                vip.getHost(), // name
+                vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString(), // ip
+                null, // network
+                vip.getCache(), // cache
+                vip.getMethod(), // method
+                vip.getPersistence(), // persistence
+                vip.getHealthcheckType(), // healtcheck type
+                vip.getHealthcheck(), // healthcheck
+                vip.getMaxConn(), // maxconn,
+                vip.getPorts(),
+                reals.values());
+         
+        return vipResponse;
+    }
 
 	private Answer createResponse(Vlan vlan, Command cmd) {
 		

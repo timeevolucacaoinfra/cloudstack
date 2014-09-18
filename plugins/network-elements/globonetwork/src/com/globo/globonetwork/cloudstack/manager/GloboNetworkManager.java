@@ -77,6 +77,7 @@ import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
+import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Grouping;
@@ -128,6 +129,7 @@ import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
@@ -1411,29 +1413,64 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // Perform account permission check on network
         _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
 
+        long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
+        
+        return null;
+    }
+    
+    protected Long getLoadBalancerEnvironmentId(Network network) {
         // The code below is to acquire environmentVip Id, used to request new ip 
-        GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+        GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (glbNetworkVO == null) {
-            throw new InvalidParameterValueException("Network " + networkId + " there is not environment");
+            throw new InvalidParameterValueException("Network " + network.getId() + " there is not environment");
         }
         
         GloboNetworkEnvironmentVO networkEnvironmentVO = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbNetworkVO.getGloboNetworkEnvironmentId());
         if (networkEnvironmentVO == null) {
-            throw new InvalidParameterValueException("Network " + networkId + " there is not association between physical network and GloboNetwork environment");
+            throw new InvalidParameterValueException("Network " + network.getId() + " there is not association between physical network and GloboNetwork environment");
         }
         
         Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
         
         GloboNetworkLBEnvironmentVO lbEnvironmentVO = _globoNetworkLBEnvDao.findByEnvironmentRefId(globoNetworkEnvironmentRefId);
         if (lbEnvironmentVO == null) {
-            throw new InvalidParameterValueException("Environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " of network " + networkId +
+            throw new InvalidParameterValueException("Environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " of network " + network.getId() +
                     "can't acquire ip to load balancer");
         }
         
         long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
+        return lbEnvironmentId;
+    }
+
+    @Override
+    public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule) {
+        // Validate params
+        if (network == null || rule == null) {
+            return false;
+        }
         
+        // Transform LoadBalancingRule obj in GloboNetwork VIP parameters
         
+        // Check if vip already exists in GloboNetwork and configs are the same
         
-        return null;
+        Account account = _accountMgr.getAccount(network.getAccountId());
+        
+        // If not, create vip
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        cmd.setIpv4(rule.getSourceIp().addr());
+        cmd.setMethodBal(rule.getAlgorithm());
+        cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
+        cmd.setBusinessArea(account.getAccountName());
+        cmd.setServiceName(rule.getName());
+        cmd.setHost(rule.getName());
+        // TODO Verify if source port and default port exist
+        // What's the difference between start and end?
+        String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
+        List<String> ports = new ArrayList<String>();
+        ports.add(port);
+        cmd.setPorts(ports);
+        // cmd.setHealthcheckType();
+        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+        return true;
     }
 }
