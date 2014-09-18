@@ -44,10 +44,10 @@ import com.globo.globonetwork.client.exception.GloboNetworkErrorCodeException;
 import com.globo.globonetwork.client.exception.GloboNetworkException;
 import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Environment;
+import com.globo.globonetwork.client.model.EnvironmentVip;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
-import com.globo.globonetwork.client.model.Network;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.Vlan;
@@ -615,15 +615,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String serviceName = cmd.getServiceName();
             List<String> ports = cmd.getPorts();
             
-            Long ipv4Id = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(cmd.getIpv4(), idEnvironment);
+            Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), cmd.getVipEnvironmentId());
+            if (ip == null) {
+                return new Answer(cmd, false, "IP " + cmd.getIpv4() + " cannot be checked against VIP environment " + cmd.getVipEnvironmentId());
+            }
+            Long ipv4Id = ip.getId();
             
-            // VIPEnvironment vipEnvironment = _globoNetworkApi.getVipEnvironmentAPI().getById(cmd.getVipEnvironmentId());
-            // String finality = vipEnvironment.getFinality();
-            String finality = null;
-            // String client = vipEnvironment.getClient();
-            String client = null;
-            // String environment = vipEnvironment.getEnvironment();
-            String environment = null;
+            EnvironmentVip environmentVip = _globoNetworkApi.getEnvironmentVipAPI().search(cmd.getVipEnvironmentId(), null, null, null);
+            if (environmentVip == null) {
+                return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
+            }
+            String finality = environmentVip.getFinality();
+            String client = environmentVip.getClient();
+            String environment = environmentVip.getEnvironmentName();
             Vip vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId,
                     finality, client, environment, cache, balancingMethod, persistence, 
                     healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, 
