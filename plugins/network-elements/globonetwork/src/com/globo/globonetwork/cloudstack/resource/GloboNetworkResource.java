@@ -47,6 +47,7 @@ import com.globo.globonetwork.client.model.Environment;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
+import com.globo.globonetwork.client.model.Network;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.Vlan;
@@ -68,6 +69,7 @@ import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkComma
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
@@ -548,12 +550,39 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 	public Answer execute(AcquireNewIpForLbCommand cmd) {
 	    try {
     	    long vipEnvironmentId = cmd.getVipEnvironmentId();
-    	    Ip ip = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(vipEnvironmentId, "");
-    	    if (ip == null) {
+    	    Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(vipEnvironmentId, "");
+    	    if (globoIp == null) {
     	        return new Answer(cmd, false, "Acquired new Ip for environment vip " + vipEnvironmentId + " returns no answer");
     	    }
-    	    // FIXME Parei aqui
-    	    return null;
+    	    
+            GloboNetworkAndIPResponse answer = new GloboNetworkAndIPResponse(cmd);
+            
+            // ip information
+            answer.setIp(new com.cloud.utils.net.Ip(globoIp.getIpString()));
+            answer.setIpId(globoIp.getId());
+            
+            // get network information
+            Long networkId = globoIp.getNetworkId();
+            IPv4Network network = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(networkId);
+            if (network == null) {
+                return new Answer(cmd, false, "Network with id " + networkId + " not found");
+            }
+            answer.setNetworkId(networkId);
+            answer.setNetworkAddress(new com.cloud.utils.net.Ip(network.getNetworkAddressAsString()));
+            answer.setNetworkBlock(network.getBlock());
+            answer.setNetworkBroadcast(new com.cloud.utils.net.Ip(network.getBroadcast()));
+
+            // get vlan information
+            Long vlanId = network.getVlanId();
+            Vlan vlan = _globoNetworkApi.getVlanAPI().getById(vlanId);
+            if (vlan == null) {
+                return new Answer(cmd, false, "Vlan with id " + vlanId + " not found");
+            }
+            answer.setVlanId(vlanId);
+            answer.setVlanName(vlan.getName());
+            answer.setVlanDescription(vlan.getDescription());
+            answer.setVlanNum(vlan.getVlanNum());
+    	    return answer;
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         }
