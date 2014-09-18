@@ -121,6 +121,7 @@ import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
+import com.globo.globonetwork.cloudstack.api.GloboNetworkAcquireNewIpForLbCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
@@ -809,6 +810,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		cmdList.add(GenerateUrlForEditingVipCmd.class);
 		cmdList.add(RemoveGloboNetworkVipCmd.class);
 		cmdList.add(ListGloboNetworkRealsCmd.class);
+		cmdList.add(GloboNetworkAcquireNewIpForLbCmd.class);
 		return cmdList;
 	}
 	
@@ -1427,6 +1429,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         GloboNetworkAndIPResponse globoNetwork =  ((GloboNetworkAndIPResponse) answer);
+        
+        
         
         return null;
     }
