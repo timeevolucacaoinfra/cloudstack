@@ -126,6 +126,7 @@ import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
+import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
@@ -149,6 +150,7 @@ import com.globo.globonetwork.cloudstack.exception.CloudstackGloboNetworkExcepti
 import com.globo.globonetwork.cloudstack.resource.GloboNetworkResource;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
@@ -1432,8 +1434,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
         
+        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
         
+        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+        if (answer == null || !answer.getResult()) {
+            String msg = "Could not acquire VIP IP from GloboNetwork";
+            msg = answer == null ? msg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+        GloboNetworkAndIPResponse globoNetwork =  ((GloboNetworkAndIPResponse) answer);
         
+    
         return null;
     }
 }
