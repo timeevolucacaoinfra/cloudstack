@@ -26,7 +26,7 @@ import javax.persistence.Table;
 import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
-@Table(name = "globonetwork_environment_ref")
+@Table(name = "globonetwork_lb_environment")
 public class GloboNetworkLBEnvironmentVO implements InternalIdentity {
 
 	private static final long serialVersionUID = 1L;

@@ -1502,7 +1502,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GloboNetworkLBEnvironmentVO lbEnvironmentVO = _globoNetworkLBEnvDao.findByEnvironmentRefId(globoNetworkEnvironmentRefId);
         if (lbEnvironmentVO == null) {
             throw new InvalidParameterValueException("Environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " of network " + network.getId() +
-                    "can't acquire ip to load balancer");
+                    " can't acquire ip to load balancer");
         }
         
         long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
