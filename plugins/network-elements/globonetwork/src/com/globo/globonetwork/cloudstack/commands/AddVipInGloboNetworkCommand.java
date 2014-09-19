@@ -19,6 +19,7 @@ package com.globo.globonetwork.cloudstack.commands;
 import java.util.List;
 
 import com.cloud.agent.api.Command;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 public class AddVipInGloboNetworkCommand extends Command {
 	
@@ -37,6 +38,8 @@ public class AddVipInGloboNetworkCommand extends Command {
 	private String healthcheckType;
 	
 	private List<String> ports;
+	
+	private List<GloboNetworkVipResponse.Real> realList;
 	
 	@Override
 	public boolean executeInSequence() {
@@ -105,5 +108,13 @@ public class AddVipInGloboNetworkCommand extends Command {
     
     public void setPorts(List<String> ports) {
         this.ports = ports;
+    }
+
+    public List<GloboNetworkVipResponse.Real> getRealList() {
+        return realList;
+    }
+
+    public void setRealList(List<GloboNetworkVipResponse.Real> realList) {
+        this.realList = realList;
     }
 }

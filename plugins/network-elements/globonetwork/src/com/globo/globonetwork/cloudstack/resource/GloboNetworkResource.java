@@ -598,9 +598,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 	
    public Answer execute(AddVipInGloboNetworkCommand cmd) {
         try {
-            // Retrieve command data for creating VIP
-            // params (method, cache, persistence, healthcheck, timeout, maxconn ...)
-            // reals, ports, IPs
             
             // FIXME! These parameters will always be null?
             Long expectedHealthcheckId = null;
@@ -615,20 +612,30 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String cache = "(nenhum)";
             Integer maxConn = 5;
             String healthcheckType = "TCP";
-            List<RealIP> realsIp = new ArrayList<RealIP>();
             
+            // Values that come directly from command
             String balancingMethod = cmd.getMethodBal();
             String businessArea = cmd.getBusinessArea();
             String host = cmd.getHost();
             String serviceName = cmd.getServiceName();
             List<String> ports = cmd.getPorts();
             
+            // Process IPs and set RealIP objects to create VIP
+            List<RealIP> realsIp = new ArrayList<RealIP>();
+            for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                RealIP realIP = new RealIP();
+                realIP.setName(real.getVmName());
+                realIP.setRealIp(real.getIp());
+            }
+            
+            // Check VIP IP in its environment
             Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), cmd.getVipEnvironmentId());
             if (ip == null) {
                 return new Answer(cmd, false, "IP " + cmd.getIpv4() + " cannot be checked against VIP environment " + cmd.getVipEnvironmentId());
             }
             Long ipv4Id = ip.getId();
             
+            // Search for a VIP environment to get its info (needed for finality, client and environment)
             VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
             if (environmentVip == null) {
                 return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
@@ -636,10 +643,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String finality = environmentVip.getFinality();
             String client = environmentVip.getClient();
             String environment = environmentVip.getEnvironmentName();
+            
+            
+            // TODO Check if the VIP already exists before creating it
+            
+            
+            // Actually add the VIP to GloboNetwork
             Vip vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId,
                     finality, client, environment, cache, balancingMethod, persistence, 
                     healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, 
                     l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+            
+            // TODO Validate and create VIP
+            
             
             return this.createVipResponse(vip, cmd);
         } catch (GloboNetworkException e) {

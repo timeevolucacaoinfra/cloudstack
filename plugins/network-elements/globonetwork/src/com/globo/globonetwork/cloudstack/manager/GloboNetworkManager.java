@@ -88,6 +88,7 @@ import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRule.LbDestination;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Grouping;
@@ -1539,10 +1540,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             return false;
         }
         
-        // Transform LoadBalancingRule obj in GloboNetwork VIP parameters
-        
-        // Check if vip already exists in GloboNetwork and configs are the same
-        
         Account account = _accountMgr.getAccount(network.getAccountId());
         
         // If not, create vip
@@ -1553,13 +1550,33 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmd.setBusinessArea(account.getAccountName());
         cmd.setServiceName(rule.getName());
         cmd.setHost(rule.getName());
-        // TODO Verify if source port and default port exist
-        // What's the difference between start and end?
         String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
         List<String> ports = new ArrayList<String>();
         ports.add(port);
         cmd.setPorts(ports);
+        
+        // TODO Set healthcheck parameters
         // cmd.setHealthcheckType();
+        
+        // FIXME Use a specific object for this rather than use VipResponse's object?
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
+        for (LbDestination destVM : rule.getDestinations()) {
+            Nic nic = _nicDao.findByIp4AddressAndNetworkId(destVM.getIpAddress(), network.getId());
+            if (nic != null) {
+                VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
+                if (vm != null) {
+                    GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+                    real.setIp(destVM.getIpAddress());
+                    real.setVmName(getEquipNameFromUuid(vm.getUuid()));
+                    realList.add(real);
+                } else {
+                    throw new InvalidParameterValueException("Could not find VM with address " + destVM.getIpAddress() + " or NIC is not in the right network");
+                }
+            } else {
+                throw new InvalidParameterValueException("Could not find NIC with address " + destVM.getIpAddress());
+            }
+        cmd.setRealList(realList);
+        }
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         return true;
     }
