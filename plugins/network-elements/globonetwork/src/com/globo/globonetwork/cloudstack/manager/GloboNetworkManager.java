@@ -35,6 +35,7 @@ import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationSe
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.commons.lang.ObjectUtils;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -46,8 +47,11 @@ import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenterVO;
+import com.cloud.dc.VlanVO;
+import com.cloud.dc.Vlan.VlanType;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
+import com.cloud.dc.dao.VlanDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
@@ -68,6 +72,9 @@ import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
+import com.cloud.network.Networks.BroadcastDomainType;
+import com.cloud.network.Networks.BroadcastScheme;
+import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.PhysicalNetwork;
@@ -90,6 +97,7 @@ import com.cloud.user.DomainManager;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
+import com.cloud.utils.NumbersUtil;
 import com.cloud.utils.Pair;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.PluggableService;
@@ -100,6 +108,7 @@ import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
+import com.cloud.utils.net.NetUtils.supersetOrSubset;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
@@ -192,6 +201,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	DataCenterDao _dcDao;
 	@Inject
 	HostPodDao _hostPodDao;
+	@Inject
+	VlanDao _vlanDao;
 	@Inject
 	PhysicalNetworkDao _physicalNetworkDao;
 	@Inject
@@ -1397,6 +1408,53 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkModelVmUserBareMetal,
 				GloboNetworkDomainSuffix};
 	}
+	
+	protected com.cloud.dc.Vlan getOrCreatePublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+        // check if vlan already exists
+        List<VlanVO> vlans = _vlanDao.listByZoneAndType(zoneId, VlanType.VirtualNetwork);
+//        VlanVO  = null;
+        // FIXME Check in future versions if vlanVO.getVlanTag() is URI or only vlan number
+        for (VlanVO existedVlan : vlans) {
+            Integer existedVlanNumber;
+            if (existedVlan.getVlanTag() == null || com.cloud.dc.Vlan.UNTAGGED.equals(existedVlan.getVlanTag())) {
+                existedVlanNumber = null;
+            } else {
+                URI vlanUri = URI.create(existedVlan.getVlanTag());
+                existedVlanNumber = Integer.valueOf(BroadcastDomainType.Vlan.getValueFrom(vlanUri));
+            }
+            if (ObjectUtils.equals(vlanNumber, existedVlanNumber)) {
+                // check if network is the same
+                String existedNetworkCidr = NetUtils.getCidrFromGatewayAndNetmask(existedVlan.getVlanGateway(), existedVlan.getVlanNetmask());
+                supersetOrSubset status = NetUtils.isNetowrkASubsetOrSupersetOfNetworkB(existedNetworkCidr, networkCidr);
+                if (status == supersetOrSubset.neitherSubetNorSuperset) {
+                    // Vlan and network already exist
+                    return existedVlan;
+                } else {
+                    throw new ResourceAllocationException("Public vlan with number " + vlanNumber + " and network " + networkCidr + " is " + status 
+                            + " by vlan uuid " + existedVlan.getUuid(), ResourceType.public_ip);
+                }
+            }
+        }
+        
+        // Configure new vlan
+        List<NetworkVO> networks = _ntwkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
+        // Can have more than one public network in the same zone (differ by physical network)
+        if (networks.isEmpty()) {
+            throw new ResourceUnavailableException("There are no Public network is this zone", DataCenter.class, zoneId);
+        }
+        NetworkVO network = networks.get(0);
+        
+        String networkMask = NetUtils.getCidrNetmask(networkCidr);
+        long size = NetUtils.getCidrSize(networkMask);
+        String startIP = NetUtils.getIpRangeStartIpFromCidr(networkCidr, size);
+        String endIP = NetUtils.getIpRangeEndIpFromCidr(networkCidr, size);
+        String vlanId = BroadcastDomainType.Vlan.toUri(vlanNumber).toString();
+        
+        
+        com.cloud.dc.Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), network.getPhysicalNetworkId(), true, null,
+                startIP, endIP, networkGateway, networkMask, vlanId, null, null, null, null, null);
+        return vlan;
+	}
 
     @Override
     public IpAddress acquireLbIp(Long networkId) {
@@ -1429,8 +1487,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         GloboNetworkAndIPResponse globoNetwork =  ((GloboNetworkAndIPResponse) answer);
-        
-        
+        Long zoneId = network.getDataCenterId();
+//        com.cloud.dc.Vlan vlan = getOrCreatePublicVlan()
         
         return null;
     }
