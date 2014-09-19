@@ -234,6 +234,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 			return execute((RemoveVipFromGloboNetworkCommand) cmd);
         } else if (cmd instanceof AcquireNewIpForLbCommand) {
             return execute((AcquireNewIpForLbCommand) cmd);
+		} else if (cmd instanceof AddVipInGloboNetworkCommand) {
+		    return execute((AddVipInGloboNetworkCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}

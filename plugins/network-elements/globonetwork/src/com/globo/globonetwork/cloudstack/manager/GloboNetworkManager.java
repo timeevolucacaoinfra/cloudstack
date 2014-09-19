@@ -47,8 +47,8 @@ import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenterVO;
-import com.cloud.dc.VlanVO;
 import com.cloud.dc.Vlan.VlanType;
+import com.cloud.dc.VlanVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.dc.dao.VlanDao;
@@ -72,11 +72,10 @@ import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
-import com.cloud.network.Networks.BroadcastDomainType;
-import com.cloud.network.Networks.BroadcastScheme;
-import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
+import com.cloud.network.Networks.BroadcastDomainType;
+import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
@@ -97,7 +96,6 @@ import com.cloud.user.DomainManager;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
-import com.cloud.utils.NumbersUtil;
 import com.cloud.utils.Pair;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.PluggableService;
@@ -1510,7 +1508,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GloboNetworkLBEnvironmentVO lbEnvironmentVO = _globoNetworkLBEnvDao.findByEnvironmentRefId(globoNetworkEnvironmentRefId);
         if (lbEnvironmentVO == null) {
             throw new InvalidParameterValueException("Environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " of network " + network.getId() +
-                    "can't acquire ip to load balancer");
+                    " can't acquire ip to load balancer");
         }
         
         long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
