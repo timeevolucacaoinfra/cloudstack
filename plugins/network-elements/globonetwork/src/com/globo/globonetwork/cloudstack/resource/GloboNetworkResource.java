@@ -44,7 +44,7 @@ import com.globo.globonetwork.client.exception.GloboNetworkErrorCodeException;
 import com.globo.globonetwork.client.exception.GloboNetworkException;
 import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Environment;
-import com.globo.globonetwork.client.model.EnvironmentVip;
+import com.globo.globonetwork.client.model.VipEnvironment;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
@@ -621,7 +621,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             }
             Long ipv4Id = ip.getId();
             
-            EnvironmentVip environmentVip = _globoNetworkApi.getEnvironmentVipAPI().search(cmd.getVipEnvironmentId(), null, null, null);
+            VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
             if (environmentVip == null) {
                 return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
             }
