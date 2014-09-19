@@ -39,6 +39,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
+import com.cloud.network.addr.PublicIp;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 @APICommand(name = "acquireNewLBIp", description="Acquires and associates a Load Balancer IP to an network.", responseObject=IPAddressResponse.class)
@@ -102,9 +103,9 @@ public class GloboNetworkAcquireNewIpForLbCmd extends BaseAsyncCreateCmd {
     }
 
     @Override
-    public void create() throws ResourceAllocationException{
+    public void create() throws ResourceAllocationException {
         try {
-            IpAddress ip = globoNetworkSvc.acquireLbIp(getNetworkId());
+            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId());
 
             if (ip != null) {
                 setEntityId(ip.getId());
@@ -115,10 +116,10 @@ public class GloboNetworkAcquireNewIpForLbCmd extends BaseAsyncCreateCmd {
         } catch (ConcurrentOperationException ex) {
             s_logger.warn("Exception: ", ex);
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, ex.getMessage());
-//        } catch (InsufficientAddressCapacityException ex) {
-//            s_logger.info(ex);
-//            s_logger.trace(ex);
-//            throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, ex.getMessage());
+        } catch (InsufficientCapacityException ex) {
+            throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, ex.getMessage());
+        } catch (ResourceUnavailableException ex) {
+            throw new ServerApiException(ApiErrorCode.RESOURCE_UNAVAILABLE_ERROR, ex.getMessage());
         }
     }
 

@@ -19,6 +19,7 @@ package com.globo.globonetwork.cloudstack.manager;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +48,9 @@ import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenterVO;
-import com.cloud.dc.VlanVO;
+import com.cloud.dc.Vlan;
 import com.cloud.dc.Vlan.VlanType;
+import com.cloud.dc.VlanVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
 import com.cloud.dc.dao.VlanDao;
@@ -69,15 +71,16 @@ import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
 import com.cloud.network.IpAddress;
+import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
-import com.cloud.network.Networks.BroadcastDomainType;
-import com.cloud.network.Networks.BroadcastScheme;
-import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
+import com.cloud.network.Networks.BroadcastDomainType;
+import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
+import com.cloud.network.addr.PublicIp;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
@@ -97,7 +100,6 @@ import com.cloud.user.DomainManager;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
-import com.cloud.utils.NumbersUtil;
 import com.cloud.utils.Pair;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.PluggableService;
@@ -117,7 +119,6 @@ import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
-import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkNetworkVO;
@@ -225,6 +226,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	GloboNetworkVipAccDao _globoNetworkVipAccDao;
 	@Inject
 	GloboNetworkLBEnvironmentDao _globoNetworkLBEnvDao;
+    @Inject
+    VMInstanceDao _vmDao;
 	
 	// Managers
 	@Inject
@@ -246,7 +249,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	@Inject
 	NetworkService _ntwSvc;
 	@Inject
-	VMInstanceDao _vmDao;
+	IpAddressManager _ipAddrMgr;
 	
 	@Override
 	public boolean canEnable(Long physicalNetworkId) {
@@ -887,14 +890,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	public void removeNetworkFromGloboNetwork(Network network) {
 		
 		try {
+            // TODO Put code to ensure vlan is valid in resource
 			// Make sure the VLAN is valid
-			this.getVlanInfoFromGloboNetwork(network);
+	        GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
+	        Long vlanId = getGloboNetworkVlanId(network.getId());
+	        cmd.setVlanId(vlanId);
+	    
+	        callCommand(cmd, network.getDataCenterId());
+	        // if can get vlan information, it's ok to remove it.
 		
-			RemoveNetworkInGloboNetworkCommand cmd = new RemoveNetworkInGloboNetworkCommand();
-			Long vlanId = getGloboNetworkVlanId(network.getId());
-			cmd.setVlanId(vlanId);
+			RemoveNetworkInGloboNetworkCommand cmd2 = new RemoveNetworkInGloboNetworkCommand();
+			cmd2.setVlanId(vlanId);
 
-			this.callCommand(cmd, network.getDataCenterId());
+			callCommand(cmd, network.getDataCenterId());
 		} catch (CloudstackGloboNetworkException e) {
 			handleNetworkUnavaiableError(e);
 		}
@@ -982,23 +990,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         boolean result = _globoNetworkEnvironmentDao.remove(globoNetworkEnvironment.getId());
 
 		return result;
-	}
-	
-	@Override
-	public Vlan getVlanInfoFromGloboNetwork(Network network) {
-		GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
-		Long vlanId = getGloboNetworkVlanId(network.getId());
-		cmd.setVlanId(vlanId);
-	
-		GloboNetworkVlanResponse response = (GloboNetworkVlanResponse) callCommand(cmd, network.getDataCenterId());
-		
-		Vlan vlan = new Vlan();
-		vlan.setId(response.getVlanId());
-		vlan.setName(response.getVlanName());
-		vlan.setVlanNum(response.getVlanNum());
-		vlan.setDescription(response.getVlanDescription());
-		
-		return vlan;
 	}
 	
 	@Override
@@ -1409,14 +1400,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkDomainSuffix};
 	}
 	
-	protected com.cloud.dc.Vlan getOrCreatePublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+	protected Vlan getPublicVlanFromZoneVlanNumberAndNetwork(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
         // check if vlan already exists
         List<VlanVO> vlans = _vlanDao.listByZoneAndType(zoneId, VlanType.VirtualNetwork);
-//        VlanVO  = null;
-        // FIXME Check in future versions if vlanVO.getVlanTag() is URI or only vlan number
         for (VlanVO existedVlan : vlans) {
             Integer existedVlanNumber;
-            if (existedVlan.getVlanTag() == null || com.cloud.dc.Vlan.UNTAGGED.equals(existedVlan.getVlanTag())) {
+            if (existedVlan.getVlanTag() == null || Vlan.UNTAGGED.equals(existedVlan.getVlanTag())) {
                 existedVlanNumber = null;
             } else {
                 URI vlanUri = URI.create(existedVlan.getVlanTag());
@@ -1435,8 +1424,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 }
             }
         }
-        
+        return null;
+	}
+	
+	protected Vlan createNewPublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
         // Configure new vlan
+	    // FIXME Maybe we need to fix this code to exclude owned vlans (check _vlanDao.listZoneWideNonDedicatedVlans(dcId);
         List<NetworkVO> networks = _ntwkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
         // Can have more than one public network in the same zone (differ by physical network)
         if (networks.isEmpty()) {
@@ -1450,14 +1443,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         String endIP = NetUtils.getIpRangeEndIpFromCidr(networkCidr, size);
         String vlanId = BroadcastDomainType.Vlan.toUri(vlanNumber).toString();
         
-        
-        com.cloud.dc.Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), network.getPhysicalNetworkId(), true, null,
+        Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), network.getPhysicalNetworkId(), true, null,
                 startIP, endIP, networkGateway, networkMask, vlanId, null, null, null, null, null);
         return vlan;
 	}
 
     @Override
-    public IpAddress acquireLbIp(Long networkId) {
+    public PublicIp acquireLbIp(Long networkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
 
         // First of all, check user permission
         Account caller = CallContext.current().getCallingAccount();
@@ -1479,18 +1471,18 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
         
-        Answer answer = this.callCommand(cmd, network.getDataCenterId());
-        if (answer == null || !answer.getResult()) {
-            String msg = "Could not acquire VIP IP from GloboNetwork";
-            msg = answer == null ? msg : answer.getDetails();
-            throw new CloudRuntimeException(msg);
+        GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
+        Long zoneId = network.getDataCenterId();
+        Integer vlanNumber = globoNetwork.getVlanNum();
+        Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+        if (vlan == null) {
+            vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
         }
         
-        GloboNetworkAndIPResponse globoNetwork =  ((GloboNetworkAndIPResponse) answer);
-        Long zoneId = network.getDataCenterId();
-//        com.cloud.dc.Vlan vlan = getOrCreatePublicVlan()
-        
-        return null;
+        String myIp = globoNetwork.getIp().addr();
+        PublicIp publicIp = _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, null, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
+                null, myIp, false);
+        return publicIp;
     }
     
     protected Long getLoadBalancerEnvironmentId(Network network) {
