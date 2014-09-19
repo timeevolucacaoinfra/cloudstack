@@ -604,7 +604,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             List<Integer> realsPriorities = null;
             String l7Filter = null;
             List<Integer> realsWeights = null;
-            String healthcheck = null;
+            String healthcheck = "";
             
             // FIXME! Remove hard coded values
             String persistence = "(nenhum)";
@@ -614,7 +614,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String healthcheckType = "TCP";
             
             // Values that come directly from command
-            String balancingMethod = cmd.getMethodBal();
+            String balancingMethod = "least-conn"; //cmd.getMethodBal();
             String businessArea = cmd.getBusinessArea();
             String host = cmd.getHost();
             String serviceName = cmd.getServiceName();
@@ -626,6 +626,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 RealIP realIP = new RealIP();
                 realIP.setName(real.getVmName());
                 realIP.setRealIp(real.getIp());
+                realsIp.add(realIP);
             }
             
             // Check VIP IP in its environment
