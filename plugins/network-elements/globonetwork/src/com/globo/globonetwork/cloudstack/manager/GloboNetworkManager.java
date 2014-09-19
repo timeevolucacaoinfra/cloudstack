@@ -1437,13 +1437,24 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         NetworkVO network = networks.get(0);
         
-        String networkMask = NetUtils.getCidrNetmask(networkCidr);
-        long size = NetUtils.getCidrSize(networkMask);
-        String startIP = NetUtils.getIpRangeStartIpFromCidr(networkCidr, size);
-        String endIP = NetUtils.getIpRangeEndIpFromCidr(networkCidr, size);
         String vlanId = BroadcastDomainType.Vlan.toUri(vlanNumber).toString();
+        String networkMask = NetUtils.getCidrNetmask(networkCidr);
+        String networkAddress = NetUtils.getCidr(networkCidr).first();
+        long size = NetUtils.getCidrSize(networkMask);
+        String startIP = NetUtils.getIpRangeStartIpFromCidr(networkAddress, size);
+        String endIP = NetUtils.getIpRangeEndIpFromCidr(networkAddress, size);
+
+        // shift start ips by NUMBER_OF_RESERVED_IPS_FROM_START and NUMBER_OF_RESERVED_IPS_BEFORE_END
+        startIP = NetUtils.long2Ip(NetUtils.ip2Long(startIP) + NUMBER_OF_RESERVED_IPS_FROM_START);
+        endIP = NetUtils.long2Ip(NetUtils.ip2Long(endIP) - NUMBER_OF_RESERVED_IPS_BEFORE_END);
         
-        Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), network.getPhysicalNetworkId(), true, null,
+        List<PhysicalNetworkVO> listPhysicalNetworks = _physicalNetworkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
+        if (listPhysicalNetworks.isEmpty()) {
+            throw new ResourceUnavailableException("There are no Public Physical network is this zone", DataCenter.class, zoneId);
+        }
+        Long physicalNetworkId = listPhysicalNetworks.get(0).getId();
+        
+        Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), physicalNetworkId, true, null,
                 startIP, endIP, networkGateway, networkMask, vlanId, null, null, null, null, null);
         return vlan;
 	}
@@ -1452,9 +1463,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     public PublicIp acquireLbIp(Long networkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
 
         // First of all, check user permission
-        Account caller = CallContext.current().getCallingAccount();
+        final Account caller = CallContext.current().getCallingAccount();
 
-        Network network;
+        final Network network;
         if (networkId != null) {
             network = _ntwkDao.findById(networkId);
             if (network == null) {
@@ -1471,17 +1482,29 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
         
-        GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
-        Long zoneId = network.getDataCenterId();
-        Integer vlanNumber = globoNetwork.getVlanNum();
-        Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-        if (vlan == null) {
-            vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-        }
+        final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
         
-        String myIp = globoNetwork.getIp().addr();
-        PublicIp publicIp = _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, null, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
-                null, myIp, false);
+        // FIXME fix exceptions
+        PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudRuntimeException>() {
+
+            @Override
+            public PublicIp doInTransaction(TransactionStatus status) throws CloudRuntimeException {
+                try {
+                    Long zoneId = network.getDataCenterId();
+                    Integer vlanNumber = globoNetwork.getVlanNum();
+                    Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    if (vlan == null) {
+                        vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    }
+                    
+                    String myIp = globoNetwork.getIp().addr();
+                    return _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, caller, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
+                            null, myIp, false);
+                } catch (Exception e) {
+                    throw new CloudRuntimeException(e);
+                }
+            }
+        });
         return publicIp;
     }
     
