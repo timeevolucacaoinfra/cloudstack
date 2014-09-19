@@ -27,11 +27,13 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
+import com.cloud.network.addr.PublicIp;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
@@ -172,13 +174,6 @@ public interface GloboNetworkService {
 			String password, String url);
 	
 	/**
-	 * Retrieve VLAN info from GloboNetwork
-	 * @param network
-	 * @return
-	 */
-	public Vlan getVlanInfoFromGloboNetwork(Network network);
-
-	/**
 	 * Register VM NIC in GloboNetwork
 	 * @param nic
 	 * @param vm
@@ -234,5 +229,5 @@ public interface GloboNetworkService {
 
 	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
 	
-    public IpAddress acquireLbIp(Long networkId);
+    public PublicIp acquireLbIp(Long networkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
 }

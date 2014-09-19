@@ -19,7 +19,6 @@ package com.globo.globonetwork.cloudstack.response;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.utils.net.Ip;
-import com.cloud.utils.net.Ip4Address;
 
 public class GloboNetworkAndIPResponse extends Answer {
 
@@ -30,17 +29,21 @@ public class GloboNetworkAndIPResponse extends Answer {
     
     private String vlanDescription;
 
-    private Long vlanNum;
+    private Integer vlanNum;
 
     // Network information
     private Long networkId;
     
-    private Ip networkAddress;
+    private String networkAddress;
     
-    private Integer networkBlock;
+    private String networkMask;
 
-    private Ip networkBroadcast;
+    private String networkBroadcast;
     
+    private String networkGateway;
+    
+    private String networkCidr;
+
     private boolean isActive;
     
     // Ip information (optional)
@@ -52,8 +55,8 @@ public class GloboNetworkAndIPResponse extends Answer {
         super(command, true, null);
     }
     
-    public GloboNetworkAndIPResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, boolean isActive,
-            Long networkId, Ip networkAddress, Integer networkBlock, Ip networkBroadcast, 
+    public GloboNetworkAndIPResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Integer vlanNum, boolean isActive,
+            Long networkId, String networkAddress, String networkMask, String networkBroadcast, String networkGateway, String networkCidr,
             Long ipId, Ip ip) {
     	this(command);
     	this.vlanId = vlanId;
@@ -61,8 +64,10 @@ public class GloboNetworkAndIPResponse extends Answer {
     	this.vlanDescription = vlanDescription;
     	this.vlanNum = vlanNum;
     	this.networkAddress = networkAddress;
-    	this.setNetworkBlock(networkBlock);
+    	this.networkMask = networkMask;
     	this.networkBroadcast = networkBroadcast;
+    	this.networkGateway = networkGateway;
+    	this.networkCidr = networkCidr;
     	this.networkId = networkId;
     	this.isActive = isActive;
     	this.ipId = ipId;
@@ -93,11 +98,11 @@ public class GloboNetworkAndIPResponse extends Answer {
         this.vlanDescription = vlanDescription;
     }
 
-    public Long getVlanNum() {
+    public Integer getVlanNum() {
         return vlanNum;
     }
 
-    public void setVlanNum(Long vlanNum) {
+    public void setVlanNum(Integer vlanNum) {
         this.vlanNum = vlanNum;
     }
 
@@ -117,19 +122,19 @@ public class GloboNetworkAndIPResponse extends Answer {
         this.networkId = networkId;
     }
 
-    public Ip getNetworkAddress() {
+    public String getNetworkAddress() {
         return networkAddress;
     }
 
-    public void setNetworkAddress(Ip networkAddress) {
+    public void setNetworkAddress(String networkAddress) {
         this.networkAddress = networkAddress;
     }
 
-    public Ip getNetworkBroadcast() {
+    public String getNetworkBroadcast() {
         return networkBroadcast;
     }
 
-    public void setNetworkBroadcast(Ip networkBroadcast) {
+    public void setNetworkBroadcast(String networkBroadcast) {
         this.networkBroadcast = networkBroadcast;
     }
 
@@ -149,12 +154,28 @@ public class GloboNetworkAndIPResponse extends Answer {
         this.ip = ip;
     }
 
-    public Integer getNetworkBlock() {
-        return networkBlock;
+    public String getNetworkGateway() {
+        return networkGateway;
     }
 
-    public void setNetworkBlock(Integer networkBlock) {
-        this.networkBlock = networkBlock;
+    public void setNetworkGateway(String networkGateway) {
+        this.networkGateway = networkGateway;
+    }
+
+    public String getNetworkMask() {
+        return networkMask;
+    }
+
+    public void setNetworkMask(String networkMask) {
+        this.networkMask = networkMask;
+    }
+
+    public String getNetworkCidr() {
+        return networkCidr;
+    }
+
+    public void setNetworkCidr(String networkCidr) {
+        this.networkCidr = networkCidr;
     }
     
 }

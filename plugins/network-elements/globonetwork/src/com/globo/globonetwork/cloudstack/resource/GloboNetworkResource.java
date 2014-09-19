@@ -570,9 +570,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 return new Answer(cmd, false, "Network with id " + networkId + " not found");
             }
             answer.setNetworkId(networkId);
-            answer.setNetworkAddress(new com.cloud.utils.net.Ip(network.getNetworkAddressAsString()));
-            answer.setNetworkBlock(network.getBlock());
-            answer.setNetworkBroadcast(new com.cloud.utils.net.Ip(network.getBroadcast()));
+            answer.setNetworkAddress(network.getNetworkAddressAsString());
+            answer.setNetworkBroadcast(network.getBroadcast());
+            answer.setNetworkMask(network.getMaskAsString());
+            answer.setActive(Boolean.TRUE.equals(network.getActive()));
+            long size = network.getBlock();
+            
+            answer.setNetworkCidr(network.getNetworkAddressAsString() + "/" + size);
+            // TODO Gateway is always the first ip in network. Change GloboNetwork to send gateway by itself
+            answer.setNetworkGateway(NetUtils.getIpRangeStartIpFromCidr(network.getNetworkAddressAsString(), size));
 
             // get vlan information
             Long vlanId = network.getVlanId();
@@ -583,7 +589,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             answer.setVlanId(vlanId);
             answer.setVlanName(vlan.getName());
             answer.setVlanDescription(vlan.getDescription());
-            answer.setVlanNum(vlan.getVlanNum());
+            answer.setVlanNum(vlan.getVlanNum().intValue());
     	    return answer;
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
@@ -727,5 +733,5 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 		Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
 		return new GloboNetworkVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask, ipv4Network.getId(), ipv4Network.getActive());
 	}
-	
+
 }
