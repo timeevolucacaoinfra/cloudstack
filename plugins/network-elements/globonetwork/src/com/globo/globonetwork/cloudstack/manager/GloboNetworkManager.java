@@ -1416,7 +1416,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 // check if network is the same
                 String existedNetworkCidr = NetUtils.getCidrFromGatewayAndNetmask(existedVlan.getVlanGateway(), existedVlan.getVlanNetmask());
                 supersetOrSubset status = NetUtils.isNetowrkASubsetOrSupersetOfNetworkB(existedNetworkCidr, networkCidr);
-                if (status == supersetOrSubset.neitherSubetNorSuperset) {
+                if (status == supersetOrSubset.sameSubnet) {
                     // Vlan and network already exist
                     return existedVlan;
                 } else {
