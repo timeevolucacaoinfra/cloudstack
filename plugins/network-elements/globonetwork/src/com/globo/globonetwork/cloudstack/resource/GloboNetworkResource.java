@@ -711,7 +711,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 vip.getHealthcheckType(), // healtcheck type
                 vip.getHealthcheck(), // healthcheck
                 vip.getMaxConn(), // maxconn,
-                vip.getPorts(),
+                vip.getServicePorts(),
                 reals.values());
          
         return vipResponse;
