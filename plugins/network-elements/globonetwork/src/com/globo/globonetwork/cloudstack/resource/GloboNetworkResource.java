@@ -598,10 +598,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 	
    public Answer execute(AddVipInGloboNetworkCommand cmd) {
         try {
+            Integer DEFAULT_REALS_PRIORITY = 10;
             
             // FIXME! These parameters will always be null?
             Long expectedHealthcheckId = null;
-            List<Integer> realsPriorities = null;
             String l7Filter = null;
             List<Integer> realsWeights = null;
             String healthcheck = "";
@@ -622,11 +622,14 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             
             // Process IPs and set RealIP objects to create VIP
             List<RealIP> realsIp = new ArrayList<RealIP>();
+            List<Integer> realsPriorities = new ArrayList<Integer>();
             for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
                 RealIP realIP = new RealIP();
                 realIP.setName(real.getVmName());
                 realIP.setRealIp(real.getIp());
                 realsIp.add(realIP);
+                
+                realsPriorities.add(DEFAULT_REALS_PRIORITY);
             }
             
             // Check VIP IP in its environment
