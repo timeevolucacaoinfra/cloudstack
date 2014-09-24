@@ -1513,20 +1513,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // The code below is to acquire environmentVip Id, used to request new ip 
         GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (glbNetworkVO == null) {
-            throw new InvalidParameterValueException("Network " + network.getId() + " there is not environment");
+            throw new InvalidParameterValueException("There is no environment associated to network " + network.getId());
         }
         
         GloboNetworkEnvironmentVO networkEnvironmentVO = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbNetworkVO.getGloboNetworkEnvironmentId());
         if (networkEnvironmentVO == null) {
-            throw new InvalidParameterValueException("Network " + network.getId() + " there is not association between physical network and GloboNetwork environment");
+            throw new InvalidParameterValueException("There is no association between physical network " + network.getPhysicalNetworkId() + " and GloboNetwork environment" + glbNetworkVO.getGloboNetworkEnvironmentId());
         }
         
         Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
         
         GloboNetworkLBEnvironmentVO lbEnvironmentVO = _globoNetworkLBEnvDao.findByEnvironmentRefId(globoNetworkEnvironmentRefId);
         if (lbEnvironmentVO == null) {
-            throw new InvalidParameterValueException("Environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " of network " + network.getId() +
-                    " can't acquire ip to load balancer");
+            throw new InvalidParameterValueException("Could not find Load Balancing environment of network " + network.getId());
         }
         
         long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
@@ -1544,7 +1543,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (globoNetworkNetworkVO == null) {
-            throw new CloudRuntimeException(" Could not obtain mapping for network in GloboNetwork.");
+            throw new CloudRuntimeException("Could not obtain mapping for network in GloboNetwork.");
         }
 
         // If not, create vip
