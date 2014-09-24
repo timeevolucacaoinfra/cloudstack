@@ -1584,8 +1584,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             } else {
                 throw new InvalidParameterValueException("Could not find NIC with address " + destVM.getIpAddress());
             }
-        cmd.setRealList(realList);
         }
+        cmd.setRealList(realList);
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         return true;
     }
