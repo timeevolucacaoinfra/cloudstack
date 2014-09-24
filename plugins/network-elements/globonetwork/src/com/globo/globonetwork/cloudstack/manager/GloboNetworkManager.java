@@ -1576,6 +1576,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     real.setIp(destVM.getIpAddress());
                     real.setVmName(getEquipNameFromUuid(vm.getUuid()));
                     real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
+                    real.setRevoked(destVM.isRevoked());
                     realList.add(real);
                 } else {
                     throw new InvalidParameterValueException("Could not find VM with address " + destVM.getIpAddress() + " or NIC is not in the right network");
