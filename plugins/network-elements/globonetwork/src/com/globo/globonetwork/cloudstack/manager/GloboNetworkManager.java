@@ -142,7 +142,7 @@ import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
@@ -1547,7 +1547,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         // If not, create vip
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
         cmd.setIpv4(rule.getSourceIp().addr());
         cmd.setMethodBal(rule.getAlgorithm());
         cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
@@ -1559,6 +1559,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         List<String> ports = new ArrayList<String>();
         ports.add(port);
         cmd.setPorts(ports);
+        
+        cmd.setRuleState(rule.getState());
         
         // TODO Set healthcheck parameters
         // cmd.setHealthcheckType();

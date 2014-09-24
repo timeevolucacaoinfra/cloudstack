@@ -36,6 +36,7 @@ import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
+import com.cloud.network.rules.FirewallRule;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
@@ -54,7 +55,7 @@ import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
@@ -234,8 +235,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 			return execute((RemoveVipFromGloboNetworkCommand) cmd);
         } else if (cmd instanceof AcquireNewIpForLbCommand) {
             return execute((AcquireNewIpForLbCommand) cmd);
-		} else if (cmd instanceof AddVipInGloboNetworkCommand) {
-		    return execute((AddVipInGloboNetworkCommand) cmd);
+		} else if (cmd instanceof AddOrRemoveVipInGloboNetworkCommand) {
+		    return execute((AddOrRemoveVipInGloboNetworkCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -596,7 +597,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
 	}
 	
-   public Answer execute(AddVipInGloboNetworkCommand cmd) {
+   public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
         try {
             Integer DEFAULT_REALS_PRIORITY = 10;
             
@@ -658,17 +659,44 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String environment = environmentVip.getEnvironmentName();
             
             
-            // TODO Check if the VIP already exists before creating it
+            Vip vip = null;
+            List<Vip> vips = _globoNetworkApi.getVipAPI().getByIp(ip.getIpString());
+            for (Vip vipCandidate : vips) {
+                if (vipCandidate.getServicePorts().equals(ports)) {
+                    vip = vipCandidate;
+                    break;
+                }
+            }
             
+            s_logger.info("Applying rule " + cmd.getRuleState() + " on VIP " + (vip == null ? null : vip.getId()));
             
-            // Actually add the VIP to GloboNetwork
-            Vip vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId,
-                    finality, client, environment, cache, balancingMethod, persistence, 
-                    healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, 
-                    l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
-            
-            // TODO Validate and create VIP
-            
+            if (vip == null && cmd.getRuleState() == FirewallRule.State.Add) {
+                // Vip doesn't exist yet
+                // Actually add the VIP to GloboNetwork
+                vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId,
+                        finality, client, environment, cache, balancingMethod, persistence, 
+                        healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, 
+                        l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+                
+                // Validate the vip
+                if (!vip.getValidated()) {
+                    _globoNetworkApi.getVipAPI().validate(vip.getId());
+                }
+                
+                // Create the vip on the equipment
+                if (!vip.getCreated()) {
+                    s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
+                    _globoNetworkApi.getVipAPI().create(vip.getId());
+                }
+            } else if (vip != null) {
+                // Vip exists
+                if (cmd.getRuleState() == FirewallRule.State.Add) {
+                    s_logger.warn("Cannot update VIP information");
+                } else if (cmd.getRuleState() == FirewallRule.State.Revoke) {
+                    // Delete VIP
+                    _globoNetworkApi.getVipAPI().removeVip(vip.getId());
+                }
+            }
             
             return this.createVipResponse(vip, cmd);
         } catch (GloboNetworkException e) {

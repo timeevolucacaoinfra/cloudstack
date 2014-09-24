@@ -19,10 +19,13 @@ package com.globo.globonetwork.cloudstack.commands;
 import java.util.List;
 
 import com.cloud.agent.api.Command;
+import com.cloud.network.rules.FirewallRule;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
-public class AddVipInGloboNetworkCommand extends Command {
+public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	
+    private FirewallRule.State ruleState;
+    
 	private String ipv4;
 	
 	private String methodBal;
@@ -126,5 +129,13 @@ public class AddVipInGloboNetworkCommand extends Command {
 
     public void setRealsEnvironmentId(Long realsEnvironmentId) {
         this.realsEnvironmentId = realsEnvironmentId;
+    }
+
+    public FirewallRule.State getRuleState() {
+        return ruleState;
+    }
+
+    public void setRuleState(FirewallRule.State ruleState) {
+        this.ruleState = ruleState;
     }
 }
