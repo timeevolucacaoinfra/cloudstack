@@ -29,6 +29,8 @@ public class AddVipInGloboNetworkCommand extends Command {
 	
 	private Long vipEnvironmentId;
 	
+	private Long realsEnvironmentId;
+	
 	private String businessArea;
 	
 	private String host;
@@ -116,5 +118,13 @@ public class AddVipInGloboNetworkCommand extends Command {
 
     public void setRealList(List<GloboNetworkVipResponse.Real> realList) {
         this.realList = realList;
+    }
+
+    public Long getRealsEnvironmentId() {
+        return realsEnvironmentId;
+    }
+
+    public void setRealsEnvironmentId(Long realsEnvironmentId) {
+        this.realsEnvironmentId = realsEnvironmentId;
     }
 }

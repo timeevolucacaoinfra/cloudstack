@@ -1541,12 +1541,18 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         Account account = _accountMgr.getAccount(network.getAccountId());
-        
+
+        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
+        if (globoNetworkNetworkVO == null) {
+            throw new CloudRuntimeException(" Could not obtain mapping for network in GloboNetwork.");
+        }
+
         // If not, create vip
         AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setIpv4(rule.getSourceIp().addr());
         cmd.setMethodBal(rule.getAlgorithm());
         cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
+        cmd.setRealsEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
         cmd.setBusinessArea(account.getAccountName());
         cmd.setServiceName(rule.getName());
         cmd.setHost(rule.getName());
@@ -1568,6 +1574,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
                     real.setIp(destVM.getIpAddress());
                     real.setVmName(getEquipNameFromUuid(vm.getUuid()));
+                    real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
                     realList.add(real);
                 } else {
                     throw new InvalidParameterValueException("Could not find VM with address " + destVM.getIpAddress() + " or NIC is not in the right network");

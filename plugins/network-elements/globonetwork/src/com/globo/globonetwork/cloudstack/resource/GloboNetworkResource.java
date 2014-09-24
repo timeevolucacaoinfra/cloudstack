@@ -624,9 +624,18 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             List<RealIP> realsIp = new ArrayList<RealIP>();
             List<Integer> realsPriorities = new ArrayList<Integer>();
             for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), cmd.getRealsEnvironmentId());
+                if (ip == null) {
+                    return new Answer(cmd, false, "Could not get real IP information: " + real);
+                }
                 RealIP realIP = new RealIP();
                 realIP.setName(real.getVmName());
                 realIP.setRealIp(real.getIp());
+                if (real.getPorts() == null) {
+                    return new Answer(cmd, false, "You need to specify a port for the real");
+                }
+                realIP.setRealPort(Integer.valueOf(real.getPorts().get(0))); // There's only one
+                realIP.setIpId(ip.getId());
                 realsIp.add(realIP);
                 
                 realsPriorities.add(DEFAULT_REALS_PRIORITY);
