@@ -903,7 +903,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			RemoveNetworkInGloboNetworkCommand cmd2 = new RemoveNetworkInGloboNetworkCommand();
 			cmd2.setVlanId(vlanId);
 
-			callCommand(cmd, network.getDataCenterId());
+			callCommand(cmd2, network.getDataCenterId());
 		} catch (CloudstackGloboNetworkException e) {
 			handleNetworkUnavaiableError(e);
 		}
