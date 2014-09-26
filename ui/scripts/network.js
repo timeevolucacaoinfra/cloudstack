@@ -2089,6 +2089,7 @@
                                 }
                             },
                             action: function(args) {
+                                var lbProviderIsGloboNetwork = false;
                             	var dataObj = {};                            	
                             	if (args.$form.find('.form-item[rel=isportable]').css("display") != "none") {
                             		$.extend(dataObj, {
@@ -2110,11 +2111,40 @@
                                             domainid: g_domainid,
                                             account: g_account
                                         });
+
+                                        // if LB are provided by GloboNetwork
+                                        $.ajax({
+                                            url: createURL('listNetworkOfferings'),
+                                            data: {
+                                                id: args.context.networks[0].networkofferingid
+                                            },
+                                            async: false,
+                                            success: function(json) {
+                                                var networkOffering = json.listnetworkofferingsresponse.networkoffering[0];        
+                                                var services = networkOffering.service;
+                                                if (services !== null) {
+                                                    for (var i = 0; i < services.length; i++) {
+                                                        if (services[i].name == 'Lb') {
+                                                            var providers = services[i].provider;
+                                                            if (providers !== null) {
+                                                                for (var k = 0; k < providers.length; k++) {
+                                                                    if (providers[k].name == 'GloboNetwork') {
+                                                                        lbProviderIsGloboNetwork = true;
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        });
                                     }
                                 }
 
                                 $.ajax({
-                                    url: createURL('associateIpAddress'),
+                                    url: createURL(lbProviderIsGloboNetwork ? 'acquireNewLBIp': 'associateIpAddress'),
                                     data: dataObj,
                                     success: function(data) {
                                         args.response.success({
