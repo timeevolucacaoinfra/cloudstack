@@ -60,6 +60,7 @@ import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
+import com.cloud.dc.dao.VlanDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
 import com.cloud.exception.InvalidParameterValueException;
@@ -68,6 +69,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.host.Host;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
@@ -93,6 +95,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkLBEnvironmentDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
@@ -284,6 +287,10 @@ public class GloboNetworkManagerTest {
     		return mock(HostPodDao.class);
     	}
     	@Bean
+    	public VlanDao vlanDao() {
+    	    return mock(VlanDao.class);
+    	}
+    	@Bean
     	public PhysicalNetworkDao physicalNetworkDao() {
     		return mock(PhysicalNetworkDao.class);
     	}
@@ -292,12 +299,20 @@ public class GloboNetworkManagerTest {
     		return mock(NetworkOfferingDao.class);
     	}
     	@Bean
+    	public ConfigurationDao configurationDao() {
+    	    return mock(ConfigurationDao.class);
+    	}
+    	@Bean
     	public UserDao userDao() {
     		return mock(UserDao.class);
     	}
     	@Bean
     	public NetworkDao networkDao() {
     		return mock(NetworkDao.class);
+    	}
+    	@Bean
+    	public NicDao nicDao() {
+    	    return mock(NicDao.class);
     	}
     	@Bean
     	public NetworkServiceMapDao networkServiceMapDao() {
@@ -316,16 +331,12 @@ public class GloboNetworkManagerTest {
     		return mock(GloboNetworkVipAccDao.class);
     	}
     	@Bean
+    	public GloboNetworkLBEnvironmentDao globoNetworkLBEnvironmentDao() {
+    	    return mock(GloboNetworkLBEnvironmentDao.class);
+    	}
+    	@Bean
     	public VMInstanceDao vmDao() {
     		return mock(VMInstanceDao.class);
-    	}
-    	@Bean
-    	public NicDao nicDao() {
-    		return mock(NicDao.class);
-    	}
-    	@Bean
-    	public ConfigurationDao configurationDao() {
-    		return mock(ConfigurationDao.class);
     	}
     	@Bean
     	public NetworkModel networkModel() {
@@ -362,6 +373,10 @@ public class GloboNetworkManagerTest {
     	@Bean
     	public NetworkService networkService() {
     		return mock(NetworkService.class);
+    	}
+    	@Bean
+    	public IpAddressManager ipAddressManager() {
+    	    return mock(IpAddressManager.class);
     	}
     
         public static class Library implements TypeFilter {
