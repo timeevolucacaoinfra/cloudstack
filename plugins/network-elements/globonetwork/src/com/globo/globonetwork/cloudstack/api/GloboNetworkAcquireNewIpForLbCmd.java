@@ -45,7 +45,7 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 @APICommand(name = "acquireNewLBIp", description="Acquires and associates a Load Balancer IP to an network.", responseObject=IPAddressResponse.class)
 public class GloboNetworkAcquireNewIpForLbCmd extends BaseAsyncCreateCmd {
     public static final Logger s_logger = Logger.getLogger(GloboNetworkAcquireNewIpForLbCmd.class.getName());
-    private static final String s_name = "acquirenewlbipresponse";
+    private static final String s_name = "associateipaddressresponse";
     
     @Inject
     private GloboNetworkService globoNetworkSvc;
