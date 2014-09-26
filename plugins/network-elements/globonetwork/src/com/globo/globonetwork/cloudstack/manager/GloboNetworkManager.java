@@ -70,7 +70,6 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
-import com.cloud.network.IpAddress;
 import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
@@ -152,6 +151,7 @@ import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCom
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
 import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.ReleaseIpFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
@@ -1485,12 +1485,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
         
-        // FIXME fix exceptions
-        PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudRuntimeException>() {
+        try {
+            PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
 
-            @Override
-            public PublicIp doInTransaction(TransactionStatus status) throws CloudRuntimeException {
-                try {
+                @Override
+                public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
                     Long zoneId = network.getDataCenterId();
                     Integer vlanNumber = globoNetwork.getVlanNum();
                     Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
@@ -1501,12 +1500,18 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     String myIp = globoNetwork.getIp().addr();
                     return _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, caller, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
                             null, myIp, false);
-                } catch (Exception e) {
-                    throw new CloudRuntimeException(e);
                 }
-            }
-        });
-        return publicIp;
+            });
+            return publicIp;
+            
+        } catch (CloudException e) {
+            // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
+            s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
+            ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(globoNetwork.getIpId());
+            this.callCommand(cmdRelease, network.getDataCenterId());
+            
+            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
+        }
     }
     
     protected Long getLoadBalancerEnvironmentId(Network network) {

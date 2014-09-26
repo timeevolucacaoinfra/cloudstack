@@ -65,6 +65,7 @@ import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCom
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
 import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.ReleaseIpFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
@@ -233,6 +234,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((RemoveVipFromGloboNetworkCommand)cmd);
         } else if (cmd instanceof AcquireNewIpForLbCommand) {
             return execute((AcquireNewIpForLbCommand)cmd);
+        } else if (cmd instanceof ReleaseIpFromGloboNetworkCommand) {
+            return execute((ReleaseIpFromGloboNetworkCommand) cmd);
         } else if (cmd instanceof AddOrRemoveVipInGloboNetworkCommand) {
             return execute((AddOrRemoveVipInGloboNetworkCommand)cmd);
         }
@@ -522,6 +525,21 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             }
 
             return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in GloboNetwork");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+    
+    public Answer execute(ReleaseIpFromGloboNetworkCommand cmd) {
+        try {
+            Ip ip = _globoNetworkApi.getIpAPI().getIpv4(cmd.getIpv4Id());
+            if (ip == null) {
+                // Doesn't exist, ignore
+                s_logger.warn("IP was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical.");
+            } else {
+                _globoNetworkApi.getIpAPI().deleteIpv4(cmd.getIpv4Id());
+            }
+            return new Answer(cmd, true, "IP deleted successfully from GloboNetwork");
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         }
