@@ -104,6 +104,7 @@ import com.cloud.network.element.IpDeployingRequester;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.network.element.StaticNatServiceProvider;
 import com.cloud.network.guru.NetworkGuru;
+import com.cloud.network.guru.NetworkGuruWithIPAM;
 import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.network.rules.FirewallManager;
 import com.cloud.network.rules.FirewallRule;
@@ -133,6 +134,7 @@ import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
 import com.cloud.utils.Pair;
 import com.cloud.utils.Ternary;
+import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.EntityManager;
@@ -272,6 +274,16 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
     PortableIpDao _portableIpDao;
     SearchBuilder<IPAddressVO> AssignIpAddressSearch;
     SearchBuilder<IPAddressVO> AssignIpAddressFromPodVlanSearch;
+
+    List<NetworkGuru> _networkGurus;
+
+    public List<NetworkGuru> getNetworkGurus() {
+        return _networkGurus;
+    }
+
+    public void setNetworkGurus(List<NetworkGuru> _networkGurus) {
+        this._networkGurus = _networkGurus;
+    }
 
     @Override
     public boolean configure(String name, Map<String, Object> params) {
@@ -1653,6 +1665,9 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             return Transaction.execute(new TransactionCallback<IPAddressVO>() {
                 @Override
                 public IPAddressVO doInTransaction(TransactionStatus status) {
+
+                    releaseIp(ip);
+                    
                     if (updateIpResourceCount(ip)) {
                         _resourceLimitMgr.decrementResourceCount(_ipAddressDao.findById(addrId).getAllocatedToAccountId(), ResourceType.public_ip);
                     }
@@ -1970,6 +1985,22 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
 
         ipaddr = acquireGuestIpAddress(network, requestedIp);
         return ipaddr;
+    }
+
+    protected void releaseIp(IpAddress ip) {
+        if (ip == null) {
+            s_logger.error("Null IP or network can't be released.");
+            return;
+        }
+
+        if (ip.getAssociatedWithNetworkId() != null) {
+            Network guestNetwork = _networksDao.findById(ip.getAssociatedWithNetworkId());
+            // call guru to release ip, if is a NetworkWithIPAM
+            NetworkGuru guru = AdapterBase.getAdapterByName(_networkGurus, guestNetwork.getGuruName());
+            if (guru instanceof NetworkGuruWithIPAM) {
+                ((NetworkGuruWithIPAM) guru).release(guestNetwork, ip);
+            }
+        }
     }
 
     @Override

@@ -25,6 +25,8 @@ import javax.naming.ConfigurationException;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.cloud.dc.Vlan.VlanType;
+import com.cloud.dc.VlanVO;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.deploy.DeploymentPlan;
@@ -33,6 +35,7 @@ import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.ResourceUnavailableException;
+import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkProfile;
@@ -41,6 +44,7 @@ import com.cloud.network.PhysicalNetwork.IsolationMethod;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.guru.GuestNetworkGuru;
 import com.cloud.network.guru.NetworkGuru;
+import com.cloud.network.guru.NetworkGuruWithIPAM;
 import com.cloud.network.router.VirtualRouter;
 import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
 import com.cloud.offering.NetworkOffering;
@@ -61,7 +65,7 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 @Component
 @Local(value = { NetworkGuru.class })
-public class GloboNetworkGuru extends GuestNetworkGuru {
+public class GloboNetworkGuru extends GuestNetworkGuru implements NetworkGuruWithIPAM {
     private static final Logger s_logger = Logger.getLogger(GloboNetworkGuru.class);
     
     // by default traffic type is TrafficType.Guest
@@ -247,4 +251,26 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 		s_logger.debug("VLAN networks released. Passing on to GuestNetworkGuru to trash network " + network.getName());
 		return super.trash(network, offering);
 	}
+
+    @Override
+    public IpAddress allocate(Network network, IpAddress ipAddress) throws InsufficientVirtualNetworkCapcityException, InsufficientAddressCapacityException,
+            ConcurrentOperationException {
+        // TODO Auto-generatex d method stub
+        return null;
+    }
+
+    @Override
+    public boolean release(Network network, IpAddress ipAddress) {
+        Long vlanId = ipAddress.getVlanId();
+        if (vlanId == null) {
+            return false;
+        }
+        // Release IP only of public address. VM Ip are released by other release method.
+        VlanVO vlan = _vlanDao.findById(vlanId);
+        if (vlan.getVlanType() == VlanType.VirtualNetwork) {
+            // public IP
+            return _globoNetworkService.releaseLbIpFromGloboNetwork(network, ipAddress.getAddress().addr());
+        }
+        return true;
+    }
 }

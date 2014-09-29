@@ -20,10 +20,13 @@ import com.cloud.agent.api.Command;
 
 public class ReleaseIpFromGloboNetworkCommand extends Command {
 	
-	private long ipv4Id;
+	private String ip;
 	
-	public ReleaseIpFromGloboNetworkCommand(long ipv4Id) {
-		this.ipv4Id = ipv4Id;
+	private long vipEnvironmentId;
+	
+	public ReleaseIpFromGloboNetworkCommand(String ip, long vipEnvironmentId) {
+		this.ip = ip;
+		this.vipEnvironmentId = vipEnvironmentId;
 	}
 	
 	@Override
@@ -31,7 +34,11 @@ public class ReleaseIpFromGloboNetworkCommand extends Command {
 		return false;
 	}
 
-	public long getIpv4Id() {
-		return ipv4Id;
+	public String getIp() {
+		return ip;
 	}
+
+    public long getVipEnvironmentId() {
+        return vipEnvironmentId;
+    }
 }

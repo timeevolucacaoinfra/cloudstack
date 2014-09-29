@@ -532,12 +532,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     
     public Answer execute(ReleaseIpFromGloboNetworkCommand cmd) {
         try {
-            Ip ip = _globoNetworkApi.getIpAPI().getIpv4(cmd.getIpv4Id());
+            Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIp(), cmd.getVipEnvironmentId());
             if (ip == null) {
                 // Doesn't exist, ignore
                 s_logger.warn("IP was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical.");
             } else {
-                _globoNetworkApi.getIpAPI().deleteIpv4(cmd.getIpv4Id());
+                _globoNetworkApi.getIpAPI().deleteIpv4(ip.getId());
             }
             return new Answer(cmd, true, "IP deleted successfully from GloboNetwork");
         } catch (GloboNetworkException e) {

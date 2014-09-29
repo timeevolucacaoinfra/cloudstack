@@ -1507,11 +1507,25 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } catch (CloudException e) {
             // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
             s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
-            ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(globoNetwork.getIpId());
-            this.callCommand(cmdRelease, network.getDataCenterId());
-            
+            releaseLbIpFromGloboNetwork(network, globoNetwork.getIp().addr());
             throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
         }
+    }
+    
+    @Override
+    public boolean releaseLbIpFromGloboNetwork(Network network, String ip) {
+        if (network == null) {
+            throw new InvalidParameterValueException("Invalid network");
+        }
+        
+        Long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
+        if (lbEnvironmentId == null) {
+            throw new InvalidParameterValueException("There is no lb environment associated to network " + network.getId());
+        }
+
+        ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(ip, lbEnvironmentId);
+        this.callCommand(cmdRelease, network.getDataCenterId());
+        return true;
     }
     
     protected Long getLoadBalancerEnvironmentId(Network network) {
