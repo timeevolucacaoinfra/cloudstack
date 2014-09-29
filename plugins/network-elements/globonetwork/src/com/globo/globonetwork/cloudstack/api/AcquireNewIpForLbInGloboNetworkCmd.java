@@ -26,8 +26,11 @@ import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.BaseAsyncCreateCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
+import org.apache.cloudstack.api.BaseCmd.CommandType;
+import org.apache.cloudstack.api.response.DomainResponse;
 import org.apache.cloudstack.api.response.IPAddressResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
+import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
@@ -58,6 +61,9 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
         description="The network this ip address should be associated to.", required=true)
     private Long networkId;
 
+    @Parameter(name=ApiConstants.PROJECT_ID, type=CommandType.UUID, entityType = ProjectResponse.class,
+            description="Project the IP address will be associated with")
+    private Long projectId;
 
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
@@ -66,6 +72,10 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
 
     public Long getNetworkId() {
         return networkId;
+    }
+    
+    public Long getProjectId() {
+        return projectId;
     }
     
     public Network getNetwork() {
@@ -105,7 +115,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
     @Override
     public void create() throws ResourceAllocationException {
         try {
-            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId());
+            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId());
 
             if (ip != null) {
                 setEntityId(ip.getId());
