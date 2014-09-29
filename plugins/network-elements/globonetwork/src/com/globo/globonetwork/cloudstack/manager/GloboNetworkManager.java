@@ -1461,7 +1461,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 
     @Override
-    public PublicIp acquireLbIp(Long networkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+    public PublicIp acquireLbIp(Long networkId, Long projectId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
 
         // First of all, check user permission
         final Account caller = CallContext.current().getCallingAccount();
@@ -1478,6 +1478,20 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         // Perform account permission check on network
         _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
+        
+        // If project was set, this IP belongs to that project
+        // Otherwise, the caller is the owner
+        final Account owner;
+        if (projectId != null) {
+            Project project = _projectMgr.getProject(projectId);
+            if (project != null) {
+                owner = _accountMgr. getAccount(project.getProjectAccountId());
+            } else {
+                throw new InvalidParameterValueException("Could not find project with id " + projectId);
+            }
+        } else {
+            owner = caller;
+        }
 
         long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
         
@@ -1498,7 +1512,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     }
                     
                     String myIp = globoNetwork.getIp().addr();
-                    return _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, caller, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
+                    return _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, owner, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
                             null, myIp, false);
                 }
             });

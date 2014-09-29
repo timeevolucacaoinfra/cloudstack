@@ -2106,13 +2106,15 @@
                                         networkid: args.context.networks[0].id
                                     });
 
-                                    if (args.context.networks[0].type == "Shared" && !args.context.projects) {
-                                        $.extend(dataObj, {
-                                            domainid: g_domainid,
-                                            account: g_account
-                                        });
+                                    if (args.context.networks[0].type == "Shared") {
+                                        if (!args.context.projects) {
+                                            $.extend(dataObj, {
+                                                domainid: g_domainid,
+                                                account: g_account
+                                            });
+                                        }
 
-                                        // if LB are provided by GloboNetwork
+                                        // check if LB is provided by GloboNetwork
                                         $.ajax({
                                             url: createURL('listNetworkOfferings'),
                                             data: {

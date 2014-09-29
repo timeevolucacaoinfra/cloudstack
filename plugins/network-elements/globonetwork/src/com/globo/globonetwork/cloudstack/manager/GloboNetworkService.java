@@ -227,7 +227,7 @@ public interface GloboNetworkService {
 
 	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
 	
-    public PublicIp acquireLbIp(Long networkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
+    public PublicIp acquireLbIp(Long networkId, Long projectId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
     
     public boolean releaseLbIpFromGloboNetwork(Network network, String ip);
 }
