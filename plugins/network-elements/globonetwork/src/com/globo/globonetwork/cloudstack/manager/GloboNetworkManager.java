@@ -181,6 +181,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 	static final int NUMBER_OF_RESERVED_IPS_FROM_START = 5;
 	static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 5;
+    static final int NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START = 1;
+    static final int NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END = 2;
 	
 	private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Network", String.class, "globonetwork.vip.server.url", "", "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<String> GloboNetworkConnectionTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.connectiontimeout", "120000", "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
@@ -1451,8 +1453,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         String endIP = NetUtils.getIpRangeEndIpFromCidr(networkAddress, size);
 
         // shift start ips by NUMBER_OF_RESERVED_IPS_FROM_START and NUMBER_OF_RESERVED_IPS_BEFORE_END
-        startIP = NetUtils.long2Ip(NetUtils.ip2Long(startIP) + NUMBER_OF_RESERVED_IPS_FROM_START);
-        endIP = NetUtils.long2Ip(NetUtils.ip2Long(endIP) - NUMBER_OF_RESERVED_IPS_BEFORE_END);
+        startIP = NetUtils.long2Ip(NetUtils.ip2Long(startIP) + NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START);
+        endIP = NetUtils.long2Ip(NetUtils.ip2Long(endIP) - NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END);
         
         List<PhysicalNetworkVO> listPhysicalNetworks = _physicalNetworkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
         if (listPhysicalNetworks.isEmpty()) {
