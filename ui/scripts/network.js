@@ -2089,7 +2089,6 @@
                                 }
                             },
                             action: function(args) {
-                                var lbProviderIsGloboNetwork = false;
                             	var dataObj = {};                            	
                             	if (args.$form.find('.form-item[rel=isportable]').css("display") != "none") {
                             		$.extend(dataObj, {
@@ -2106,47 +2105,16 @@
                                         networkid: args.context.networks[0].id
                                     });
 
-                                    if (args.context.networks[0].type == "Shared") {
-                                        if (!args.context.projects) {
-                                            $.extend(dataObj, {
-                                                domainid: g_domainid,
-                                                account: g_account
-                                            });
-                                        }
-
-                                        // check if LB is provided by GloboNetwork
-                                        $.ajax({
-                                            url: createURL('listNetworkOfferings'),
-                                            data: {
-                                                id: args.context.networks[0].networkofferingid
-                                            },
-                                            async: false,
-                                            success: function(json) {
-                                                var networkOffering = json.listnetworkofferingsresponse.networkoffering[0];        
-                                                var services = networkOffering.service;
-                                                if (services !== null) {
-                                                    for (var i = 0; i < services.length; i++) {
-                                                        if (services[i].name == 'Lb') {
-                                                            var providers = services[i].provider;
-                                                            if (providers !== null) {
-                                                                for (var k = 0; k < providers.length; k++) {
-                                                                    if (providers[k].name == 'GloboNetwork') {
-                                                                        lbProviderIsGloboNetwork = true;
-                                                                        break;
-                                                                    }
-                                                                }
-                                                            }
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                    if (args.context.networks[0].type == "Shared" && !args.context.projects) {
+                                        $.extend(dataObj, {
+                                            domainid: g_domainid,
+                                            account: g_account
                                         });
                                     }
                                 }
 
                                 $.ajax({
-                                    url: createURL(lbProviderIsGloboNetwork ? 'acquireNewLBIp': 'associateIpAddress'),
+                                    url: createURL('associateIpAddress'),
                                     data: dataObj,
                                     success: function(data) {
                                         args.response.success({
