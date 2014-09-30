@@ -101,24 +101,11 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
 	private static Map<Service, Map<Capability, String>> setCapabilities() {
 
-//		Capability.SupportedLBAlgorithms, Capability.SupportedLBIsolation,
-//        Capability.SupportedProtocols, Capability.TrafficStatistics, Capability.LoadBalancingSupportedIps,
-//        Capability.SupportedStickinessMethods, Capability.ElasticLb, Capability.LbSchemes
-
 		// Set capabilities for LB service
         Map<Capability, String> lbCapabilities = new HashMap<Capability, String>();
-
-        // Specifies that the RoundRobin and Leastconn algorithms are supported for load balancing rules
-        lbCapabilities.put(Capability.SupportedLBAlgorithms, "least-conn, round-robin, weighted, uri-hash");
-
-        // specifies that F5 BIG IP network element can provide shared mode only
+        lbCapabilities.put(Capability.SupportedLBAlgorithms, "leastconn, roundrobin");
         lbCapabilities.put(Capability.SupportedLBIsolation, "dedicated, shared");
-
-        // Specifies that load balancing rules can be made for either TCP or UDP traffic
         lbCapabilities.put(Capability.SupportedProtocols, "tcp,udp,http");
-
-        // Specifies that this element can measure network usage on a per public IP basis
-//        lbCapabilities.put(Capability.TrafficStatistics, "per public ip");
 
         // Specifies that load balancing rules can only be made with public IPs that aren't source NAT IPs
         lbCapabilities.put(Capability.LoadBalancingSupportedIps, "additional");

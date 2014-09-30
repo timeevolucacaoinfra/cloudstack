@@ -45,12 +45,12 @@ import com.globo.globonetwork.client.exception.GloboNetworkErrorCodeException;
 import com.globo.globonetwork.client.exception.GloboNetworkException;
 import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Environment;
-import com.globo.globonetwork.client.model.VipEnvironment;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
+import com.globo.globonetwork.client.model.VipEnvironment;
 import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
@@ -97,6 +97,21 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private static final Long EQUIPMENT_TYPE = 10L;
 
+    private enum LbAlgorithm {
+        RoundRobin("round-robin"),
+        LeastConn("least-conn");
+        
+        String globoNetworkBalMethod;
+        
+        LbAlgorithm(String globoNetworkBalMethod) {
+            this.globoNetworkBalMethod = globoNetworkBalMethod;
+        }
+        
+        public String getGloboNetworkBalMethod() {
+            return globoNetworkBalMethod;
+        }
+    }
+    
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
 
@@ -630,8 +645,16 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             Integer maxConn = 5;
             String healthcheckType = "TCP";
 
+            LbAlgorithm lbAlgorithm;
+            if ("roundrobin".equals(cmd.getMethodBal())) {
+                lbAlgorithm = LbAlgorithm.RoundRobin;
+            } else if ("leastconn".equals(cmd.getMethodBal())) {
+                lbAlgorithm = LbAlgorithm.LeastConn;
+            } else {
+                return new Answer(cmd, false, "Invalid balancing method provided.");
+            }
+            
             // Values that come directly from command
-            String balancingMethod = "least-conn"; //cmd.getMethodBal();
             String businessArea = cmd.getBusinessArea();
             String host = cmd.getHost();
             String serviceName = cmd.getServiceName();
@@ -696,7 +719,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 if (vip == null) {
                     // Vip doesn't exist yet
                     // Actually add the VIP to GloboNetwork
-                    vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, cache, balancingMethod, persistence,
+                    vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), persistence,
                             healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     // Validate the vip
