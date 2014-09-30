@@ -73,6 +73,7 @@ import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
+import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
@@ -337,6 +338,10 @@ public class GloboNetworkManagerTest {
     	@Bean
     	public VMInstanceDao vmDao() {
     		return mock(VMInstanceDao.class);
+    	}
+    	@Bean
+    	public IPAddressDao ipAddressDao() {
+    	    return mock(IPAddressDao.class);
     	}
     	@Bean
     	public NetworkModel networkModel() {
