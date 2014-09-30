@@ -43,6 +43,7 @@ import org.springframework.stereotype.Component;
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
+import com.cloud.api.ApiDBUtils;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
@@ -70,6 +71,7 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.IpAddress;
 import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
@@ -80,6 +82,7 @@ import com.cloud.network.Networks.BroadcastDomainType;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.addr.PublicIp;
+import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
@@ -229,6 +232,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	GloboNetworkLBEnvironmentDao _globoNetworkLBEnvDao;
     @Inject
     VMInstanceDao _vmDao;
+    @Inject
+    IPAddressDao _ipAddrDao;
 	
 	// Managers
 	@Inject
@@ -1401,7 +1406,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkDomainSuffix};
 	}
 	
-	protected Vlan getPublicVlanFromZoneVlanNumberAndNetwork(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+	protected VlanVO getPublicVlanFromZoneVlanNumberAndNetwork(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
         // check if vlan already exists
         List<VlanVO> vlans = _vlanDao.listByZoneAndType(zoneId, VlanType.VirtualNetwork);
         for (VlanVO existedVlan : vlans) {
@@ -1428,7 +1433,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return null;
 	}
 	
-	protected Vlan createNewPublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+	protected VlanVO createNewPublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
         // Configure new vlan
 	    // FIXME Maybe we need to fix this code to exclude owned vlans (check _vlanDao.listZoneWideNonDedicatedVlans(dcId);
         List<NetworkVO> networks = _ntwkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
@@ -1455,9 +1460,42 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         Long physicalNetworkId = listPhysicalNetworks.get(0).getId();
         
-        Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), physicalNetworkId, true, null,
+        VlanVO vlan = (VlanVO) _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), physicalNetworkId, true, null,
                 startIP, endIP, networkGateway, networkMask, vlanId, null, null, null, null, null);
         return vlan;
+	}
+	
+	public IpAddress allocate(final Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
+        long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
+        
+        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
+        
+        final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
+        
+        try {
+            PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
+
+                @Override
+                public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
+                    Long zoneId = network.getDataCenterId();
+                    Integer vlanNumber = globoNetwork.getVlanNum();
+                    VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    if (vlan == null) {
+                        vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    }
+                    
+                    String myIp = globoNetwork.getIp().addr();
+                    return PublicIp.createFromAddrAndVlan(_ipAddrDao.findByIpAndVlanId(myIp, vlan.getId()), vlan);
+                }
+            });
+            return publicIp;
+            
+        } catch (CloudException e) {
+            // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
+            s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
+            releaseLbIpFromGloboNetwork(network, globoNetwork.getIp().addr());
+            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
+        }
 	}
 
     @Override

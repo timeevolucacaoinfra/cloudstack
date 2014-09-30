@@ -3,8 +3,10 @@ package com.cloud.network.guru;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.ResourceAllocationException;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
+import com.cloud.user.Account;
 
 public interface NetworkGuruWithIPAM extends NetworkGuru {
     
@@ -16,7 +18,7 @@ public interface NetworkGuruWithIPAM extends NetworkGuru {
      * @throws InsufficientAddressCapacityException
      * @throws ConcurrentOperationException
      */
-    IpAddress allocate(Network network, IpAddress ipAddress) throws InsufficientVirtualNetworkCapcityException, InsufficientAddressCapacityException, ConcurrentOperationException;
+    IpAddress allocate(Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException;
 
     /**
      * When is is released, the NetworkGuru is informed via the
