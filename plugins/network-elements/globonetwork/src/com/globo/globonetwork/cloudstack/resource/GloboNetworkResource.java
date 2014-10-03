@@ -112,6 +112,22 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
     
+    private enum LbPersistence {
+        None("(nenhum)"),
+        LbCookie("cookie"),
+        SourceBased("source-ip");
+        
+        String globoNetworkPersistence;
+        
+        LbPersistence(String globoNetworkPersistence) {
+            this.globoNetworkPersistence = globoNetworkPersistence;
+        }
+        
+        public String getGloboNetworkPersistence() {
+            return globoNetworkPersistence;
+        }
+    }
+    
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
 
@@ -639,7 +655,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String healthcheck = "";
 
             // FIXME! Remove hard coded values
-            String persistence = "(nenhum)";
             Integer timeout = 10;
             String cache = "(nenhum)";
             Integer maxConn = 5;
@@ -652,6 +667,17 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 lbAlgorithm = LbAlgorithm.LeastConn;
             } else {
                 return new Answer(cmd, false, "Invalid balancing method provided.");
+            }
+            
+            LbPersistence lbPersistence;
+            if (cmd.getPersistencePolicy() == null || "None".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = LbPersistence.None;
+            } else if ("LbCookie".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = LbPersistence.LbCookie;
+            } else if ("SourceBased".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = LbPersistence.SourceBased;
+            } else {
+                return new Answer(cmd, false, "Invalid persistence policy provided.");
             }
             
             // Values that come directly from command
@@ -719,33 +745,20 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 if (vip == null) {
                     // Vip doesn't exist yet
                     // Actually add the VIP to GloboNetwork
-                    vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), persistence,
+                    vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(),
                             healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     // Validate the vip
-                    if (!vip.getValidated()) {
-                        _globoNetworkApi.getVipAPI().validate(vip.getId());
-                    }
+                    _globoNetworkApi.getVipAPI().validate(vip.getId());
 
                     // Create the vip on the equipment
-                    if (!vip.getCreated()) {
-                        s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
-                        _globoNetworkApi.getVipAPI().create(vip.getId());
-                    }
-                } else {
-                    // Vip exists and we have info to update
-                    
-                    // Validate and create VIP to make sure handling reals does not fail
-                    if (!vip.getValidated()) {
-                        _globoNetworkApi.getVipAPI().validate(vip.getId());
-                    }
-
-                    // Create the vip on the equipment
-                    if (!vip.getCreated()) {
-                        s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
-                        _globoNetworkApi.getVipAPI().create(vip.getId());
-                    }
-
+//                    if (!vip.getCreated()) {
+//                        s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
+//                        _globoNetworkApi.getVipAPI().create(vip.getId());
+//                    }
+                } else if (vip.getCreated()) {
+                    // Is VIP already created on the equipment?
+                    // If it's created, all we can do is add/remove reals, cannot update other infos
                     for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
                         if (real.isRevoked()) {
                             this.removeReal(vip, real.getVmName(), real.getIp());
@@ -753,9 +766,17 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                             this.addAndEnableReal(vip, real.getVmName(), real.getIp()); 
                         }
                     }
-                }
-            }
+                } else {
+                    // Otherwise, we update the VIP and validate it
+                    _globoNetworkApi.getVipAPI().alter(vip.getId(), ipv4Id, null, expectedHealthcheckId, vip.getValidated(), vip.getCreated(), finality, client,
+                            environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(), healthcheckType, healthcheck,
+                            timeout, host, maxConn, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
+                    _globoNetworkApi.getVipAPI().validate(vip.getId());
+                }
+                vip = _globoNetworkApi.getVipAPI().getById(vip.getId());
+            }
+            
             return this.createVipResponse(vip, cmd);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);

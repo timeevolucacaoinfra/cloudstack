@@ -1623,6 +1623,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
         cmd.setIpv4(rule.getSourceIp().addr());
         cmd.setMethodBal(rule.getAlgorithm());
+        
+        // Stickness
+        if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
+        }
+        cmd.setPersistencePolicy(rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
+        
         cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
         cmd.setRealsEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
         cmd.setBusinessArea(account.getAccountName());
@@ -1638,7 +1645,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // TODO Set healthcheck parameters
         // cmd.setHealthcheckType();
         
-        // FIXME Use a specific object for this rather than use VipResponse's object?
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (LbDestination destVM : rule.getDestinations()) {
             Nic nic = _nicDao.findByIp4AddressAndNetworkId(destVM.getIpAddress(), network.getId());

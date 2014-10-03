@@ -118,9 +118,10 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
         LbStickinessMethod method;
         List<LbStickinessMethod> methodList = new ArrayList<LbStickinessMethod>();
-        method = new LbStickinessMethod(StickinessMethodType.LBCookieBased, "This is cookie based sticky method, can be used only for http");
+        method = new LbStickinessMethod(StickinessMethodType.LBCookieBased, "This is cookie based sticky method");
         methodList.add(method);
-//        method.addParam("holdtime", false, "time period (in seconds) for which persistence is in effect.", false);
+        method = new LbStickinessMethod(StickinessMethodType.SourceBased, "This is source based sticky method");
+        methodList.add(method);
 
         Gson gson = new Gson();
         String stickyMethodList = gson.toJson(methodList);

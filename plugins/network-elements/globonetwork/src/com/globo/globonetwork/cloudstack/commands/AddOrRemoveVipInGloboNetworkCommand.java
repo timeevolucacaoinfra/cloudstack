@@ -19,6 +19,7 @@ package com.globo.globonetwork.cloudstack.commands;
 import java.util.List;
 
 import com.cloud.agent.api.Command;
+import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.FirewallRule;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
@@ -29,6 +30,8 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	private String ipv4;
 	
 	private String methodBal;
+	
+	private LoadBalancingRule.LbStickinessPolicy persistencePolicy;
 	
 	private Long vipEnvironmentId;
 	
@@ -137,5 +140,13 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     public void setRuleState(FirewallRule.State ruleState) {
         this.ruleState = ruleState;
+    }
+
+    public LoadBalancingRule.LbStickinessPolicy getPersistencePolicy() {
+        return persistencePolicy;
+    }
+
+    public void setPersistencePolicy(LoadBalancingRule.LbStickinessPolicy persistencePolicy) {
+        this.persistencePolicy = persistencePolicy;
     }
 }
