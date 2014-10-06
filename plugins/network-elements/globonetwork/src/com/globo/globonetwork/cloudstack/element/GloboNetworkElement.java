@@ -58,6 +58,7 @@ import com.cloud.network.element.IpDeployer;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
 import com.cloud.network.rules.LoadBalancerContainer;
@@ -83,6 +84,8 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
     DataCenterDao _dcDao;
     @Inject
     NetworkModel _networkManager;
+    @Inject
+    LoadBalancingRulesManager _lbManager;
     @Inject
     NetworkServiceMapDao _ntwkSrvcDao;
     @Inject
@@ -175,7 +178,10 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 			VirtualMachineProfile vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-		return true;
+		// Even though removing a VM will clean up load balancing resources later on,
+	    // we have to make sure VM is removed from the load balancer in GloboNetwork
+	    // before attempting to remove its NIC
+	    return _lbManager.removeVmFromLoadBalancers(vm.getId());
 	}
 
 	@Override

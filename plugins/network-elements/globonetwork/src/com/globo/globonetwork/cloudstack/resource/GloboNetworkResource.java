@@ -752,10 +752,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     _globoNetworkApi.getVipAPI().validate(vip.getId());
 
                     // Create the vip on the equipment
-//                    if (!vip.getCreated()) {
-//                        s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
-//                        _globoNetworkApi.getVipAPI().create(vip.getId());
-//                    }
+                    if (!vip.getCreated()) {
+                        s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
+                        _globoNetworkApi.getVipAPI().create(vip.getId());
+                    }
                 } else if (vip.getCreated()) {
                     // Is VIP already created on the equipment?
                     // If it's created, all we can do is add/remove reals, cannot update other infos
