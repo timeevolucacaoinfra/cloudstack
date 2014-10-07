@@ -396,23 +396,27 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     }    
 
     private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
+       return  this.removeVipFromGloboNetwork(cmd, cmd.getVipId());
+    }
+    
+    private Answer removeVipFromGloboNetwork(Command cmd, Long vipId) {
         try {
 
-            Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
+            Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
 
-            if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-                return new Answer(cmd, true, "Vip request " + cmd.getVipId() + " was previously removed from GloboNetwork");
+            if (vip == null || !vipId.equals(vip.getId())) {
+                return new Answer(cmd, true, "Vip request " + vipId + " was previously removed from GloboNetwork");
             }
 
             // remove VIP from network device
             if (vip.getCreated()) {
                 s_logger.info("Requesting GloboNetwork to remove vip from network device vip_id=" + vip.getId());
-                _globoNetworkApi.getVipAPI().removeScriptVip(cmd.getVipId());
+                _globoNetworkApi.getVipAPI().removeScriptVip(vipId);
             }
 
             // remove VIP from GloboNetwork DB
             s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId());
-            _globoNetworkApi.getVipAPI().removeVip(cmd.getVipId());
+            _globoNetworkApi.getVipAPI().removeVip(vipId);
 
             return new Answer(cmd);
         } catch (GloboNetworkException e) {
@@ -646,7 +650,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
         try {
+            // FIXME Change default values to be class attributes rather than method variables
             Integer DEFAULT_REALS_PRIORITY = 10;
+            Integer DEFAULT_MAX_CONN = 0;
 
             // FIXME! These parameters will always be null?
             Long expectedHealthcheckId = null;
@@ -657,7 +663,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             // FIXME! Remove hard coded values
             Integer timeout = 10;
             String cache = "(nenhum)";
-            Integer maxConn = 5;
             String healthcheckType = "TCP";
 
             LbAlgorithm lbAlgorithm;
@@ -740,14 +745,14 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     return new Answer(cmd, true, "VIP already removed from GloboNetwork");
                 } else {
                     // Delete VIP
-                    _globoNetworkApi.getVipAPI().removeVip(vip.getId());
+                    return this.removeVipFromGloboNetwork(cmd, vip.getId());
                 }
             } else {
                 if (vip == null) {
                     // Vip doesn't exist yet
                     // Actually add the VIP to GloboNetwork
                     vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(),
-                            healthcheckType, healthcheck, timeout, host, maxConn, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+                            healthcheckType, healthcheck, timeout, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     // Validate the vip
                     _globoNetworkApi.getVipAPI().validate(vip.getId());
@@ -771,7 +776,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     // Otherwise, we update the VIP and validate it
                     _globoNetworkApi.getVipAPI().alter(vip.getId(), ipv4Id, null, expectedHealthcheckId, vip.getValidated(), vip.getCreated(), finality, client,
                             environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(), healthcheckType, healthcheck,
-                            timeout, host, maxConn, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+                            timeout, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     _globoNetworkApi.getVipAPI().validate(vip.getId());
                 }
