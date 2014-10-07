@@ -737,6 +737,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             if (cmd.getRuleState() == FirewallRule.State.Revoke) {
                 if (vip == null) {
                     s_logger.warn("VIP already removed from GloboNetwork");
+                    return new Answer(cmd, true, "VIP already removed from GloboNetwork");
                 } else {
                     // Delete VIP
                     _globoNetworkApi.getVipAPI().removeVip(vip.getId());
