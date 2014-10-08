@@ -396,15 +396,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     }    
 
     private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
-       return  this.removeVipFromGloboNetwork(cmd, cmd.getVipId());
+       return  this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), false);
     }
     
-    private Answer removeVipFromGloboNetwork(Command cmd, Long vipId) {
+    private Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
         try {
 
             Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
 
-            if (vip == null || !vipId.equals(vip.getId())) {
+            if (vip == null) {
                 return new Answer(cmd, true, "Vip request " + vipId + " was previously removed from GloboNetwork");
             }
 
@@ -415,8 +415,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             }
 
             // remove VIP from GloboNetwork DB
-            s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId());
-            _globoNetworkApi.getVipAPI().removeVip(vipId);
+            s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId() + " keepIp=" + keepIp);
+            _globoNetworkApi.getVipAPI().removeVip(vipId, keepIp);
 
             return new Answer(cmd);
         } catch (GloboNetworkException e) {
@@ -745,7 +745,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     return new Answer(cmd, true, "VIP already removed from GloboNetwork");
                 } else {
                     // Delete VIP
-                    return this.removeVipFromGloboNetwork(cmd, vip.getId());
+                    return this.removeVipFromGloboNetwork(cmd, vip.getId(), true);
                 }
             } else {
                 if (vip == null) {
