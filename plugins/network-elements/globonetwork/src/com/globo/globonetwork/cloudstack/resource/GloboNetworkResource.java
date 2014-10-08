@@ -785,6 +785,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         }
                     }
                     
+                    // Decide if we need to update persistence
+                    if (!lbPersistence.getGloboNetworkPersistence().equals(vip.getPersistence())) {
+                        _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence.getGloboNetworkPersistence());
+                    }
+                    
                     // Decide if we need to update healthcheck
                     if ((vip.getHealthcheckType() == null && healthcheckType != null) ||
                             (vip.getHealthcheckType() != null && !vip.getHealthcheckType().equals(healthcheckType)) ||
