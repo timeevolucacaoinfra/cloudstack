@@ -653,17 +653,16 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             // FIXME Change default values to be class attributes rather than method variables
             Integer DEFAULT_REALS_PRIORITY = 10;
             Integer DEFAULT_MAX_CONN = 0;
+            String DEFAULT_HEALTHCHECK_TYPE = "TCP";
+            String HEALTHCHECK_HTTP_STRING = "HTTP";
+            Long DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK = 25L;
+            Integer DEFAULT_TIMEOUT = 5;
+            String DEFAULT_CACHE = "(nenhum)";
 
             // FIXME! These parameters will always be null?
-            Long expectedHealthcheckId = null;
             String l7Filter = null;
             List<Integer> realsWeights = null;
-            String healthcheck = "";
 
-            // FIXME! Remove hard coded values
-            Integer timeout = 10;
-            String cache = "(nenhum)";
-            String healthcheckType = "TCP";
 
             LbAlgorithm lbAlgorithm;
             if ("roundrobin".equals(cmd.getMethodBal())) {
@@ -683,6 +682,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 lbPersistence = LbPersistence.SourceBased;
             } else {
                 return new Answer(cmd, false, "Invalid persistence policy provided.");
+            }
+            
+            String healthcheckType;
+            String healthcheck;
+            Long expectedHealthcheckId;            
+            if (cmd.getHealthcheckPolicy() == null || cmd.getHealthcheckPolicy().isRevoked()) {
+                healthcheckType = DEFAULT_HEALTHCHECK_TYPE;
+                healthcheck = this.buildHealthcheckString(null, null);
+                expectedHealthcheckId = null;
+            } else {
+                healthcheckType = HEALTHCHECK_HTTP_STRING;
+                healthcheck = this.buildHealthcheckString(cmd.getHealthcheckPolicy().getpingpath(), cmd.getHost());
+                expectedHealthcheckId = DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK;
             }
             
             // Values that come directly from command
@@ -751,8 +763,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 if (vip == null) {
                     // Vip doesn't exist yet
                     // Actually add the VIP to GloboNetwork
-                    vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(),
-                            healthcheckType, healthcheck, timeout, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+                    vip = _globoNetworkApi.getVipAPI().add(ipv4Id, null, expectedHealthcheckId, finality, client, environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(),
+                            healthcheckType, healthcheck, DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     // Validate the vip
                     _globoNetworkApi.getVipAPI().validate(vip.getId());
@@ -772,11 +784,21 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                             this.addAndEnableReal(vip, real.getVmName(), real.getIp()); 
                         }
                     }
+                    
+                    // Decide if we need to update healthcheck
+                    if ((vip.getHealthcheckType() == null && healthcheckType != null) ||
+                            (vip.getHealthcheckType() != null && !vip.getHealthcheckType().equals(healthcheckType)) ||
+                            (vip.getHealthcheck() == null && healthcheck != null) ||
+                            (vip.getHealthcheck() != null && !vip.getHealthcheck().equals(healthcheck)) ||
+                            (vip.getExpectedHealthcheckId() == null && expectedHealthcheckId != null) ||
+                            (vip.getExpectedHealthcheckId() != null && vip.getExpectedHealthcheckId() == expectedHealthcheckId)) {
+                        _globoNetworkApi.getVipAPI().alterHealthcheck(vip.getId(), healthcheckType, healthcheck, expectedHealthcheckId);
+                    }
                 } else {
                     // Otherwise, we update the VIP and validate it
                     _globoNetworkApi.getVipAPI().alter(vip.getId(), ipv4Id, null, expectedHealthcheckId, vip.getValidated(), vip.getCreated(), finality, client,
-                            environment, cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(), healthcheckType, healthcheck,
-                            timeout, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+                            environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(), healthcheckType, healthcheck,
+                            DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     _globoNetworkApi.getVipAPI().validate(vip.getId());
                 }
@@ -787,6 +809,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         }
+    }
+    
+    private String buildHealthcheckString(String path, String host) {
+        if (path == null || host == null) {
+            return "";
+        }
+        return "GET " + path + " HTTP/1.0\\r\\nHost: " + host + "\\r\\n\\r\\n";
     }
 
     private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
