@@ -43,7 +43,6 @@ import org.springframework.stereotype.Component;
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.cloud.api.ApiDBUtils;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
@@ -126,6 +125,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkNetworkVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
+import com.globo.globonetwork.cloudstack.api.AcquireNewIpForLbInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
@@ -134,7 +134,6 @@ import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
-import com.globo.globonetwork.cloudstack.api.AcquireNewIpForLbInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
@@ -1644,6 +1643,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         // TODO Set healthcheck parameters
         // cmd.setHealthcheckType();
+        if (rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain only one");
+        }
+        cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
         
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (LbDestination destVM : rule.getDestinations()) {

@@ -129,6 +129,9 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
         Gson gson = new Gson();
         String stickyMethodList = gson.toJson(methodList);
         lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
+
+        // Healthcheck
+        lbCapabilities.put(Capability.HealthCheckPolicy, "true");
         
 		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
         capabilities.put(Service.Lb, lbCapabilities);

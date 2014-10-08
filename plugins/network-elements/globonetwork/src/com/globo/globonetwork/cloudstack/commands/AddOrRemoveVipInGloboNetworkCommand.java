@@ -43,7 +43,7 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	
 	private String serviceName;
 	
-	private String healthcheckType;
+	private LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy;
 	
 	private List<String> ports;
 	
@@ -102,14 +102,6 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
         this.serviceName = serviceName;
     }
 
-    public String getHealthcheckType() {
-        return healthcheckType;
-    }
-
-    public void setHealthcheckType(String healthcheckType) {
-        this.healthcheckType = healthcheckType;
-    }
-
     public List<String> getPorts() {
         return ports;
     }
@@ -148,5 +140,13 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     public void setPersistencePolicy(LoadBalancingRule.LbStickinessPolicy persistencePolicy) {
         this.persistencePolicy = persistencePolicy;
+    }
+
+    public LoadBalancingRule.LbHealthCheckPolicy getHealthcheckPolicy() {
+        return healthcheckPolicy;
+    }
+
+    public void setHealthcheckPolicy(LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy) {
+        this.healthcheckPolicy = healthcheckPolicy;
     }
 }
