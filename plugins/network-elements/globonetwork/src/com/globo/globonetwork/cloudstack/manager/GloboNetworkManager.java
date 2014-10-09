@@ -1617,37 +1617,23 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         if (globoNetworkNetworkVO == null) {
             throw new CloudRuntimeException("Could not obtain mapping for network in GloboNetwork.");
         }
-
-        // If not, create vip
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
-        cmd.setIpv4(rule.getSourceIp().addr());
-        cmd.setMethodBal(rule.getAlgorithm());
         
-        // Stickness
+        // Stickness/Persistence
         if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
             throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
         }
-        cmd.setPersistencePolicy(rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
-        
-        cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
-        cmd.setRealsEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
-        cmd.setBusinessArea(account.getAccountName());
-        cmd.setServiceName(rule.getName());
-        cmd.setHost(rule.getName());
-        String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
-        List<String> ports = new ArrayList<String>();
-        ports.add(port);
-        cmd.setPorts(ports);
-        
-        cmd.setRuleState(rule.getState());
-        
-        // TODO Set healthcheck parameters
-        // cmd.setHealthcheckType();
+
+        // Healthcheck
         if (rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().size() > 1) {
             throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain only one");
         }
-        cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
         
+        // Port mapping
+        String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
+        List<String> ports = new ArrayList<String>();
+        ports.add(port);
+
+        // Reals
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (LbDestination destVM : rule.getDestinations()) {
             Nic nic = _nicDao.findByIp4AddressAndNetworkId(destVM.getIpAddress(), network.getId());
@@ -1667,8 +1653,27 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 throw new InvalidParameterValueException("Could not find NIC with address " + destVM.getIpAddress());
             }
         }
+        
+        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        // VIP infos
+        cmd.setHost(rule.getName());
+        cmd.setIpv4(rule.getSourceIp().addr());
+        cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
+        cmd.setPorts(ports);
+        cmd.setBusinessArea(account.getAccountName());
+        cmd.setServiceName(rule.getName());
+        
+        // Options and parameters
+        cmd.setMethodBal(rule.getAlgorithm());
+        cmd.setPersistencePolicy(rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
+        cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
+        cmd.setRuleState(rule.getState());
+        
+        // Reals infos
+        cmd.setRealsEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
         cmd.setRealList(realList);
-        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+        
+        this.callCommand(cmd, network.getDataCenterId());
         return true;
     }
 }
