@@ -775,7 +775,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     }
                 } else if (vip.getCreated()) {
                     // Is VIP already created on the equipment?
-                    // If it's created, all we can do is add/remove reals, cannot update other infos
+                    // Update reals
                     for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
                         if (real.isRevoked()) {
                             this.removeReal(vip, real.getVmName(), real.getIp());

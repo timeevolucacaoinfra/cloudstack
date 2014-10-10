@@ -35,6 +35,7 @@ import com.globo.globonetwork.client.api.IpAPI;
 import com.globo.globonetwork.client.api.VipAPI;
 import com.globo.globonetwork.client.api.VipEnvironmentAPI;
 import com.globo.globonetwork.client.api.VlanAPI;
+import com.globo.globonetwork.client.exception.GloboNetworkException;
 import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
@@ -131,18 +132,14 @@ public class GloboNetworkResourceTest {
         Answer answer = _resource.execute(cmd);
         assertFalse(answer.getResult());
     }
-
-    @Test
-    public void testAddVipDefaultValuesResultSuccess() throws Exception {
-        String realIP = "10.0.0.54";
-        Long realEnvironment = 120L;
-        Long ipId = 189L;
-        String realName = "myvm";
-        String realPort = "8080";
-
-        Long vipIpId = 344L;
+    
+    static long IP_SEQUENCE = 100;
+    private long getNewIpID() {
+        return ++IP_SEQUENCE;
+    }
+    
+    private Vip createFakeVip(Long vipEnvironment, Long realEnvironment, Long vipIpId, String... reals) throws GloboNetworkException {
         Long vipId = 987L;
-        Long vipEnvironment = 23L;
         String vipIpStr = "192.168.1.15";
         String vipHost = "vip.domain.com";
         List<String> vipPorts = Arrays.asList("80:8080");
@@ -154,15 +151,8 @@ public class GloboNetworkResourceTest {
         String vipEnvironmentName = "TESTAPI";
         String vipCache = "(nenhum)";
 
-        Ip ip = new Ip();
-        ip.setId(ipId);
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realIP, realEnvironment)).thenReturn(ip);
-
-        VipEnvironment environmentVip = new VipEnvironment();
-        environmentVip.setFinality(vipFinality);
-        environmentVip.setClient(vipClient);
-        environmentVip.setEnvironmentName(vipEnvironmentName);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
+        // real
+        String realPort = "8080";
 
         Ip vipIp = new Ip();
         vipIp.setId(vipIpId);
@@ -172,8 +162,11 @@ public class GloboNetworkResourceTest {
         vipIp.setOct4(Integer.valueOf(vipIpStr.split("\\.")[3]));
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment)).thenReturn(vipIp);
 
-        // Make sure VIP doesn't exist yet by returning empty list
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vipIpStr)).thenReturn(new ArrayList<Vip>());
+        VipEnvironment environmentVip = new VipEnvironment();
+        environmentVip.setFinality(vipFinality);
+        environmentVip.setClient(vipClient);
+        environmentVip.setEnvironmentName(vipEnvironmentName);
+        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
 
         Vip vip = new Vip();
         vip.setId(vipId);
@@ -188,256 +181,185 @@ public class GloboNetworkResourceTest {
         vip.setEnvironment(vipEnvironmentName);
         vip.setCache(vipCache);
         vip.setCreated(false);
-        RealIP realIp = new RealIP();
-        realIp.setIpId(ipId);
-        realIp.setName(realName);
-        realIp.setRealIp(realIP);
-        realIp.setRealPort(Integer.valueOf(realPort));
-        vip.setRealsIp(Arrays.asList(realIp));
 
-        when(_resource._globoNetworkApi.getVipAPI().add(vipIpId, null, null, vipFinality, vipClient, vipEnvironmentName, vipCache, vipMethodBal, "(nenhum)", "TCP", "", 5,
-                        vipHost, 0, vipBusinessArea, vipServiceName, null, Arrays.asList(realIp), Arrays.asList(10), null, vipPorts, null)).thenReturn(vip);
+        
+        for (String realAddr: reals) {
+            Ip ip = new Ip();
+            ip.setId(getNewIpID());
+            when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realAddr, realEnvironment)).thenReturn(ip);
 
-        when(_resource._globoNetworkApi.getVipAPI().getById(vipId)).thenReturn(vip);
+            RealIP realIp = new RealIP();
+            realIp.setIpId(ip.getId());
+            realIp.setName("vm-" + ip.getId());
+            realIp.setRealIp(realAddr);
+            realIp.setRealPort(Integer.valueOf(realPort));
+            vip.setRealsIp(Arrays.asList(realIp));
+        }
+        
+        return vip;
+    }
+
+    @Test
+    public void testAddVipDefaultValuesResultSuccess() throws Exception {
+        
+        Long vipEnvironmentId = 123L;
+        Long realEnvironmentId = 546L;
+        Long vipIpId = 345L;
+        String realIp = "10.0.0.54";
+        
+        Vip vip = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
+
+        // Make sure VIP doesn't exist yet by returning empty list
+        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(new ArrayList<Vip>());
+
+        when(_resource._globoNetworkApi.getVipAPI().add(vipIpId, null, null, vip.getFinality(), vip.getClient(), vip.getEnvironment(), vip.getCache(), vip.getMethod(), "(nenhum)", "TCP", "", 5,
+                        vip.getHost(), 0, vip.getBusinessArea(), vip.getServiceName(), null, vip.getRealsIp(), Arrays.asList(10), null, vip.getServicePorts(), null)).thenReturn(vip);
+
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(vip);
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
-        cmd.setHost(vipHost);
-        cmd.setIpv4(vipIpStr);
-        cmd.setVipEnvironmentId(vipEnvironment);
-        cmd.setPorts(vipPorts);
-        cmd.setBusinessArea(vipBusinessArea);
-        cmd.setServiceName(vipServiceName);
+        cmd.setHost(vip.getHost());
+        cmd.setIpv4(vip.getIps().get(0));
+        cmd.setVipEnvironmentId(vipEnvironmentId);
+        cmd.setPorts(vip.getServicePorts());
+        cmd.setBusinessArea(vip.getBusinessArea());
+        cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("leastconn");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironment);
+        cmd.setRealsEnvironmentId(realEnvironmentId);
 
-        GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-        real.setIp(realIP);
-        real.setVmName(realName);
-        real.setPorts(Arrays.asList(realPort));
-        real.setRevoked(false);
-        cmd.setRealList(Arrays.asList(real));
+        for (RealIP vipReal : vip.getRealsIp()) {
+            GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+            real.setIp(vipReal.getRealIp());
+            real.setVmName(vipReal.getName());
+            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setRevoked(false);
+            cmd.setRealList(Arrays.asList(real));
+        }
 
         Answer answer = _resource.execute(cmd);
-
-        verify(_resource._globoNetworkApi.getVipAPI()).validate(vipId);
-        verify(_resource._globoNetworkApi.getVipAPI()).create(vipId);
+        
+        verify(_resource._globoNetworkApi.getVipAPI()).validate(vip.getId());
+        verify(_resource._globoNetworkApi.getVipAPI()).create(vip.getId());
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
 
         GloboNetworkVipResponse response = (GloboNetworkVipResponse)answer;
-        assertEquals(vipId, response.getId());
-        assertEquals(vipIpStr, response.getIp());
-        assertEquals(vipHost, response.getName());
-        assertEquals(vipMethodBal, response.getMethod());
-        assertEquals(vipCache, response.getCache());
-        assertEquals(vipPorts, response.getPorts());
+        assertEquals(vip.getId(), response.getId());
+        assertEquals(vip.getIps().get(0), response.getIp());
+        assertEquals(vip.getHost(), response.getName());
+        assertEquals(vip.getMethod(), response.getMethod());
+        assertEquals(vip.getCache(), response.getCache());
+        assertEquals(vip.getServicePorts(), response.getPorts());
 
         assertEquals(1, response.getReals().size());
+        assertEquals(1, vip.getRealsIp().size());
         GloboNetworkVipResponse.Real responseReal = response.getReals().get(0);
-        assertEquals(realIP, responseReal.getIp());
-        assertEquals(realName, responseReal.getVmName());
+        assertEquals(vip.getRealsIp().get(0).getRealIp(), responseReal.getIp());
+        assertEquals(vip.getRealsIp().get(0).getName(), responseReal.getVmName());
     }
 
     @Test
     public void testUpdateVip() throws Exception {
-        String realIP = "10.0.0.54";
-        Long realEnvironment = 120L;
-        Long ipId = 189L;
-        String realName = "myvm";
-        String realPort = "8080";
 
-        Long vipIpId = 344L;
-        Long vipId = 987L;
-        Long vipEnvironment = 23L;
-        String vipIpStr = "192.168.1.15";
-        String vipHost = "vip.domain.com";
-        List<String> vipPorts = Arrays.asList("80:8080");
-        String vipBusinessArea = "vipbusiness";
-        String vipServiceName = "vipservice";
-        String vipMethodBal = "least-conn";
-        String vipFinality = "BACKEND";
-        String vipClient = "CLIENT";
-        String vipEnvironmentName = "TESTAPI";
-        String vipCache = "(nenhum)";
+        Long vipEnvironmentId = 123L;
+        Long realEnvironmentId = 546L;
+        Long vipIpId = 345L;
+        String realIp = "10.0.0.54";
+        
+        Vip vip = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
 
+        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
+
+        // Vip after updating
         String vipHostNew = "vip.newdomain.com";
         String vipBusinessAreaNew = "vipbusinessnew";
         String vipServiceNameNew = "vipservicenew";
         String vipMethodBalNew = "round-robin";
 
-        Ip ip = new Ip();
-        ip.setId(ipId);
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realIP, realEnvironment)).thenReturn(ip);
-
-        VipEnvironment environmentVip = new VipEnvironment();
-        environmentVip.setFinality(vipFinality);
-        environmentVip.setClient(vipClient);
-        environmentVip.setEnvironmentName(vipEnvironmentName);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
-
-        Ip vipIp = new Ip();
-        vipIp.setId(vipIpId);
-        vipIp.setOct1(Integer.valueOf(vipIpStr.split("\\.")[0]));
-        vipIp.setOct2(Integer.valueOf(vipIpStr.split("\\.")[1]));
-        vipIp.setOct3(Integer.valueOf(vipIpStr.split("\\.")[2]));
-        vipIp.setOct4(Integer.valueOf(vipIpStr.split("\\.")[3]));
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment)).thenReturn(vipIp);
-
-        Vip vip = new Vip();
-        vip.setId(vipId);
-        vip.setIps(Arrays.asList(vipIpStr));
-        vip.setServicePorts(vipPorts);
-        vip.setHost(vipHost);
-        vip.setBusinessArea(vipBusinessArea);
-        vip.setMethod(vipMethodBal);
-        vip.setServiceName(vipServiceName);
-        vip.setFinality(vipFinality);
-        vip.setClient(vipClient);
-        vip.setEnvironment(vipEnvironmentName);
-        vip.setCache(vipCache);
-        vip.setCreated(false);
-        RealIP realIp = new RealIP();
-        realIp.setIpId(ipId);
-        realIp.setName(realName);
-        realIp.setRealIp(realIP);
-        realIp.setRealPort(Integer.valueOf(realPort));
-        vip.setRealsIp(Arrays.asList(realIp));
-
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vipIpStr)).thenReturn(Arrays.asList(vip));
-
-        // Vip after updating
-        Vip vip2 = new Vip();
-        vip2.setId(vipId);
-        vip2.setIps(Arrays.asList(vipIpStr));
-        vip2.setServicePorts(vipPorts);
+        Vip vip2 = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
         vip2.setHost(vipHostNew);
         vip2.setBusinessArea(vipBusinessAreaNew);
         vip2.setMethod(vipMethodBalNew);
         vip2.setServiceName(vipServiceNameNew);
-        vip2.setFinality(vipFinality);
-        vip2.setClient(vipClient);
-        vip2.setEnvironment(vipEnvironmentName);
-        vip2.setCache(vipCache);
-        vip2.setCreated(false);
-        vip2.setRealsIp(Arrays.asList(realIp));
-        when(_resource._globoNetworkApi.getVipAPI().getById(vipId)).thenReturn(vip2);
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip2);
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
         cmd.setHost(vipHostNew);
-        cmd.setIpv4(vipIpStr);
-        cmd.setVipEnvironmentId(vipEnvironment);
-        cmd.setPorts(vipPorts);
+        cmd.setIpv4(vip2.getIps().get(0));
+        cmd.setVipEnvironmentId(vipEnvironmentId);
+        cmd.setPorts(vip2.getServicePorts());
         cmd.setBusinessArea(vipBusinessAreaNew);
         cmd.setServiceName(vipServiceNameNew);
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironment);
+        cmd.setRealsEnvironmentId(realEnvironmentId);
 
-        GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-        real.setIp(realIP);
-        real.setVmName(realName);
-        real.setPorts(Arrays.asList(realPort));
-        real.setRevoked(false);
-        cmd.setRealList(Arrays.asList(real));
+        for (RealIP vipReal : vip2.getRealsIp()) {
+            GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+            real.setIp(vipReal.getRealIp());
+            real.setVmName(vipReal.getName());
+            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setRevoked(false);
+            cmd.setRealList(Arrays.asList(real));
+        }
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).alter(vipId, vipIpId, null, null, false, false, vipFinality, vipClient, vipEnvironmentName, vipCache, vipMethodBalNew,
-                "(nenhum)", "TCP", "", 5, vipHostNew, 0, vipBusinessAreaNew, vipServiceNameNew, null, Arrays.asList(realIp), Arrays.asList(10), null, vipPorts, null);
-        verify(_resource._globoNetworkApi.getVipAPI()).validate(vipId);
+        verify(_resource._globoNetworkApi.getVipAPI()).alter(vip2.getId(), vipIpId, null, null, false, false, vip2.getFinality(), vip2.getClient(), vip2.getEnvironment(), vip2.getCache(), vipMethodBalNew,
+                "(nenhum)", "TCP", "", 5, vipHostNew, 0, vipBusinessAreaNew, vipServiceNameNew, null, vip2.getRealsIp(), Arrays.asList(10), null, vip2.getServicePorts(), null);
+        verify(_resource._globoNetworkApi.getVipAPI()).validate(vip2.getId());
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
 
         GloboNetworkVipResponse response = (GloboNetworkVipResponse)answer;
-        assertEquals(vipId, response.getId());
-        assertEquals(vipIpStr, response.getIp());
+        assertEquals(vip2.getId(), response.getId());
+        assertEquals(vip2.getIps().get(0), response.getIp());
         assertEquals(vipHostNew, response.getName());
         assertEquals(vipMethodBalNew, response.getMethod());
-        assertEquals(vipCache, response.getCache());
-        assertEquals(vipPorts, response.getPorts());
+        assertEquals(vip2.getCache(), response.getCache());
+        assertEquals(vip2.getServicePorts(), response.getPorts());
 
         assertEquals(1, response.getReals().size());
+        assertEquals(1, vip2.getRealsIp().size());
         GloboNetworkVipResponse.Real responseReal = response.getReals().get(0);
-        assertEquals(realIP, responseReal.getIp());
-        assertEquals(realName, responseReal.getVmName());
+        assertEquals(vip2.getRealsIp().get(0).getRealIp(), responseReal.getIp());
+        assertEquals(vip2.getRealsIp().get(0).getName(), responseReal.getVmName());
     }
 
     @Test
     public void testAddRealInVip() throws Exception {
-        String realIP = "10.0.0.54";
-        Long realEnvironment = 120L;
-        Long ipId = 189L;
-        String realName = "myvm";
+        Long vipEnvironmentId = 123L;
+        Long realEnvironmentId = 546L;
+        Long vipIpId = 345L;
+        Long realEquipId = 1212L;
+        String realIp = "1.2.3.4";
+        String realName = "mynewreal";
         String realPort = "8080";
-
-        Long vipIpId = 344L;
-        Long vipId = 987L;
-        Long vipEnvironment = 23L;
-        String vipIpStr = "192.168.1.15";
-        String vipHost = "vip.domain.com";
-        List<String> vipPorts = Arrays.asList("80:8080");
-        String vipBusinessArea = "vipbusiness";
-        String vipServiceName = "vipservice";
-        String vipMethodBal = "least-conn";
-        String vipFinality = "BACKEND";
-        String vipClient = "CLIENT";
-        String vipEnvironmentName = "TESTAPI";
-        String vipCache = "(nenhum)";
-
         Long realEquipmentId = 999L;
 
-        Ip ip = new Ip();
-        ip.setId(ipId);
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realIP, realEnvironment)).thenReturn(ip);
-
-        VipEnvironment environmentVip = new VipEnvironment();
-        environmentVip.setFinality(vipFinality);
-        environmentVip.setClient(vipClient);
-        environmentVip.setEnvironmentName(vipEnvironmentName);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
-
-        Ip vipIp = new Ip();
-        vipIp.setId(vipIpId);
-        vipIp.setOct1(Integer.valueOf(vipIpStr.split("\\.")[0]));
-        vipIp.setOct2(Integer.valueOf(vipIpStr.split("\\.")[1]));
-        vipIp.setOct3(Integer.valueOf(vipIpStr.split("\\.")[2]));
-        vipIp.setOct4(Integer.valueOf(vipIpStr.split("\\.")[3]));
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment)).thenReturn(vipIp);
-
-        Vip vip = new Vip();
-        vip.setId(vipId);
-        vip.setIps(Arrays.asList(vipIpStr));
-        vip.setServicePorts(vipPorts);
-        vip.setHost(vipHost);
-        vip.setBusinessArea(vipBusinessArea);
-        vip.setMethod(vipMethodBal);
-        vip.setServiceName(vipServiceName);
-        vip.setFinality(vipFinality);
-        vip.setClient(vipClient);
-        vip.setEnvironment(vipEnvironmentName);
-        vip.setCache(vipCache);
+        Vip vip = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId);
         vip.setCreated(true);
 
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vipIpStr)).thenReturn(Arrays.asList(vip));
+        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
-        cmd.setHost(vipHost);
-        cmd.setIpv4(vipIpStr);
-        cmd.setVipEnvironmentId(vipEnvironment);
-        cmd.setPorts(vipPorts);
-        cmd.setBusinessArea(vipBusinessArea);
-        cmd.setServiceName(vipServiceName);
+        cmd.setHost(vip.getHost());
+        cmd.setIpv4(vip.getIps().get(0));
+        cmd.setVipEnvironmentId(vipEnvironmentId);
+        cmd.setPorts(vip.getServicePorts());
+        cmd.setBusinessArea(vip.getBusinessArea());
+        cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironment);
+        cmd.setRealsEnvironmentId(realEnvironmentId);
 
         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-        real.setIp(realIP);
+        real.setIp(realIp);
         real.setVmName(realName);
         real.setPorts(Arrays.asList(realPort));
         real.setRevoked(false);
@@ -448,184 +370,110 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getEquipmentAPI().listByName(realName)).thenReturn(realEquipment);
 
         Ip equipIp = new Ip();
-        equipIp.setId(ipId);
-        equipIp.setOct1(Integer.valueOf(realIP.split("\\.")[0]));
-        equipIp.setOct2(Integer.valueOf(realIP.split("\\.")[1]));
-        equipIp.setOct3(Integer.valueOf(realIP.split("\\.")[2]));
-        equipIp.setOct4(Integer.valueOf(realIP.split("\\.")[3]));
+        equipIp.setId(realEquipId);
+        equipIp.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
+        equipIp.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
+        equipIp.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
+        equipIp.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
         when(_resource._globoNetworkApi.getIpAPI().findIpsByEquipment(realEquipmentId)).thenReturn(Arrays.asList(equipIp));
 
         // Vip after updating
-        Vip vip2 = new Vip();
-        vip2.setId(vipId);
-        vip2.setIps(Arrays.asList(vipIpStr));
-        vip2.setServicePorts(vipPorts);
-        vip2.setHost(vipHost);
-        vip2.setBusinessArea(vipBusinessArea);
-        vip2.setMethod(vipMethodBal);
-        vip2.setServiceName(vipServiceName);
-        vip2.setFinality(vipFinality);
-        vip2.setClient(vipClient);
-        vip2.setEnvironment(vipEnvironmentName);
-        vip2.setCache(vipCache);
+        Vip vip2 = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
         vip2.setCreated(true);
-        RealIP realIpNew = new RealIP();
-        realIpNew.setIpId(ipId);
-        realIpNew.setName(realName);
-        realIpNew.setRealIp(realIP);
-        realIpNew.setRealPort(Integer.valueOf(realPort));
-        vip2.setRealsIp(Arrays.asList(realIpNew));
 
-        when(_resource._globoNetworkApi.getVipAPI().getById(vipId)).thenReturn(vip2);
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip2);
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).addReal(vipId, ipId, realEquipmentId, null, null);
+        verify(_resource._globoNetworkApi.getVipAPI()).addReal(vip2.getId(), realEquipId, realEquipmentId, null, null);
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
 
         GloboNetworkVipResponse response = (GloboNetworkVipResponse)answer;
-        assertEquals(vipId, response.getId());
-        assertEquals(vipIpStr, response.getIp());
-        assertEquals(vipHost, response.getName());
-        assertEquals(vipMethodBal, response.getMethod());
-        assertEquals(vipCache, response.getCache());
-        assertEquals(vipPorts, response.getPorts());
+        assertEquals(vip2.getId(), response.getId());
+        assertEquals(vip2.getIps().get(0), response.getIp());
+        assertEquals(vip2.getHost(), response.getName());
+        assertEquals(vip2.getMethod(), response.getMethod());
+        assertEquals(vip2.getCache(), response.getCache());
+        assertEquals(vip2.getServicePorts(), response.getPorts());
 
         assertEquals(1, response.getReals().size());
+        assertEquals(1, vip2.getRealsIp().size());
         GloboNetworkVipResponse.Real responseReal = response.getReals().get(0);
-        assertEquals(realIP, responseReal.getIp());
-        assertEquals(realName, responseReal.getVmName());
+        assertEquals(vip2.getRealsIp().get(0).getRealIp(), responseReal.getIp());
+        assertEquals(vip2.getRealsIp().get(0).getName(), responseReal.getVmName());
     }
 
     @Test
     public void testRemoveRealFromVip() throws Exception {
-        String realIP = "10.0.0.54";
-        Long realEnvironment = 120L;
-        Long ipId = 189L;
-        String realName = "myvm";
+        Long vipEnvironmentId = 123L;
+        Long realEnvironmentId = 546L;
+        Long vipIpId = 345L;
+        String realIp = "10.0.0.54";
+        Long realEquipId = 1212L;
         String realPort = "8080";
-
-        Long vipIpId = 344L;
-        Long vipId = 987L;
-        Long vipEnvironment = 23L;
-        String vipIpStr = "192.168.1.15";
-        String vipHost = "vip.domain.com";
-        List<String> vipPorts = Arrays.asList("80:8080");
-        String vipBusinessArea = "vipbusiness";
-        String vipServiceName = "vipservice";
-        String vipMethodBal = "least-conn";
-        String vipFinality = "BACKEND";
-        String vipClient = "CLIENT";
-        String vipEnvironmentName = "TESTAPI";
-        String vipCache = "(nenhum)";
-
         Long realEquipmentId = 999L;
 
-        Ip ip = new Ip();
-        ip.setId(ipId);
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realIP, realEnvironment)).thenReturn(ip);
-
-        VipEnvironment environmentVip = new VipEnvironment();
-        environmentVip.setFinality(vipFinality);
-        environmentVip.setClient(vipClient);
-        environmentVip.setEnvironmentName(vipEnvironmentName);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
-
-        Ip vipIp = new Ip();
-        vipIp.setId(vipIpId);
-        vipIp.setOct1(Integer.valueOf(vipIpStr.split("\\.")[0]));
-        vipIp.setOct2(Integer.valueOf(vipIpStr.split("\\.")[1]));
-        vipIp.setOct3(Integer.valueOf(vipIpStr.split("\\.")[2]));
-        vipIp.setOct4(Integer.valueOf(vipIpStr.split("\\.")[3]));
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment)).thenReturn(vipIp);
-
-        Vip vip = new Vip();
-        vip.setId(vipId);
-        vip.setIps(Arrays.asList(vipIpStr));
-        vip.setServicePorts(vipPorts);
-        vip.setHost(vipHost);
-        vip.setBusinessArea(vipBusinessArea);
-        vip.setMethod(vipMethodBal);
-        vip.setServiceName(vipServiceName);
-        vip.setFinality(vipFinality);
-        vip.setClient(vipClient);
-        vip.setEnvironment(vipEnvironmentName);
-        vip.setCache(vipCache);
+        Vip vip = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
         vip.setCreated(true);
-        RealIP realIpNew = new RealIP();
-        realIpNew.setIpId(ipId);
-        realIpNew.setName(realName);
-        realIpNew.setRealIp(realIP);
-        realIpNew.setRealPort(Integer.valueOf(realPort));
-        vip.setRealsIp(Arrays.asList(realIpNew));
 
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vipIpStr)).thenReturn(Arrays.asList(vip));
+        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
-        cmd.setHost(vipHost);
-        cmd.setIpv4(vipIpStr);
-        cmd.setVipEnvironmentId(vipEnvironment);
-        cmd.setPorts(vipPorts);
-        cmd.setBusinessArea(vipBusinessArea);
-        cmd.setServiceName(vipServiceName);
+        cmd.setHost(vip.getHost());
+        cmd.setIpv4(vip.getIps().get(0));
+        cmd.setVipEnvironmentId(vipEnvironmentId);
+        cmd.setPorts(vip.getServicePorts());
+        cmd.setBusinessArea(vip.getBusinessArea());
+        cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironment);
+        cmd.setRealsEnvironmentId(realEnvironmentId);
 
-        GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-        real.setIp(realIP);
-        real.setVmName(realName);
-        real.setPorts(Arrays.asList(realPort));
-        real.setRevoked(true);
-        cmd.setRealList(Arrays.asList(real));
+        for (RealIP vipReal : vip.getRealsIp()) {
+            GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+            real.setIp(vipReal.getRealIp());
+            real.setVmName(vipReal.getName());
+            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setRevoked(true);
+            cmd.setRealList(Arrays.asList(real));
+        }
 
         Equipment realEquipment = new Equipment();
         realEquipment.setId(realEquipmentId);
-        when(_resource._globoNetworkApi.getEquipmentAPI().listByName(realName)).thenReturn(realEquipment);
+        when(_resource._globoNetworkApi.getEquipmentAPI().listByName(vip.getRealsIp().get(0).getName())).thenReturn(realEquipment);
 
         Ip equipIp = new Ip();
-        equipIp.setId(ipId);
-        equipIp.setOct1(Integer.valueOf(realIP.split("\\.")[0]));
-        equipIp.setOct2(Integer.valueOf(realIP.split("\\.")[1]));
-        equipIp.setOct3(Integer.valueOf(realIP.split("\\.")[2]));
-        equipIp.setOct4(Integer.valueOf(realIP.split("\\.")[3]));
+        equipIp.setId(realEquipId);
+        equipIp.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
+        equipIp.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
+        equipIp.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
+        equipIp.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
         when(_resource._globoNetworkApi.getIpAPI().findIpsByEquipment(realEquipmentId)).thenReturn(Arrays.asList(equipIp));
 
         // Vip after updating
-        Vip vip2 = new Vip();
-        vip2.setId(vipId);
-        vip2.setIps(Arrays.asList(vipIpStr));
-        vip2.setServicePorts(vipPorts);
-        vip2.setHost(vipHost);
-        vip2.setBusinessArea(vipBusinessArea);
-        vip2.setMethod(vipMethodBal);
-        vip2.setServiceName(vipServiceName);
-        vip2.setFinality(vipFinality);
-        vip2.setClient(vipClient);
-        vip2.setEnvironment(vipEnvironmentName);
-        vip2.setCache(vipCache);
+        Vip vip2 = createFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId);
         vip2.setCreated(true);
 
-        when(_resource._globoNetworkApi.getVipAPI().getById(vipId)).thenReturn(vip2);
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip2);
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).removeReal(vipId, ipId, realEquipmentId, null, Integer.valueOf(realPort));
+        verify(_resource._globoNetworkApi.getVipAPI()).removeReal(vip2.getId(), vip.getRealsIp().get(0).getIpId(), realEquipmentId, null, Integer.valueOf(realPort));
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
 
         GloboNetworkVipResponse response = (GloboNetworkVipResponse)answer;
-        assertEquals(vipId, response.getId());
-        assertEquals(vipIpStr, response.getIp());
-        assertEquals(vipHost, response.getName());
-        assertEquals(vipMethodBal, response.getMethod());
-        assertEquals(vipCache, response.getCache());
-        assertEquals(vipPorts, response.getPorts());
+        assertEquals(vip2.getId(), response.getId());
+        assertEquals(vip2.getIps().get(0), response.getIp());
+        assertEquals(vip2.getHost(), response.getName());
+        assertEquals(vip2.getMethod(), response.getMethod());
+        assertEquals(vip2.getCache(), response.getCache());
+        assertEquals(vip2.getServicePorts(), response.getPorts());
 
         assertEquals(0, response.getReals().size());
     }
