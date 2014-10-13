@@ -815,7 +815,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
     
-    private String buildHealthcheckString(String path, String host) {
+    protected String buildHealthcheckString(String path, String host) {
         if (path == null || host == null) {
             return "";
         }
