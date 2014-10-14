@@ -137,6 +137,7 @@ import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipEnvironmentsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
@@ -832,6 +833,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		cmdList.add(RemoveGloboNetworkVipCmd.class);
 		cmdList.add(ListGloboNetworkRealsCmd.class);
 		cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
+		cmdList.add(ListGloboNetworkVipEnvironmentsCmd.class);
 		return cmdList;
 	}
 	
@@ -974,6 +976,20 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		
 		return globoNetworkEnvironmentsVOList;
 	}
+	
+    @Override
+    public List<GloboNetworkLBEnvironmentVO> listGloboNetworkVipEnvironmentsFromDB(Long globoNetworkEnvironmentId) {
+        List<GloboNetworkLBEnvironmentVO> globoNetworkVipEnvironmentsVOList;
+
+        if (globoNetworkEnvironmentId != null) {            
+            globoNetworkVipEnvironmentsVOList = _globoNetworkLBEnvDao.listByEnvironmentRefId(globoNetworkEnvironmentId);
+
+        } else {
+            globoNetworkVipEnvironmentsVOList = _globoNetworkLBEnvDao.listAll();
+        }
+        
+        return globoNetworkVipEnvironmentsVOList;
+    }	
 
 	@Override
 	@DB
@@ -1582,7 +1598,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
     
     protected Long getLoadBalancerEnvironmentId(Network network) {
-        // The code below is to acquire environmentVip Id, used to request new ip 
         GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (glbNetworkVO == null) {
             throw new InvalidParameterValueException("There is no environment associated to network " + network.getId());
@@ -1595,13 +1610,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
         
-        GloboNetworkLBEnvironmentVO lbEnvironmentVO = _globoNetworkLBEnvDao.findByEnvironmentRefId(globoNetworkEnvironmentRefId);
-        if (lbEnvironmentVO == null) {
-            throw new InvalidParameterValueException("Could not find Load Balancing environment of network " + network.getId());
+        List<GloboNetworkLBEnvironmentVO> lbEnvironmentVOList = this.listGloboNetworkVipEnvironmentsFromDB(globoNetworkEnvironmentRefId);
+        if (lbEnvironmentVOList == null || lbEnvironmentVOList.get(0) == null) {
+            throw new InvalidParameterValueException("Could not find any Load Balancing environment of network " + network.getId());
         }
         
-        long lbEnvironmentId = lbEnvironmentVO.getGloboNetworkLbEnvironmentId();
-        return lbEnvironmentId;
+        // FIXME Do not use first, there must be a way to choose!
+        return lbEnvironmentVOList.get(0).getGloboNetworkLbEnvironmentId();
     }
 
     @Override

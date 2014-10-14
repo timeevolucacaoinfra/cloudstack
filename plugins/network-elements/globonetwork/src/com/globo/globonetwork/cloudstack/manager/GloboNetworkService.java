@@ -40,6 +40,7 @@ import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
@@ -145,6 +146,13 @@ public interface GloboNetworkService {
 	 * @param zoneId
 	 */
 	public List<GloboNetworkEnvironmentVO> listGloboNetworkEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
+
+	   /**
+     * List GloboNetwork VIP environments from database according to a specific GloboNetwork Environment ID.
+     * If this parameter is not passed, all GloboNetwork VIP environments from database are returned.
+     * @param globoNetworkEnvironmentId
+     */
+    public List<GloboNetworkLBEnvironmentVO> listGloboNetworkVipEnvironmentsFromDB(Long globoNetworkEnvironmentId);
 
 	/**
 	 * List all environments from GloboNetwork

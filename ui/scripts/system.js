@@ -6213,6 +6213,49 @@
                                             }                                     
                                         },                                        
                                     },
+                                    detailView: {
+                                        tabs: {
+                                            vipenvs: {
+                                                title: 'VIP Environments',
+                                                listView: {
+                                                    label: 'VIP Environments',
+                                                    id: 'vipenvs',
+                                                    fields: {
+                                                        name: {
+                                                            label: 'Local Name'
+                                                        },
+                                                        vipenvid: {
+                                                            label: 'GloboNetwork VIP Environment ID'
+                                                        }
+                                                    },
+                                                    dataProvider: function(args) {
+                                                        var filter;
+                                                        if (args.filterBy.search.value) {
+                                                            filter = args.filterBy.search.value;
+                                                        }
+
+                                                        var items = [];
+                                                        $.ajax({
+                                                            url: createURL("listGloboNetworkVipEnvironments&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                            success: function(json) {
+                                                                $(json.listglobonetworkvipenvironmentsresponse.globonetworkvipenvironment).each(function() {
+                                                                    if (this.name.match(new RegExp(filter, "i"))) {
+                                                                        items.push({
+                                                                            name: this.name,
+                                                                            vipenvid: this.vipenvironmentid,
+                                                                        });
+                                                                    }
+                                                                });
+                                                                args.response.success({
+                                                                    data: items
+                                                                });
+                                                            }
+                                                        });
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    },
                                 }
                             }
                         },

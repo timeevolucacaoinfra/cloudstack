@@ -727,6 +727,7 @@ disassociateGloboNetworkRealFromVip=15
 generateUrlForEditingVip=15
 removeGloboNetworkVip=15
 acquireNewLBIp=15
+listGloboNetworkVipEnvironments=15
 
 ### GloboDNS commands
 addGloboDnsHost=1

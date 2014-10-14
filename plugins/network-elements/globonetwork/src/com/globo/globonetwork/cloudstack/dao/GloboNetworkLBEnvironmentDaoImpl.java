@@ -16,6 +16,8 @@
 */
 package com.globo.globonetwork.cloudstack.dao;
 
+import java.util.List;
+
 import javax.ejb.Local;
 
 import org.springframework.stereotype.Component;
@@ -41,10 +43,10 @@ public class GloboNetworkLBEnvironmentDaoImpl extends GenericDaoBase<GloboNetwor
     }
 
     @Override
-    public GloboNetworkLBEnvironmentVO findByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
+    public List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
         SearchCriteria<GloboNetworkLBEnvironmentVO> sc = byNetworkEnvironmentRefId.create();
         sc.setParameters("globoNetworkEnvironmentRefId", globoNetworkEnvironmentRefId);
-        return findOneBy(sc);
+        return listBy(sc);
     }
 
 }

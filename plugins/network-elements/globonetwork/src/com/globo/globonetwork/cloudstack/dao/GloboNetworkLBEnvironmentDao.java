@@ -16,14 +16,13 @@
 */
 package com.globo.globonetwork.cloudstack.dao;
 
+import java.util.List;
+
 import com.cloud.utils.db.GenericDao;
 import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
 
 public interface GloboNetworkLBEnvironmentDao extends GenericDao<GloboNetworkLBEnvironmentVO, Long> {
 
-    @Deprecated
-	GloboNetworkLBEnvironmentVO findByEnvironmentRefId(long globoNetworkEnvironmentRefId);
-
-//    List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId);
+	List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId);
 
 }
