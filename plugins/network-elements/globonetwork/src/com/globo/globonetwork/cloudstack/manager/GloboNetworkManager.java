@@ -571,7 +571,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		return (GloboNetworkVlanResponse) callCommand(cmd, zoneId);
 	}
 
-	private Answer callCommand(Command cmd, Long zoneId) {
+    private Answer callCommand(Command cmd, Long zoneId) {
+        return callCommand(cmd, zoneId, true);
+    }
+
+	private Answer callCommand(Command cmd, Long zoneId, boolean raisesExceptionWhenNoAnswer) {
 		
 		HostVO napiHost = getGloboNetworkHost(zoneId);
 		if (napiHost == null) {
@@ -585,12 +589,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkErrorAnswer napiAnswer = (GloboNetworkErrorAnswer) answer; 
 				throw new CloudstackGloboNetworkException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription());
 			} else {
-				String msg = "Error executing command " + cmd + ". Maybe GloboNetwork Host is down";
-				msg = answer == null ? msg : answer.getDetails();
-				throw new CloudRuntimeException(msg);
+			    if (raisesExceptionWhenNoAnswer) {
+    				String msg = "Error executing command " + cmd + ". Maybe GloboNetwork Host is down";
+    				msg = answer == null ? msg : answer.getDetails();
+    				throw new CloudRuntimeException(msg);
+			    }
 			}
 		}
-		
 		return answer;
 	}
 	
@@ -1137,8 +1142,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // Perform account permission check on network
         _accountMgr.checkAccess(caller, AccessType.UseNetwork, false, network);
 		
-        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
-		cmd.setVipId(globoNetworkVipId);
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipId);
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
 		String msg = "Could not validate VIP id with GloboNetwork";
 		if (answer == null || !answer.getResult()) {
@@ -1260,8 +1264,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			if (vips.get(globoNetworkVipAcc.getGloboNetworkVipId()) == null) {
 				
 				// Vip is not in the returning map yet, get all info from GloboNetwork
-				GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
-				cmd.setVipId(globoNetworkVipAcc.getGloboNetworkVipId());
+				GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipAcc.getGloboNetworkVipId());
 				Answer answer = this.callCommand(cmd, network.getDataCenterId());
 				String msg = "Could not list VIPs from GloboNetwork";
 				if (answer == null || !answer.getResult()) {
@@ -1362,8 +1365,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 			throw new CloudRuntimeException("Could not find network with networkId " + globoNetworkVips.get(0).getNetworkId());
 		}
 		
-		GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand();
-		cmd.setVipId(vipId);
+		GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(vipId);
 		Answer answer = this.callCommand(cmd, network.getDataCenterId());
 		String msg = "Could not find VIP from GloboNetwork";
 		if (answer == null || !answer.getResult()) {
@@ -1630,7 +1632,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (globoNetworkNetworkVO == null) {
-            throw new CloudRuntimeException("Could not obtain mapping for network in GloboNetwork.");
+            throw new InvalidParameterValueException("Could not obtain mapping for network in GloboNetwork.");
         }
         
         // Stickness/Persistence
@@ -1689,6 +1691,37 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmd.setRealList(realList);
         
         this.callCommand(cmd, network.getDataCenterId());
+        return true;
+    }
+
+    @Override
+    public boolean validateLBRule(Network network, LoadBalancingRule rule) {
+        // Validate params
+        if (network == null || rule == null) {
+            return false;
+        }
+        
+        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
+        if (globoNetworkNetworkVO == null) {
+            throw new InvalidParameterValueException("Could not obtain mapping for network in GloboNetwork.");
+        }
+        
+        // Stickness/Persistence
+        if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
+        }
+
+        // Healthcheck
+        if (rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain only one");
+        }
+        
+        // Get VIP info
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(rule.getSourceIp().addr(), getLoadBalancerEnvironmentId(network));
+        Answer answer = this.callCommand(cmd, network.getDataCenterId(), false);
+        if (answer != null && answer.getResult()) {
+            throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
+        }
         return true;
     }
 }

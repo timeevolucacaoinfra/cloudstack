@@ -582,9 +582,23 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(GetVipInfoFromGloboNetworkCommand cmd) {
         try {
-            long vipId = cmd.getVipId();
-            Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
-
+            Vip vip = null;
+            if (cmd.getVipId() != null) {
+                long vipId = cmd.getVipId();
+                vip = _globoNetworkApi.getVipAPI().getById(vipId);
+            } else {
+                Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIp(), cmd.getVipEnvironmentId());
+                if (ip != null) {
+                    List<Vip> vips = _globoNetworkApi.getVipAPI().getByIp(ip.getIpString());
+                    if (!vips.isEmpty()) {
+                        vip = vips.get(0);
+                    }
+                }
+            }
+            
+            if (vip == null) {
+                return new Answer(cmd, false, null);
+            }
             return this.createVipResponse(vip, cmd);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);

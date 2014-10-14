@@ -250,7 +250,7 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
 	@Override
 	public boolean validateLBRule(Network network, LoadBalancingRule rule) {
-		return true;
+        return _globoNetworkService.validateLBRule(network, rule);
 	}
 
 	@Override

@@ -20,18 +20,35 @@ import com.cloud.agent.api.Command;
 
 public class GetVipInfoFromGloboNetworkCommand extends Command {
 	
-	private long vipId;
+	private Long vipId;
 	
+	private String ip;
+	
+	private Long vipEnvironmentId;
+	
+	public GetVipInfoFromGloboNetworkCommand(String ip, Long vipEnvironmentId) {
+	    this.ip = ip;
+	    this.vipEnvironmentId = vipEnvironmentId;
+	}
+
+   public GetVipInfoFromGloboNetworkCommand(long vipId) {
+        this.vipId = vipId;
+    }
+
 	@Override
 	public boolean executeInSequence() {
 		return false;
 	}
 	
-	public long getVipId() {
+	public Long getVipId() {
 		return vipId;
 	}
 	
-	public void setVipId(long vipId) {
-		this.vipId = vipId;
-	}
+    public String getIp() {
+        return ip;
+    }
+    
+    public Long getVipEnvironmentId() {
+        return this.vipEnvironmentId;
+    }
 }
