@@ -712,22 +712,23 @@ importLdapUsers=3
 createServiceInstance=1
 
 ### GloboNetwork commands
-addGloboNetworkVlan=15
-addNetworkViaGloboNetwork=15
+acquireNewLBIp=15
 addGloboNetworkEnvironment=1
 addGloboNetworkHost=1
-listGloboNetworkEnvironments=15
-removeGloboNetworkEnvironment=1
-listAllEnvironmentsFromGloboNetwork=1
+addGloboNetworkVipEnvironment=1
 addGloboNetworkVipToAccount=15
-listGloboNetworkVips=15
-listGloboNetworkReals=15
+addGloboNetworkVlan=15
+addNetworkViaGloboNetwork=15
 associateGloboNetworkRealToVip=15
 disassociateGloboNetworkRealFromVip=15
 generateUrlForEditingVip=15
-removeGloboNetworkVip=15
-acquireNewLBIp=15
+listAllEnvironmentsFromGloboNetwork=1
+listGloboNetworkEnvironments=15
+listGloboNetworkReals=15
 listGloboNetworkVipEnvironments=15
+listGloboNetworkVips=15
+removeGloboNetworkEnvironment=1
+removeGloboNetworkVip=15
 
 ### GloboDNS commands
 addGloboDnsHost=1

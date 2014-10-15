@@ -60,6 +60,7 @@ import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCom
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
+import com.globo.globonetwork.cloudstack.commands.GetVipEnvironmentFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
@@ -72,6 +73,7 @@ import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGlob
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipEnvironmentResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
@@ -268,9 +270,23 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         } else if (cmd instanceof ReleaseIpFromGloboNetworkCommand) {
             return execute((ReleaseIpFromGloboNetworkCommand) cmd);
         } else if (cmd instanceof AddOrRemoveVipInGloboNetworkCommand) {
-            return execute((AddOrRemoveVipInGloboNetworkCommand)cmd);
+            return execute((AddOrRemoveVipInGloboNetworkCommand) cmd);
+        } else if (cmd instanceof GetVipEnvironmentFromGloboNetworkCommand) {
+            return execute((GetVipEnvironmentFromGloboNetworkCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
+    }
+
+    private Answer execute(GetVipEnvironmentFromGloboNetworkCommand cmd) {
+        try {
+            VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), cmd.getFinality(), cmd.getClient(), cmd.getEnvironmentName());
+            if (environmentVip == null) {
+                return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
+            }
+            return new GloboNetworkVipEnvironmentResponse(cmd, environmentVip.getId(), environmentVip.getFinality(), environmentVip.getClient(), environmentVip.getEnvironmentName());
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
     }
 
     private Answer handleGloboNetworkException(Command cmd, GloboNetworkException e) {

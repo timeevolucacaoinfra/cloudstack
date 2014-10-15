@@ -129,6 +129,7 @@ import com.globo.globonetwork.cloudstack.api.AcquireNewIpForLbInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
@@ -149,6 +150,7 @@ import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCom
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
+import com.globo.globonetwork.cloudstack.commands.GetVipEnvironmentFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
@@ -748,6 +750,53 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	    _globoNetworkEnvironmentDao.persist(napiEnvironmentVO);
 	    return napiEnvironmentVO;
 	}
+	
+    @Override
+    @DB
+    public GloboNetworkLBEnvironmentVO addGloboNetworkVipEnvironment(String name, Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkVipEnvironmentId) {
+        
+        if (name == null || name.trim().isEmpty()) {
+            throw new InvalidParameterValueException("Invalid name: " + name);
+        }
+        
+        // validate physical network and zone
+        // Check if physical network exists
+        PhysicalNetwork pNtwk = null;
+        if (physicalNetworkId != null) {
+            pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
+            if (pNtwk == null) {
+                throw new InvalidParameterValueException(
+                        "Unable to find a physical network having the specified physical network id");
+            }
+        } else {
+            throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
+        }
+        
+        // Check if there is a environment with same id or name in this zone.
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(pNtwk.getId(), globoNetworkEnvironmentId);
+        if (globoNetworkEnvironment == null) {
+            throw new InvalidParameterValueException("Could not find a relationship between GloboNetwork Environment " + globoNetworkEnvironmentId + " and physical network " + physicalNetworkId);
+        }
+        
+        GetVipEnvironmentFromGloboNetworkCommand cmd = new GetVipEnvironmentFromGloboNetworkCommand(globoNetworkVipEnvironmentId, null, null, null);
+        callCommand(cmd, pNtwk.getDataCenterId(), false);
+        // If code reaches this point, VIP Environment exists in GloboNetwork
+        
+        // Check if there is a VIP environment with same id or name in this zone.
+        List<GloboNetworkLBEnvironmentVO> globoNetworkVipEnvironments = listGloboNetworkVipEnvironmentsFromDB(globoNetworkEnvironmentId);
+        for (GloboNetworkLBEnvironmentVO globoNetworkVipEnvironment: globoNetworkVipEnvironments) {
+            if (globoNetworkVipEnvironment.getName().equalsIgnoreCase(name)) {
+                throw new InvalidParameterValueException("VIP environment with name " + name + " already exists.");
+            }
+            if (globoNetworkVipEnvironment.getGloboNetworkLbEnvironmentId() == globoNetworkVipEnvironmentId) {
+                throw new InvalidParameterValueException("Relationship between Environment " + globoNetworkEnvironmentId + " and VIP Environment " + globoNetworkVipEnvironmentId + " already exists.");
+            }
+        }
+
+        GloboNetworkLBEnvironmentVO globoNetworkVipEnvironmentVO = new GloboNetworkLBEnvironmentVO(name, globoNetworkEnvironment.getId(), globoNetworkVipEnvironmentId);
+        _globoNetworkLBEnvDao.persist(globoNetworkVipEnvironmentVO);
+        return globoNetworkVipEnvironmentVO;
+    }
 
 	@Override
 	@DB
@@ -839,6 +888,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		cmdList.add(ListGloboNetworkRealsCmd.class);
 		cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
 		cmdList.add(ListGloboNetworkVipEnvironmentsCmd.class);
+		cmdList.add(AddGloboNetworkVipEnvironmentCmd.class);
 		return cmdList;
 	}
 	

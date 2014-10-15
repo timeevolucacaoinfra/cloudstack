@@ -56,6 +56,16 @@ public interface GloboNetworkService {
 	 * @return
 	 */
 	public GloboNetworkEnvironmentVO addGloboNetworkEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
+	
+    /**
+     * Add a GloboNetwork VIP Environment to a GloboNetwork Environment.
+     * @param name Name of the relationship
+     * @param physicalNetworkId
+     * @param napiEnvironmentId
+     * @param vipEnvironmentId
+     * @return
+     */
+    public GloboNetworkLBEnvironmentVO addGloboNetworkVipEnvironment(String name, Long physicalNetworkId, Long napiEnvironmentId, Long vipEnvironmentId);	
 
 	/**
 	 * Create a new network in sync with GloboNetwork.

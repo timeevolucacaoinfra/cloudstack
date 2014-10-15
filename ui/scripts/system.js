@@ -6242,7 +6242,7 @@
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
-                                                                            vipenvid: this.vipenvironmentid,
+                                                                            vipenvid: this.globonetworkvipenvironmentid,
                                                                         });
                                                                     }
                                                                 });
@@ -6251,6 +6251,91 @@
                                                                 });
                                                             }
                                                         });
+                                                    },
+                                                    actions: {
+                                                        add: {
+                                                            label: 'Add VIP Environment',
+                                                            createForm: {
+                                                                title: 'Add a VIP Environment',
+                                                                fields: {
+                                                                    name: {
+                                                                        label: 'Name',
+                                                                        validation: {
+                                                                            required: true
+                                                                        }
+                                                                    },
+                                                                    vipenvid: {
+                                                                        label: 'VIP Environment',
+                                                                        validation: {
+                                                                            required: true
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            action: function(args) {
+                                                                var physicalnetworkid = selectedPhysicalNetworkObj.id;
+                                                                var environmentid = args.context.napienvironments[0].environmentid;
+                                                                var vipenvironmentid = args.data.vipenvid;
+                                                                var name = args.data.name;
+                                                                $.ajax({
+                                                                    url: createURL("addGloboNetworkVipEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&vipenvironmentid=" + vipenvironmentid + "&name=" + name),
+                                                                    dataType: "json",
+                                                                    async: true,
+                                                                    success: function(json) {
+                                                                        var jid = json.addglobonetworkvipenvironmentresponse.jobid;
+                                                                        args.response.success({
+                                                                            _custom: {
+                                                                                jobId: jid,
+                                                                                getUpdatedItem: function(json) {
+                                                                                    $(window).trigger('cloudStack.fullRefresh');
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                });
+                                                            },
+                                                            messages: {
+                                                                notification: function(args) {
+                                                                    return 'VIP Environment added successfully';
+                                                                }
+                                                            },
+                                                            notification: {
+                                                                poll: pollAsyncJobResult
+                                                            }
+                                                        },
+                                                        remove: {
+                                                            label: 'label.remove',
+                                                            messages: {
+                                                                confirm: function(args) {
+                                                                    return 'Are you sure you want to remove VIP environment ' + args.context.vipenvs[0].name + '(' + args.context.vipenvs[0].vipenvid + ')?';
+                                                                },
+                                                                notification: function(args) {
+                                                                    return 'Remove GloboNetwork VIP Environment';
+                                                                }
+                                                            },
+                                                            action: function(args) {
+                                                                var environmentid = args.context.napienvironments[0].environmentid;
+                                                                var vipenvironmentid = args.context.vipenvs[0].vipenvid;
+                                                                $.ajax({
+                                                                    url: createURL("removeGloboNetworkVipEnvironment&napienvironmentid=" + environmentid + "&globonetworkvipenvironmentid=" + vipenvironmentid),
+                                                                    dataType: "json",
+                                                                    async: true,
+                                                                    success: function(json) {
+                                                                        args.response.success();
+                                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                                    },
+                                                                    error: function(XMLHttpResponse) {
+                                                                        var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                                        args.response.error(errorMsg);
+                                                                    }
+                                                                });
+                                                            },
+                                                            notification: {
+                                                                poll: function(args) {
+                                                                    args.complete();
+                                                                }
+                                                            }
+                                                        },
                                                     },
                                                 }
                                             }
