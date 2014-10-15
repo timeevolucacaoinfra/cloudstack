@@ -25,4 +25,5 @@ public interface GloboNetworkLBEnvironmentDao extends GenericDao<GloboNetworkLBE
 
 	List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId);
 
+	GloboNetworkLBEnvironmentVO findByEnvironmentRefAndLBEnvironment(long globoNetworkEnvironmentRefId, long globoNetworkLbEnvironmentId);
 }

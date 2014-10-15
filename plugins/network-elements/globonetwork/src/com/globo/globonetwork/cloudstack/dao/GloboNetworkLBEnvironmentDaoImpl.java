@@ -35,18 +35,33 @@ import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
 public class GloboNetworkLBEnvironmentDaoImpl extends GenericDaoBase<GloboNetworkLBEnvironmentVO, Long> implements GloboNetworkLBEnvironmentDao {
 
     final SearchBuilder<GloboNetworkLBEnvironmentVO> byNetworkEnvironmentRefId;
+    
+    final SearchBuilder<GloboNetworkLBEnvironmentVO> byNetworkEnvironmentRefIdAndLBEnvironmentId;
 
     protected GloboNetworkLBEnvironmentDaoImpl() {
         byNetworkEnvironmentRefId = createSearchBuilder();
-        byNetworkEnvironmentRefId.and("network_environment_ref_id", byNetworkEnvironmentRefId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byNetworkEnvironmentRefId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
         byNetworkEnvironmentRefId.done();
+        
+        byNetworkEnvironmentRefIdAndLBEnvironmentId = createSearchBuilder();
+        byNetworkEnvironmentRefIdAndLBEnvironmentId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBEnvironmentId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndLBEnvironmentId.and("globonetwork_lb_environment_id", byNetworkEnvironmentRefIdAndLBEnvironmentId.entity().getGloboNetworkLbEnvironmentId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndLBEnvironmentId.done();        
     }
 
     @Override
     public List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
         SearchCriteria<GloboNetworkLBEnvironmentVO> sc = byNetworkEnvironmentRefId.create();
-        sc.setParameters("globoNetworkEnvironmentRefId", globoNetworkEnvironmentRefId);
+        sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
         return listBy(sc);
+    }
+
+    @Override
+    public GloboNetworkLBEnvironmentVO findByEnvironmentRefAndLBEnvironment(long globoNetworkEnvironmentRefId, long globoNetworkLbEnvironmentId) {
+        SearchCriteria<GloboNetworkLBEnvironmentVO> sc = byNetworkEnvironmentRefIdAndLBEnvironmentId.create();
+        sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
+        sc.setParameters("globonetwork_lb_environment_id", globoNetworkLbEnvironmentId);
+        return findOneBy(sc);
     }
 
 }

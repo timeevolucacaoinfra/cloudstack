@@ -6236,7 +6236,7 @@
 
                                                         var items = [];
                                                         $.ajax({
-                                                            url: createURL("listGloboNetworkVipEnvironments&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                            url: createURL("listGloboNetworkVipEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
                                                             success: function(json) {
                                                                 $(json.listglobonetworkvipenvironmentsresponse.globonetworkvipenvironment).each(function() {
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
@@ -6314,10 +6314,11 @@
                                                                 }
                                                             },
                                                             action: function(args) {
+                                                                var physicalnetworkid = selectedPhysicalNetworkObj.id;
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
                                                                 var vipenvironmentid = args.context.vipenvs[0].vipenvid;
                                                                 $.ajax({
-                                                                    url: createURL("removeGloboNetworkVipEnvironment&napienvironmentid=" + environmentid + "&globonetworkvipenvironmentid=" + vipenvironmentid),
+                                                                    url: createURL("removeGloboNetworkVipEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&vipenvironmentid=" + vipenvironmentid),
                                                                     dataType: "json",
                                                                     async: true,
                                                                     success: function(json) {

@@ -21,11 +21,14 @@ import java.util.List;
 import javax.inject.Inject;
 
 import org.apache.cloudstack.api.APICommand;
+import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
+import org.apache.cloudstack.api.BaseCmd.CommandType;
 import org.apache.cloudstack.api.response.ListResponse;
+import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
@@ -47,9 +50,16 @@ public class ListGloboNetworkVipEnvironmentsCmd extends BaseCmd {
     @Inject
     GloboNetworkService _globoNetworkService;
     
+    @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
+    private Long physicalNetworkId;
+    
     @Parameter(name = "environmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
     private Long globoNetworkEnvironmentId;
 
+    public Long getPhysicalNetworkId() {
+        return physicalNetworkId;
+    }
+    
     public Long getGloboNetworkEnvironmentId() {
     	return globoNetworkEnvironmentId;
     }
@@ -59,7 +69,7 @@ public class ListGloboNetworkVipEnvironmentsCmd extends BaseCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("listGloboNetworkVipEnvironmentsCmd command with environmentId=" + globoNetworkEnvironmentId);
-        	List<GloboNetworkLBEnvironmentVO> globoNetworkVipEnvironments = _globoNetworkService.listGloboNetworkVipEnvironmentsFromDB(this.globoNetworkEnvironmentId);
+        	List<GloboNetworkLBEnvironmentVO> globoNetworkVipEnvironments = _globoNetworkService.listGloboNetworkVipEnvironmentsFromDB(this.physicalNetworkId, this.globoNetworkEnvironmentId);
         	
         	List<GloboNetworkVipEnvironmentResponse> responseList = new ArrayList<GloboNetworkVipEnvironmentResponse>();
     		

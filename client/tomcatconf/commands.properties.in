@@ -729,6 +729,7 @@ listGloboNetworkVipEnvironments=15
 listGloboNetworkVips=15
 removeGloboNetworkEnvironment=1
 removeGloboNetworkVip=15
+removeGloboNetworkVipEnvironment=1
 
 ### GloboDNS commands
 addGloboDnsHost=1

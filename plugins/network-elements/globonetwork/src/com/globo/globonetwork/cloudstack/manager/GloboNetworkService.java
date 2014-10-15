@@ -160,9 +160,10 @@ public interface GloboNetworkService {
 	   /**
      * List GloboNetwork VIP environments from database according to a specific GloboNetwork Environment ID.
      * If this parameter is not passed, all GloboNetwork VIP environments from database are returned.
+     * @param physicalNetworkId
      * @param globoNetworkEnvironmentId
      */
-    public List<GloboNetworkLBEnvironmentVO> listGloboNetworkVipEnvironmentsFromDB(Long globoNetworkEnvironmentId);
+    public List<GloboNetworkLBEnvironmentVO> listGloboNetworkVipEnvironmentsFromDB(Long physicalNetworkId, Long globoNetworkEnvironmentId);
 
 	/**
 	 * List all environments from GloboNetwork
@@ -180,6 +181,15 @@ public interface GloboNetworkService {
 	 * @return
 	 */
 	public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId);
+	
+    /**
+     * Removes the relationship between VIP Environment and GloboNetwork environment
+     * @param physicalNetworkId
+     * @param globoNetworkEnvironmentId
+     * @param globoNetworkVipEnvironmentId
+     * @return
+     */
+    public boolean removeGloboNetworkVipEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkVipEnvironmentId);	
 
 	/**
 	 * Add GloboNetwork host details (provider) to CloudStack
