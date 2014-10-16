@@ -1,0 +1,15 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+ALTER TABLE
+    `cloud`.`vlan` CHANGE description ip_range VARCHAR(255);
+ALTER TABLE
+    `cloud`.`vlan` ADD (description VARCHAR(255));
+UPDATE `cloud`.`vlan` SET description = ip_range;
+"""
+
+SQL_DOWN = u"""
+ALTER TABLE
+    `cloud`.`vlan` DROP COLUMN description;
+ALTER TABLE
+    `cloud`.`vlan` CHANGE ip_range description VARCHAR(255)
+"""

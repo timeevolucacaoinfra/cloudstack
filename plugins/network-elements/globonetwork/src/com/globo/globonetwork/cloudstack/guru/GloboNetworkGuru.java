@@ -254,8 +254,8 @@ public class GloboNetworkGuru extends GuestNetworkGuru implements NetworkGuruWit
 	}
 
     @Override
-    public IpAddress allocate(Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
-        return _globoNetworkService.allocate(network, owner);
+    public IpAddress allocatePublicIp(Network network, Account owner, Long vlanId) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
+        return _globoNetworkService.allocatePublicIp(network, owner, vlanId);
     }
 
     @Override

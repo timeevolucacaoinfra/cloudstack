@@ -212,7 +212,7 @@ public interface ConfigurationManager {
             boolean isDefault, Network.GuestType type, boolean systemOnly, Long serviceOfferingId, boolean conserveMode, Map<Service, Map<Capability, String>> serviceCapabilityMap,
             boolean specifyIpRanges, boolean isPersistent, Map<NetworkOffering.Detail,String> details, boolean egressDefaultPolicy, Integer maxconn, boolean enableKeepAlive);
 
-    Vlan createVlanAndPublicIpRange(long zoneId, long networkId, long physicalNetworkId, boolean forVirtualNetwork, Long podId, String startIP, String endIP, String vlanGateway, String vlanNetmask, String vlanId, Account vlanOwner, String startIPv6, String endIPv6, String vlanIp6Gateway, String vlanIp6Cidr) throws InsufficientCapacityException, ConcurrentOperationException, InvalidParameterValueException;
+    Vlan createVlanAndPublicIpRange(String description, long zoneId, long networkId, long physicalNetworkId, boolean forVirtualNetwork, Long podId, String startIP, String endIP, String vlanGateway, String vlanNetmask, String vlanId, Account vlanOwner, String startIPv6, String endIPv6, String vlanIp6Gateway, String vlanIp6Cidr) throws InsufficientCapacityException, ConcurrentOperationException, InvalidParameterValueException;
 
     void createDefaultSystemNetworks(long zoneId) throws ConcurrentOperationException;
 

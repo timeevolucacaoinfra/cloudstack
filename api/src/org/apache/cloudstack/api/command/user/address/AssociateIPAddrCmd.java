@@ -19,7 +19,6 @@ package org.apache.cloudstack.api.command.user.address;
 import java.util.List;
 
 import org.apache.log4j.Logger;
-
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiCommandJobType;
 import org.apache.cloudstack.api.ApiConstants;
@@ -29,11 +28,13 @@ import org.apache.cloudstack.api.BaseAsyncCreateCmd;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
+import org.apache.cloudstack.api.BaseCmd.CommandType;
 import org.apache.cloudstack.api.response.DomainResponse;
 import org.apache.cloudstack.api.response.IPAddressResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.api.response.RegionResponse;
+import org.apache.cloudstack.api.response.VlanIpRangeResponse;
 import org.apache.cloudstack.api.response.VpcResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.cloudstack.context.CallContext;
@@ -97,6 +98,10 @@ public class AssociateIPAddrCmd extends BaseAsyncCreateCmd {
             required=false, description="region ID from where portable ip is to be associated.")
     private Integer regionId;
 
+    @Parameter(name=ApiConstants.VLAN_ID, type=CommandType.UUID, entityType = VlanIpRangeResponse.class,
+            description="Id of vlan that IP belongs to", since="4.6")
+    private Long vlanId;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -136,6 +141,13 @@ public class AssociateIPAddrCmd extends BaseAsyncCreateCmd {
 
     public Long getVpcId() {
         return vpcId;
+    }
+    
+    public Long getVlanId() {
+        if (isPortable()) {
+            throw new InvalidParameterValueException("You can't use vlanId parameter with portable ips");
+        }
+        return vlanId;
     }
 
     public boolean isPortable() {
@@ -272,7 +284,7 @@ public class AssociateIPAddrCmd extends BaseAsyncCreateCmd {
             IpAddress ip = null;
 
             if (!isPortable()) {
-                ip = _networkService.allocateIP(_accountService.getAccount(getEntityOwnerId()),  getZoneId(), getNetworkId());
+                ip = _networkService.allocateIP(_accountService.getAccount(getEntityOwnerId()),  getZoneId(), getNetworkId(), getVlanId());
             } else {
                 ip = _networkService.allocatePortableIP(_accountService.getAccount(getEntityOwnerId()), 1, getZoneId(), getNetworkId(), getVpcId());
             }

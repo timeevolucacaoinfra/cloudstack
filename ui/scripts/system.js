@@ -632,6 +632,10 @@
                                         context: args.context,
                                         noSelect: true,
                                         fields: {
+                                            'description': {
+                                                edit: true,
+                                                label: 'label.description'
+                                            },
                                             'gateway': {
                                                 edit: true,
                                                 label: 'label.gateway'
@@ -676,6 +680,7 @@
                                                 else
                                                     array1.push("&vlan=untagged");
 
+                                                array1.push("&description=" + args.data.description);
                                                 array1.push("&gateway=" + args.data.gateway);
                                                 array1.push("&netmask=" + args.data.netmask);
                                                 array1.push("&startip=" + args.data.startip);

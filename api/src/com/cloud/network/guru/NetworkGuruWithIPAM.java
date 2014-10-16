@@ -18,7 +18,7 @@ public interface NetworkGuruWithIPAM extends NetworkGuru {
      * @throws InsufficientAddressCapacityException
      * @throws ConcurrentOperationException
      */
-    IpAddress allocate(Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException;
+    IpAddress allocatePublicIp(Network network, Account owner, Long vlanId) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException;
 
     /**
      * When is is released, the NetworkGuru is informed via the

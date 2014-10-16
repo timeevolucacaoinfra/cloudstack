@@ -28,6 +28,8 @@ public interface Vlan extends InfrastructureEntity, InternalIdentity, Identity {
 
     public final static String UNTAGGED = "untagged";
 
+    public String getDescription();
+
     public String getVlanTag();
 
     public String getVlanGateway();
