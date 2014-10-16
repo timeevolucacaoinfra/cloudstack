@@ -27,40 +27,40 @@ import com.cloud.utils.db.GenericDaoBase;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
 import com.cloud.utils.db.SearchCriteria.Op;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 
 @Component
-@Local(value = GloboNetworkLBEnvironmentDao.class)
+@Local(value = GloboNetworkLBNetworkDao.class)
 @DB
-public class GloboNetworkLBEnvironmentDaoImpl extends GenericDaoBase<GloboNetworkLBEnvironmentVO, Long> implements GloboNetworkLBEnvironmentDao {
+public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBNetworkVO, Long> implements GloboNetworkLBNetworkDao {
 
-    final SearchBuilder<GloboNetworkLBEnvironmentVO> byNetworkEnvironmentRefId;
+    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefId;
     
-    final SearchBuilder<GloboNetworkLBEnvironmentVO> byNetworkEnvironmentRefIdAndLBEnvironmentId;
+    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndLBNetworkId;
 
-    protected GloboNetworkLBEnvironmentDaoImpl() {
+    protected GloboNetworkLBNetworkDaoImpl() {
         byNetworkEnvironmentRefId = createSearchBuilder();
         byNetworkEnvironmentRefId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
         byNetworkEnvironmentRefId.done();
         
-        byNetworkEnvironmentRefIdAndLBEnvironmentId = createSearchBuilder();
-        byNetworkEnvironmentRefIdAndLBEnvironmentId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBEnvironmentId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndLBEnvironmentId.and("globonetwork_lb_environment_id", byNetworkEnvironmentRefIdAndLBEnvironmentId.entity().getGloboNetworkLbEnvironmentId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndLBEnvironmentId.done();        
+        byNetworkEnvironmentRefIdAndLBNetworkId = createSearchBuilder();
+        byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_lb_network_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkLBNetworkId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndLBNetworkId.done();        
     }
 
     @Override
-    public List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
-        SearchCriteria<GloboNetworkLBEnvironmentVO> sc = byNetworkEnvironmentRefId.create();
+    public List<GloboNetworkLBNetworkVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
+        SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefId.create();
         sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
         return listBy(sc);
     }
 
     @Override
-    public GloboNetworkLBEnvironmentVO findByEnvironmentRefAndLBEnvironment(long globoNetworkEnvironmentRefId, long globoNetworkLbEnvironmentId) {
-        SearchCriteria<GloboNetworkLBEnvironmentVO> sc = byNetworkEnvironmentRefIdAndLBEnvironmentId.create();
+    public GloboNetworkLBNetworkVO findByEnvironmentRefAndLBNetwork(long globoNetworkEnvironmentRefId, long globoNetworkLBNetworkId) {
+        SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
         sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
-        sc.setParameters("globonetwork_lb_environment_id", globoNetworkLbEnvironmentId);
+        sc.setParameters("globonetwork_lb_network_id", globoNetworkLBNetworkId);
         return findOneBy(sc);
     }
 

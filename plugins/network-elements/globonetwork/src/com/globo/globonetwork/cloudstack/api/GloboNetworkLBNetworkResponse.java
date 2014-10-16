@@ -21,23 +21,23 @@ import org.apache.cloudstack.api.BaseResponse;
 import org.apache.cloudstack.api.EntityReference;
 
 import com.cloud.serializer.Param;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 import com.google.gson.annotations.SerializedName;
 
-@EntityReference(value = GloboNetworkLBEnvironmentVO.class)
-public class GloboNetworkVipEnvironmentResponse extends BaseResponse {
+@EntityReference(value = GloboNetworkLBNetworkVO.class)
+public class GloboNetworkLBNetworkResponse extends BaseResponse {
 
-	@SerializedName("id") @Param(description = "id of the GloboNetwork Vip Environment ref")
+	@SerializedName("id") @Param(description = "ID of the relationship between environment ID and LB network")
 	private Long id;
 
-	@SerializedName(ApiConstants.NAME) @Param(description = "name of the VIP environment")
+	@SerializedName(ApiConstants.NAME) @Param(description = "name of the LB network")
 	private String name;
 
 	@SerializedName("globonetworkenvironmentid") @Param(description = "id of environment in GloboNetwork")
 	private Long globoNetworkEnvironmentId;
 	
-	@SerializedName("globonetworkvipenvironmentid") @Param(description = "id of VIP environment in GloboNetwork")
-    private Long globoNetworkVipEnvironmentId;
+	@SerializedName("globonetworklbnetworkid") @Param(description = "id of LB network in GloboNetwork")
+    private Long globoNetworkLBNetworkId;
 
 	public void setId(Long id) {
 		this.id = id;
@@ -51,8 +51,8 @@ public class GloboNetworkVipEnvironmentResponse extends BaseResponse {
 		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
 	}
 	
-    public void setGloboNetworkVipEnvironmentId(Long globoNetworkVipEnvironmentId) {
-        this.globoNetworkVipEnvironmentId = globoNetworkVipEnvironmentId;
+    public void setGloboNetworkLBNetworkId(Long globoNetworkLBNetworkId) {
+        this.globoNetworkLBNetworkId = globoNetworkLBNetworkId;
     }	
 
 }

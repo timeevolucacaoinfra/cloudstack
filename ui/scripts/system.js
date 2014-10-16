@@ -6221,16 +6221,16 @@
                                     detailView: {
                                         tabs: {
                                             vipenvs: {
-                                                title: 'VIP Environments',
+                                                title: 'LB Networks',
                                                 listView: {
-                                                    label: 'VIP Environments',
-                                                    id: 'vipenvs',
+                                                    label: 'LB Networks',
+                                                    id: 'globolbnetworks',
                                                     fields: {
                                                         name: {
                                                             label: 'Local Name'
                                                         },
-                                                        vipenvid: {
-                                                            label: 'GloboNetwork VIP Environment ID'
+                                                        globolbnetworkid: {
+                                                            label: 'GloboNetwork Network ID'
                                                         }
                                                     },
                                                     dataProvider: function(args) {
@@ -6241,13 +6241,13 @@
 
                                                         var items = [];
                                                         $.ajax({
-                                                            url: createURL("listGloboNetworkVipEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                            url: createURL("listGloboNetworkLBNetworks&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
                                                             success: function(json) {
-                                                                $(json.listglobonetworkvipenvironmentsresponse.globonetworkvipenvironment).each(function() {
+                                                                $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
-                                                                            vipenvid: this.globonetworkvipenvironmentid,
+                                                                            globolbnetworkid: this.globonetworklbnetworkid,
                                                                         });
                                                                     }
                                                                 });
@@ -6259,9 +6259,9 @@
                                                     },
                                                     actions: {
                                                         add: {
-                                                            label: 'Add VIP Environment',
+                                                            label: 'Add LB Network',
                                                             createForm: {
-                                                                title: 'Add a VIP Environment',
+                                                                title: 'Add LB Network',
                                                                 fields: {
                                                                     name: {
                                                                         label: 'Name',
@@ -6269,8 +6269,8 @@
                                                                             required: true
                                                                         }
                                                                     },
-                                                                    vipenvid: {
-                                                                        label: 'VIP Environment',
+                                                                    globolbnetworkid: {
+                                                                        label: 'LB Network ID',
                                                                         validation: {
                                                                             required: true
                                                                         }
@@ -6280,14 +6280,14 @@
                                                             action: function(args) {
                                                                 var physicalnetworkid = selectedPhysicalNetworkObj.id;
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
-                                                                var vipenvironmentid = args.data.vipenvid;
+                                                                var globolbnetworkid = args.data.globolbnetworkid;
                                                                 var name = args.data.name;
                                                                 $.ajax({
-                                                                    url: createURL("addGloboNetworkVipEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&vipenvironmentid=" + vipenvironmentid + "&name=" + name),
+                                                                    url: createURL("addGloboNetworkLBNetwork&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&globolbnetworkid=" + globolbnetworkid + "&name=" + name),
                                                                     dataType: "json",
                                                                     async: true,
                                                                     success: function(json) {
-                                                                        var jid = json.addglobonetworkvipenvironmentresponse.jobid;
+                                                                        var jid = json.addglobonetworklbnetworkresponse.jobid;
                                                                         args.response.success({
                                                                             _custom: {
                                                                                 jobId: jid,
@@ -6312,18 +6312,18 @@
                                                             label: 'label.remove',
                                                             messages: {
                                                                 confirm: function(args) {
-                                                                    return 'Are you sure you want to remove VIP environment ' + args.context.vipenvs[0].name + '(' + args.context.vipenvs[0].vipenvid + ')?';
+                                                                    return 'Are you sure you want to remove LB network ' + args.context.globolbnetworks[0].name + '(' + args.context.globolbnetworks[0].globolbnetworkid + ')?';
                                                                 },
                                                                 notification: function(args) {
-                                                                    return 'Remove GloboNetwork VIP Environment';
+                                                                    return 'Remove GloboNetwork LB Network';
                                                                 }
                                                             },
                                                             action: function(args) {
                                                                 var physicalnetworkid = selectedPhysicalNetworkObj.id;
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
-                                                                var vipenvironmentid = args.context.vipenvs[0].vipenvid;
+                                                                var globolbnetworkid = args.context.globolbnetworks[0].globolbnetworkid;
                                                                 $.ajax({
-                                                                    url: createURL("removeGloboNetworkVipEnvironment&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&vipenvironmentid=" + vipenvironmentid),
+                                                                    url: createURL("removeGloboNetworkLBNetwork&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&globolbnetworkid=" + globolbnetworkid),
                                                                     dataType: "json",
                                                                     async: true,
                                                                     success: function(json) {

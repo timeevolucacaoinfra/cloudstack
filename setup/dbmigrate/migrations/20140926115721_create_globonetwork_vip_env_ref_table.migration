@@ -1,17 +1,17 @@
 #-*- coding:utf-8 -*-
 SQL_UP = u"""
-	CREATE TABLE `cloud`.`globonetwork_lb_environment` (id bigint unsigned NOT NULL AUTO_INCREMENT,
+	CREATE TABLE `cloud`.`globonetwork_environment_lb_network_ref` (id bigint unsigned NOT NULL AUTO_INCREMENT,
         globonetwork_environment_ref_id bigint unsigned NOT NULL,
-        globonetwork_lb_environment_id bigint unsigned NOT NULL,
+        globonetwork_lb_network_id bigint unsigned NOT NULL,
         name VARCHAR(40) NOT NULL,
         PRIMARY KEY (id),
-        CONSTRAINT globonetwork_lb_environment_fk2 FOREIGN KEY (globonetwork_environment_ref_id)
+        CONSTRAINT globonetwork_environment_lb_network_ref_fk2 FOREIGN KEY (globonetwork_environment_ref_id)
         REFERENCES globonetwork_environment_ref (id),
-        INDEX globonetwork_lb_environment_fk2 (globonetwork_environment_ref_id))
+        INDEX globonetwork_environment_lb_network_ref_fk2 (globonetwork_environment_ref_id))
     ENGINE=InnoDB
     DEFAULT CHARSET=utf8;
 """
 
 SQL_DOWN = u"""
-	DROP TABLE `cloud`.`globonetwork_lb_environment`;
+	DROP TABLE `cloud`.`globonetwork_environment_lb_network_ref`;
 """

@@ -19,11 +19,11 @@ package com.globo.globonetwork.cloudstack.dao;
 import java.util.List;
 
 import com.cloud.utils.db.GenericDao;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 
-public interface GloboNetworkLBEnvironmentDao extends GenericDao<GloboNetworkLBEnvironmentVO, Long> {
+public interface GloboNetworkLBNetworkDao extends GenericDao<GloboNetworkLBNetworkVO, Long> {
 
-	List<GloboNetworkLBEnvironmentVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId);
+	List<GloboNetworkLBNetworkVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId);
 
-	GloboNetworkLBEnvironmentVO findByEnvironmentRefAndLBEnvironment(long globoNetworkEnvironmentRefId, long globoNetworkLbEnvironmentId);
+	GloboNetworkLBNetworkVO findByEnvironmentRefAndLBNetwork(long globoNetworkEnvironmentRefId, long globoNetworkLBNetworkId);
 }

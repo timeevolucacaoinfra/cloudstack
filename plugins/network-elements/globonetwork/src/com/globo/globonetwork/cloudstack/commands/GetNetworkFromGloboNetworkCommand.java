@@ -18,41 +18,20 @@ package com.globo.globonetwork.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
 
-public class GetVipEnvironmentFromGloboNetworkCommand extends Command {
+public class GetNetworkFromGloboNetworkCommand extends Command {
 	
-	private Long vipEnvironmentId;
+	private Long networkId;
 	
-	private String finality;
-	
-	private String client;
-	
-	private String environmentName;
-	
-	public GetVipEnvironmentFromGloboNetworkCommand(Long vipEnvironmentId, String finality, String client, String environmentName) {
-	    this.vipEnvironmentId = vipEnvironmentId;
-	    this.finality = finality;
-	    this.client = client;
-	    this.environmentName = environmentName;
+	public GetNetworkFromGloboNetworkCommand(Long networkId) {
+	    this.networkId = networkId;
 	}
 
 	@Override
 	public boolean executeInSequence() {
 		return false;
 	}
-    
-    public Long getVipEnvironmentId() {
-        return this.vipEnvironmentId;
-    }
-    
-    public String getFinality() {
-        return this.finality;
-    }
-    
-    public String getClient() {
-        return this.client;
-    }
-    
-    public String getEnvironmentName() {
-        return this.environmentName;
-    }
+
+	public Long getNetworkId() {
+	    return networkId;
+	}
 }

@@ -26,7 +26,6 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.BaseCmd.CommandType;
 import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.context.CallContext;
@@ -38,14 +37,14 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listGloboNetworkVipEnvironments", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists GloboNetwork VIP environments")
-public class ListGloboNetworkVipEnvironmentsCmd extends BaseCmd {
+@APICommand(name = "listGloboNetworkLBNetworks", responseObject=GloboNetworkLBNetworkResponse.class, description="Lists GloboNetwork LB networks")
+public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(ListGloboNetworkVipEnvironmentsCmd.class);
-    private static final String s_name = "listglobonetworkvipenvironmentsresponse";
+    public static final Logger s_logger = Logger.getLogger(ListGloboNetworkLBNetworksCmd.class);
+    private static final String s_name = "listglobonetworklbnetworksresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -68,22 +67,22 @@ public class ListGloboNetworkVipEnvironmentsCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listGloboNetworkVipEnvironmentsCmd command with environmentId=" + globoNetworkEnvironmentId);
-        	List<GloboNetworkLBEnvironmentVO> globoNetworkVipEnvironments = _globoNetworkService.listGloboNetworkVipEnvironmentsFromDB(this.physicalNetworkId, this.globoNetworkEnvironmentId);
+        	s_logger.debug("listGloboNetworkLBNetworksCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId);
+        	List<GloboNetworkLBNetworkVO> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.globoNetworkEnvironmentId);
         	
-        	List<GloboNetworkVipEnvironmentResponse> responseList = new ArrayList<GloboNetworkVipEnvironmentResponse>();
+        	List<GloboNetworkLBNetworkResponse> responseList = new ArrayList<GloboNetworkLBNetworkResponse>();
     		
-    		for (GloboNetworkLBEnvironmentVO globoNetworkVipEnvironmentVO : globoNetworkVipEnvironments) {
-    		    GloboNetworkVipEnvironmentResponse envResponse = new GloboNetworkVipEnvironmentResponse();
-				envResponse.setId(globoNetworkVipEnvironmentVO.getId());
-				envResponse.setName(globoNetworkVipEnvironmentVO.getName());
-				envResponse.setGloboNetworkEnvironmentId(globoNetworkVipEnvironmentVO.getGloboNetworkEnvironmentRefId());
-				envResponse.setGloboNetworkVipEnvironmentId(globoNetworkVipEnvironmentVO.getGloboNetworkLbEnvironmentId());
-				envResponse.setObjectName("globonetworkvipenvironment");
-				responseList.add(envResponse);
+    		for (GloboNetworkLBNetworkVO globoNetworkLBNetworkVO : globoNetworkLBNetworks) {
+    		    GloboNetworkLBNetworkResponse lbNetworkResponse = new GloboNetworkLBNetworkResponse();
+				lbNetworkResponse.setId(globoNetworkLBNetworkVO.getId());
+				lbNetworkResponse.setName(globoNetworkLBNetworkVO.getName());
+				lbNetworkResponse.setGloboNetworkEnvironmentId(globoNetworkLBNetworkVO.getGloboNetworkEnvironmentRefId());
+				lbNetworkResponse.setGloboNetworkLBNetworkId(globoNetworkLBNetworkVO.getGloboNetworkLBNetworkId());
+				lbNetworkResponse.setObjectName("globonetworklbnetworks");
+				responseList.add(lbNetworkResponse);
 			}
     		 
-    		ListResponse<GloboNetworkVipEnvironmentResponse> response = new ListResponse<GloboNetworkVipEnvironmentResponse>();
+    		ListResponse<GloboNetworkLBNetworkResponse> response = new ListResponse<GloboNetworkLBNetworkResponse>();
     		response.setResponses(responseList);
     		response.setResponseName(getCommandName());
     		this.setResponseObject(response);

@@ -27,20 +27,18 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
-import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
-import com.cloud.network.addr.PublicIp;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.user.Account;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
@@ -62,10 +60,10 @@ public interface GloboNetworkService {
      * @param name Name of the relationship
      * @param physicalNetworkId
      * @param napiEnvironmentId
-     * @param vipEnvironmentId
+     * @param globoNetworkLBNetworkId
      * @return
      */
-    public GloboNetworkLBEnvironmentVO addGloboNetworkVipEnvironment(String name, Long physicalNetworkId, Long napiEnvironmentId, Long vipEnvironmentId);	
+    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId);	
 
 	/**
 	 * Create a new network in sync with GloboNetwork.
@@ -163,7 +161,7 @@ public interface GloboNetworkService {
      * @param physicalNetworkId
      * @param globoNetworkEnvironmentId
      */
-    public List<GloboNetworkLBEnvironmentVO> listGloboNetworkVipEnvironmentsFromDB(Long physicalNetworkId, Long globoNetworkEnvironmentId);
+    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long globoNetworkEnvironmentId);
 
 	/**
 	 * List all environments from GloboNetwork
@@ -186,10 +184,10 @@ public interface GloboNetworkService {
      * Removes the relationship between VIP Environment and GloboNetwork environment
      * @param physicalNetworkId
      * @param globoNetworkEnvironmentId
-     * @param globoNetworkVipEnvironmentId
+     * @param globoNetworkLBNetworkId
      * @return
      */
-    public boolean removeGloboNetworkVipEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkVipEnvironmentId);	
+    public boolean removeGloboNetworkLBNetwork(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBNetworkId);	
 
 	/**
 	 * Add GloboNetwork host details (provider) to CloudStack

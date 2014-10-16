@@ -33,13 +33,13 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addGloboNetworkVipEnvironment", responseObject = GloboNetworkVipEnvironmentResponse.class, description = "Adds a GloboNetwork VIP environment to a GloboNetwork environment")
-public class AddGloboNetworkVipEnvironmentCmd extends BaseAsyncCmd {
+@APICommand(name = "addGloboNetworkLBNetwork", responseObject = GloboNetworkLBNetworkResponse.class, description = "Adds a LB network to a GloboNetwork environment")
+public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 
-	private static final String s_name = "addglobonetworkvipenvironmentresponse";
+	private static final String s_name = "addglobonetworklbnetworkresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
@@ -47,7 +47,7 @@ public class AddGloboNetworkVipEnvironmentCmd extends BaseAsyncCmd {
 	// ////////////// API parameters /////////////////////
 	// ///////////////////////////////////////////////////
 
-	@Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between GloboNetwork VIP environment and GloboNetwork environment")
+	@Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between LB network and GloboNetwork environment")
 	private String name;
 	
     @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
@@ -56,8 +56,8 @@ public class AddGloboNetworkVipEnvironmentCmd extends BaseAsyncCmd {
 	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
 	private Long globoNetworkEnvironmentId;
 	
-	@Parameter(name = "vipenvironmentid", type = CommandType.LONG, required = true, description = "the Id of VIP environment in GloboNetwork")
-	private Long globoNetworkVipEnvironmentId;
+	@Parameter(name = "globolbnetworkid", type = CommandType.LONG, required = true, description = "the Id of LB network in GloboNetwork")
+	private Long globoNetworkLBNetworkId;
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
@@ -75,8 +75,8 @@ public class AddGloboNetworkVipEnvironmentCmd extends BaseAsyncCmd {
 		return globoNetworkEnvironmentId;
 	}
 	
-    public Long getGloboNetworkVipEnvironmentId() {
-        return globoNetworkVipEnvironmentId;
+    public Long getGloboNetworkLBNetworkId() {
+        return globoNetworkLBNetworkId;
     }	
 
 	// ///////////////////////////////////////////////////
@@ -88,13 +88,13 @@ public class AddGloboNetworkVipEnvironmentCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			GloboNetworkLBEnvironmentVO vipEnvironmentVO = _globoNetworkService.addGloboNetworkVipEnvironment(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkVipEnvironmentId);
-			GloboNetworkVipEnvironmentResponse response = new GloboNetworkVipEnvironmentResponse();
-			response.setId(vipEnvironmentVO.getId());
-			response.setName(vipEnvironmentVO.getName());
-			response.setGloboNetworkEnvironmentId(vipEnvironmentVO.getGloboNetworkEnvironmentRefId());
-			response.setGloboNetworkVipEnvironmentId(vipEnvironmentVO.getGloboNetworkLbEnvironmentId());
-			response.setObjectName("globonetworkvipenvironment");
+			GloboNetworkLBNetworkVO globoLBNetworkVO = _globoNetworkService.addGloboNetworkLBNetwork(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
+			GloboNetworkLBNetworkResponse response = new GloboNetworkLBNetworkResponse();
+			response.setId(globoLBNetworkVO.getId());
+			response.setName(globoLBNetworkVO.getName());
+			response.setGloboNetworkEnvironmentId(globoLBNetworkVO.getGloboNetworkEnvironmentRefId());
+			response.setGloboNetworkLBNetworkId(globoLBNetworkVO.getGloboNetworkLBNetworkId());
+			response.setObjectName("globonetworklbnetwork");
 			response.setResponseName(getCommandName());
 			this.setResponseObject(response);
 			

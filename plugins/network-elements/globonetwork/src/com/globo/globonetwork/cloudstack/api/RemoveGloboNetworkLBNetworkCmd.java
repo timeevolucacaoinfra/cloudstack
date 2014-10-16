@@ -36,10 +36,10 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "removeGloboNetworkVipEnvironment", responseObject = SuccessResponse.class, description = "Removes relationship between a VIP environment an environment")
-public class RemoveGloboNetworkVipEnvironmentCmd extends BaseCmd {
+@APICommand(name = "removeGloboNetworkLBNetwork", responseObject = SuccessResponse.class, description = "Removes relationship between an environment and a LB network")
+public class RemoveGloboNetworkLBNetworkCmd extends BaseCmd {
 
-	private static final String s_name = "removeglobonetworkvipenvironmentresponse";
+	private static final String s_name = "removeglobonetworklbnetworkresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
@@ -53,8 +53,8 @@ public class RemoveGloboNetworkVipEnvironmentCmd extends BaseCmd {
 	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
 	private Long globoNetworkEnvironmentId;
 	
-    @Parameter(name = "vipenvironmentid", type = CommandType.LONG, required = true, description = "the Id of VIP environment in GloboNetwork")
-    private Long globoNetworkVipEnvironmentId;	
+    @Parameter(name = "globolbnetworkid", type = CommandType.LONG, required = true, description = "the Id of LB network in GloboNetwork")
+    private Long globoNetworkLBNetworkId;	
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
@@ -68,8 +68,8 @@ public class RemoveGloboNetworkVipEnvironmentCmd extends BaseCmd {
 		return globoNetworkEnvironmentId;
 	}
 	
-    public Long getGloboNetworkVipEnvironmentId() {
-        return globoNetworkVipEnvironmentId;
+    public Long getGloboNetworkLBNetworkId() {
+        return globoNetworkLBNetworkId;
     }
 
 	// ///////////////////////////////////////////////////
@@ -81,7 +81,7 @@ public class RemoveGloboNetworkVipEnvironmentCmd extends BaseCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			boolean result = _globoNetworkService.removeGloboNetworkVipEnvironment(physicalNetworkId, globoNetworkEnvironmentId, globoNetworkVipEnvironmentId);
+			boolean result = _globoNetworkService.removeGloboNetworkLBNetwork(physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
 
 			if (result) {
 				SuccessResponse response = new SuccessResponse(getCommandName());

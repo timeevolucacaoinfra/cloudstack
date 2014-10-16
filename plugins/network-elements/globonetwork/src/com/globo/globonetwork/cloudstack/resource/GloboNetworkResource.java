@@ -60,7 +60,7 @@ import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCom
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
-import com.globo.globonetwork.cloudstack.commands.GetVipEnvironmentFromGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.GetNetworkFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
@@ -73,7 +73,6 @@ import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGlob
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
-import com.globo.globonetwork.cloudstack.response.GloboNetworkVipEnvironmentResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
@@ -271,19 +270,23 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((ReleaseIpFromGloboNetworkCommand) cmd);
         } else if (cmd instanceof AddOrRemoveVipInGloboNetworkCommand) {
             return execute((AddOrRemoveVipInGloboNetworkCommand) cmd);
-        } else if (cmd instanceof GetVipEnvironmentFromGloboNetworkCommand) {
-            return execute((GetVipEnvironmentFromGloboNetworkCommand) cmd);
+        } else if (cmd instanceof GetNetworkFromGloboNetworkCommand) {
+            return execute((GetNetworkFromGloboNetworkCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
     }
 
-    private Answer execute(GetVipEnvironmentFromGloboNetworkCommand cmd) {
+    private Answer execute(GetNetworkFromGloboNetworkCommand cmd) {
         try {
-            VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), cmd.getFinality(), cmd.getClient(), cmd.getEnvironmentName());
-            if (environmentVip == null) {
-                return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
+            if (cmd.getNetworkId() == null) {
+                return new Answer(cmd, false, "Invalid network ID");
             }
-            return new GloboNetworkVipEnvironmentResponse(cmd, environmentVip.getId(), environmentVip.getFinality(), environmentVip.getClient(), environmentVip.getEnvironmentName());
+            IPv4Network network = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(cmd.getNetworkId());
+            if (network == null) {
+                return new Answer(cmd, false, "Network with ID " + cmd.getNetworkId() + " not found in GloboNetwork");
+            }
+            
+            return this.createNetworkResponse(network, cmd);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         }
@@ -639,39 +642,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 return new Answer(cmd, false, "Acquired new Ip for environment vip " + vipEnvironmentId + " returns no answer");
             }
 
-            GloboNetworkAndIPResponse answer = new GloboNetworkAndIPResponse(cmd);
-
-            // ip information
-            answer.setIp(new com.cloud.utils.net.Ip(globoIp.getIpString()));
-            answer.setIpId(globoIp.getId());
-
             // get network information
             Long networkId = globoIp.getNetworkId();
             IPv4Network network = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(networkId);
             if (network == null) {
                 return new Answer(cmd, false, "Network with id " + networkId + " not found");
             }
-            answer.setNetworkId(networkId);
-            answer.setNetworkAddress(network.getNetworkAddressAsString());
-            answer.setNetworkBroadcast(network.getBroadcast());
-            answer.setNetworkMask(network.getMaskAsString());
-            answer.setActive(Boolean.TRUE.equals(network.getActive()));
-            long size = network.getBlock();
 
-            answer.setNetworkCidr(network.getNetworkAddressAsString() + "/" + size);
-            // TODO Gateway is always the first ip in network. Change GloboNetwork to send gateway by itself
-            answer.setNetworkGateway(NetUtils.getIpRangeStartIpFromCidr(network.getNetworkAddressAsString(), size));
+            GloboNetworkAndIPResponse answer = (GloboNetworkAndIPResponse) this.createNetworkResponse(network, cmd);
 
-            // get vlan information
-            Long vlanId = network.getVlanId();
-            Vlan vlan = _globoNetworkApi.getVlanAPI().getById(vlanId);
-            if (vlan == null) {
-                return new Answer(cmd, false, "Vlan with id " + vlanId + " not found");
-            }
-            answer.setVlanId(vlanId);
-            answer.setVlanName(vlan.getName());
-            answer.setVlanDescription(vlan.getDescription());
-            answer.setVlanNum(vlan.getVlanNum().intValue());
+            // ip information
+            answer.setIp(new com.cloud.utils.net.Ip(globoIp.getIpString()));
+            answer.setIpId(globoIp.getId());
+
             return answer;
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
@@ -976,4 +959,29 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return new GloboNetworkVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask, ipv4Network.getId(), ipv4Network.getActive());
     }
 
+    private Answer createNetworkResponse(IPv4Network network, Command cmd) throws GloboNetworkException {
+        GloboNetworkAndIPResponse answer = new GloboNetworkAndIPResponse(cmd);
+        answer.setNetworkId(network.getId());
+        answer.setNetworkAddress(network.getNetworkAddressAsString());
+        answer.setNetworkBroadcast(network.getBroadcast());
+        answer.setNetworkMask(network.getMaskAsString());
+        answer.setActive(Boolean.TRUE.equals(network.getActive()));
+        long size = network.getBlock();
+
+        answer.setNetworkCidr(network.getNetworkAddressAsString() + "/" + size);
+        // TODO Gateway is always the first ip in network. Change GloboNetwork to send gateway by itself
+        answer.setNetworkGateway(NetUtils.getIpRangeStartIpFromCidr(network.getNetworkAddressAsString(), size));
+
+        // get vlan information
+        Long vlanId = network.getVlanId();
+        Vlan vlan = _globoNetworkApi.getVlanAPI().getById(vlanId);
+        if (vlan == null) {
+            return new Answer(cmd, false, "Vlan with id " + vlanId + " not found");
+        }
+        answer.setVlanId(vlanId);
+        answer.setVlanName(vlan.getName());
+        answer.setVlanDescription(vlan.getDescription());
+        answer.setVlanNum(vlan.getVlanNum().intValue());
+        return answer;
+    }
 }
