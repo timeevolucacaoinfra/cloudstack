@@ -15,6 +15,9 @@ case "$1" in
   compile-quick)
     mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
+  update-js)
+    cp -R ui/scripts client/target/generated-webapp/
+    ;;
   deploydb)
     mvn -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
     ;;
