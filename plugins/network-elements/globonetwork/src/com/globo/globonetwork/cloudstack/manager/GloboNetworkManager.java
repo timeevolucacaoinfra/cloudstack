@@ -753,7 +753,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	
     @Override
     @DB
-    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBNetworkId) {
+    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(final String name, Long physicalNetworkId, Long globoNetworkEnvironmentId, final Long globoNetworkLBNetworkId) throws ResourceAllocationException {
         
         if (name == null || name.trim().isEmpty()) {
             throw new InvalidParameterValueException("Invalid name: " + name);
@@ -773,14 +773,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         // Check if there is a environment with same id or name in this zone.
-        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(pNtwk.getId(), globoNetworkEnvironmentId);
+        final GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(pNtwk.getId(), globoNetworkEnvironmentId);
         if (globoNetworkEnvironment == null) {
             throw new InvalidParameterValueException("Could not find a relationship between GloboNetwork Environment " + globoNetworkEnvironmentId + " and physical network " + physicalNetworkId);
         }
         
         // Find out if LB Network exists in GloboNetwork
         GetNetworkFromGloboNetworkCommand cmd = new GetNetworkFromGloboNetworkCommand(globoNetworkLBNetworkId);
-        callCommand(cmd, pNtwk.getDataCenterId(), false);
+        Answer answer = callCommand(cmd, pNtwk.getDataCenterId(), false);
         // If code reaches this point, LB Network exists in GloboNetwork
         
         // Check if there is a LB network with same id or name in this zone.
@@ -794,11 +794,31 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
         
-        // TODO Add network info to VLAN table
+        final Long zoneId = pNtwk.getDataCenterId();
+        final GloboNetworkAndIPResponse response = (GloboNetworkAndIPResponse) answer;
+        try {
+            GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = Transaction.execute(new TransactionCallbackWithException<GloboNetworkLBNetworkVO, CloudException>() {
 
-        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, 0);
-        _globoNetworkLBNetworkDao.persist(globoNetworkLBNetworkVO);
-        return globoNetworkLBNetworkVO;
+                @Override
+                public GloboNetworkLBNetworkVO doInTransaction(TransactionStatus status) throws CloudException {
+                    Integer vlanNumber = response.getVlanNum();
+                    VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                    if (vlan == null) {
+                        vlan = createNewPublicVlan(response.getVlanDescription(), zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                    }
+                    
+                    GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, vlan.getId());
+                    _globoNetworkLBNetworkDao.persist(globoNetworkLBNetworkVO);
+                    return globoNetworkLBNetworkVO;
+                }
+            });
+            
+            return globoNetworkLBNetworkVO;
+            
+        } catch (CloudException e) {
+            // Exception when defining IP ranges in Cloudstack
+            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
+        }
     }
 
 	@Override
@@ -1584,7 +1604,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     Integer vlanNumber = globoNetwork.getVlanNum();
                     VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
                     if (vlan == null) {
-                        // FIXME: Invalid description
                         vlan = createNewPublicVlan(globoNetwork.getVlanDescription(), zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
                     }
                     

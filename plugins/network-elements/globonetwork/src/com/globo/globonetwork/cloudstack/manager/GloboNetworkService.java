@@ -63,7 +63,7 @@ public interface GloboNetworkService {
      * @param globoNetworkLBNetworkId
      * @return
      */
-    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId);	
+    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId) throws ResourceAllocationException;	
 
 	/**
 	 * Create a new network in sync with GloboNetwork.
