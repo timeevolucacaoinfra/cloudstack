@@ -1,0 +1,19 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+CREATE TABLE `globonetwork_environment_lb_network_ref` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `globonetwork_environment_ref_id` bigint(20) unsigned NOT NULL,
+  `vlan_id` bigint(20) unsigned NOT NULL,
+  `globonetwork_lb_network_id` bigint(20) unsigned NOT NULL,
+  `name` varchar(40) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_on_vlan_and_network` (`vlan_id`,`globonetwork_lb_network_id`),
+  KEY `globonetwork_environment_lb_network_ref_fk2` (`globonetwork_environment_ref_id`),
+  CONSTRAINT `fk_on_environment_id` FOREIGN KEY (`globonetwork_environment_ref_id`) REFERENCES `globonetwork_environment_ref` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_on_vlanid` FOREIGN KEY (`vlan_id`) REFERENCES `vlan` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+"""
+
+SQL_DOWN = u"""
+	DROP TABLE `cloud`.`globonetwork_environment_lb_network_ref`;
+"""

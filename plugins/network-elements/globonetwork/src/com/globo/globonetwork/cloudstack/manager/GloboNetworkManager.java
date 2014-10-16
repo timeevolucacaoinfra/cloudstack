@@ -796,7 +796,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         // TODO Add network info to VLAN table
 
-        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId);
+        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, 0);
         _globoNetworkLBNetworkDao.persist(globoNetworkLBNetworkVO);
         return globoNetworkLBNetworkVO;
     }
