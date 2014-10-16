@@ -51,8 +51,8 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
         byNetworkEnvironmentRefIdAndLBNetworkId.done();        
 
         byNetworkEnvironmentRefIdAndVlanId = createSearchBuilder();
-        byNetworkEnvironmentRefIdAndVlanId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndVlanId.and("vlanId", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getVlanId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndVlanId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndVlanId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndVlanId.and("vlanId", byNetworkEnvironmentRefIdAndVlanId.entity().getVlanId(), Op.EQ);
         byNetworkEnvironmentRefIdAndVlanId.done();        
 
     }

@@ -56,6 +56,7 @@ public class GloboNetworkLBNetworkVO implements InternalIdentity {
 		this.name = name;
 		this.globoNetworkEnvironmentRefId = globoNetworkEnvironmentId;
         this.globoNetworkLBNetworkId = globoNetworkLBNetworkId;
+        this.vlanId = vlanId;
 	}
 
 	public long getId() {
