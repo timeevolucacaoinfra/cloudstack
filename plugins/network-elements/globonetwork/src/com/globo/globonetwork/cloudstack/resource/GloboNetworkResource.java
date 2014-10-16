@@ -48,6 +48,7 @@ import com.globo.globonetwork.client.model.Environment;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
+import com.globo.globonetwork.client.model.Network;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.VipEnvironment;
@@ -636,10 +637,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(AcquireNewIpForLbCommand cmd) {
         try {
-            long vipEnvironmentId = cmd.getVipEnvironmentId();
-            Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(vipEnvironmentId, "");
+            long globoLBNetworkId = cmd.getGloboLBNetworkId();
+            IPv4Network globoNetwork = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(globoLBNetworkId);
+            if (globoNetwork == null || globoNetwork.getVipEnvironmentId() == null) {
+                return new Answer(cmd, false, "Network with id " + globoLBNetworkId + " not found or don't have vip environment.");
+            }
+            
+            Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(globoNetwork.getVipEnvironmentId(), "");
             if (globoIp == null) {
-                return new Answer(cmd, false, "Acquired new Ip for environment vip " + vipEnvironmentId + " returns no answer");
+                return new Answer(cmd, false, "Acquired new Ip for environment vip " + globoNetwork.getVipEnvironmentId() + " returns no answer");
             }
 
             // get network information

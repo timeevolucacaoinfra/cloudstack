@@ -26,4 +26,7 @@ public interface GloboNetworkLBNetworkDao extends GenericDao<GloboNetworkLBNetwo
 	List<GloboNetworkLBNetworkVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId);
 
 	GloboNetworkLBNetworkVO findByEnvironmentRefAndLBNetwork(long globoNetworkEnvironmentRefId, long globoNetworkLBNetworkId);
+
+    GloboNetworkLBNetworkVO findByEnvironmentRefAndVlanId(long globoNetworkEnvironmentRefId, long vlanId);
+
 }

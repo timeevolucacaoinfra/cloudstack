@@ -1569,37 +1569,18 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	
 	@Override
 	public IpAddress allocatePublicIp(final Network network, Account owner, Long vlanId) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
-        long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
+	    VlanVO vlanVO = _vlanDao.findById(vlanId);
+	    if (vlanVO == null) {
+	        throw new InvalidParameterValueException("Vlan with id " + vlanId + " doesn't exist.");
+	    }
+	    
+	    long globoLBNetworkId = getGloboLBNetworkIdByVlanId(network, vlanId);
         
-        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
+        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(globoLBNetworkId);
+        GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
         
-        final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
-        
-        try {
-            PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
-
-                @Override
-                public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
-                    Long zoneId = network.getDataCenterId();
-                    Integer vlanNumber = globoNetwork.getVlanNum();
-                    VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-                    if (vlan == null) {
-                        // FIXME: Invalid description
-                        vlan = createNewPublicVlan(globoNetwork.getVlanDescription(), zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-                    }
-                    
-                    String myIp = globoNetwork.getIp().addr();
-                    return PublicIp.createFromAddrAndVlan(_ipAddrDao.findByIpAndVlanId(myIp, vlan.getId()), vlan);
-                }
-            });
-            return publicIp;
-            
-        } catch (CloudException e) {
-            // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
-            s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
-            releaseLbIpFromGloboNetwork(network, globoNetwork.getIp().addr());
-            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
-        }
+        String myIp = globoNetwork.getIp().addr();
+        return PublicIp.createFromAddrAndVlan(_ipAddrDao.findByIpAndVlanId(myIp, vlanVO.getId()), vlanVO);
 	}
 
     @Override
@@ -1617,7 +1598,29 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         this.callCommand(cmdRelease, network.getDataCenterId());
         return true;
     }
-    
+
+    protected Long getGloboLBNetworkIdByVlanId(Network network, Long vlanId) {
+        GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
+        if (glbNetworkVO == null) {
+            throw new InvalidParameterValueException("There is no environment associated to network " + network.getId());
+        }
+        
+        GloboNetworkEnvironmentVO networkEnvironmentVO = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbNetworkVO.getGloboNetworkEnvironmentId());
+        if (networkEnvironmentVO == null) {
+            throw new InvalidParameterValueException("There is no association between physical network " + network.getPhysicalNetworkId() + " and GloboNetwork environment" + glbNetworkVO.getGloboNetworkEnvironmentId());
+        }
+        
+        Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
+        
+        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndVlanId(globoNetworkEnvironmentRefId, vlanId);
+        
+        if (globoNetworkLBNetworkVO == null) {
+            throw new InvalidParameterValueException("Could not find any Load Balancing environment for network " + network.getId());
+        }
+        
+        return globoNetworkLBNetworkVO.getGloboNetworkLBNetworkId();
+    }
+
     protected Long getLoadBalancerEnvironmentId(Network network) {
         GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (glbNetworkVO == null) {

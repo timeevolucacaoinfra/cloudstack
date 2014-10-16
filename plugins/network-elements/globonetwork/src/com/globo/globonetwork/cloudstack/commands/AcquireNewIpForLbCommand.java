@@ -20,10 +20,10 @@ import com.cloud.agent.api.Command;
 
 public class AcquireNewIpForLbCommand extends Command {
 	
-	private long vipEnvironmentId;
+	private long globoLBNetworkId;
 	
-	public AcquireNewIpForLbCommand(long vipEnvironmentId) {
-		this.vipEnvironmentId = vipEnvironmentId;
+	public AcquireNewIpForLbCommand(long globoLBNetworkId) {
+		this.globoLBNetworkId = globoLBNetworkId;
 	}
 	
 	@Override
@@ -31,7 +31,7 @@ public class AcquireNewIpForLbCommand extends Command {
 		return false;
 	}
 
-	public long getVipEnvironmentId() {
-		return vipEnvironmentId;
+	public long getGloboLBNetworkId() {
+		return globoLBNetworkId;
 	}
 }

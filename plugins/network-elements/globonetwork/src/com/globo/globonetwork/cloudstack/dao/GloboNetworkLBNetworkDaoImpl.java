@@ -38,6 +38,8 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
     
     final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndLBNetworkId;
 
+    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndVlanId;
+
     protected GloboNetworkLBNetworkDaoImpl() {
         byNetworkEnvironmentRefId = createSearchBuilder();
         byNetworkEnvironmentRefId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
@@ -47,6 +49,12 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
         byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
         byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_lb_network_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkLBNetworkId(), Op.EQ);
         byNetworkEnvironmentRefIdAndLBNetworkId.done();        
+
+        byNetworkEnvironmentRefIdAndVlanId = createSearchBuilder();
+        byNetworkEnvironmentRefIdAndVlanId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndVlanId.and("vlanId", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getVlanId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndVlanId.done();        
+
     }
 
     @Override
@@ -61,6 +69,14 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
         SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
         sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
         sc.setParameters("globonetwork_lb_network_id", globoNetworkLBNetworkId);
+        return findOneBy(sc);
+    }
+
+    @Override
+    public GloboNetworkLBNetworkVO findByEnvironmentRefAndVlanId(long globoNetworkEnvironmentRefId, long vlanId) {
+        SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
+        sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
+        sc.setParameters("vlanId", vlanId);
         return findOneBy(sc);
     }
 
