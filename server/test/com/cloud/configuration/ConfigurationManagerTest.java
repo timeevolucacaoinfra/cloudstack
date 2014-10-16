@@ -96,7 +96,7 @@ public class ConfigurationManagerTest {
     @Mock
     IpAddressManager _ipAddrMgr;
 
-    VlanVO vlan = new VlanVO(Vlan.VlanType.VirtualNetwork, "vlantag", "vlangateway","vlannetmask", 1L, "iprange", 1L, 1L, null, null, null);
+    VlanVO vlan = new VlanVO("description", Vlan.VlanType.VirtualNetwork, "vlantag", "vlangateway","vlannetmask", 1L, "iprange", 1L, 1L, null, null, null);
 
     @Before
     public void setup() throws Exception {

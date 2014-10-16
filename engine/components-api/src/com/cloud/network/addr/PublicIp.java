@@ -42,6 +42,11 @@ public class PublicIp implements PublicIpAddress {
     }
     
     @Override
+    public String getDescription() {
+        return _vlan.getDescription();
+    }
+    
+    @Override
     public Ip getAddress() {
         return _addr.getAddress();
     }
