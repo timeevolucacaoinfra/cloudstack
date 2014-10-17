@@ -109,6 +109,7 @@ import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.Transaction;
 import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackNoReturn;
 import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -1116,12 +1117,21 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         // Retrieve LB Network from DB
-        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(), globoNetworkLBNetworkId);
+        final GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(), globoNetworkLBNetworkId);
         if (globoNetworkLBNetworkVO == null) {
             throw new InvalidParameterValueException("Unable to find a relationship between environment " + globoNetworkEnvironmentId + " and LB network " + globoNetworkLBNetworkId);
         }
         
-        return _globoNetworkLBNetworkDao.remove(globoNetworkLBNetworkVO.getId());
+        Transaction.execute(new TransactionCallbackNoReturn() {
+            @Override
+            public void doInTransactionWithoutResult(TransactionStatus status) {
+                _configMgr.deleteVlanAndPublicIpRange(CallContext.current().getCallingUserId(), globoNetworkLBNetworkVO.getVlanId(), CallContext.current()
+                        .getCallingAccount());
+                
+                _globoNetworkLBNetworkDao.remove(globoNetworkLBNetworkVO.getId());
+            }
+        });
+        return true;
     }	
 	
 	@Override
@@ -1759,12 +1769,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         // Stickness/Persistence
-        if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
+        if (rule.getStickinessPolicies() != null && rule.getStickinessPolicies().size() > 1) {
             throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
         }
 
         // Healthcheck
-        if (rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().size() > 1) {
+        if (rule.getHealthCheckPolicies() != null && rule.getHealthCheckPolicies().size() > 1) {
             throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain only one");
         }
         
@@ -1772,7 +1782,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(rule.getSourceIp().addr(), getLoadBalancerEnvironmentId(network, rule.getSourceIp().addr()));
         Answer answer = this.callCommand(cmd, network.getDataCenterId(), false);
         if (answer != null && answer.getResult()) {
-            throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
+            GloboNetworkVipResponse globoNetworkVip = (GloboNetworkVipResponse) answer;
+            // TODO Store ref between lb id and globonetwork vip id to solve this situation.
+            String port = String.format("%d:%d", rule.getSourcePortStart(), rule.getDefaultPortStart());
+            if (!port.equals(globoNetworkVip.getPorts().get(0))) {
+                throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
+            }
         }
         return true;
     }
