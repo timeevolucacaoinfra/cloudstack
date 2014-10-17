@@ -46,6 +46,9 @@ public class GloboNetworkAndIPResponse extends Answer {
 
     private boolean isActive;
     
+    // Vip information (optional)
+    private Long vipEnvironmentId;
+    
     // Ip information (optional)
     private Long ipId;
     
@@ -57,7 +60,7 @@ public class GloboNetworkAndIPResponse extends Answer {
     
     public GloboNetworkAndIPResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Integer vlanNum, boolean isActive,
             Long networkId, String networkAddress, String networkMask, String networkBroadcast, String networkGateway, String networkCidr,
-            Long ipId, Ip ip) {
+            Long ipId, Ip ip, Long vipEnvironmentId) {
     	this(command);
     	this.vlanId = vlanId;
     	this.vlanName = vlanName;
@@ -72,6 +75,7 @@ public class GloboNetworkAndIPResponse extends Answer {
     	this.isActive = isActive;
     	this.ipId = ipId;
     	this.ip = ip;
+    	this.vipEnvironmentId = vipEnvironmentId;
     }
 
     public Long getVlanId() {
@@ -176,6 +180,14 @@ public class GloboNetworkAndIPResponse extends Answer {
 
     public void setNetworkCidr(String networkCidr) {
         this.networkCidr = networkCidr;
+    }
+
+    public Long getVipEnvironmentId() {
+        return vipEnvironmentId;
+    }
+
+    public void setVipEnvironmentId(Long vipEnvironmentId) {
+        this.vipEnvironmentId = vipEnvironmentId;
     }
     
 }

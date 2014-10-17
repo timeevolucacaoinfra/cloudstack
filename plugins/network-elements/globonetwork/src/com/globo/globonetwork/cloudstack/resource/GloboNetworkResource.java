@@ -48,7 +48,6 @@ import com.globo.globonetwork.client.model.Environment;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
-import com.globo.globonetwork.client.model.Network;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.VipEnvironment;
@@ -968,6 +967,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     private Answer createNetworkResponse(IPv4Network network, Command cmd) throws GloboNetworkException {
         GloboNetworkAndIPResponse answer = new GloboNetworkAndIPResponse(cmd);
         answer.setNetworkId(network.getId());
+        answer.setVipEnvironmentId(network.getVipEnvironmentId());
         answer.setNetworkAddress(network.getNetworkAddressAsString());
         answer.setNetworkBroadcast(network.getBroadcast());
         answer.setNetworkMask(network.getMaskAsString());

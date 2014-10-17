@@ -82,6 +82,7 @@ import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.addr.PublicIp;
 import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
@@ -804,7 +805,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     Integer vlanNumber = response.getVlanNum();
                     VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     if (vlan == null) {
-                        vlan = createNewPublicVlan(response.getVlanDescription(), zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                        vlan = createNewPublicVlan(name, zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     }
                     
                     GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, vlan.getId());
@@ -1054,7 +1055,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		
 		return globoNetworkEnvironmentsVOList;
 	}
-	
+    
     @Override
     public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long globoNetworkEnvironmentId) {
 
@@ -1609,7 +1610,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Invalid network");
         }
         
-        Long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
+        Long lbEnvironmentId = getLoadBalancerEnvironmentId(network, ip);
         if (lbEnvironmentId == null) {
             throw new InvalidParameterValueException("There is no lb environment associated to network " + network.getId());
         }
@@ -1641,27 +1642,35 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return globoNetworkLBNetworkVO.getGloboNetworkLBNetworkId();
     }
 
-    protected Long getLoadBalancerEnvironmentId(Network network) {
+    protected Long getLoadBalancerEnvironmentId(Network network, String lbIp) {
         GloboNetworkNetworkVO glbNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (glbNetworkVO == null) {
             throw new InvalidParameterValueException("There is no environment associated to network " + network.getId());
         }
         
-        GloboNetworkEnvironmentVO networkEnvironmentVO = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbNetworkVO.getGloboNetworkEnvironmentId());
-        if (networkEnvironmentVO == null) {
-            throw new InvalidParameterValueException("There is no association between physical network " + network.getPhysicalNetworkId() + " and GloboNetwork environment" + glbNetworkVO.getGloboNetworkEnvironmentId());
+        IPAddressVO ipAddress = _ipAddrDao.findByIpAndDcId(network.getDataCenterId(), lbIp);
+        if (ipAddress == null) {
+            throw new InvalidParameterValueException("Could not find IP " + lbIp + " in Cloudstack");
         }
         
-        Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
+        // Retrieve napiEnvironment from DB
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbNetworkVO.getGloboNetworkEnvironmentId());
         
-        // FIXME This is not retrieving VIP environment, only network! Needs fixing
-        List<GloboNetworkLBNetworkVO> lbEnvironmentVOList = this.listGloboNetworkLBNetworksFromDB(network.getPhysicalNetworkId(), globoNetworkEnvironmentRefId);
-        if (lbEnvironmentVOList == null || lbEnvironmentVOList.get(0) == null) {
-            throw new InvalidParameterValueException("Could not find any Load Balancing environment of network " + network.getId());
+        if (globoNetworkEnvironment == null) {
+            // No physical network/environment pair registered in the database.
+            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId() + " and GloboNetwork environment=" + glbNetworkVO.getGloboNetworkEnvironmentId());
+        }
+
+        GloboNetworkLBNetworkVO lbNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndVlanId(globoNetworkEnvironment.getId(), ipAddress.getVlanId());
+        if (lbNetworkVO == null) {
+            throw new InvalidParameterValueException("Could not find mapping between environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " and vlan " + ipAddress.getVlanId());
         }
         
-        // FIXME Do not use first, there must be a way to choose!
-        return lbEnvironmentVOList.get(0).getGloboNetworkLBNetworkId();
+        GetNetworkFromGloboNetworkCommand cmd = new GetNetworkFromGloboNetworkCommand(lbNetworkVO.getGloboNetworkLBNetworkId());
+        Answer answer = callCommand(cmd, network.getDataCenterId(), false);
+        GloboNetworkAndIPResponse response = (GloboNetworkAndIPResponse) answer;
+
+        return response.getVipEnvironmentId();
     }
 
     @Override
@@ -1718,7 +1727,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // VIP infos
         cmd.setHost(rule.getName());
         cmd.setIpv4(rule.getSourceIp().addr());
-        cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network));
+        cmd.setVipEnvironmentId(getLoadBalancerEnvironmentId(network, rule.getSourceIp().addr()));
         cmd.setPorts(ports);
         cmd.setBusinessArea(account.getAccountName());
         cmd.setServiceName(rule.getName());
@@ -1760,7 +1769,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         // Get VIP info
-        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(rule.getSourceIp().addr(), getLoadBalancerEnvironmentId(network));
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(rule.getSourceIp().addr(), getLoadBalancerEnvironmentId(network, rule.getSourceIp().addr()));
         Answer answer = this.callCommand(cmd, network.getDataCenterId(), false);
         if (answer != null && answer.getResult()) {
             throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
