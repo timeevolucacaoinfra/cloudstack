@@ -90,6 +90,7 @@ RUN
 COMPILE
     compile           Compile cloudstack
     compile-quick     Compile only globo elements
+    update-js         Update Javascript only
 
 DB
     deploydb          Create Required SQL Schema
