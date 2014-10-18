@@ -61,6 +61,7 @@ import org.apache.cloudstack.api.response.IsolationMethodResponse;
 import org.apache.cloudstack.api.response.LBHealthCheckResponse;
 import org.apache.cloudstack.api.response.LBStickinessResponse;
 import org.apache.cloudstack.api.response.ListResponse;
+import org.apache.cloudstack.api.response.LoadBalancerCapabilitiesResponse;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
 import org.apache.cloudstack.api.response.NetworkACLItemResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
@@ -133,6 +134,7 @@ import com.cloud.hypervisor.HypervisorCapabilities;
 import com.cloud.network.GuestVlan;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
+import com.cloud.network.Network.Capability;
 import com.cloud.network.Network.Service;
 import com.cloud.network.Networks.IsolationType;
 import com.cloud.network.PhysicalNetwork;
@@ -435,6 +437,8 @@ public interface ResponseGenerator {
     public NicResponse createNicResponse(Nic result);
 
     ApplicationLoadBalancerResponse createLoadBalancerContainerReponse(ApplicationLoadBalancerRule lb, Map<Ip, UserVm> lbInstances);
+
+    LoadBalancerCapabilitiesResponse createLoadBalancerCapabilitiesReponse(Map<Capability, String> capabilities);
 
     AffinityGroupResponse createAffinityGroupResponse(AffinityGroup group);
 
