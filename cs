@@ -12,6 +12,9 @@ case "$1" in
   compile)
     mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
     ;;
+  compile-changes)
+    mvn -Pdeveloper,systemvm -Dsimulator install -DskipTests
+    ;;
   compile-quick)
     mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
