@@ -285,7 +285,6 @@ import org.apache.cloudstack.api.command.user.loadbalancer.DeleteSslCertCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListApplicationLoadBalancersCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLBHealthCheckPoliciesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLBStickinessPoliciesCmd;
-import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerCapabilitiesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRuleInstancesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRulesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListSslCertsCmd;
@@ -2739,7 +2738,6 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(DeleteLoadBalancerRuleCmd.class);
         cmdList.add(ListLBStickinessPoliciesCmd.class);
         cmdList.add(ListLBHealthCheckPoliciesCmd.class);
-        cmdList.add(ListLoadBalancerCapabilitiesCmd.class);
         cmdList.add(ListLoadBalancerRuleInstancesCmd.class);
         cmdList.add(ListLoadBalancerRulesCmd.class);
         cmdList.add(RemoveFromLoadBalancerRuleCmd.class);
