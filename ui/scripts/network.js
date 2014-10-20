@@ -1585,24 +1585,24 @@
                                             'algorithm': {
                                                 label: 'label.algorithm',
                                                 select: function(args) {
-                                                    var algorithmcapabilities;
-                                                    $.ajax({
-                                                        url: createURL('listLoadBalancerCapabilities&networkid=' + args.context.networks[0].id),
-                                                        dataType: 'json',
-                                                        async: true,
-                                                        success: function(data) {
-                                                            var algorithms = data.listloadbalancercapabilitiesresponse.loadbalancingcapabilities.algorithm;
-                                                            var data = []
-                                                            $(algorithms).each(function() {
-                                                                data.push({id: this.valueOf(), name: this.valueOf(), description: _l('label.lb.algorithm.' + this.valueOf())});
-                                                            })
-                                                            args.response.success({
-                                                                data: data
-                                                            });
-                                                        },
-                                                        error: function(data) {
-                                                            args.response.error(parseXMLHttpResponse(data));
+                                                    var lbService = $.grep(args.context.networks[0].service, function(service) {
+                                                        return service.name == 'Lb';
+                                                    })[0];
+
+                                                    var algorithmCapabilities = $.grep(
+                                                        lbService.capability,
+                                                        function(capability) {
+                                                            return capability.name == 'SupportedLBAlgorithms';
                                                         }
+                                                    )[0];
+
+                                                    var algorithms = algorithmCapabilities.value.split(',');
+                                                    var data = [];
+                                                    $(algorithms).each(function() {
+                                                        data.push({id: this.valueOf(), name: this.valueOf(), description: _l('label.lb.algorithm.' + this.valueOf())});
+                                                    });
+                                                    args.response.success({
+                                                        data: data
                                                     });
                                                 }
                                             },
@@ -3403,24 +3403,24 @@
                                                 label: 'label.algorithm',
                                                 isEditable: true,
                                                 select: function(args) {
-                                                    var algorithmcapabilities;
-                                                    $.ajax({
-                                                        url: createURL('listLoadBalancerCapabilities&networkid=' + args.context.networks[0].id),
-                                                        dataType: 'json',
-                                                        async: true,
-                                                        success: function(data) {
-                                                            var algorithms = data.listloadbalancercapabilitiesresponse.loadbalancingcapabilities.algorithm;
-                                                            var data = []
-                                                            $(algorithms).each(function() {
-                                                                data.push({id: this.valueOf(), name: this.valueOf(), description: _l('label.lb.algorithm.' + this.valueOf())});
-                                                            })
-                                                            args.response.success({
-                                                                data: data
-                                                            });
-                                                        },
-                                                        error: function(data) {
-                                                            args.response.error(parseXMLHttpResponse(data));
+                                                    var lbService = $.grep(args.context.networks[0].service, function(service) {
+                                                        return service.name == 'Lb';
+                                                    })[0];
+
+                                                    var algorithmCapabilities = $.grep(
+                                                        lbService.capability,
+                                                        function(capability) {
+                                                            return capability.name == 'SupportedLBAlgorithms';
                                                         }
+                                                    )[0];
+
+                                                    var algorithms = algorithmCapabilities.value.split(',');
+                                                    var data = [];
+                                                    $(algorithms).each(function() {
+                                                        data.push({id: this.valueOf(), name: this.valueOf(), description: _l('label.lb.algorithm.' + this.valueOf())});
+                                                    });
+                                                    args.response.success({
+                                                        data: data
                                                     });
                                                 },
                                             },
