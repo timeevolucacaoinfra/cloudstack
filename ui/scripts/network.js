@@ -1592,7 +1592,7 @@
                                                     var algorithmCapabilities = $.grep(
                                                         lbService.capability,
                                                         function(capability) {
-                                                            return capability.name == 'SupportedLBAlgorithms';
+                                                            return capability.name == 'SupportedLbAlgorithms';
                                                         }
                                                     )[0];
 
@@ -3410,14 +3410,14 @@
                                                     var algorithmCapabilities = $.grep(
                                                         lbService.capability,
                                                         function(capability) {
-                                                            return capability.name == 'SupportedLBAlgorithms';
+                                                            return capability.name == 'SupportedLbAlgorithms';
                                                         }
                                                     )[0];
 
                                                     var algorithms = algorithmCapabilities.value.split(',');
                                                     var data = [];
                                                     $(algorithms).each(function() {
-                                                        data.push({id: this.valueOf(), name: this.valueOf(), description: _l('label.lb.algorithm.' + this.valueOf())});
+                                                        data.push({id: this.valueOf().trim(), name: this.valueOf().trim(), description: _l('label.lb.algorithm.' + this.valueOf().trim())});
                                                     });
                                                     args.response.success({
                                                         data: data
