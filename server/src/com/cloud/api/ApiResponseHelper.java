@@ -3853,7 +3853,7 @@ public class ApiResponseHelper implements ResponseGenerator {
         response.setIsolations(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedLBIsolation)));
         response.setSchemes(StringUtils.csvTagsToList(capabilities.get(Capability.LbSchemes)));
         response.setStickies(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedStickinessMethods)));
-        response.setObjectName("loadbalacingcapabilities");
+        response.setObjectName("loadbalancingcapabilities");
         return response;
     }
     

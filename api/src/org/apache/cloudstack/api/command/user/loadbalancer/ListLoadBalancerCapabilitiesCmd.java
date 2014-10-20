@@ -32,14 +32,14 @@ import com.cloud.network.Network.Capability;
 public class ListLoadBalancerCapabilitiesCmd extends BaseCmd {
     public static final Logger s_logger = Logger.getLogger(ListLoadBalancerCapabilitiesCmd.class.getName());
 
-    private static final String s_name = "listloadbalancerssresponse";
+    private static final String s_name = "listloadbalancercapabilitiesresponse";
 
     // ///////////////////////////////////////////////////
     // ////////////// API parameters /////////////////////
     // ///////////////////////////////////////////////////
 
     @Parameter(name=ApiConstants.NETWORK_ID, type=CommandType.UUID, entityType = NetworkResponse.class, 
-            description="the network offering id of the Load Balancer")
+            description="the network id of the Load Balancer")
     private Long networkId;
 
     // ///////////////////////////////////////////////////
