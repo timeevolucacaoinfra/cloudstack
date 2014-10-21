@@ -125,6 +125,7 @@ public class EventTypes {
 
     // Load Balancers
     public static final String EVENT_ASSIGN_TO_LOAD_BALANCER_RULE = "LB.ASSIGN.TO.RULE";
+    public static final String EVENT_ASSIGN_NETWORK_TO_LOAD_BALANCER_RULE = "LB.ASSIGN.NETWORK.TO.RULE";
     public static final String EVENT_REMOVE_FROM_LOAD_BALANCER_RULE = "LB.REMOVE.FROM.RULE";
     public static final String EVENT_LOAD_BALANCER_CREATE = "LB.CREATE";
     public static final String EVENT_LOAD_BALANCER_DELETE = "LB.DELETE";

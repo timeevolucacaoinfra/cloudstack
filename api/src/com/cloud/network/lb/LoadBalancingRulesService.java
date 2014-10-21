@@ -153,4 +153,6 @@ public interface LoadBalancingRulesService {
     Map<Ip, UserVm> getLbInstances(long lbId);
     
     Map<Capability, String> listCapabilities(ListLoadBalancerCapabilitiesCmd cmd);
+
+    boolean assignNetworksToLoadBalancer(Long loadBalancerId, List<Long> networkIds);
 }

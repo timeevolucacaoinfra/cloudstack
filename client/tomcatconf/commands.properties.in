@@ -155,6 +155,7 @@ createLoadBalancerRule=15
 deleteLoadBalancerRule=15
 removeFromLoadBalancerRule=15
 assignToLoadBalancerRule=15
+assignNetworksToLoadBalancerRule=15
 createLBStickinessPolicy=15
 deleteLBStickinessPolicy=15
 listLoadBalancerRules=15
