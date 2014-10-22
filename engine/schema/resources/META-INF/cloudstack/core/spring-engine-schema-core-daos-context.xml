@@ -189,6 +189,7 @@
   <bean id="launchPermissionDaoImpl" class="com.cloud.storage.dao.LaunchPermissionDaoImpl" />
   <bean id="loadBalancerDaoImpl" class="com.cloud.network.dao.LoadBalancerDaoImpl" />
   <bean id="loadBalancerVMMapDaoImpl" class="com.cloud.network.dao.LoadBalancerVMMapDaoImpl" />
+  <bean id="loadBalancerNetworkMapDaoImpl" class="com.cloud.network.dao.LoadBalancerNetworkMapDaoImpl" />
   <bean id="loadBalancerCertMapDaoImpl" class="com.cloud.network.dao.LoadBalancerCertMapDaoImpl" />
   <bean id="managementServerHostDaoImpl" class="com.cloud.cluster.dao.ManagementServerHostDaoImpl" />
   <bean id="managementServerHostPeerDaoImpl" class="com.cloud.cluster.dao.ManagementServerHostPeerDaoImpl" />

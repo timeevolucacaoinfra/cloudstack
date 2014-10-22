@@ -935,8 +935,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                                     List<LoadBalancerVMMapVO> lbVmMaps = _lb2VmMapDao.listByLoadBalancerId(ulb.getId());
                                     for (LoadBalancerVMMapVO lbVmMap : lbVmMaps) {
                                         UserVm vm = _vmDao.findById(lbVmMap.getInstanceId());
-                                        Nic nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(
-                                                ulb.getNetworkId(), vm.getId());
+                                        Nic nic = getLbInstanceNic(ulb.getId(), lbVmMap.getInstanceId());
                                         String dstIp = nic.getIp4Address();
                                         for (int i = 0; i < lbto.getDestinations().length; i++) {
                                             LoadBalancerTO.DestinationTO des = lbto.getDestinations()[i];
@@ -1041,6 +1040,18 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 s_logger.debug("Adding " + network + " to the load balancer");
             }
             networksToAdd.add(network);
+        }
+        
+        
+        LoadBalancingRule rule = getLoadBalancerRuleToApply(loadBalancer);
+
+        // insert additional networks
+        List<Long> allNetworks = rule.getAdditionalNetworks();
+        allNetworks.addAll(networkIds);
+        rule.setAdditionalNetworks(allNetworks);
+        
+        if (!validateLbRule(rule)) {
+            throw new InvalidParameterValueException("LB service provider cannot support some networks");
         }
 
         Transaction.execute(new TransactionCallbackNoReturn() {
@@ -1847,6 +1858,12 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         Ip sourceIp = getSourceIp(lb);
         LbSslCert sslCert = getLbSslCert(lb.getId());
         LoadBalancingRule loadBalancing = new LoadBalancingRule(lb, null, policyList, null, sourceIp, sslCert, lb.getLbProtocol());
+        
+        List<Long> additionalNetworks = new ArrayList<Long>();
+        for (LoadBalancerNetworkMapVO lbNetMap : _lbNetMapDao.listByLoadBalancerId(lb.getId())) {
+            additionalNetworks.add(lbNetMap.getNetworkId());
+        }
+        loadBalancing.setAdditionalNetworks(additionalNetworks);
 
         if (_autoScaleVmGroupDao.isAutoScaleLoadBalancer(lb.getId())) {
             // Get the associated VmGroup
@@ -2054,16 +2071,15 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
 
         String dstIp = null;
         for (LoadBalancerVMMapVO lbVmMap : lbVmMaps) {
-            UserVm vm = _vmDao.findById(lbVmMap.getInstanceId());
-            Nic nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(lb.getNetworkId(), vm.getId());
+            Nic nic = getLbInstanceNic(lbId, lbVmMap.getInstanceId());
             dstIp = nic.getIp4Address();
-            LbDestination lbDst = new LbDestination(lb.getDefaultPortStart(), lb.getDefaultPortEnd(), dstIp,
+            LbDestination lbDst = new LbDestination(lb.getDefaultPortStart(), lb.getDefaultPortEnd(), dstIp, nic.getNetworkId(),
                     lbVmMap.isRevoke());
             dstList.add(lbDst);
         }
         return dstList;
     }
-
+    
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_LOAD_BALANCER_UPDATE, eventDescription = "updating load balancer", async = true)
     public LoadBalancer updateLoadBalancerRule(UpdateLoadBalancerRuleCmd cmd) {
@@ -2411,17 +2427,44 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     public Map<Ip, UserVm> getLbInstances(long lbId) {
         Map<Ip, UserVm> dstList = new HashMap<Ip, UserVm>();
         List<LoadBalancerVMMapVO> lbVmMaps = _lb2VmMapDao.listByLoadBalancerId(lbId);
-        LoadBalancerVO lb = _lbDao.findById(lbId);
 
         for (LoadBalancerVMMapVO lbVmMap : lbVmMaps) {
+            Nic nic = getLbInstanceNic(lbId, lbVmMap.getInstanceId());
             UserVm vm = _vmDao.findById(lbVmMap.getInstanceId());
-            Nic nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(lb.getNetworkId(), vm.getId());
             Ip ip = new Ip(nic.getIp4Address());
             dstList.put(ip, vm);
         }
         return dstList;
     }
-    
+
+    @Override
+    public Nic getLbInstanceNic(long lbId, long vmId) {
+        LoadBalancerVO lb = _lbDao.findById(lbId);
+        if (lb == null) {
+            throw new InvalidParameterValueException("Failed to load load balancer " + lbId
+                    + ". LB not found");
+        }
+        LoadBalancerVMMapVO lbVmMap = _lb2VmMapDao.findByLoadBalancerIdAndVmId(lbId, vmId);
+        if (lbVmMap == null) {
+            throw new InvalidParameterValueException("Failed to load vm " + vmId + " in load balancer " + lbId
+                    + ". There is no association.");
+        }
+        
+        Nic nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(lb.getNetworkId(), vmId);
+        if (nic != null) {
+            return nic;
+        }
+
+        for (LoadBalancerNetworkMapVO lbNetMap : _lbNetMapDao.listByLoadBalancerId(lbId)) {
+            nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(lbNetMap.getNetworkId(), vmId);
+            if (nic != null) {
+                return nic;
+            }
+        }
+        throw new InvalidParameterValueException("Failed to load nic of vm " + vmId + " in load balancer " + lbId
+                + ". VM doesn't have network in load balancer networks");
+    }
+
     @Override
     public void isLbServiceSupportedInNetwork(long networkId, Scheme scheme) {
         Network network = _networkDao.findById(networkId);

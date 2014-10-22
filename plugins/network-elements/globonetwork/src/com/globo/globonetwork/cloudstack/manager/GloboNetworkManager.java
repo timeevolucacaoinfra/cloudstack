@@ -91,6 +91,7 @@ import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.lb.LoadBalancingRule.LbDestination;
+import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Grouping;
@@ -262,6 +263,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	NetworkService _ntwSvc;
 	@Inject
 	IpAddressManager _ipAddrMgr;
+	@Inject
+	LoadBalancingRulesManager _lbMgr;
 	
 	@Override
 	public boolean canEnable(Long physicalNetworkId) {
@@ -1715,7 +1718,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // Reals
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (LbDestination destVM : rule.getDestinations()) {
-            Nic nic = _nicDao.findByIp4AddressAndNetworkId(destVM.getIpAddress(), network.getId());
+            Nic nic = _nicDao.findByIp4AddressAndNetworkId(destVM.getIpAddress(), destVM.getNetworkId());
             if (nic != null) {
                 VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
                 if (vm != null) {
@@ -1765,7 +1768,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
         if (globoNetworkNetworkVO == null) {
-            throw new InvalidParameterValueException("Could not obtain mapping for network in GloboNetwork.");
+            throw new InvalidParameterValueException("GloboNetwork Load Balancer work only with networks managed by GloboNetwork. NetworkId=" + network.getId());
+        }
+        
+        // check additional networks
+        if (rule.getAdditionalNetworks() != null) {
+            for (Long networkId : rule.getAdditionalNetworks()) {
+                GloboNetworkNetworkVO additionalGNNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+                if (additionalGNNetworkVO == null) {
+                    throw new InvalidParameterValueException("GloboNetwork Load Balancer work only with networks managed by GloboNetwork. NetworkId=" + network.getId());
+                }
+            }
         }
         
         // Stickness/Persistence

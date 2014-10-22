@@ -91,7 +91,8 @@ RUN
     run-simulator     Run Jetty w/ hypervisor simulator
     
 COMPILE
-    compile           Compile cloudstack
+    compile           Clean and Compile entire cloudstack
+    compile-changes   Compile only changes in all cloudstack
     compile-quick     Compile only globo elements
     update-js         Update Javascript only
 
