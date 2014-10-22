@@ -998,6 +998,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         
         List<LoadBalancerNetworkMapVO> mappedNetworks = _lbNetMapDao.listByLoadBalancerId(loadBalancerId);
         Set<Long> mappedNetworkIds = new HashSet<Long>();
+        mappedNetworkIds.add(loadBalancer.getNetworkId());
         for (LoadBalancerNetworkMapVO mappedNetwork : mappedNetworks) {
             mappedNetworkIds.add(Long.valueOf(mappedNetwork.getNetworkId()));
         }
@@ -1512,7 +1513,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                                 + map.getInstanceId());
                     }
                 }
-        
+                
                 List<LBHealthCheckPolicyVO> hcPolicies = _lb2healthcheckDao.listByLoadBalancerId(loadBalancerId);
                 for (LBHealthCheckPolicyVO lbHealthCheck : hcPolicies) {
                     lbHealthCheck.setRevoke(true);
@@ -1559,6 +1560,13 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                     s_logger.warn("Unable to apply the load balancer config because resource is unavaliable.", e);
                 }
                 return false;
+            }
+        }
+
+        List<LoadBalancerNetworkMapVO> lbNetMaps = _lbNetMapDao.listByLoadBalancerId(loadBalancerId);
+        if (lbNetMaps != null) {
+            for (LoadBalancerNetworkMapVO lbNetMap: lbNetMaps) {
+                _lbNetMapDao.remove(lbNetMap.getId());
             }
         }
 
@@ -2191,7 +2199,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
 
         List<UserVmVO> userVms = _vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(),
                 loadBalancer.getNetworkId());
-
+        
         for (UserVmVO userVm : userVms) {
             // if the VM is destroyed, being expunged, in an error state, or in
             // an unknown state, skip it
@@ -2522,6 +2530,53 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
         return capabilities;
+    }
+
+    @Override
+    @ActionEvent(eventType = EventTypes.EVENT_REMOVE_NETWORK_FROM_LOAD_BALANCER_RULE, eventDescription = "removing networks from load balancer", async = true)
+    public boolean removeNetworksFromLoadBalancer(final Long loadBalancerId, final List<Long> networkIds) {
+        CallContext caller = CallContext.current();
+
+        LoadBalancerVO loadBalancer = _lbDao.findById(Long.valueOf(loadBalancerId));
+        if (loadBalancer == null) {
+            throw new InvalidParameterException("Invalid load balancer value: " + loadBalancerId);
+        }
+
+        _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
+        
+        if (networkIds.contains(loadBalancer.getNetworkId())) {
+            throw new InvalidParameterException("Can't delete load balancer network " + loadBalancer.getNetworkId());
+        }
+        
+        List<Long> vmsInNetworks = new ArrayList<Long>();
+        for (LoadBalancerVMMapVO lbVmMap: _lb2VmMapDao.listByLoadBalancerId(loadBalancerId, true)) {
+            Nic nic = getLbInstanceNic(loadBalancerId, lbVmMap.getInstanceId());
+            if (nic != null && networkIds.contains(nic.getNetworkId())) {
+                vmsInNetworks.add(lbVmMap.getInstanceId());
+            }
+        }
+        
+        if (!vmsInNetworks.isEmpty()) {
+            List<String> vmsUuid = new ArrayList<String>(vmsInNetworks.size());
+            for (Long vmId : vmsInNetworks) {
+                vmsUuid.add(_vmDao.findByIdIncludingRemoved(vmId).getUuid());
+            }
+            throw new InvalidParameterException("There are vms in loadbalancer associated with these networks: " + StringUtils.join(vmsUuid, ","));
+        }
+        
+        Transaction.execute(new TransactionCallbackNoReturn() {
+            @Override
+            public void doInTransactionWithoutResult(TransactionStatus status) {
+                for (Long networkId : networkIds) {
+                    LoadBalancerNetworkMapVO lbNetMap = _lbNetMapDao.findByLoadBalancerIdAndNetworkId(loadBalancerId, networkId);
+                    if (lbNetMap == null) {
+                        throw new InvalidParameterException("Network " + networkId + " is not associated with loadbalancer id " + loadBalancerId);
+                    }
+                    _lbNetMapDao.remove(lbNetMap.getId());
+                }
+            }
+        });
+        return true;
     }
 
 }

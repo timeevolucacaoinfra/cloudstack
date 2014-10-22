@@ -292,6 +292,7 @@ import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRules
 import org.apache.cloudstack.api.command.user.loadbalancer.ListSslCertsCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.RemoveCertFromLoadBalancerCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.RemoveFromLoadBalancerRuleCmd;
+import org.apache.cloudstack.api.command.user.loadbalancer.RemoveNetworksFromLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UploadSslCertCmd;
 import org.apache.cloudstack.api.command.user.nat.CreateIpForwardingRuleCmd;
@@ -2745,6 +2746,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(ListLoadBalancerRuleInstancesCmd.class);
         cmdList.add(ListLoadBalancerRulesCmd.class);
         cmdList.add(RemoveFromLoadBalancerRuleCmd.class);
+        cmdList.add(RemoveNetworksFromLoadBalancerRuleCmd.class);
         cmdList.add(UpdateLoadBalancerRuleCmd.class);
         cmdList.add(CreateIpForwardingRuleCmd.class);
         cmdList.add(DeleteIpForwardingRuleCmd.class);

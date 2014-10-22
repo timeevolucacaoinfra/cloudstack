@@ -31,26 +31,35 @@ import com.cloud.utils.db.SearchCriteria.Op;
 @Local(value={LoadBalancerNetworkMapDao.class})
 public class LoadBalancerNetworkMapDaoImpl extends GenericDaoBase<LoadBalancerNetworkMapVO, Long> implements LoadBalancerNetworkMapDao {
 
-    final SearchBuilder<LoadBalancerNetworkMapVO> loadBalancerIdSearch;
+    final SearchBuilder<LoadBalancerNetworkMapVO> allFieldsSearch;
     
     public LoadBalancerNetworkMapDaoImpl() {
-        loadBalancerIdSearch = createSearchBuilder();
-        loadBalancerIdSearch.and("loadbalancerId", loadBalancerIdSearch.entity().getLoadBalancerId(), Op.EQ);
-        loadBalancerIdSearch.done();
+        allFieldsSearch = createSearchBuilder();
+        allFieldsSearch.and("loadbalancerId", allFieldsSearch.entity().getLoadBalancerId(), Op.EQ);
+        allFieldsSearch.and("networkid", allFieldsSearch.entity().getNetworkId(), Op.EQ);
+        allFieldsSearch.done();
     }
     
     @Override
-    public void remove(long loadBalancerId) {
-        SearchCriteria<LoadBalancerNetworkMapVO> sc = loadBalancerIdSearch.create();
+    public void removeByLoadBalancer(long loadBalancerId) {
+        SearchCriteria<LoadBalancerNetworkMapVO> sc = allFieldsSearch.create();
         sc.setParameters("loadbalancerId", loadBalancerId);
         expunge(sc);
     }
     
     @Override
     public List<LoadBalancerNetworkMapVO> listByLoadBalancerId(long loadBalancerId) {
-        SearchCriteria<LoadBalancerNetworkMapVO> sc = loadBalancerIdSearch.create();
+        SearchCriteria<LoadBalancerNetworkMapVO> sc = allFieldsSearch.create();
         sc.setParameters("loadbalancerId", loadBalancerId);
         return listBy(sc);
+    }
+
+    @Override
+    public LoadBalancerNetworkMapVO findByLoadBalancerIdAndNetworkId(long loadBalancerId, long networkId) {
+        SearchCriteria<LoadBalancerNetworkMapVO> sc = allFieldsSearch.create();
+        sc.setParameters("loadbalancerId", loadBalancerId);
+        sc.setParameters("networkid", networkId);
+        return findOneBy(sc);
     }
     
 }

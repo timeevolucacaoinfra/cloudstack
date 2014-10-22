@@ -104,7 +104,12 @@ public interface LoadBalancingRulesService {
 
     boolean assignCertToLoadBalancer(long lbRuleId, Long CertId);
     boolean removeCertFromLoadBalancer(long lbRuleId);
-
+    
+    /*
+     * Assign a network methods
+     */
+    boolean assignNetworksToLoadBalancer(Long loadBalancerId, List<Long> networkIds);
+    boolean removeNetworksFromLoadBalancer(Long loadBalancerId, List<Long> networkIds);
 
     /**
      * List instances that have either been applied to a load balancer or are eligible to be assigned to a load
@@ -154,5 +159,4 @@ public interface LoadBalancingRulesService {
     
     Map<Capability, String> listCapabilities(ListLoadBalancerCapabilitiesCmd cmd);
 
-    boolean assignNetworksToLoadBalancer(Long loadBalancerId, List<Long> networkIds);
 }

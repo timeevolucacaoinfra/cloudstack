@@ -21,6 +21,7 @@ import java.util.List;
 import com.cloud.utils.db.GenericDao;
 
 public interface LoadBalancerNetworkMapDao extends GenericDao<LoadBalancerNetworkMapVO, Long> {
-    void remove(long loadBalancerId);
+    void removeByLoadBalancer(long loadBalancerId);
     List<LoadBalancerNetworkMapVO> listByLoadBalancerId(long loadBalancerId);
+    LoadBalancerNetworkMapVO findByLoadBalancerIdAndNetworkId(long loadBalancerId, long networkId);
 }
