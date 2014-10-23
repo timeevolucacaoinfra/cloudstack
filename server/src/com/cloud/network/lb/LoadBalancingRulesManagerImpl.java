@@ -2040,6 +2040,13 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 return false;
             }
         }
+        
+        // Check if network is in any load balancer from another network (multi-network load balancing)
+        List<LoadBalancerNetworkMapVO> lbNetMapList = _lbNetMapDao.listByNetworkId(networkId);
+        for (LoadBalancerNetworkMapVO lbNetMap : lbNetMapList) {
+            this.removeNetworksFromLoadBalancer(lbNetMap.getLoadBalancerId(), Arrays.asList(networkId));            
+        }
+
         return true;
     }
 
@@ -2082,7 +2089,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             Nic nic = getLbInstanceNic(lbId, lbVmMap.getInstanceId());
             dstIp = nic.getIp4Address();
             LbDestination lbDst = new LbDestination(lb.getDefaultPortStart(), lb.getDefaultPortEnd(), dstIp, nic.getNetworkId(),
-                    lbVmMap.isRevoke());
+                    lbVmMap.getInstanceId(), lbVmMap.isRevoke());
             dstList.add(lbDst);
         }
         return dstList;
@@ -2545,11 +2552,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         _accountMgr.checkAccess(caller.getCallingAccount(), null, true, loadBalancer);
         
         if (networkIds.contains(loadBalancer.getNetworkId())) {
-            throw new InvalidParameterException("Can't delete load balancer network " + loadBalancer.getNetworkId());
+            throw new InvalidParameterException("Can't delete network " + loadBalancer.getUuid() + " because it is the load balancer network");
         }
         
         List<Long> vmsInNetworks = new ArrayList<Long>();
-        for (LoadBalancerVMMapVO lbVmMap: _lb2VmMapDao.listByLoadBalancerId(loadBalancerId, true)) {
+        for (LoadBalancerVMMapVO lbVmMap: _lb2VmMapDao.listByLoadBalancerId(loadBalancerId)) {
             Nic nic = getLbInstanceNic(loadBalancerId, lbVmMap.getInstanceId());
             if (nic != null && networkIds.contains(nic.getNetworkId())) {
                 vmsInNetworks.add(lbVmMap.getInstanceId());

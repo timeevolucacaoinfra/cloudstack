@@ -61,5 +61,11 @@ public class LoadBalancerNetworkMapDaoImpl extends GenericDaoBase<LoadBalancerNe
         sc.setParameters("networkid", networkId);
         return findOneBy(sc);
     }
-    
+
+    @Override
+    public List<LoadBalancerNetworkMapVO> listByNetworkId(long networkId) {
+        SearchCriteria<LoadBalancerNetworkMapVO> sc = allFieldsSearch.create();
+        sc.setParameters("networkid", networkId);
+        return listBy(sc);
+    }
 }

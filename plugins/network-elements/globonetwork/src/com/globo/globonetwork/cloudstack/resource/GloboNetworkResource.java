@@ -727,7 +727,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
                 Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), cmd.getRealsEnvironmentId());
                 if (ip == null) {
-                    return new Answer(cmd, false, "Could not get real IP information: " + real);
+                    if (real.isRevoked()) {
+                        s_logger.warn("There's an inconsistency. Real with IP " + real.getIp() + " was not found in GloboNetwork.");                        
+                        continue;
+                    } else {
+                        return new Answer(cmd, false, "Could not get real IP information: " + real.getIp());
+                    }
                 }
                 RealIP realIP = new RealIP();
                 realIP.setName(real.getVmName());

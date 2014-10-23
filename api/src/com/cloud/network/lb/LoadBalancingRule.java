@@ -163,6 +163,8 @@ public class LoadBalancingRule {
         long getNetworkId();
 
         boolean isRevoked();
+        
+        long getInstanceId();
     }
 
     public static class LbStickinessPolicy {
@@ -258,13 +260,15 @@ public class LoadBalancingRule {
         private int portEnd;
         private String ip;
         private long networkId;
+        private long instanceId;
         boolean revoked;
 
-        public LbDestination(int portStart, int portEnd, String ip, long networkId, boolean revoked) {
+        public LbDestination(int portStart, int portEnd, String ip, long networkId, long instanceId, boolean revoked) {
             this.portStart = portStart;
             this.portEnd = portEnd;
             this.ip = ip;
             this.networkId = networkId;
+            this.instanceId = instanceId;
             this.revoked = revoked;
         }
 
@@ -286,6 +290,11 @@ public class LoadBalancingRule {
         @Override
         public long getNetworkId() {
             return networkId;
+        }
+        
+        @Override
+        public long getInstanceId() {
+            return instanceId;
         }
 
         @Override

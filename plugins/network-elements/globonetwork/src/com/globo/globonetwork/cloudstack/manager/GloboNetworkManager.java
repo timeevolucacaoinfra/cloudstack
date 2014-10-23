@@ -1718,21 +1718,16 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // Reals
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (LbDestination destVM : rule.getDestinations()) {
-            Nic nic = _nicDao.findByIp4AddressAndNetworkId(destVM.getIpAddress(), destVM.getNetworkId());
-            if (nic != null) {
-                VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
-                if (vm != null) {
-                    GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-                    real.setIp(destVM.getIpAddress());
-                    real.setVmName(getEquipNameFromUuid(vm.getUuid()));
-                    real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
-                    real.setRevoked(destVM.isRevoked());
-                    realList.add(real);
-                } else {
-                    throw new InvalidParameterValueException("Could not find VM with address " + destVM.getIpAddress() + " or NIC is not in the right network");
-                }
+            VMInstanceVO vm = _vmDao.findById(destVM.getInstanceId());
+            if (vm != null) {
+                GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+                real.setIp(destVM.getIpAddress());
+                real.setVmName(getEquipNameFromUuid(vm.getUuid()));
+                real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
+                real.setRevoked(destVM.isRevoked());
+                realList.add(real);
             } else {
-                throw new InvalidParameterValueException("Could not find NIC with address " + destVM.getIpAddress());
+                throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
             }
         }
         

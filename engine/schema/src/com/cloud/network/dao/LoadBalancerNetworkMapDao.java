@@ -24,4 +24,5 @@ public interface LoadBalancerNetworkMapDao extends GenericDao<LoadBalancerNetwor
     void removeByLoadBalancer(long loadBalancerId);
     List<LoadBalancerNetworkMapVO> listByLoadBalancerId(long loadBalancerId);
     LoadBalancerNetworkMapVO findByLoadBalancerIdAndNetworkId(long loadBalancerId, long networkId);
+    List<LoadBalancerNetworkMapVO> listByNetworkId(long networkId);
 }
