@@ -16,13 +16,10 @@
 // under the License.
 package org.apache.cloudstack.network.lb;
 
-import static org.apache.commons.io.FileUtils.readFileToString;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.apache.commons.io.FileUtils.*;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +35,7 @@ import org.apache.cloudstack.context.CallContext;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -144,6 +142,7 @@ public class CertServiceTest {
         certService.uploadSslCert(uploadCmd);
     }
 
+    @Ignore
     @Test
     /**
      * Given a Self-signed Certificate with non-encrypted key, upload should succeed
@@ -195,6 +194,7 @@ public class CertServiceTest {
         certService.uploadSslCert(uploadCmd);
     }
 
+    @Ignore
     @Test
     /**
      * Given a Self-signed Certificate with encrypted key, upload should succeed
@@ -447,6 +447,7 @@ public class CertServiceTest {
 
     }
 
+    @Ignore
     @Test
     public void runUploadSslCertBadkeyPair() throws IOException, IllegalAccessException, NoSuchFieldException {
         // Reading appropritate files
@@ -486,6 +487,7 @@ public class CertServiceTest {
         }
     }
 
+    @Ignore
     @Test
     public void runUploadSslCertBadkeyAlgo() throws IOException, IllegalAccessException, NoSuchFieldException {
 

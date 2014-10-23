@@ -78,6 +78,7 @@ import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
+import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
@@ -382,6 +383,10 @@ public class GloboNetworkManagerTest {
     	@Bean
     	public IpAddressManager ipAddressManager() {
     	    return mock(IpAddressManager.class);
+    	}
+    	@Bean
+    	public LoadBalancingRulesManager loadBalancingRulesManager() {
+    	    return mock(LoadBalancingRulesManager.class);
     	}
     
         public static class Library implements TypeFilter {
