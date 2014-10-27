@@ -107,6 +107,23 @@
                                 cidr: { label: 'label.cidr' },
                             },
                             dataProvider: function(args) {
+                                // Make sure load balancer object is always up to date
+
+                                $.ajax({
+                                    url: createURL("listLoadBalancerRules"),
+                                    data: {
+                                        id: args.context.loadbalancers[0].id,
+                                    },
+                                    dataType: "json",
+                                    async: true,
+                                    success: function(json) {
+                                        args.context.loadbalancers[0] = json.listloadbalancerrulesresponse.loadbalancerrule[0];
+                                    },
+                                    error: function(errorMessage) {
+                                        args.response.error(errorMessage);
+                                    }
+                                });
+
                                 var networkidslist = [];
                                 networkidslist.push(args.context.loadbalancers[0].networkid);
                                 networkidslist = networkidslist.concat(args.context.loadbalancers[0].additionalnetworkids);
@@ -130,7 +147,97 @@
                                 args.response.success({ data: networks });
                             },
                             actions: {
-
+                                remove: {
+                                    label: 'label.remove',
+                                    messages: {
+                                        confirm: function(args) {
+                                            return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
+                                        },
+                                        notification: function(args) {
+                                            return 'Remove Network From Load Balancer';
+                                        }
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL("removeNetworksFromLoadBalancerRule"),
+                                            data: {
+                                                id: args.context.loadbalancers[0].id,
+                                                networkids: args.context.networks[0].id
+                                            },
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                $(window).trigger('cloudStack.fullRefresh');
+                                            },
+                                            error: function(errorMessage) {
+                                                args.response.error(errorMessage);
+                                            }
+                                        });
+                                    },
+                                    notification: {
+                                        poll: function(args) {
+                                            args.complete();
+                                        }
+                                    }
+                                },
+                                add: {
+                                    label: 'Associate Network to Load Balancer',
+                                    createForm: {
+                                        title: 'Associate Network to Load Balancer',
+                                        fields: {
+                                            network: {
+                                                label: 'label.network',
+                                                validation: { required: true },
+                                                select: function(args) {
+                                                    var networks = [];
+                                                    $.ajax({
+                                                        url: createURL("listNetworks"),
+                                                        dataType: "json",
+                                                        async: false,
+                                                        success: function(json) {
+                                                            var lb = args.context.loadbalancers[0];
+                                                            $(json.listnetworksresponse.network).each(function() {
+                                                                // Remove those that are already associated to load balancer
+                                                                if (lb.networkid != this.id && lb.additionalnetworkids.indexOf(this.id) === -1) {
+                                                                    networks.push({id: this.id, description: this.name});
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                    args.response.success({
+                                                        data: networks
+                                                    });
+                                                }
+                                            }
+                                        },
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL("assignNetworksToLoadBalancerRule"),
+                                            data: {
+                                                id: args.context.loadbalancers[0].id,
+                                                networkids: args.data.network
+                                            },
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                // Refresh load balancer list
+                                                $(window).trigger('cloudStack.fullRefresh');
+                                            },
+                                            error: function(errorMessage) {
+                                                args.response.error(errorMessage);
+                                            }
+                                        });
+                                    },
+                                    messages: {
+                                        notification: function(args) {
+                                            return 'Network associated to Load Balancer';
+                                        }
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    }
+                                }
                             }
                         }
                     },
@@ -145,21 +252,30 @@
                             },
                             dataProvider: function(args) {
                                 $.ajax({
-                                    url: createURL('listVirtualMachines'),
+                                    url: createURL('listLoadBalancerRuleInstances'),
                                     data: {
-                                        lbruleid: args.context.loadbalancers[0].id,
+                                        id: args.context.loadbalancers[0].id,
                                     },
                                     success: function(data) {
+                                        var instances = [];
+                                        response = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
+                                            data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
+                                            $(response).each(function() {
+                                                var ipaddress;
+                                                var networkname;
+                                                $(this.nic).each(function() {
+                                                    // Find the NIC that is in the load balancer
+                                                    if (args.context.loadbalancers[0].networkid === this.networkid ||
+                                                        args.context.loadbalancers[0].additionalnetworkids.indexOf(this.networkid) !== -1) {
+                                                        ipaddress = this.ipaddress;
+                                                        networkname = this.networkname;
+                                                        return false; // break 'each' loop since we've found it
+                                                    }
+                                                });
+                                                instances.push({id: this.id, name: this.name, ip: ipaddress, network: networkname });
+                                            });
                                         args.response.success({
-                                            data: $.grep(
-                                                data.listvirtualmachinesresponse.virtualmachine ?
-                                                data.listvirtualmachinesresponse.virtualmachine : [],
-                                                function(instance) {
-                                                    return $.inArray(instance.state, [
-                                                        'Destroyed', 'Expunging'
-                                                    ]) == -1;
-                                                }
-                                            )
+                                            data: instances
                                         });
                                     },
                                     error: function(errorMessage) {
@@ -168,6 +284,99 @@
                                 });
                             },
                             actions: {
+                                remove: {
+                                    label: 'label.remove',
+                                    messages: {
+                                        confirm: function(args) {
+                                            return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
+                                        },
+                                        notification: function(args) {
+                                            return 'Remove VM From Load Balancer';
+                                        }
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL("removeFromLoadBalancerRule"),
+                                            data: {
+                                                id: args.context.loadbalancers[0].id,
+                                                virtualmachineids: args.context.vms[0].id
+                                            },
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                $(window).trigger('cloudStack.fullRefresh');
+                                            },
+                                            error: function(errorMessage) {
+                                                args.response.error(errorMessage);
+                                            }
+                                        });
+                                    },
+                                    notification: {
+                                        poll: function(args) {
+                                            args.complete();
+                                        }
+                                    }
+                                },
+                                add: {
+                                    label: 'Add VM to Load Balancer',
+                                    createForm: {
+                                        title: 'Add VM to Load Balancer',
+                                        fields: {
+                                            vm: {
+                                                label: 'VM',
+                                                validation: { required: true },
+                                                select: function(args) {
+                                                    var networks = [];
+                                                    $.ajax({
+                                                        url: createURL("listLoadBalancerRuleInstances"),
+                                                        data: {
+                                                            id: args.context.loadbalancers[0].id,
+                                                            applied: false,
+                                                        },
+                                                        dataType: "json",
+                                                        async: false,
+                                                        success: function(json) {
+                                                            var instances = [];
+                                                            var lb = args.context.loadbalancers[0];
+                                                            $(json.listloadbalancerruleinstancesresponse.loadbalancerruleinstance).each(function() {
+                                                                instances.push({id: this.id, description: this.name });
+                                                            });
+                                                            args.response.success({
+                                                                data: instances
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        },
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL("assignToLoadBalancerRule"),
+                                            data: {
+                                                id: args.context.loadbalancers[0].id,
+                                                virtualmachineids: args.data.vm
+                                            },
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                // Refresh load balancer list
+                                                $(window).trigger('cloudStack.fullRefresh');
+                                            },
+                                            error: function(errorMessage) {
+                                                args.response.error(errorMessage);
+                                            }
+                                        });
+                                    },
+                                    messages: {
+                                        notification: function(args) {
+                                            return 'VM added to Load Balancer';
+                                        }
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    }
+                                }
                             },
                         }
                     },
