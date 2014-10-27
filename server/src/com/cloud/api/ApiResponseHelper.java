@@ -31,14 +31,12 @@ import java.util.TimeZone;
 
 import javax.inject.Inject;
 
-import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
 import org.apache.cloudstack.api.ApiConstants.HostDetails;
 import org.apache.cloudstack.api.ApiConstants.VMDetails;
-import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ResponseGenerator;
 import org.apache.cloudstack.api.command.user.job.QueryAsyncJobResultCmd;
 import org.apache.cloudstack.api.response.AccountResponse;
@@ -149,6 +147,7 @@ import org.apache.cloudstack.storage.datastore.db.StoragePoolVO;
 import org.apache.cloudstack.usage.Usage;
 import org.apache.cloudstack.usage.UsageService;
 import org.apache.cloudstack.usage.UsageTypes;
+import org.apache.log4j.Logger;
 
 import com.cloud.api.query.ViewResponseHelper;
 import com.cloud.api.query.vo.AccountJoinVO;
@@ -225,6 +224,7 @@ import com.cloud.network.as.Condition;
 import com.cloud.network.as.ConditionVO;
 import com.cloud.network.as.Counter;
 import com.cloud.network.dao.IPAddressVO;
+import com.cloud.network.dao.LoadBalancerNetworkMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkVO;
@@ -258,7 +258,6 @@ import com.cloud.projects.Project;
 import com.cloud.projects.ProjectAccount;
 import com.cloud.projects.ProjectInvitation;
 import com.cloud.region.ha.GlobalLoadBalancerRule;
-import com.cloud.serializer.Param;
 import com.cloud.server.Criteria;
 import com.cloud.server.ResourceTag;
 import com.cloud.server.ResourceTag.ResourceObjectType;
@@ -301,8 +300,6 @@ import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachine.Type;
 import com.cloud.vm.dao.NicSecondaryIpVO;
 import com.cloud.vm.snapshot.VMSnapshot;
-import com.google.gson.Gson;
-import com.google.gson.annotations.SerializedName;
 
 
 public class ApiResponseHelper implements ResponseGenerator {
@@ -778,6 +775,14 @@ public class ApiResponseHelper implements ResponseGenerator {
 
         Network ntwk = ApiDBUtils.findNetworkById(loadBalancer.getNetworkId());
         lbResponse.setNetworkId(ntwk.getUuid());
+        
+        List<String> additionalNetworks = new ArrayList<String>();
+        List<LoadBalancerNetworkMapVO> lbNetMaps = ApiDBUtils.listLoadBalancerAdditionalNetworks(loadBalancer.getId());
+        for (LoadBalancerNetworkMapVO lbNetMapVO : lbNetMaps) {
+            Network network = ApiDBUtils.findNetworkById(lbNetMapVO.getNetworkId());
+            additionalNetworks.add(network.getUuid());
+        }
+        lbResponse.setAdditionalNetworks(additionalNetworks);
 
         lbResponse.setObjectName("loadbalancer");
         return lbResponse;

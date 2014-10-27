@@ -94,6 +94,10 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
     @SerializedName(ApiConstants.PROTOCOL)
     @Param(description = "the protocol of the loadbalanacer rule")
     private String lbProtocol;
+    
+    @SerializedName("additionalnetworkids")
+    @Param(description = "the additional networks that are associated with this load balancer")
+    private List<String> additionalNetworks;
 
 
     @SerializedName(ApiConstants.TAGS)  @Param(description="the list of resource tags associated with load balancer", responseObject = ResourceTagResponse.class)
@@ -177,5 +181,9 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
 
     public void setLbProtocol(String lbProtocol) {
         this.lbProtocol = lbProtocol;
+    }
+    
+    public void setAdditionalNetworks(List<String> additionalNetworks) {
+        this.additionalNetworks = additionalNetworks;
     }
 }
