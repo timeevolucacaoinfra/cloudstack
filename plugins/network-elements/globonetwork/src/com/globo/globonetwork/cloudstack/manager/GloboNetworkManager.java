@@ -70,6 +70,7 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.IpAddress;
 import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
@@ -80,6 +81,8 @@ import com.cloud.network.Networks.BroadcastDomainType;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.addr.PublicIp;
+import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
@@ -128,7 +131,6 @@ import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.api.AcquireNewIpForLbInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
-import com.globo.globonetwork.cloudstack.api.AddGloboNetworkLBNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
@@ -137,11 +139,9 @@ import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
-import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
-import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkLBNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
@@ -237,6 +237,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	GloboNetworkLBNetworkDao _globoNetworkLBNetworkDao;
     @Inject
     VMInstanceDao _vmDao;
+    @Inject
+    IPAddressDao _ipAddrDao;
 	
 	// Managers
 	@Inject
@@ -803,7 +805,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 @Override
                 public GloboNetworkLBNetworkVO doInTransaction(TransactionStatus status) throws CloudException {
                     Integer vlanNumber = response.getVlanNum();
-                    VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                    Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     if (vlan == null) {
                         vlan = createNewPublicVlan(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     }
@@ -1609,13 +1611,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
                     Long zoneId = network.getDataCenterId();
                     Integer vlanNumber = globoNetwork.getVlanNum();
-                    VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
                     if (vlan == null) {
                         vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
                     }
                     
                     String myIp = globoNetwork.getIp().addr();
-                    return PublicIp.createFromAddrAndVlan(_ipAddrDao.findByIpAndVlanId(myIp, vlan.getId()), vlan);
+                    return PublicIp.createFromAddrAndVlan(_ipAddrDao.findByIpAndVlanId(myIp, vlan.getId()), (VlanVO) vlan);
                 }
             });
             return publicIp;
