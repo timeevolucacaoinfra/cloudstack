@@ -166,7 +166,6 @@ createLBHealthCheckPolicy=15
 deleteLBHealthCheckPolicy=15
 listLoadBalancerRuleInstances=15
 updateLoadBalancerRule=15
-listLoadBalancerCapabilities=15
 
 ##### SSL offload commands
 

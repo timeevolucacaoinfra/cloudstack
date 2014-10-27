@@ -40,7 +40,6 @@ import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPo
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLBHealthCheckPoliciesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLBStickinessPoliciesCmd;
-import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerCapabilitiesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRuleInstancesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRulesCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateLoadBalancerRuleCmd;
@@ -151,7 +150,6 @@ import com.cloud.user.dao.AccountDao;
 import com.cloud.user.dao.UserDao;
 import com.cloud.uservm.UserVm;
 import com.cloud.utils.Pair;
-import com.cloud.utils.StringUtils;
 import com.cloud.utils.Ternary;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.db.DB;
@@ -2520,6 +2518,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         this._lbProviders = lbProviders;
     }
 
+<<<<<<< HEAD
     @Override
     public Map<Capability, String> listCapabilities(ListLoadBalancerCapabilitiesCmd cmd) {
         

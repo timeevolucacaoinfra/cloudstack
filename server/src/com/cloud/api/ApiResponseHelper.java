@@ -32,13 +32,13 @@ import java.util.TimeZone;
 import javax.inject.Inject;
 
 import org.apache.log4j.Logger;
+
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
 import org.apache.cloudstack.api.ApiConstants.HostDetails;
 import org.apache.cloudstack.api.ApiConstants.VMDetails;
-import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ResponseGenerator;
 import org.apache.cloudstack.api.command.user.job.QueryAsyncJobResultCmd;
 import org.apache.cloudstack.api.response.AccountResponse;
@@ -82,7 +82,6 @@ import org.apache.cloudstack.api.response.LBHealthCheckResponse;
 import org.apache.cloudstack.api.response.LBStickinessPolicyResponse;
 import org.apache.cloudstack.api.response.LBStickinessResponse;
 import org.apache.cloudstack.api.response.ListResponse;
-import org.apache.cloudstack.api.response.LoadBalancerCapabilitiesResponse;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
 import org.apache.cloudstack.api.response.NetworkACLItemResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
@@ -258,7 +257,6 @@ import com.cloud.projects.Project;
 import com.cloud.projects.ProjectAccount;
 import com.cloud.projects.ProjectInvitation;
 import com.cloud.region.ha.GlobalLoadBalancerRule;
-import com.cloud.serializer.Param;
 import com.cloud.server.Criteria;
 import com.cloud.server.ResourceTag;
 import com.cloud.server.ResourceTag.ResourceObjectType;
@@ -301,8 +299,6 @@ import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachine.Type;
 import com.cloud.vm.dao.NicSecondaryIpVO;
 import com.cloud.vm.snapshot.VMSnapshot;
-import com.google.gson.Gson;
-import com.google.gson.annotations.SerializedName;
 
 
 public class ApiResponseHelper implements ResponseGenerator {
@@ -3845,16 +3841,4 @@ public class ApiResponseHelper implements ResponseGenerator {
         response.setResponses(responses);
         return response;
     }
-
-    @Override
-    public LoadBalancerCapabilitiesResponse createLoadBalancerCapabilitiesReponse(Map<Capability, String> capabilities) {
-        LoadBalancerCapabilitiesResponse response = new LoadBalancerCapabilitiesResponse();
-        response.setAlgorithms(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedLBAlgorithms)));
-        response.setIsolations(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedLBIsolation)));
-        response.setSchemes(StringUtils.csvTagsToList(capabilities.get(Capability.LbSchemes)));
-        response.setStickies(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedStickinessMethods)));
-        response.setObjectName("loadbalacingcapabilities");
-        return response;
-    }
-    
 }
