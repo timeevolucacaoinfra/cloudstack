@@ -45,18 +45,18 @@ public class GloboNetworkLBNetworkVO implements InternalIdentity {
 	@Column(name = "globonetwork_lb_network_id")
     private long globoNetworkLBNetworkId;
 
-    @Column(name = "vlan_id")
-    private long vlanId;
+    @Column(name = "portable_ip_range_id")
+    private long portableIpRangeId;
 
 	public GloboNetworkLBNetworkVO() {
 	}
 
 	public GloboNetworkLBNetworkVO(String name,
-	        long globoNetworkEnvironmentId, long globoNetworkLBNetworkId, long vlanId) {
+	        long globoNetworkEnvironmentId, long globoNetworkLBNetworkId, long portableIpRangeId) {
 		this.name = name;
 		this.globoNetworkEnvironmentRefId = globoNetworkEnvironmentId;
         this.globoNetworkLBNetworkId = globoNetworkLBNetworkId;
-        this.vlanId = vlanId;
+        this.portableIpRangeId = portableIpRangeId;
 	}
 
 	public long getId() {
@@ -75,7 +75,7 @@ public class GloboNetworkLBNetworkVO implements InternalIdentity {
         return globoNetworkLBNetworkId;
     }
     
-    public long getVlanId() {
-        return vlanId;
+    public long getPortableIpRangeId() {
+        return portableIpRangeId;
     }
 }

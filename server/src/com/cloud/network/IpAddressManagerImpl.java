@@ -1063,8 +1063,13 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
     }
 
     @Override
-    @DB
     public IpAddress allocatePortableIp(final Account ipOwner, Account caller, final long dcId, final Long networkId, final Long vpcID) throws ConcurrentOperationException, ResourceAllocationException,
+    InsufficientAddressCapacityException {
+        return allocatePortableIp(ipOwner, caller, dcId, networkId, vpcID, null);
+    }
+
+    @DB
+    public IpAddress allocatePortableIp(final Account ipOwner, Account caller, final long dcId, final Long networkId, final Long vpcID, final String requestedIp) throws ConcurrentOperationException, ResourceAllocationException,
         InsufficientAddressCapacityException {
 
         GlobalLock portableIpLock = GlobalLock.getInternLock("PortablePublicIpRange");
@@ -1076,7 +1081,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             ipaddr = Transaction.execute(new TransactionCallbackWithException<IPAddressVO,InsufficientAddressCapacityException>() {
                 @Override
                 public IPAddressVO doInTransaction(TransactionStatus status) throws InsufficientAddressCapacityException {
-                    PortableIpVO allocatedPortableIp;
+                    PortableIpVO allocatedPortableIp = null;
 
                     List<PortableIpVO> portableIpVOs = _portableIpDao.listByRegionIdAndState(1, PortableIp.State.Free);
                     if (portableIpVOs == null || portableIpVOs.isEmpty()) {
@@ -1084,8 +1089,21 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                         throw ex;
                     }
         
-                    // allocate first portable IP to the user
-                    allocatedPortableIp = portableIpVOs.get(0);
+                    // allocate first portable IP to the user if not specified
+                    if (requestedIp == null) {
+                        allocatedPortableIp = portableIpVOs.get(0);
+                    } else {
+                        for (PortableIpVO portableIp : portableIpVOs) {
+                            if (portableIp.getAddress().equals(requestedIp)) {
+                                allocatedPortableIp = portableIp;
+                                break;
+                            }
+                        }
+                        if (allocatedPortableIp == null) {
+                            InsufficientAddressCapacityException ex = new InsufficientAddressCapacityException("Unable to find portable IP addresses " + requestedIp, Region.class, new Long(1));
+                            throw ex;
+                        }
+                    }
                     allocatedPortableIp.setAllocatedTime(new Date());
                     allocatedPortableIp.setAllocatedToAccountId(ipOwner.getAccountId());
                     allocatedPortableIp.setAllocatedInDomainId(ipOwner.getDomainId());

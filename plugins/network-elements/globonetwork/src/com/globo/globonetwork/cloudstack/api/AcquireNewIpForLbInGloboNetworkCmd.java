@@ -26,12 +26,11 @@ import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.BaseAsyncCreateCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.api.BaseCmd.CommandType;
-import org.apache.cloudstack.api.response.DomainResponse;
 import org.apache.cloudstack.api.response.IPAddressResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.log4j.Logger;
 
 import com.cloud.event.EventTypes;
@@ -65,6 +64,10 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
             description="Project the IP address will be associated with")
     private Long projectId;
 
+    @Parameter(name="lbenvironmentid", type=CommandType.LONG, entityType = GloboNetworkLBNetworkResponse.class,
+            description="Globo Network Environment Id", required=true)
+    private Long globoNetworkEnvironmentId;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -85,7 +88,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
         }
         return network;
     }
-
+    
     @Override
     public long getEntityOwnerId() {
         Network network = getNetwork();
@@ -94,7 +97,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
 
     @Override
     public String getEventType() {
-        return EventTypes.EVENT_NET_IP_ASSIGN;
+        return EventTypes.EVENT_PORTABLE_IP_ASSIGN;
     }
 
     @Override
@@ -115,7 +118,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
     @Override
     public void create() throws ResourceAllocationException {
         try {
-            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId());
+            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), globoNetworkEnvironmentId);
 
             if (ip != null) {
                 setEntityId(ip.getId());

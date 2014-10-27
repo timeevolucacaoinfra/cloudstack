@@ -37,7 +37,6 @@ import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
-
 import org.apache.cloudstack.acl.SecurityChecker;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupService;
@@ -4864,9 +4863,6 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
     }
 
     @Override
-    @DB
-    @ActionEvent(eventType = EventTypes.EVENT_PORTABLE_IP_RANGE_CREATE,
-    eventDescription = "creating portable ip range", async = false)
     public PortableIpRange createPortableIpRange(CreatePortableIpRangeCmd cmd) throws ConcurrentOperationException {
         final Integer regionId = cmd.getRegionId();
         final String startIP = cmd.getStartIp();
@@ -4874,6 +4870,17 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
         final String gateway = cmd.getGateway();
         final String netmask = cmd.getNetmask();
         String vlanId = cmd.getVlan();
+
+        return createPortableIpRange(regionId, startIP, endIP, gateway, netmask, vlanId);
+    }
+
+    @Override
+    @DB
+    @ActionEvent(eventType = EventTypes.EVENT_PORTABLE_IP_RANGE_CREATE,
+    eventDescription = "creating portable ip range", async = false)
+    public PortableIpRangeVO createPortableIpRange(final Integer regionId,
+            final String startIP, final String endIP, final String gateway,
+            final String netmask, String vlanId) {
 
         final RegionVO region = _regionDao.findById(regionId);
         if (region == null) {
@@ -4951,11 +4958,15 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
     }
 
     @Override
+    public boolean deletePortableIpRange(DeletePortableIpRangeCmd cmd) {
+        return deletePortableIpRange(cmd.getId());
+    }
+
+    @Override
     @DB
     @ActionEvent(eventType = EventTypes.EVENT_PORTABLE_IP_RANGE_DELETE,
     eventDescription = "deleting portable ip range", async = false)
-    public boolean deletePortableIpRange(DeletePortableIpRangeCmd cmd) {
-        long rangeId = cmd.getId();
+    public boolean deletePortableIpRange(Long rangeId) {
 
         PortableIpRangeVO portableIpRange = _portableIpRangeDao.findById(rangeId);
         if (portableIpRange == null) {
