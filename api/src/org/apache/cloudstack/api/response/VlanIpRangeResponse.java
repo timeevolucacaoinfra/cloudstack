@@ -60,7 +60,7 @@ public class VlanIpRangeResponse extends BaseResponse implements ControlledEntit
     @SerializedName(ApiConstants.NETMASK) @Param(description="the netmask of the VLAN IP range")
     private String netmask;
 
-    @SerializedName(ApiConstants.DESCRIPTION) @Param(description="the description of the VLAN range")
+    @SerializedName(ApiConstants.DESCRIPTION) @Param(description="the description of the VLAN IP range")
     private String description;
 
     @SerializedName(ApiConstants.START_IP) @Param(description="the start ip of the VLAN IP range")

@@ -1004,13 +1004,6 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
     @Override
     public IpAddress allocateIp(final Account ipOwner, final boolean isSystem, Account caller, long callerUserId, final DataCenter zone, final Network guestNetwork) throws ConcurrentOperationException,
         ResourceAllocationException, InsufficientAddressCapacityException {
-        return allocateIp(ipOwner, isSystem, caller, callerUserId, zone, guestNetwork, null);
-    }
-
-    @DB
-    @Override
-    public IpAddress allocateIp(final Account ipOwner, final boolean isSystem, Account caller, long callerUserId, final DataCenter zone, final Network guestNetwork, Long vlanId) throws ConcurrentOperationException,
-        ResourceAllocationException, InsufficientAddressCapacityException {
 
         final VlanType vlanType = VlanType.VirtualNetwork;
         final boolean assign = false;
@@ -1024,11 +1017,12 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
 
         PublicIp ip = null;
         String requestedIp = null;
+        Long vlanId = null;
         
         if (guestNetwork != null) {
             NetworkGuru guru = AdapterBase.getAdapterByName(_networkGurus, guestNetwork.getGuruName());
             if (guru instanceof NetworkGuruWithIPAM) {
-                IpAddress ipAddress = ((NetworkGuruWithIPAM) guru).allocatePublicIp(guestNetwork, ipOwner, vlanId);
+                IpAddress ipAddress = ((NetworkGuruWithIPAM) guru).allocate(guestNetwork, ipOwner);
                 if (ipAddress != null) {
                     // Force selection of one specific IP address
                     requestedIp = ipAddress.getAddress().addr();
@@ -1129,7 +1123,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                     long physicalNetworkId = _networkModel.getDefaultPhysicalNetworkByZoneAndTrafficType(dcId, TrafficType.Public).getId();
                     Network network = _networkModel.getSystemNetworkByZoneAndTrafficType(dcId, TrafficType.Public);
                     String range = allocatedPortableIp.getAddress() + "-" + allocatedPortableIp.getAddress();
-                    VlanVO vlan = new VlanVO(range, VlanType.VirtualNetwork,
+                    VlanVO vlan = new VlanVO(VlanType.VirtualNetwork,
                         allocatedPortableIp.getVlan(),
                         allocatedPortableIp.getGateway(),
                         allocatedPortableIp.getNetmask(),

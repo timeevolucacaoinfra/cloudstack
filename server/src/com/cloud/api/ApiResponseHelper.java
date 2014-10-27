@@ -571,7 +571,6 @@ public class ApiResponseHelper implements ResponseGenerator {
             }
         }
 
-        vlanResponse.setDescription(vlan.getDescription());
         vlanResponse.setGateway(vlan.getVlanGateway());
         vlanResponse.setNetmask(vlan.getVlanNetmask());
 

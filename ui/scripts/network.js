@@ -2072,32 +2072,9 @@
                                 		    	}               		    	
                                 		    }
                                 		}                                		
-                                	});
+                                	});                                	
                                 },
                                 fields: {
-                                    vlanid: {
-                                        label: 'label.vlan.description',
-                                        select: function(args) {
-                                            $.ajax({
-                                                // FIXME Hidden system public range
-                                                url: createURL("listVlanIpRanges&forvirtualnetwork=true&zoneid=" + args.context.networks[0].zoneid),
-                                                dataType: "json",
-                                                async: true,
-                                                success: function(json) {
-                                                    var vlanIpRanges = json.listvlaniprangesresponse.vlaniprange;
-                                                    args.response.success({
-                                                        data: $.map(vlanIpRanges, function(vlanIpRange) {
-                                                            return {
-                                                                id: vlanIpRange.id,
-                                                                description: vlanIpRange.description
-                                                            };
-                                                        })
-                                                    });
-                                                }
-                                            });
-                                        },
-                                        isHidden: false // FIXME
-                                    },
                                     isportable: {
                                         label: 'label.cross.zones',
                                         select: function(args) {
@@ -2119,12 +2096,12 @@
                                 }
                             },
                             action: function(args) {
-                                var dataObj = {};
-                                if (args.$form.find('.form-item[rel=isportable]').css("display") != "none") {
-                                    $.extend(dataObj, {
-                                        isportable: args.data.isportable
-                                    });                             
-                                }
+                            	var dataObj = {};                            	
+                            	if (args.$form.find('.form-item[rel=isportable]').css("display") != "none") {
+                            		$.extend(dataObj, {
+                            			isportable: args.data.isportable
+                            		});                            	
+                            	}
                                 if ('vpc' in args.context) { //from VPC section
                                     $.extend(dataObj, {
                                         vpcid: args.context.vpc[0].id

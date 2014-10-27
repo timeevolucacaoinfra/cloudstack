@@ -37,7 +37,6 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.user.Account;
-import com.cloud.utils.StringUtils;
 
 @APICommand(name = "createVlanIpRange", description="Creates a VLAN IP range.", responseObject=VlanIpRangeResponse.class)
 public class CreateVlanIpRangeCmd extends BaseCmd {
@@ -48,9 +47,6 @@ public class CreateVlanIpRangeCmd extends BaseCmd {
     /////////////////////////////////////////////////////
     //////////////// API parameters /////////////////////
     /////////////////////////////////////////////////////
-
-    @Parameter(name=ApiConstants.DESCRIPTION, type=CommandType.STRING, description="vlan description", since="4.6")
-    private String description;
 
     @Parameter(name=ApiConstants.ACCOUNT, type=CommandType.STRING, description="account who will own the VLAN. If VLAN is Zone wide, this parameter should be ommited")
     private String accountName;
@@ -114,14 +110,6 @@ public class CreateVlanIpRangeCmd extends BaseCmd {
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
-
-    public String getDescription() {
-        if (StringUtils.isNotBlank(description)) {
-            return description;
-        }
-        // keep compatibility with old version
-        return this.getStartIp() + '-' + this.getEndIp();
-    }
 
     public String getAccountName() {
         return accountName;

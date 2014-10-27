@@ -175,10 +175,6 @@ public interface IpAddressManager {
         ResourceAllocationException,
         InsufficientAddressCapacityException;
 
-    IpAddress allocateIp(Account ipOwner, boolean isSystem, Account caller, long callerId, DataCenter zone, Network guestNetwork, Long vlanId) throws ConcurrentOperationException,
-    ResourceAllocationException,
-    InsufficientAddressCapacityException;
-
     PublicIp
         assignPublicIpAddressFromVlans(long dcId, Long podId, Account owner, VlanType type, List<Long> vlanDbIds, Long networkId, String requestedIp, boolean isSystem) throws InsufficientAddressCapacityException;
 

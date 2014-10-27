@@ -512,13 +512,6 @@ public class NetworkServiceImpl extends ManagerBase implements NetworkService {
     @ActionEvent(eventType = EventTypes.EVENT_NET_IP_ASSIGN, eventDescription = "allocating Ip", create = true)
     public IpAddress allocateIP(Account ipOwner, long zoneId, Long networkId) throws ResourceAllocationException, InsufficientAddressCapacityException,
             ConcurrentOperationException {
-        return allocateIP(ipOwner, zoneId, networkId, null);
-    }
-
-    @Override
-    @ActionEvent(eventType = EventTypes.EVENT_NET_IP_ASSIGN, eventDescription = "allocating Ip", create = true)
-    public IpAddress allocateIP(Account ipOwner, long zoneId, Long networkId, Long vlanId) throws ResourceAllocationException, InsufficientAddressCapacityException,
-            ConcurrentOperationException {
 
         Account caller = CallContext.current().getCallingAccount();
         long callerUserId = CallContext.current().getCallingUserId();
@@ -1360,7 +1353,7 @@ public class NetworkServiceImpl extends ManagerBase implements NetworkService {
 
                     if (caller.getType() == Account.ACCOUNT_TYPE_ADMIN && createVlan) {
                         // Create vlan ip range
-                        _configMgr.createVlanAndPublicIpRange(name, pNtwk.getDataCenterId(), network.getId(), physicalNetworkId, false, null, startIP, endIP, gateway, netmask, vlanId,
+                        _configMgr.createVlanAndPublicIpRange(pNtwk.getDataCenterId(), network.getId(), physicalNetworkId, false, null, startIP, endIP, gateway, netmask, vlanId,
                                 null, startIPv6, endIPv6, ip6Gateway, ip6Cidr);
                     }
                     return network;

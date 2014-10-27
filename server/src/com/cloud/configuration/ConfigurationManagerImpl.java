@@ -2471,7 +2471,6 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
         String endIP = cmd.getEndIp();
         String newVlanGateway = cmd.getGateway();
         String newVlanNetmask = cmd.getNetmask();
-        String description = cmd.getDescription();
         String vlanId = cmd.getVlan();
         // TODO decide if we should be forgiving or demand a valid and complete URI
         if (!((vlanId == null)
@@ -2699,12 +2698,12 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
             checkOverlapPrivateIpRange(zoneId, startIP, endIP);
         }
 
-        return commitVlan(description, zoneId, podId, startIP, endIP, newVlanGateway, newVlanNetmask, vlanId,
+        return commitVlan(zoneId, podId, startIP, endIP, newVlanGateway, newVlanNetmask, vlanId,
                 forVirtualNetwork, networkId, physicalNetworkId, startIPv6, endIPv6, ip6Gateway, ip6Cidr, vlanOwner,
                 network, sameSubnet);
     }
 
-    private Vlan commitVlan(final String description, final Long zoneId, final Long podId, final String startIP, final String endIP, final String newVlanGatewayFinal,
+    private Vlan commitVlan(final Long zoneId, final Long podId, final String startIP, final String endIP, final String newVlanGatewayFinal,
             final String newVlanNetmaskFinal, final String vlanId, final Boolean forVirtualNetwork, final Long networkId, final Long physicalNetworkId,
             final String startIPv6, final String endIPv6, final String ip6Gateway, final String ip6Cidr, final Account vlanOwner, final Network network,
             final Pair<Boolean, Pair<String, String>> sameSubnet) {
@@ -2728,7 +2727,7 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
                     newVlanGateway = sameSubnet.second().first();
                     newVlanNetmask = sameSubnet.second().second();
                 }
-                Vlan vlan = createVlanAndPublicIpRange(description, zoneId, networkId, physicalNetworkId, forVirtualNetwork, podId, startIP,
+                Vlan vlan = createVlanAndPublicIpRange(zoneId, networkId, physicalNetworkId, forVirtualNetwork, podId, startIP,
                         endIP, newVlanGateway, newVlanNetmask, vlanId, vlanOwner, startIPv6, endIPv6, ip6Gateway, ip6Cidr);
                 // create an entry in the nic_secondary table. This will be the new
                 // gateway that will be configured on the corresponding routervm.
@@ -2843,7 +2842,7 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
 
     @Override
     @DB
-    public Vlan createVlanAndPublicIpRange(String description, long zoneId, long networkId, long physicalNetworkId,
+    public Vlan createVlanAndPublicIpRange(long zoneId, long networkId, long physicalNetworkId,
             boolean forVirtualNetwork, Long podId, String startIP, String endIP, String vlanGateway,
             String vlanNetmask, String vlanId, Account vlanOwner, String startIPv6, String endIPv6,
             String vlanIp6Gateway, String vlanIp6Cidr) {
@@ -3068,20 +3067,20 @@ ConfigurationManagerImpl extends ManagerBase implements ConfigurationManager, Co
         }
 
         // Everything was fine, so persist the VLAN
-        VlanVO vlan = commitVlanAndIpRange(description, zoneId, networkId, physicalNetworkId, podId, startIP, endIP, vlanGateway,
+        VlanVO vlan = commitVlanAndIpRange(zoneId, networkId, physicalNetworkId, podId, startIP, endIP, vlanGateway,
                 vlanNetmask, vlanId, vlanOwner, vlanIp6Gateway, vlanIp6Cidr, ipv4, zone, vlanType, ipv6Range, ipRange);
 
         return vlan;
     }
 
-    private VlanVO commitVlanAndIpRange(final String description, final long zoneId, final long networkId, final long physicalNetworkId, final Long podId,
+    private VlanVO commitVlanAndIpRange(final long zoneId, final long networkId, final long physicalNetworkId, final Long podId,
             final String startIP, final String endIP, final String vlanGateway, final String vlanNetmask, final String vlanId, final Account vlanOwner,
             final String vlanIp6Gateway, final String vlanIp6Cidr, final boolean ipv4, final DataCenterVO zone, final VlanType vlanType,
             final String ipv6Range, final String ipRange) {
         return Transaction.execute(new TransactionCallback<VlanVO>() {
             @Override
             public VlanVO doInTransaction(TransactionStatus status) {
-                VlanVO vlan = new VlanVO(description, vlanType, vlanId, vlanGateway, vlanNetmask, zone.getId(), ipRange, networkId,
+                VlanVO vlan = new VlanVO(vlanType, vlanId, vlanGateway, vlanNetmask, zone.getId(), ipRange, networkId,
                         physicalNetworkId, vlanIp6Gateway, vlanIp6Cidr, ipv6Range);
                 s_logger.debug("Saving vlan range " + vlan);
                 vlan = _vlanDao.persist(vlan);

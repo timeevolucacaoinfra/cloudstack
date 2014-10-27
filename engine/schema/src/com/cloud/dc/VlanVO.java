@@ -57,10 +57,7 @@ public class VlanVO implements Vlan {
 	@Column(name="data_center_id")
 	long dataCenterId;
 
-    @Column(name="description")
-    String description;
-
-	@Column(name="ip_range")
+	@Column(name="description")
 	String ipRange;
 
 	@Column(name="ip6_range")
@@ -79,9 +76,8 @@ public class VlanVO implements Vlan {
     @Column(name="uuid")
     String uuid;
 
-	public VlanVO(String description, VlanType vlanType, String vlanTag, String vlanGateway, String vlanNetmask, long dataCenterId, String ipRange, Long networkId, Long physicalNetworkId, String ip6Gateway, String ip6Cidr, String ip6Range) {
-		this.description = description;
-	    this.vlanType = vlanType;
+	public VlanVO(VlanType vlanType, String vlanTag, String vlanGateway, String vlanNetmask, long dataCenterId, String ipRange, Long networkId, Long physicalNetworkId, String ip6Gateway, String ip6Cidr, String ip6Range) {
+		this.vlanType = vlanType;
 		this.vlanTag = vlanTag;
 		this.vlanGateway = vlanGateway;
 		this.vlanNetmask = vlanNetmask;
@@ -103,10 +99,6 @@ public class VlanVO implements Vlan {
     public long getId() {
 		return id;
 	}
-
-    public String getDescription() {
-        return description;
-    }
 
 	@Override
     public String getVlanTag() {
@@ -172,7 +164,7 @@ public class VlanVO implements Vlan {
     @Override
     public String toString() {
         if (toString == null) {
-            toString = new StringBuilder("Vlan[").append(description).append("|").append(vlanTag).append("|").append(vlanGateway).append("|").append(vlanNetmask).
+            toString = new StringBuilder("Vlan[").append(vlanTag).append("|").append(vlanGateway).append("|").append(vlanNetmask).
                     append("|").append(ip6Gateway).append("|").append(ip6Cidr).append("|").append(ipRange).append("|").
                     append("|").append(ip6Range).append(networkId).append("]").toString();
         }

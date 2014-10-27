@@ -255,8 +255,10 @@ public interface GloboNetworkService {
 
 	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
 	
-	public IpAddress allocatePublicIp(Network network, Account owner, Long vlanId) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException;
+	public IpAddress allocate(Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException;
 	
+    public PublicIp acquireLbIp(Long networkId, Long projectId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
+    
     public boolean releaseLbIpFromGloboNetwork(Network network, String ip);
 
     public boolean validateLBRule(Network network, LoadBalancingRule rule);
