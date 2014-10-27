@@ -30,7 +30,19 @@
                 publicip: { label: 'label.ip' },
                 ports: { label: 'label.port' },
                 algorithm: { label: 'label.algorithm' },
-                state: { label: 'label.state' },
+                state: {
+                    converter: function(str) {
+                        // For localization
+                        return str;
+                    },
+                    label: 'label.state',
+                    indicator: {
+                        'Add': 'off',
+                        'Active': 'on',
+                        'Revoke': 'off',
+                        'Deleting': 'off'
+                    }
+                },
             },
             dataProvider: function(args) {
                 $.ajax({
@@ -95,22 +107,27 @@
                                 cidr: { label: 'label.cidr' },
                             },
                             dataProvider: function(args) {
-                                $.ajax({
-                                    url: createURL('listNetworks'),
-                                    data: {
-                                        lbruleid: args.context.loadbalancers[0].id
-                                    },
-                                    async: false,
-                                    success: function(json) {
-                                        var networks = json.listnetworksresponse.network;
-                                        args.response.success({
-                                            data: networks
-                                        });
-                                    },
-                                    error: function(errorMessage) {
-                                        args.response.error(errorMessage);
-                                    }
+                                var networkidslist = [];
+                                networkidslist.push(args.context.loadbalancers[0].networkid);
+                                networkidslist = networkidslist.concat(args.context.loadbalancers[0].additionalnetworkids);
+
+                                var networks = [];
+                                $(networkidslist).each(function() {
+                                    $.ajax({
+                                        url: createURL('listNetworks'),
+                                        data: {
+                                            id: this.valueOf()
+                                        },
+                                        async: false,
+                                        success: function(json) {
+                                            networks.push(json.listnetworksresponse.network[0]);
+                                        },
+                                        error: function(errorMessage) {
+                                            args.response.error(errorMessage);
+                                        }
+                                    });
                                 });
+                                args.response.success({ data: networks });
                             },
                             actions: {
 
