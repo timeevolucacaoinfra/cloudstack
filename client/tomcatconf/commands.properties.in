@@ -125,7 +125,7 @@ listDiskOfferings=15
 #### vlan commands
 createVlanIpRange=1
 deleteVlanIpRange=1
-listVlanIpRanges=15
+listVlanIpRanges=1
 dedicatePublicIpRange=1
 releasePublicIpRange=1
 dedicateGuestVlanRange=1

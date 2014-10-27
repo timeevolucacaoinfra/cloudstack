@@ -44,6 +44,7 @@ import javax.naming.ConfigurationException;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
+
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.affinity.AffinityGroupProcessor;
@@ -442,7 +443,6 @@ import org.apache.cloudstack.engine.subsystem.api.storage.StoragePoolAllocator;
 import org.apache.cloudstack.engine.subsystem.api.storage.VolumeDataFactory;
 import org.apache.cloudstack.framework.config.ConfigDepot;
 import org.apache.cloudstack.framework.config.ConfigKey;
-import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.framework.config.impl.ConfigurationVO;
 import org.apache.cloudstack.managed.context.ManagedContextRunnable;
@@ -609,7 +609,7 @@ import com.cloud.vm.dao.UserVmDao;
 import com.cloud.vm.dao.VMInstanceDao;
 
 
-public class ManagementServerImpl extends ManagerBase implements ManagementServer, Configurable {
+public class ManagementServerImpl extends ManagerBase implements ManagementServer {
     public static final Logger s_logger = Logger.getLogger(ManagementServerImpl.class.getName());
 
     @Inject
@@ -730,8 +730,6 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Inject
     DeploymentPlanningManager _dpMgr;
-
-    private static final ConfigKey<Boolean> UsersCanSelectVlanOfPublicIP = new ConfigKey<Boolean>("Network", Boolean.class, "allow.user.choose.vlan.for.publicips", "false", "If set to true, will show to users public vlan", false, ConfigKey.Scope.Global);
 
     LockMasterListener _lockMasterListener;
 
@@ -1530,15 +1528,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         String vlanType = null;
         Long projectId = cmd.getProjectId();
         Long physicalNetworkId = cmd.getPhysicalNetworkId();
-        
-        // Non-root admin users can only call this command if UsersCanSelectVlanOfPublicIP == true
-        if (!Boolean.TRUE.equals(UsersCanSelectVlanOfPublicIP.value())) {
-            if (CallContext.current() != null && !_accountService.isRootAdmin(CallContext.current().getCallingAccount().getType())) {
-                throw new PermissionDeniedException(
-                        "Cannot perform this operation since global option UsersCanSelectVlanOfPublicIp is false");
-            }
-        }
-        
+
         if (accountName != null && domainId != null) {
             if (projectId != null) {
                 throw new InvalidParameterValueException("Account and projectId can't be specified together");
@@ -3965,17 +3955,5 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     public void setLockMasterListener(LockMasterListener lockMasterListener) {
         _lockMasterListener = lockMasterListener;
-    }
-
-    @Override
-    public String getConfigComponentName() {
-        return ManagementServer.class.getSimpleName();
-    }
-
-    @Override
-    public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {
-                UsersCanSelectVlanOfPublicIP
-        };
     }
 }

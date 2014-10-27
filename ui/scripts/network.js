@@ -2053,28 +2053,51 @@
                             createForm: {
                                 title: 'label.acquire.new.ip',
                                 desc: 'Please confirm that you want to acquire new IP',
-                                preFilter: function(args) {                             
-                                    $.ajax({
-                                        url: createURL('listRegions'),
-                                        success: function(json) {
-                                            var items = json.listregionsresponse.region;    
-                                            if(items != null) {
-                                                for(var i = 0; i < items.length; i++) {
-                                                    var region = items[0];  
-                                                    if(region.name == 'Local') {
-                                                        if(region.portableipserviceenabled == true) {
-                                                            args.$form.find('.form-item[rel=isportable]').css('display', 'inline-block');
-                                                        } else {
-                                                            args.$form.find('.form-item[rel=isportable]').hide();
-                                                        }  
-                                                        break;
-                                                    }
-                                                }                               
-                                            }
-                                        }                                       
-                                    });
+                                preFilter: function(args) {                            	
+                                	$.ajax({
+                                		url: createURL('listRegions'),
+                                		success: function(json) {
+                                		    var items = json.listregionsresponse.region;	
+                                		    if(items != null) {
+                                		    	for(var i = 0; i < items.length; i++) {
+                                		    		var region = items[0];  
+                                		    		if(region.name == 'Local') {
+	                                    		    	if(region.portableipserviceenabled == true) {
+	                                    		    		args.$form.find('.form-item[rel=isportable]').css('display', 'inline-block');
+	                                    		    	} else {
+	                                    		    		args.$form.find('.form-item[rel=isportable]').hide();
+	                                    		    	}  
+	                                    		    	break;
+                                		    		}
+                                		    	}               		    	
+                                		    }
+                                		}                                		
+                                	});
                                 },
                                 fields: {
+                                    vlanid: {
+                                        label: 'label.vlan.description',
+                                        select: function(args) {
+                                            $.ajax({
+                                                // FIXME Hidden system public range
+                                                url: createURL("listVlanIpRanges&forvirtualnetwork=true&zoneid=" + args.context.networks[0].zoneid),
+                                                dataType: "json",
+                                                async: true,
+                                                success: function(json) {
+                                                    var vlanIpRanges = json.listvlaniprangesresponse.vlaniprange;
+                                                    args.response.success({
+                                                        data: $.map(vlanIpRanges, function(vlanIpRange) {
+                                                            return {
+                                                                id: vlanIpRange.id,
+                                                                description: vlanIpRange.description
+                                                            };
+                                                        })
+                                                    });
+                                                }
+                                            });
+                                        },
+                                        isHidden: false // FIXME
+                                    },
                                     isportable: {
                                         label: 'label.cross.zones',
                                         select: function(args) {
@@ -2092,39 +2115,6 @@
                                             });
                                         },
                                         isHidden: true
-                                    },
-                                    vlanid: {
-                                        label: 'label.vlan',
-                                        dependsOn: 'isportable',
-                                        select: function(args) {
-                                            if (args.data.isportable == 'true') {
-                                                args.$form.find('.form-item[rel=vlanid]').hide();
-                                                return;
-                                            }
-                                            $.ajax({
-                                                url: createURL("listVlanIpRanges&forvirtualnetwork=true&zoneid=" + args.context.networks[0].zoneid),
-                                                dataType: "json",
-                                                async: true,
-                                                success: function(json) {
-                                                    args.$form.find('.form-item[rel=vlanid]').css('display', 'inline-block');
-                                                    var vlanIpRanges = json.listvlaniprangesresponse.vlaniprange;
-                                                    args.response.success({
-                                                        data: $.map(vlanIpRanges, function(vlanIpRange) {
-                                                            return {
-                                                                id: vlanIpRange.id,
-                                                                description: vlanIpRange.description +
-                                                                    ' (' + vlanIpRange.startip + '-' + vlanIpRange.endip + ')'
-                                                            };
-                                                        })
-                                                    });
-                                                },
-                                                error: function() {
-                                                    args.$form.find('.form-item[rel=vlanid]').hide();
-                                                    args.response.success({});
-                                                }
-                                            });
-                                        },
-                                        isHidden: true
                                     }
                                 }
                             },
@@ -2135,13 +2125,6 @@
                                         isportable: args.data.isportable
                                     });                             
                                 }
-                                                                
-                                if (args.$form.find('.form-item[rel=vlanid]').css("display") != "none") {
-                                    $.extend(dataObj, {
-                                        vlanid: args.data.vlanid
-                                    });
-                                }
-
                                 if ('vpc' in args.context) { //from VPC section
                                     $.extend(dataObj, {
                                         vpcid: args.context.vpc[0].id
