@@ -112,23 +112,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return globoNetworkBalMethod;
         }
     }
-    
-    private enum LbPersistence {
-        None("(nenhum)"),
-        LbCookie("cookie"),
-        SourceBased("source-ip");
         
-        String globoNetworkPersistence;
-        
-        LbPersistence(String globoNetworkPersistence) {
-            this.globoNetworkPersistence = globoNetworkPersistence;
-        }
-        
-        public String getGloboNetworkPersistence() {
-            return globoNetworkPersistence;
-        }
-    }
-    
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
 
@@ -691,13 +675,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 return new Answer(cmd, false, "Invalid balancing method provided.");
             }
             
-            LbPersistence lbPersistence;
+            String lbPersistence;
             if (cmd.getPersistencePolicy() == null || "None".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = LbPersistence.None;
-            } else if ("LbCookie".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = LbPersistence.LbCookie;
-            } else if ("SourceBased".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = LbPersistence.SourceBased;
+                lbPersistence = "(nenhum)";
+            } else if ("Cookie".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "cookie";
+            } else if ("Source-ip".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "source-ip";
+            } else if ("Source-ip with persistence between ports".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "source-ip com persist. entre portas";
             } else {
                 return new Answer(cmd, false, "Invalid persistence policy provided.");
             }
@@ -785,7 +771,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     s_logger.info("Applying rule " + cmd.getRuleState() + " on VIP " + (vip == null ? null : vip.getId()));
                     // Vip doesn't exist yet
                     // Actually add the VIP to GloboNetwork
-                    vip = _globoNetworkApi.getVipAPI().add(ip.getId(), null, expectedHealthcheckId, finality, client, environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(),
+                    vip = _globoNetworkApi.getVipAPI().add(ip.getId(), null, expectedHealthcheckId, finality, client, environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence,
                             healthcheckType, healthcheck, DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     // Validate the vip
@@ -808,8 +794,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     }
                     
                     // Decide if we need to update persistence
-                    if (!lbPersistence.getGloboNetworkPersistence().equals(vip.getPersistence())) {
-                        _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence.getGloboNetworkPersistence());
+                    if (!lbPersistence.equals(vip.getPersistence())) {
+                        _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
                     }
                     
                     // Decide if we need to update healthcheck
@@ -824,7 +810,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 } else {
                     // Otherwise, we update the VIP and validate it
                     _globoNetworkApi.getVipAPI().alter(vip.getId(), ip.getId(), null, expectedHealthcheckId, vip.getValidated(), vip.getCreated(), finality, client,
-                            environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence.getGloboNetworkPersistence(), healthcheckType, healthcheck,
+                            environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence, healthcheckType, healthcheck,
                             DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                     _globoNetworkApi.getVipAPI().validate(vip.getId());

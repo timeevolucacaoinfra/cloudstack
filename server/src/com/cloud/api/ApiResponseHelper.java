@@ -31,6 +31,7 @@ import java.util.TimeZone;
 
 import javax.inject.Inject;
 
+import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.affinity.AffinityGroup;
@@ -80,7 +81,6 @@ import org.apache.cloudstack.api.response.LBHealthCheckResponse;
 import org.apache.cloudstack.api.response.LBStickinessPolicyResponse;
 import org.apache.cloudstack.api.response.LBStickinessResponse;
 import org.apache.cloudstack.api.response.ListResponse;
-import org.apache.cloudstack.api.response.LoadBalancerCapabilitiesResponse;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
 import org.apache.cloudstack.api.response.NetworkACLItemResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
@@ -3850,16 +3850,4 @@ public class ApiResponseHelper implements ResponseGenerator {
         response.setResponses(responses);
         return response;
     }
-
-    @Override
-    public LoadBalancerCapabilitiesResponse createLoadBalancerCapabilitiesReponse(Map<Capability, String> capabilities) {
-        LoadBalancerCapabilitiesResponse response = new LoadBalancerCapabilitiesResponse();
-        response.setAlgorithms(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedLBAlgorithms)));
-        response.setIsolations(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedLBIsolation)));
-        response.setSchemes(StringUtils.csvTagsToList(capabilities.get(Capability.LbSchemes)));
-        response.setStickies(StringUtils.csvTagsToList(capabilities.get(Capability.SupportedStickinessMethods)));
-        response.setObjectName("loadbalacingcapabilities");
-        return response;
-    }
-    
 }

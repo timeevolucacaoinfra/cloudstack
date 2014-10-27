@@ -507,7 +507,7 @@ public class GloboNetworkResourceTest {
         cmd.setRuleState(FirewallRule.State.Add);
         cmd.setRealsEnvironmentId(realEnvironmentId);
         
-        LbStickinessPolicy persistencePolicy = new LbStickinessPolicy("LbCookie", null);
+        LbStickinessPolicy persistencePolicy = new LbStickinessPolicy("Cookie", null);
         cmd.setPersistencePolicy(persistencePolicy);
 
         for (RealIP vipReal : vip.getRealsIp()) {

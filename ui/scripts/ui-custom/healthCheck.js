@@ -368,11 +368,9 @@
                 closeonEscape: false,
                 overflow: 'auto',
                 open: function() {
-                    $("button").each(function() {
-                        $(this).attr("style", "left: 400px; position: relative; margin-right: 5px; ");
-                    });
+                    $(".ui-dialog .ui-dialog-buttonset button").css({'margin': '10px'});
 
-                    $('.ui-dialog .delete').css('left', '140px');
+                    $('.ui-dialog .ui-dialog-buttonset').css({'width': 'auto', 'marginLeft': '80px'});
 
                 },
                 buttons: buttons
