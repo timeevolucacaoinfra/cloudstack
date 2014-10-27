@@ -418,11 +418,118 @@
                 },
                 add: {
                     label: 'Create new Load Balancer',
+                    title: 'Create new Load Balancer',
+                    createForm: {
+                        fields: {
+                            name: {
+                                label: 'label.name',
+                                validation: {
+                                    required: true
+                                }
+                            },
+                            publicport: {
+                                label: 'label.public.port',
+                                validation: {
+                                    required: true
+                                }
+                            },
+                            privateport: {
+                                label: 'label.private.port',
+                                validation: {
+                                    required: true
+                                }
+                            },
+                            network: {
+                                label: 'label.network',
+                                validation: {
+                                    required: true
+                                },
+                                select: function(args) {
+                                    var networks = [];
+                                    $.ajax({
+                                        url: createURL("listNetworks"),
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            $(json.listnetworksresponse.network).each(function() {
+                                                networks.push({id: this.id, description: this.name});
+                                            });
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: networks
+                                    });
+                                }
+                            },
+                            algorithm: {
+                                label: 'label.algorithm',
+                                dependsOn: ['network'],
+                                select: function(args) {
+                                    var network;
+                                    $.ajax({
+                                        url: createURL("listNetworks"),
+                                        data: {
+                                            id: args.data.network
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            network = json.listnetworksresponse.network[0];
+                                        }
+                                    });
+
+
+                                    var lbService = $.grep(network.service, function(service) {
+                                        return service.name == 'Lb';
+                                    })[0];
+
+                                    var algorithmCapabilities = $.grep(
+                                        lbService.capability,
+                                        function(capability) {
+                                            return capability.name == 'SupportedLbAlgorithms';
+                                        }
+                                    )[0];
+
+                                    var algorithms = algorithmCapabilities.value.split(',');
+                                    var data = [];
+                                    $(algorithms).each(function() {
+                                        data.push({id: this.valueOf().trim(), name: this.valueOf().trim(), description: _l('label.lb.algorithm.' + this.valueOf().trim())});
+                                    });
+                                    args.response.success({
+                                        data: data
+                                    });
+                                },
+                            },
+
+                            sticky: {
+                                label: 'label.stickiness',
+                                custom: {
+                                    buttonLabel: 'label.configure',
+                                    action: cloudStack.lbStickyPolicy.dialog()
+                                }
+                            },
+
+                            healthcheck: {
+                                label: 'Health Check',
+                                custom: {
+                                    requireValidation: true,
+                                    buttonLabel: 'Configure',
+                                    action: cloudStack.uiCustom.healthCheck()
+
+                                }
+                            },
+
+                            addvm: {
+                                label: 'label.add.vms',
+                                addButton: true
+                            },
+                        },
+                    },
                     action: function(args) {
                     },
                     messages: {
                         notification: function(args) {
-                            return 'Load balancer created';
+                            return 'Load Balancer created';
                         }
                     },
                     notification: {
