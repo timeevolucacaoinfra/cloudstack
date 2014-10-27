@@ -31,11 +31,9 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
-import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.addr.PublicIp;
 import com.cloud.network.lb.LoadBalancingRule;
-import com.cloud.user.Account;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
@@ -256,8 +254,6 @@ public interface GloboNetworkService {
 	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
 
 	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
-	
-	public IpAddress allocate(Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException;
 	
     public PublicIp acquireLbIp(Long networkId, Long projectId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
     

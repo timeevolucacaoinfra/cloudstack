@@ -34,7 +34,6 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
-import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
@@ -254,8 +253,10 @@ public class GloboNetworkGuru extends GuestNetworkGuru implements NetworkGuruWit
 	}
 
     @Override
-    public IpAddress allocate(Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
-        return _globoNetworkService.allocate(network, owner);
+    public IpAddress allocate(Network network, IpAddress ipAddress) throws InsufficientVirtualNetworkCapcityException, InsufficientAddressCapacityException,
+            ConcurrentOperationException {
+        // TODO Auto-generatex d method stub
+        return null;
     }
 
     @Override

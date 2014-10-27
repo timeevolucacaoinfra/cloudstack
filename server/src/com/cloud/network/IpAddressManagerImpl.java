@@ -17,7 +17,6 @@
 package com.cloud.network;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -429,7 +428,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
 
         DataCenter zone = _entityMgr.findById(DataCenter.class, zoneId);
 
-        return allocateIp(ipOwner, isSystem, caller, callerUserId, zone, null);
+        return allocateIp(ipOwner, isSystem, caller, callerUserId, zone);
     }
 
     // An IP association is required in below cases
@@ -1002,7 +1001,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
 
     @DB
     @Override
-    public IpAddress allocateIp(final Account ipOwner, final boolean isSystem, Account caller, long callerUserId, final DataCenter zone, final Network guestNetwork) throws ConcurrentOperationException,
+    public IpAddress allocateIp(final Account ipOwner, final boolean isSystem, Account caller, long callerUserId, final DataCenter zone) throws ConcurrentOperationException,
         ResourceAllocationException, InsufficientAddressCapacityException {
 
         final VlanType vlanType = VlanType.VirtualNetwork;
@@ -1016,20 +1015,6 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
         }
 
         PublicIp ip = null;
-        String requestedIp = null;
-        Long vlanId = null;
-        
-        if (guestNetwork != null) {
-            NetworkGuru guru = AdapterBase.getAdapterByName(_networkGurus, guestNetwork.getGuruName());
-            if (guru instanceof NetworkGuruWithIPAM) {
-                IpAddress ipAddress = ((NetworkGuruWithIPAM) guru).allocate(guestNetwork, ipOwner);
-                if (ipAddress != null) {
-                    // Force selection of one specific IP address
-                    requestedIp = ipAddress.getAddress().addr();
-                    vlanId = ipAddress.getVlanId();
-                }
-            }
-        }
 
         Account accountToLock = null;
         try {
@@ -1046,12 +1031,10 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 s_logger.debug("Associate IP address lock acquired");
             }
 
-            final String finalRequestedIp = requestedIp;
-            final List<Long> finalVlanDbsId = Arrays.asList(vlanId);
             ip = Transaction.execute(new TransactionCallbackWithException<PublicIp,InsufficientAddressCapacityException>() {
                 @Override
                 public PublicIp doInTransaction(TransactionStatus status) throws InsufficientAddressCapacityException {
-                    PublicIp ip = fetchNewPublicIp(zone.getId(), null, finalVlanDbsId, ipOwner, vlanType, null, false, assign, finalRequestedIp, isSystem, null);
+                    PublicIp ip = fetchNewPublicIp(zone.getId(), null, null, ipOwner, vlanType, null, false, assign, null, isSystem, null);
 
                     if (ip == null) {
                         InsufficientAddressCapacityException ex = new InsufficientAddressCapacityException("Unable to find available public IP addresses", DataCenter.class, zone.getId());
@@ -1074,12 +1057,6 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 }
                 _accountDao.releaseFromLockTable(ipOwner.getId());
                 s_logger.debug("Associate IP address lock released");
-            }
-            
-            if (ip == null && requestedIp != null && vlanId != null) {
-                // guru as called to allocate ip, but allocation fail. Call guru do release ip address
-                IPAddressVO ipVO = _ipAddressDao.findByIpAndVlanId(requestedIp, vlanId);
-                releaseIp(ipVO, guestNetwork);
             }
         }
         return ip;
@@ -1689,11 +1666,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                 @Override
                 public IPAddressVO doInTransaction(TransactionStatus status) {
 
-                    Long networkId = ip.getAssociatedWithNetworkId();
-                    if (networkId != null) {
-                        Network guestNetwork = _networksDao.findById(networkId);
-                        releaseIp(ip, guestNetwork);
-                    }
+                    releaseIp(ip);
                     
                     if (updateIpResourceCount(ip)) {
                         _resourceLimitMgr.decrementResourceCount(_ipAddressDao.findById(addrId).getAllocatedToAccountId(), ResourceType.public_ip);
@@ -2014,16 +1987,19 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
         return ipaddr;
     }
 
-    protected void releaseIp(IpAddress ip, Network guestNetwork) {
-        if (ip == null || guestNetwork == null) {
+    protected void releaseIp(IpAddress ip) {
+        if (ip == null) {
             s_logger.error("Null IP or network can't be released.");
             return;
         }
-        
-        // call guru to release ip, if is a NetworkWithIPAM
-        NetworkGuru guru = AdapterBase.getAdapterByName(_networkGurus, guestNetwork.getGuruName());
-        if (guru instanceof NetworkGuruWithIPAM) {
-            ((NetworkGuruWithIPAM) guru).release(guestNetwork, ip);
+
+        if (ip.getAssociatedWithNetworkId() != null) {
+            Network guestNetwork = _networksDao.findById(ip.getAssociatedWithNetworkId());
+            // call guru to release ip, if is a NetworkWithIPAM
+            NetworkGuru guru = AdapterBase.getAdapterByName(_networkGurus, guestNetwork.getGuruName());
+            if (guru instanceof NetworkGuruWithIPAM) {
+                ((NetworkGuruWithIPAM) guru).release(guestNetwork, ip);
+            }
         }
     }
 

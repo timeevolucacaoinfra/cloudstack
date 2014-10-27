@@ -70,7 +70,6 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
-import com.cloud.network.IpAddress;
 import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
@@ -81,8 +80,6 @@ import com.cloud.network.Networks.BroadcastDomainType;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.addr.PublicIp;
-import com.cloud.network.dao.IPAddressDao;
-import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
@@ -240,8 +237,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	GloboNetworkLBNetworkDao _globoNetworkLBNetworkDao;
     @Inject
     VMInstanceDao _vmDao;
-    @Inject
-    IPAddressDao _ipAddrDao;
 	
 	// Managers
 	@Inject
@@ -1541,7 +1536,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkDomainSuffix};
 	}
 	
-	protected VlanVO getPublicVlanFromZoneVlanNumberAndNetwork(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+	protected Vlan getPublicVlanFromZoneVlanNumberAndNetwork(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
         // check if vlan already exists
         List<VlanVO> vlans = _vlanDao.listByZoneAndType(zoneId, VlanType.VirtualNetwork);
         for (VlanVO existedVlan : vlans) {
@@ -1568,7 +1563,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return null;
 	}
 	
-	protected VlanVO createNewPublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+	protected Vlan createNewPublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
         // Configure new vlan
 	    // FIXME Maybe we need to fix this code to exclude owned vlans (check _vlanDao.listZoneWideNonDedicatedVlans(dcId);
         List<NetworkVO> networks = _ntwkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
@@ -1595,7 +1590,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         Long physicalNetworkId = listPhysicalNetworks.get(0).getId();
         
-        VlanVO vlan = (VlanVO) _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), physicalNetworkId, true, null,
+        Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), physicalNetworkId, true, null,
                 startIP, endIP, networkGateway, networkMask, vlanId, null, null, null, null, null);
         return vlan;
 	}
