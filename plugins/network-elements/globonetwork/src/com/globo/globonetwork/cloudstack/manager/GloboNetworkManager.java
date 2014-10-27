@@ -810,7 +810,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     Integer vlanNumber = response.getVlanNum();
                     VlanVO vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     if (vlan == null) {
-                        vlan = createNewPublicVlan(name, zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                        vlan = createNewPublicVlan(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     }
                     
                     GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, vlan.getId());
@@ -916,9 +916,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		cmdList.add(RemoveGloboNetworkVipCmd.class);
 		cmdList.add(ListGloboNetworkRealsCmd.class);
 		cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
-		cmdList.add(ListGloboNetworkVipEnvironmentsCmd.class);
-		cmdList.add(AddGloboNetworkVipEnvironmentCmd.class);
-		cmdList.add(RemoveGloboNetworkVipEnvironmentCmd.class);
 		return cmdList;
 	}
 	
@@ -1604,12 +1601,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
 	public IpAddress allocate(final Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
-        long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
-        
-        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
-        
+
+	    long globoLBNetworkId = getGloboLBNetworkIdByVlanId(network, 1L);
+
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(globoLBNetworkId);
-        GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
+        final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
         
         try {
             PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
@@ -1670,7 +1666,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             owner = caller;
         }
 
-        long lbEnvironmentId = getLoadBalancerEnvironmentId(network);
+        long lbEnvironmentId = getLoadBalancerEnvironmentId(network, "127.0.0.1");
         
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
         
