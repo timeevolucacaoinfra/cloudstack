@@ -2204,6 +2204,14 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         List<UserVmVO> userVms = _vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(),
                 loadBalancer.getNetworkId());
         
+        // Check for VMs in additional networks
+        List<LoadBalancerNetworkMapVO> lbNetMaps = _lbNetMapDao.listByLoadBalancerId(loadBalancer.getId());
+        if (lbNetMaps != null && !lbNetMaps.isEmpty()) {
+            for (LoadBalancerNetworkMapVO lbNetMapVO : lbNetMaps) {
+                userVms.addAll(_vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(), lbNetMapVO.getNetworkId()));
+            }
+        }
+        
         for (UserVmVO userVm : userVms) {
             // if the VM is destroyed, being expunged, in an error state, or in
             // an unknown state, skip it
