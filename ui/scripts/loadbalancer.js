@@ -303,8 +303,16 @@
                                             },
                                             dataType: "json",
                                             async: true,
-                                            success: function(json) {
-                                                $(window).trigger('cloudStack.fullRefresh');
+                                            success: function(data) {
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: data.removefromloadbalancerruleresponse.jobid,
+                                                    },
+                                                    notification: {
+                                                        label: 'label.remove.vms.from.lb',
+                                                        poll: pollAsyncJobResult
+                                                    }
+                                                });
                                             },
                                             error: function(errorMessage) {
                                                 args.response.error(errorMessage);
@@ -359,9 +367,19 @@
                                             },
                                             dataType: "json",
                                             async: true,
-                                            success: function(json) {
-                                                // Refresh load balancer list
-                                                $(window).trigger('cloudStack.fullRefresh');
+                                            success: function(data) {
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: data.assigntoloadbalancerruleresponse.jobid,
+                                                        getUpdatedItem: function(json) {
+                                                            return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                        }
+                                                    },
+                                                    notification: {
+                                                        label: 'label.add.vms.to.lb',
+                                                        poll: pollAsyncJobResult
+                                                    }
+                                                });
                                             },
                                             error: function(errorMessage) {
                                                 args.response.error(errorMessage);
@@ -401,8 +419,16 @@
                             },
                             dataType: "json",
                             async: true,
-                            success: function(json) {
-                                $(window).trigger('cloudStack.fullRefresh');
+                            success: function(data) {
+                                args.response.success({
+                                    _custom: {
+                                        jobId: data.deleteloadbalancerruleresponse.jobid,
+                                    },
+                                    notification: {
+                                        label: 'label.action.delete.load.balancer',
+                                        poll: pollAsyncJobResult
+                                    }
+                                });
                             },
                             error: function(errorMessage) {
                                 var error = (jQuery.parseJSON(errorMessage.responseText)).removeglobonetworkvipresponse;
@@ -418,7 +444,6 @@
                 },
                 add: {
                     label: 'Create new Load Balancer',
-                    title: 'Create new Load Balancer',
                     createForm: {
                         fields: {
                             name: {
@@ -437,6 +462,61 @@
                                 label: 'label.private.port',
                                 validation: {
                                     required: true
+                                }
+                            },
+                            isportable: {
+                                label: 'label.cross.zones',
+                                validation: {
+                                    required: true
+                                },
+                                select: function(args) {
+                                    var items = [];
+                                    items.push({
+                                        id: "false",
+                                        description: _l('label.no')
+                                    });
+                                    items.push({
+                                        id: "true",
+                                        description: _l('label.yes')
+                                    });
+                                    args.response.success({
+                                        data: items
+                                    });
+                                },
+                            },
+                            iprange: {
+                                label: 'label.ip.range',
+                                validation: {
+                                    required: true
+                                },
+                                dependsOn: ['isportable'],
+                                select: function(args) {
+                                    var ipranges = [];
+                                    var url;
+                                    if (args.data.isportable === 'true') {
+                                        url = "listPortableIpRanges";
+                                    } else {
+                                        url = "listVlanIpRanges&forvirtualnetwork=true";
+                                    }
+                                    $.ajax({
+                                        url: createURL(url),
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            var response;
+                                            if (args.data.isportable === 'true') {
+                                                response = json.listportableipresponse.portableiprange;
+                                            } else {
+                                                response = json.listvlaniprangesresponse.vlaniprange;
+                                            }
+                                            $(response).each(function() {
+                                                ipranges.push({id: this.id, description: this.startip + ' - ' + this.endip});
+                                            });
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: ipranges
+                                    });
                                 }
                             },
                             network: {
@@ -463,6 +543,9 @@
                             },
                             algorithm: {
                                 label: 'label.algorithm',
+                                validation: {
+                                    required: true
+                                },
                                 dependsOn: ['network'],
                                 select: function(args) {
                                     var network;
@@ -503,29 +586,145 @@
 
                             sticky: {
                                 label: 'label.stickiness',
-                                custom: {
-                                    buttonLabel: 'label.configure',
-                                    action: cloudStack.lbStickyPolicy.dialog()
-                                }
-                            },
+                                dependsOn: ['network'],
+                                select: function(args) {
+                                    var network;
+                                    $.ajax({
+                                        url: createURL("listNetworks"),
+                                        data: {
+                                            id: args.data.network
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            network = json.listnetworksresponse.network[0];
+                                        }
+                                    });
 
-                            healthcheck: {
-                                label: 'Health Check',
-                                custom: {
-                                    requireValidation: true,
-                                    buttonLabel: 'Configure',
-                                    action: cloudStack.uiCustom.healthCheck()
 
-                                }
-                            },
+                                    var lbService = $.grep(network.service, function(service) {
+                                        return service.name == 'Lb';
+                                    })[0];
 
-                            addvm: {
-                                label: 'label.add.vms',
-                                addButton: true
+                                    var stickinessCapabilities = $.grep(
+                                        lbService.capability,
+                                        function(capability) {
+                                            return capability.name == 'SupportedStickinessMethods';
+                                        }
+                                    )[0];
+
+                                    var stickinessMethods = jQuery.parseJSON(stickinessCapabilities.value);
+                                    var data = [];
+                                    // Default None value
+                                    data.push({id: 'None', name: 'None', description: 'None'});
+                                    $(stickinessMethods).each(function() {
+                                        data.push({id: this.methodname, name: this.methodname, description: this.methodname});
+                                    });
+                                    args.response.success({
+                                        data: data
+                                    });
+                                },
                             },
                         },
                     },
                     action: function(args) {
+                        var network;
+                        $.ajax({
+                            url: createURL("listNetworks"),
+                            data: {
+                                id: args.data.network
+                            },
+                            dataType: "json",
+                            async: false,
+                            success: function(json) {
+                                network = json.listnetworksresponse.network[0];
+                            }
+                        });
+
+                        var networkoffering;
+                        $.ajax({
+                            url: createURL("listNetworkOfferings"),
+                            data: {
+                                id: network.networkofferingid
+                            },
+                            dataType: "json",
+                            async: false,
+                            success: function(json) {
+                                networkoffering = json.listnetworkofferingsresponse.networkoffering[0];
+                            }
+                        });
+
+                        var lbService = $.grep(networkoffering.service, function(service) {
+                            return service.name == 'Lb';
+                        })[0];
+
+                        var provider = lbService.provider[0].name;
+
+                        var url;
+                        var data = {};
+                        if (args.data.isportable === 'true' && provider === 'GloboNetwork') {
+                            url = "acquireNewLBIp";
+                            data = {
+                                networkid: args.data.network,
+                                portablerangeid: args.data.iprange
+                            };
+                        } else if (provider === 'GloboNetwork') {
+                            // GloboNetwork should only work with portable IPs
+                            return false;
+                        } else {
+                            url = "associateIpAddress";
+                            data = {
+                                isportable: args.data.isportable,
+                                networkid: args.data.network
+                            };
+                        }
+
+                        $.ajax({
+                            url: createURL(url),
+                            data: data,
+                            dataType: "json",
+                            async: true,
+                            success: function(json) {
+                                var ipId = json.associateipaddressresponse.id;
+
+                                var data = {
+                                    algorithm: args.data.algorithm,
+                                    name: args.data.name,
+                                    privateport: args.data.privateport,
+                                    publicport: args.data.publicport,
+                                    openfirewall: false,
+                                    networkid: args.data.network,
+                                    publicipid: ipId
+                                };
+
+                                $.ajax({
+                                    url: createURL('createLoadBalancerRule'),
+                                    data: data,
+                                    dataType: 'json',
+                                    async: true,
+                                    success: function(data) {
+                                        args.response.success({
+                                            _custom: {
+                                                jobId: data.createloadbalancerruleresponse.jobid,
+                                                getUpdatedItem: function(json) {
+                                                    return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                }
+                                            },
+                                            notification: {
+                                                label: 'label.add.load.balancing.rule',
+                                                poll: pollAsyncJobResult
+                                            }
+                                        });
+                                    },
+                                    error: function(json) {
+                                        args.response.error(parseXMLHttpResponse(json));
+                                    }
+                                });
+                            },
+                            error: function(json) {
+                                args.response.error(parseXMLHttpResponse(json));
+                            }
+                        });
                     },
                     messages: {
                         notification: function(args) {
