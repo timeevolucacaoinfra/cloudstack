@@ -1,0 +1,25 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref DROP FOREIGN KEY fk_on_vlanid;
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref DROP COLUMN vlan_id;
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref ADD (portable_ip_range_id BIGINT UNSIGNED NOT
+    NULL);
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref ADD CONSTRAINT pk_portable_ip FOREIGN KEY
+    (portable_ip_range_id) REFERENCES cloud.portable_ip_range (id);
+"""
+
+SQL_DOWN = u"""
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref DROP FOREIGN KEY pk_portable_ip;
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref DROP COLUMN portable_ip_range_id;
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref ADD (vlan_id BIGINT UNSIGNED NOT NULL);
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref ADD CONSTRAINT fk_on_vlanid FOREIGN KEY (vlan_id)
+    REFERENCES cloud.vlan (id);
+"""

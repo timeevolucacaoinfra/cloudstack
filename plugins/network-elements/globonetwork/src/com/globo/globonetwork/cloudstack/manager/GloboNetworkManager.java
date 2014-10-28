@@ -36,7 +36,9 @@ import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationSe
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
-import org.apache.commons.lang.ObjectUtils;
+import org.apache.cloudstack.region.PortableIpRange;
+import org.apache.cloudstack.region.PortableIpRangeDao;
+import org.apache.cloudstack.region.PortableIpRangeVO;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -48,8 +50,6 @@ import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenterVO;
-import com.cloud.dc.Vlan;
-import com.cloud.dc.Vlan.VlanType;
 import com.cloud.dc.VlanVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
@@ -70,7 +70,6 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
-import com.cloud.network.IpAddress;
 import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
@@ -78,7 +77,6 @@ import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.Networks.BroadcastDomainType;
-import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.addr.PublicIp;
 import com.cloud.network.dao.IPAddressDao;
@@ -115,7 +113,6 @@ import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
-import com.cloud.utils.net.NetUtils.supersetOrSubset;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
@@ -131,6 +128,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.api.AcquireNewIpForLbInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkLBNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
@@ -139,9 +137,11 @@ import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
+import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkLBNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
@@ -239,6 +239,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     VMInstanceDao _vmDao;
     @Inject
     IPAddressDao _ipAddrDao;
+    @Inject
+    PortableIpRangeDao _portableIpRangeDao;
 	
 	// Managers
 	@Inject
@@ -805,12 +807,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 @Override
                 public GloboNetworkLBNetworkVO doInTransaction(TransactionStatus status) throws CloudException {
                     Integer vlanNumber = response.getVlanNum();
-                    Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
-                    if (vlan == null) {
-                        vlan = createNewPublicVlan(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                    PortableIpRange portableIpRange = getPortableIpRange(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
+                    if (portableIpRange == null) {
+                        portableIpRange = createPortableIpRange(zoneId, vlanNumber, response.getNetworkCidr(), response.getNetworkGateway());
                     }
                     
-                    GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, vlan.getId());
+                    GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = new GloboNetworkLBNetworkVO(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId, portableIpRange.getId());
                     _globoNetworkLBNetworkDao.persist(globoNetworkLBNetworkVO);
                     return globoNetworkLBNetworkVO;
                 }
@@ -898,22 +900,25 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	@Override
 	public List<Class<?>> getCommands() {
 		List<Class<?>> cmdList = new ArrayList<Class<?>>();
-		cmdList.add(AddGloboNetworkVlanCmd.class);
-		cmdList.add(AddNetworkViaGloboNetworkCmd.class);
-		cmdList.add(AddGloboNetworkEnvironmentCmd.class);
-		cmdList.add(ListGloboNetworkEnvironmentsCmd.class);
-		cmdList.add(ListAllEnvironmentsFromGloboNetworkCmd.class);
-		cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
-		cmdList.add(AddGloboNetworkHostCmd.class);
-		cmdList.add(AddGloboNetworkVipToAccountCmd.class);
-		cmdList.add(ListGloboNetworkVipsCmd.class);
-		cmdList.add(AddGloboNetworkRealToVipCmd.class);
-		cmdList.add(DelGloboNetworkRealFromVipCmd.class);
-		cmdList.add(GenerateUrlForEditingVipCmd.class);
-		cmdList.add(RemoveGloboNetworkVipCmd.class);
-		cmdList.add(ListGloboNetworkRealsCmd.class);
-		cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
-		return cmdList;
+        cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
+        cmdList.add(AddGloboNetworkEnvironmentCmd.class);
+        cmdList.add(AddGloboNetworkHostCmd.class);
+        cmdList.add(AddGloboNetworkLBNetworkCmd.class);
+        cmdList.add(AddGloboNetworkRealToVipCmd.class);
+        cmdList.add(AddGloboNetworkVipToAccountCmd.class);
+        cmdList.add(AddGloboNetworkVlanCmd.class);
+        cmdList.add(AddNetworkViaGloboNetworkCmd.class);
+        cmdList.add(DelGloboNetworkRealFromVipCmd.class);
+        cmdList.add(GenerateUrlForEditingVipCmd.class);
+        cmdList.add(ListAllEnvironmentsFromGloboNetworkCmd.class);
+        cmdList.add(ListGloboNetworkEnvironmentsCmd.class);
+        cmdList.add(ListGloboNetworkLBNetworksCmd.class);
+        cmdList.add(ListGloboNetworkRealsCmd.class);
+        cmdList.add(ListGloboNetworkVipsCmd.class);
+        cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
+        cmdList.add(RemoveGloboNetworkLBNetworkCmd.class);
+        cmdList.add(RemoveGloboNetworkVipCmd.class);
+        return cmdList;
 	}
 	
 	@Override
@@ -1124,10 +1129,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {
-                _configMgr.deleteVlanAndPublicIpRange(CallContext.current().getCallingUserId(), globoNetworkLBNetworkVO.getVlanId(), CallContext.current()
-                        .getCallingAccount());
-                
                 _globoNetworkLBNetworkDao.remove(globoNetworkLBNetworkVO.getId());
+                
+                // never remove portable ip range because can be used in others zones.
+//                if (_portableIpRangeDao.findById(globoNetworkLBNetworkVO.getPortableIpRangeId()) != null) {
+//                     if portable ip range was removed, is ok.
+//                    _configMgr.deletePortableIpRange(globoNetworkLBNetworkVO.getPortableIpRangeId());
+//                }
             }
         });
         return true;
@@ -1538,44 +1546,26 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkDomainSuffix};
 	}
 	
-	protected Vlan getPublicVlanFromZoneVlanNumberAndNetwork(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
-        // check if vlan already exists
-        List<VlanVO> vlans = _vlanDao.listByZoneAndType(zoneId, VlanType.VirtualNetwork);
-        for (VlanVO existedVlan : vlans) {
-            Integer existedVlanNumber;
-            if (existedVlan.getVlanTag() == null || Vlan.UNTAGGED.equals(existedVlan.getVlanTag())) {
-                existedVlanNumber = null;
-            } else {
-                URI vlanUri = URI.create(existedVlan.getVlanTag());
-                existedVlanNumber = Integer.valueOf(BroadcastDomainType.Vlan.getValueFrom(vlanUri));
-            }
-            if (ObjectUtils.equals(vlanNumber, existedVlanNumber)) {
-                // check if network is the same
-                String existedNetworkCidr = NetUtils.getCidrFromGatewayAndNetmask(existedVlan.getVlanGateway(), existedVlan.getVlanNetmask());
-                supersetOrSubset status = NetUtils.isNetowrkASubsetOrSupersetOfNetworkB(existedNetworkCidr, networkCidr);
-                if (status == supersetOrSubset.sameSubnet) {
-                    // Vlan and network already exist
-                    return existedVlan;
-                } else {
-                    throw new ResourceAllocationException("Public vlan with number " + vlanNumber + " and network " + networkCidr + " is " + status 
-                            + " by vlan uuid " + existedVlan.getUuid(), ResourceType.public_ip);
-                }
-            }
-        }
-        return null;
+	protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+	    
+	    // There is no relationship between zone and regin yet
+	    Integer regionId = 1;
+	    for (PortableIpRange portableIpRange : _portableIpRangeDao.listByRegionId(regionId)) {
+	        // compare only gateway because vlan doesn't matters for public ip range
+	        if (portableIpRange.getGateway().equals(networkGateway)) {
+	            return portableIpRange;
+	        }
+	    }
+	    return null;
 	}
 	
-	protected Vlan createNewPublicVlan(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
-        // Configure new vlan
-	    // FIXME Maybe we need to fix this code to exclude owned vlans (check _vlanDao.listZoneWideNonDedicatedVlans(dcId);
-        List<NetworkVO> networks = _ntwkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
-        // Can have more than one public network in the same zone (differ by physical network)
-        if (networks.isEmpty()) {
-            throw new ResourceUnavailableException("There are no Public network is this zone", DataCenter.class, zoneId);
-        }
-        NetworkVO network = networks.get(0);
-        
-        String vlanId = BroadcastDomainType.Vlan.toUri(vlanNumber).toString();
+	protected PortableIpRangeVO createPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+
+	    // There is not relationship between zoneId and region yet.
+	    //DataCenter dc = _dcDao.findById(zoneId);
+	    Integer regionId = 1;
+	    
+        String vlan = BroadcastDomainType.Vlan.toUri(vlanNumber).toString();
         String networkMask = NetUtils.getCidrNetmask(networkCidr);
         String networkAddress = NetUtils.getCidr(networkCidr).first();
         long size = NetUtils.getCidrSize(networkMask);
@@ -1586,52 +1576,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         startIP = NetUtils.long2Ip(NetUtils.ip2Long(startIP) + NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START);
         endIP = NetUtils.long2Ip(NetUtils.ip2Long(endIP) - NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END);
         
-        List<PhysicalNetworkVO> listPhysicalNetworks = _physicalNetworkDao.listByZoneAndTrafficType(zoneId, TrafficType.Public);
-        if (listPhysicalNetworks.isEmpty()) {
-            throw new ResourceUnavailableException("There are no Public Physical network is this zone", DataCenter.class, zoneId);
-        }
-        Long physicalNetworkId = listPhysicalNetworks.get(0).getId();
-        
-        Vlan vlan = _configMgr.createVlanAndPublicIpRange(zoneId, network.getId(), physicalNetworkId, true, null,
-                startIP, endIP, networkGateway, networkMask, vlanId, null, null, null, null, null);
-        return vlan;
+        PortableIpRangeVO portableIpRange = _configMgr.createPortableIpRange(regionId, startIP, endIP, networkGateway, networkMask, vlan);
+        return portableIpRange;
 	}
 	
-	public IpAddress allocate(final Network network, Account owner) throws ConcurrentOperationException, ResourceAllocationException, InsufficientAddressCapacityException {
-
-	    long globoLBNetworkId = getGloboLBNetworkIdByVlanId(network, 1L);
-
-        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(globoLBNetworkId);
-        final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
-        
-        try {
-            PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
-
-                @Override
-                public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
-                    Long zoneId = network.getDataCenterId();
-                    Integer vlanNumber = globoNetwork.getVlanNum();
-                    Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-                    if (vlan == null) {
-                        vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-                    }
-                    
-                    String myIp = globoNetwork.getIp().addr();
-                    return PublicIp.createFromAddrAndVlan(_ipAddrDao.findByIpAndVlanId(myIp, vlan.getId()), (VlanVO) vlan);
-                }
-            });
-            return publicIp;
-            
-        } catch (CloudException e) {
-            // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
-            s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
-            releaseLbIpFromGloboNetwork(network, globoNetwork.getIp().addr());
-            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
-        }
-	}
-
     @Override
-    public PublicIp acquireLbIp(Long networkId, Long projectId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+    public PublicIp acquireLbIp(final Long networkId, Long projectId, Long lbEnvironmentId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
 
         // First of all, check user permission
         final Account caller = CallContext.current().getCallingAccount();
@@ -1655,17 +1605,22 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         if (projectId != null) {
             Project project = _projectMgr.getProject(projectId);
             if (project != null) {
-                owner = _accountMgr. getAccount(project.getProjectAccountId());
+                owner = _accountMgr.getAccount(project.getProjectAccountId());
             } else {
                 throw new InvalidParameterValueException("Could not find project with id " + projectId);
             }
         } else {
             owner = caller;
         }
-
-        long lbEnvironmentId = getLoadBalancerEnvironmentId(network, "127.0.0.1");
         
-        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(lbEnvironmentId);
+        // FIXME CHECK PERMISSION WITH PROJECT
+
+        final GloboNetworkLBNetworkVO globoNetworkLBNetwork = _globoNetworkLBNetworkDao.findById(lbEnvironmentId);
+        if (globoNetworkLBNetwork == null) {
+            throw new InvalidParameterValueException("Could not load balancer environment id " + lbEnvironmentId);
+        }
+        
+        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(globoNetworkLBNetwork.getGloboNetworkLBNetworkId());
         
         final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
         
@@ -1675,15 +1630,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 @Override
                 public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
                     Long zoneId = network.getDataCenterId();
-                    Integer vlanNumber = globoNetwork.getVlanNum();
-                    Vlan vlan = getPublicVlanFromZoneVlanNumberAndNetwork(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-                    if (vlan == null) {
-                        vlan = createNewPublicVlan(zoneId, vlanNumber, globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
-                    }
-                    
-                    String myIp = globoNetwork.getIp().addr();
-                    return _ipAddrMgr.assignPublicIpAddressFromVlans(zoneId, null, owner, VlanType.VirtualNetwork, Arrays.asList(vlan.getId()),
-                            null, myIp, false);
+                    IPAddressVO ip = (IPAddressVO) _ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetwork.getIp().addr());
+                    VlanVO vlan = _vlanDao.findById(ip.getVlanId());
+                    return PublicIp.createFromAddrAndVlan(ip, vlan);
                 }
             });
             return publicIp;
@@ -1725,7 +1674,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         Long globoNetworkEnvironmentRefId = networkEnvironmentVO.getId();
         
-        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndVlanId(globoNetworkEnvironmentRefId, vlanId);
+        GloboNetworkLBNetworkVO globoNetworkLBNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndPortableIpRangeId(globoNetworkEnvironmentRefId, vlanId);
         
         if (globoNetworkLBNetworkVO == null) {
             throw new InvalidParameterValueException("Could not find any Load Balancing environment for network " + network.getId());
@@ -1753,7 +1702,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId() + " and GloboNetwork environment=" + glbNetworkVO.getGloboNetworkEnvironmentId());
         }
 
-        GloboNetworkLBNetworkVO lbNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndVlanId(globoNetworkEnvironment.getId(), ipAddress.getVlanId());
+        GloboNetworkLBNetworkVO lbNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndPortableIpRangeId(globoNetworkEnvironment.getId(), ipAddress.getVlanId());
         if (lbNetworkVO == null) {
             throw new InvalidParameterValueException("Could not find mapping between environment " + glbNetworkVO.getGloboNetworkEnvironmentId() + " and vlan " + ipAddress.getVlanId());
         }

@@ -38,7 +38,7 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
     
     final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndLBNetworkId;
 
-    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndVlanId;
+    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndPortableIpRangeId;
 
     protected GloboNetworkLBNetworkDaoImpl() {
         byNetworkEnvironmentRefId = createSearchBuilder();
@@ -50,10 +50,10 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
         byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_lb_network_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkLBNetworkId(), Op.EQ);
         byNetworkEnvironmentRefIdAndLBNetworkId.done();        
 
-        byNetworkEnvironmentRefIdAndVlanId = createSearchBuilder();
-        byNetworkEnvironmentRefIdAndVlanId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndVlanId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndVlanId.and("vlanId", byNetworkEnvironmentRefIdAndVlanId.entity().getVlanId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndVlanId.done();        
+        byNetworkEnvironmentRefIdAndPortableIpRangeId = createSearchBuilder();
+        byNetworkEnvironmentRefIdAndPortableIpRangeId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndPortableIpRangeId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndPortableIpRangeId.and("portable_ip_range_id", byNetworkEnvironmentRefIdAndPortableIpRangeId.entity().getPortableIpRangeId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndPortableIpRangeId.done();        
 
     }
 
@@ -73,10 +73,10 @@ public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBN
     }
 
     @Override
-    public GloboNetworkLBNetworkVO findByEnvironmentRefAndVlanId(long globoNetworkEnvironmentRefId, long vlanId) {
+    public GloboNetworkLBNetworkVO findByEnvironmentRefAndPortableIpRangeId(long globoNetworkEnvironmentRefId, long vlanId) {
         SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
         sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
-        sc.setParameters("vlanId", vlanId);
+        sc.setParameters("portable_ip_range_id", vlanId);
         return findOneBy(sc);
     }
 
