@@ -31,6 +31,7 @@ import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -118,7 +119,7 @@ public class GloboNetworkManagerTest {
 	
 	@Inject
 	GloboNetworkService _globoNetworkService;
- 
+
 	@Inject
 	DataCenterDao _dcDao;
 	
@@ -383,6 +384,10 @@ public class GloboNetworkManagerTest {
     	@Bean
     	public IpAddressManager ipAddressManager() {
     	    return mock(IpAddressManager.class);
+    	}
+    	@Bean
+    	public PortableIpRangeDao portableDao() {
+    	    return mock(PortableIpRangeDao.class);
     	}
     	@Bean
     	public LoadBalancingRulesManager loadBalancingRulesManager() {
