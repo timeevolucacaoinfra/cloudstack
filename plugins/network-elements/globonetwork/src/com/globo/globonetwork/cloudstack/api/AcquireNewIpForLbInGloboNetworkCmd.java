@@ -30,7 +30,6 @@ import org.apache.cloudstack.api.response.IPAddressResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.log4j.Logger;
 
 import com.cloud.event.EventTypes;

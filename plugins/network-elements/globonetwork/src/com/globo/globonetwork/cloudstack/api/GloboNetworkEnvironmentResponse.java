@@ -17,13 +17,12 @@
 package com.globo.globonetwork.cloudstack.api;
 
 import org.apache.cloudstack.api.ApiConstants;
+import org.apache.cloudstack.api.BaseResponse;
+import org.apache.cloudstack.api.EntityReference;
 
 import com.cloud.serializer.Param;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.google.gson.annotations.SerializedName;
-
-import org.apache.cloudstack.api.BaseResponse;
-import org.apache.cloudstack.api.EntityReference;
 
 @EntityReference(value = GloboNetworkEnvironmentVO.class)
 public class GloboNetworkEnvironmentResponse extends BaseResponse {
