@@ -161,7 +161,7 @@ public interface GloboNetworkService {
      * @param physicalNetworkId
      * @param globoNetworkEnvironmentId
      */
-    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long globoNetworkEnvironmentId);
+    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId);
 
 	/**
 	 * List all environments from GloboNetwork
@@ -255,7 +255,7 @@ public interface GloboNetworkService {
 
 	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
 	
-    public PublicIp acquireLbIp(Long networkId, Long projectId, Long portableIpRange) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
+    public PublicIp acquireLbIp(Long networkId, Long projectId, Long lbNetworkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
     
     public boolean releaseLbIpFromGloboNetwork(Network network, String ip);
 

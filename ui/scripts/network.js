@@ -3522,7 +3522,7 @@
                                                                         jobId: jobID
                                                                     },
                                                                     notification: {
-                                                                        label: 'label.add.load.balancer',
+                                                                        label: 'label.add.load.balancing.rule',
                                                                         poll: function(args) {
                                                                             var complete = args.complete;
                                                                             var error = args.error;

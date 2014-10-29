@@ -27,6 +27,7 @@ import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.ListResponse;
+import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.cloudstack.api.response.PhysicalNetworkResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
@@ -52,11 +53,18 @@ public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
     @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
     private Long physicalNetworkId;
     
-    @Parameter(name = "environmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
+    @Parameter(name = ApiConstants.NETWORK_ID, type = CommandType.UUID, entityType = NetworkResponse.class, required = false, description = "the Network ID")
+    private Long networkId;
+    
+    @Parameter(name = "environmentid", type = CommandType.LONG, required = false, description = "the Id of environment in GloboNetwork")
     private Long globoNetworkEnvironmentId;
 
     public Long getPhysicalNetworkId() {
         return physicalNetworkId;
+    }
+    
+    public Long getNetworkId() {
+        return networkId;
     }
     
     public Long getGloboNetworkEnvironmentId() {
@@ -68,7 +76,7 @@ public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("listGloboNetworkLBNetworksCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId);
-        	List<GloboNetworkLBNetworkVO> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.globoNetworkEnvironmentId);
+        	List<GloboNetworkLBNetworkVO> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.networkId, this.globoNetworkEnvironmentId);
         	
         	List<GloboNetworkLBNetworkResponse> responseList = new ArrayList<GloboNetworkLBNetworkResponse>();
     		

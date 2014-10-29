@@ -95,7 +95,46 @@
                             },
                         }],
                         dataProvider: function(args) {
-                            args.response.success({ data: args.jsonObj });
+                            $.ajax({
+                                url: createURL("listLBStickinessPolicies"),
+                                data: {
+                                    lbruleid: args.jsonObj.id
+                                },
+                                dataType: "json",
+                                async: false,
+                                success: function(json) {
+                                    args.jsonObj.stickiness = json.listlbstickinesspoliciesresponse.stickinesspolicies[0].stickinesspolicy[0].name;
+                                },
+                                error: function (errorMessage) {
+                                    args.response.error(errorMessage);
+                                }
+                            });
+
+                            $.ajax({
+                                url: createURL("listLBHealthCheckPolicies"),
+                                data: {
+                                    lbruleid: args.jsonObj.id
+                                },
+                                dataType: "json",
+                                async: false,
+                                success: function(json) {
+                                    var healthcheck = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy;
+                                    // This logic is for GloboNetwork!
+                                    if (!healthcheck || !healthcheck[0] || !healthcheck[0].pingpath || healthcheck[0].pingpath === "") {
+                                        // This means it's TCP
+                                        args.jsonObj.healthcheck = "TCP";
+                                    } else {
+                                        args.jsonObj.healthcheck = "HTTP - GET " + healthcheck[0].pingpath;
+                                    }
+                                },
+                                error: function (errorMessage) {
+                                    args.response.error(errorMessage);
+                                }
+                            });
+
+                            args.response.success({
+                                data: args.jsonObj
+                            });
                         }
                     },
                     networks: {
@@ -420,19 +459,34 @@
                             dataType: "json",
                             async: true,
                             success: function(data) {
-                                args.response.success({
-                                    _custom: {
-                                        jobId: data.deleteloadbalancerruleresponse.jobid,
+                                $.ajax({
+                                    url: createURL('disassociateIpAddress'),
+                                    data: {
+                                        id: args.context.loadbalancers[0].publicipid
                                     },
-                                    notification: {
-                                        label: 'label.action.delete.load.balancer',
-                                        poll: pollAsyncJobResult
+                                    dataType: 'json',
+                                    async: true,
+                                    success: function(data) {
+                                        args.response.success({
+                                            _custom: {
+                                                jobId: data.disassociateipaddressresponse.jobid,
+                                                onComplete: function() {
+                                                    $(window).trigger('cloudStack.fullRefresh');
+                                                }
+                                            },
+                                            notification: {
+                                                label: 'label.action.delete.load.balancer',
+                                                poll: pollAsyncJobResult
+                                            }
+                                        });
+                                    },
+                                    error: function(data) {
+                                        args.response.error(parseXMLHttpResponse(data));
                                     }
                                 });
                             },
                             error: function(errorMessage) {
-                                var error = (jQuery.parseJSON(errorMessage.responseText)).removeglobonetworkvipresponse;
-                                args.response.error(error.errorcode + " : " + error.errortext);
+                                args.response.error(parseXMLHttpResponse(data));
                             }
                         });
                     },
@@ -484,41 +538,6 @@
                                     });
                                 },
                             },
-                            iprange: {
-                                label: 'label.ip.range',
-                                validation: {
-                                    required: true
-                                },
-                                dependsOn: ['isportable'],
-                                select: function(args) {
-                                    var ipranges = [];
-                                    var url;
-                                    if (args.data.isportable === 'true') {
-                                        url = "listPortableIpRanges";
-                                    } else {
-                                        url = "listVlanIpRanges&forvirtualnetwork=true";
-                                    }
-                                    $.ajax({
-                                        url: createURL(url),
-                                        dataType: "json",
-                                        async: false,
-                                        success: function(json) {
-                                            var response;
-                                            if (args.data.isportable === 'true') {
-                                                response = json.listportableipresponse.portableiprange;
-                                            } else {
-                                                response = json.listvlaniprangesresponse.vlaniprange;
-                                            }
-                                            $(response).each(function() {
-                                                ipranges.push({id: this.id, description: this.startip + ' - ' + this.endip});
-                                            });
-                                        }
-                                    });
-                                    args.response.success({
-                                        data: ipranges
-                                    });
-                                }
-                            },
                             network: {
                                 label: 'label.network',
                                 validation: {
@@ -534,10 +553,59 @@
                                             $(json.listnetworksresponse.network).each(function() {
                                                 networks.push({id: this.id, description: this.name});
                                             });
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
                                         }
                                     });
                                     args.response.success({
                                         data: networks
+                                    });
+                                }
+                            },
+                            lbnetwork: {
+                                label: 'LB Network',
+                                validation: {
+                                    required: true
+                                },
+                                dependsOn: ['network'],
+                                select: function(args) {
+                                    var network;
+                                    $.ajax({
+                                        url: createURL("listNetworks"),
+                                        data: {
+                                            id: args.data.network
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            network = json.listnetworksresponse.network[0];
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
+                                        }
+                                    });
+
+                                    $.ajax({
+                                        url: createURL("listGloboNetworkLBNetworks"),
+                                        data: {
+                                            physicalnetworkid: network.physicalnetworkid,
+                                            networkid: network.id
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            var data = [];
+                                            $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
+                                                data.push({id: this.globonetworklbnetworkid, name: this.name, description: this.name});
+                                            });
+                                            args.response.success({
+                                                data: data
+                                            });
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
+                                        }
                                     });
                                 }
                             },
@@ -558,6 +626,9 @@
                                         async: false,
                                         success: function(json) {
                                             network = json.listnetworksresponse.network[0];
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
                                         }
                                     });
 
@@ -598,6 +669,9 @@
                                         async: false,
                                         success: function(json) {
                                             network = json.listnetworksresponse.network[0];
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
                                         }
                                     });
 
@@ -651,6 +725,9 @@
                             async: false,
                             success: function(json) {
                                 networkoffering = json.listnetworkofferingsresponse.networkoffering[0];
+                            },
+                            error: function(json) {
+                                args.response.error(parseXMLHttpResponse(json));
                             }
                         });
 
@@ -666,11 +743,12 @@
                             url = "acquireNewLBIp";
                             data = {
                                 networkid: args.data.network,
-                                portablerangeid: args.data.iprange
+                                lbnetworkid: args.data.lbnetwork
                             };
                         } else if (provider === 'GloboNetwork') {
                             // GloboNetwork should only work with portable IPs
-                            return false;
+                            args.response.error("Network is provided by GloboNetwork and can only manage cross zone IPs (portable)");
+                            return;
                         } else {
                             url = "associateIpAddress";
                             data = {
@@ -697,22 +775,50 @@
                                     publicipid: ipId
                                 };
 
+                                var stickyData = {methodname: args.data.sticky.valueOf(), stickyName: args.data.sticky.valueOf()};
+
                                 $.ajax({
                                     url: createURL('createLoadBalancerRule'),
                                     data: data,
                                     dataType: 'json',
                                     async: true,
                                     success: function(data) {
+                                        var jobID = data.createloadbalancerruleresponse.jobid;
+                                        var lbID = data.createloadbalancerruleresponse.id;
+                                        var lbStickyCreated = false;
                                         args.response.success({
                                             _custom: {
-                                                jobId: data.createloadbalancerruleresponse.jobid,
-                                                getUpdatedItem: function(json) {
-                                                    return json.queryasyncjobresultresponse.jobresult.loadbalancer;
-                                                }
+                                                jobId: jobID
                                             },
                                             notification: {
-                                                label: 'label.add.load.balancing.rule',
-                                                poll: pollAsyncJobResult
+                                                label: 'label.add.load.balancer',
+                                                poll: function(args) {
+                                                    var complete = args.complete;
+                                                    var error = args.error;
+
+                                                    pollAsyncJobResult({
+                                                        _custom: {
+                                                            jobId: jobID
+                                                        },
+                                                        complete: function(args) {
+                                                            if (lbStickyCreated) return;
+
+                                                            lbStickyCreated = true;
+
+                                                            // Create stickiness policy
+                                                            if (stickyData &&
+                                                                stickyData.methodname &&
+                                                                stickyData.methodname != 'None') {
+                                                                cloudStack.lbStickyPolicy.actions.add(lbID,
+                                                                    stickyData,
+                                                                    complete, error);
+                                                            } else {
+                                                                complete();
+                                                            }
+                                                        },
+                                                        error: error
+                                                    });
+                                                }
                                             }
                                         });
                                     },

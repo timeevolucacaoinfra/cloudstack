@@ -63,9 +63,9 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
             description="Project the IP address will be associated with")
     private Long projectId;
 
-    @Parameter(name="lbenvironmentid", type=CommandType.LONG, entityType = GloboNetworkLBNetworkResponse.class,
-            description="Globo Network Environment Id", required=true)
-    private Long globoNetworkEnvironmentId;
+    @Parameter(name="lbnetworkid", type=CommandType.LONG, entityType = GloboNetworkLBNetworkResponse.class,
+            description="Globo Network LB Network Id", required=true)
+    private Long globoNetworkLBNetworkId;
 
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
@@ -78,6 +78,10 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
     
     public Long getProjectId() {
         return projectId;
+    }
+    
+    public Long getGloboNetworkLBNetworkId() {
+        return globoNetworkLBNetworkId;
     }
     
     public Network getNetwork() {
@@ -117,7 +121,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
     @Override
     public void create() throws ResourceAllocationException {
         try {
-            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), globoNetworkEnvironmentId);
+            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), getGloboNetworkLBNetworkId());
 
             if (ip != null) {
                 setEntityId(ip.getId());

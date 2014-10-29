@@ -789,7 +789,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // If code reaches this point, LB Network exists in GloboNetwork
         
         // Check if there is a LB network with same id or name in this zone.
-        List<GloboNetworkLBNetworkVO> globoNetworkLBNetworks = listGloboNetworkLBNetworksFromDB(pNtwk.getId(), globoNetworkEnvironmentId);
+        List<GloboNetworkLBNetworkVO> globoNetworkLBNetworks = listGloboNetworkLBNetworksFromDB(pNtwk.getId(), null, globoNetworkEnvironmentId);
         for (GloboNetworkLBNetworkVO globoNetworkLBNetwork: globoNetworkLBNetworks) {
             if (globoNetworkLBNetwork.getName().equalsIgnoreCase(name)) {
                 throw new InvalidParameterValueException("LB network with name " + name + " already exists.");
@@ -1062,10 +1062,22 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
     
     @Override
-    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long globoNetworkEnvironmentId) {
+    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId) {
 
+        Long glbEnvId = null;
+        if (globoNetworkEnvironmentId == null && networkId != null) {
+            // Retrieve glbEnvId from network
+            GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+            if (globoNetworkNetworkVO == null) {
+                throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
+            }
+            glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
+        } else {
+            glbEnvId = globoNetworkEnvironmentId;
+        }
+        
         // Retrieve napiEnvironment from DB
-        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId);
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, glbEnvId);
         
         if (globoNetworkEnvironment == null) {
             // No physical network/environment pair registered in the database.
@@ -1581,7 +1593,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
     @Override
-    public PublicIp acquireLbIp(final Long networkId, Long projectId, Long lbEnvironmentId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+    public PublicIp acquireLbIp(final Long networkId, Long projectId, Long lbNetworkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
 
         // First of all, check user permission
         final Account caller = CallContext.current().getCallingAccount();
@@ -1615,9 +1627,24 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         
         // FIXME CHECK PERMISSION WITH PROJECT
 
-        final GloboNetworkLBNetworkVO globoNetworkLBNetwork = _globoNetworkLBNetworkDao.findById(lbEnvironmentId);
+        // Retrieve glbEnvId from network
+        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+        if (globoNetworkNetworkVO == null) {
+            throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
+        }
+        Long glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
+        
+        // Retrieve napiEnvironment from DB
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbEnvId);
+        
+        if (globoNetworkEnvironment == null) {
+            // No physical network/environment pair registered in the database.
+            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId() + " and GloboNetwork environment=" + glbEnvId);
+        }
+
+        final GloboNetworkLBNetworkVO globoNetworkLBNetwork = _globoNetworkLBNetworkDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(), lbNetworkId);
         if (globoNetworkLBNetwork == null) {
-            throw new InvalidParameterValueException("Could not load balancer environment id " + lbEnvironmentId);
+            throw new InvalidParameterValueException("Could not find LB network " + lbNetworkId);
         }
         
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(globoNetworkLBNetwork.getGloboNetworkLBNetworkId());
