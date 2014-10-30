@@ -21,7 +21,7 @@
         title: 'label.load.balancer',
         id: 'loadbalancer',
         preFilter: function(args) {
-            return true; // isAdmin();
+            return isAdmin();
         },
         listView: {
             id: 'loadbalancers',
