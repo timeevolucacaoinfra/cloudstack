@@ -231,6 +231,9 @@
                                                     var networks = [];
                                                     $.ajax({
                                                         url: createURL("listNetworks"),
+                                                        data: {
+                                                            supportedservices: 'lb'
+                                                        },
                                                         dataType: "json",
                                                         async: false,
                                                         success: function(json) {
@@ -451,6 +454,7 @@
                         }
                     },
                     action: function(args) {
+                        var ipToBeReleased = args.context.loadbalancers[0].publicipid;
                         $.ajax({
                             url: createURL("deleteLoadBalancerRule"),
                             data: {
@@ -459,29 +463,26 @@
                             dataType: "json",
                             async: true,
                             success: function(data) {
-                                $.ajax({
-                                    url: createURL('disassociateIpAddress'),
-                                    data: {
-                                        id: args.context.loadbalancers[0].publicipid
-                                    },
-                                    dataType: 'json',
-                                    async: true,
-                                    success: function(data) {
-                                        args.response.success({
-                                            _custom: {
-                                                jobId: data.disassociateipaddressresponse.jobid,
-                                                onComplete: function() {
+                                var jobID = data.deleteloadbalancerruleresponse.jobid;
+                                args.response.success({
+                                    _custom: {
+                                        jobId: jobID,
+                                        onComplete: function(args) {
+                                            $.ajax({
+                                                url: createURL('disassociateIpAddress'),
+                                                data: {
+                                                    id: ipToBeReleased
+                                                },
+                                                dataType: 'json',
+                                                async: true,
+                                                success: function(data) {
                                                     $(window).trigger('cloudStack.fullRefresh');
+                                                },
+                                                error: function(data) {
+                                                    args.response.error(parseXMLHttpResponse(data));
                                                 }
-                                            },
-                                            notification: {
-                                                label: 'label.action.delete.load.balancer',
-                                                poll: pollAsyncJobResult
-                                            }
-                                        });
-                                    },
-                                    error: function(data) {
-                                        args.response.error(parseXMLHttpResponse(data));
+                                            });
+                                        }
                                     }
                                 });
                             },
@@ -491,10 +492,9 @@
                         });
                     },
                     notification: {
-                        poll: function(args) {
-                            args.complete();
-                        }
-                    }
+                        label: 'label.action.delete.load.balancer',
+                        poll: pollAsyncJobResult
+                    },
                 },
                 add: {
                     label: 'Create new Load Balancer',
@@ -523,6 +523,8 @@
                                 validation: {
                                     required: true
                                 },
+                                isHidden: true,
+                                defaultValue: "true",
                                 select: function(args) {
                                     var items = [];
                                     items.push({
@@ -547,6 +549,9 @@
                                     var networks = [];
                                     $.ajax({
                                         url: createURL("listNetworks"),
+                                        data: {
+                                            supportedservices: 'lb'
+                                        },
                                         dataType: "json",
                                         async: false,
                                         success: function(json) {
@@ -699,6 +704,10 @@
                                     });
                                 },
                             },
+
+                            healthcheck: {
+                                label: 'Healthcheck',
+                            },
                         },
                     },
                     action: function(args) {
@@ -777,6 +786,8 @@
 
                                 var stickyData = {methodname: args.data.sticky.valueOf(), stickyName: args.data.sticky.valueOf()};
 
+                                var healthcheckPingPath = args.data.healthcheck.valueOf().trim();
+
                                 $.ajax({
                                     url: createURL('createLoadBalancerRule'),
                                     data: data,
@@ -786,6 +797,7 @@
                                         var jobID = data.createloadbalancerruleresponse.jobid;
                                         var lbID = data.createloadbalancerruleresponse.id;
                                         var lbStickyCreated = false;
+                                        var lbHealthcheckCreated = false;
                                         args.response.success({
                                             _custom: {
                                                 jobId: jobID
@@ -801,7 +813,7 @@
                                                             jobId: jobID
                                                         },
                                                         complete: function(args) {
-                                                            if (lbStickyCreated) return;
+                                                            if (lbStickyCreated && lbHealthcheckCreated) return;
 
                                                             lbStickyCreated = true;
 
@@ -812,9 +824,54 @@
                                                                 cloudStack.lbStickyPolicy.actions.add(lbID,
                                                                     stickyData,
                                                                     complete, error);
-                                                            } else {
-                                                                complete();
                                                             }
+
+                                                            lbHealthcheckCreated = true;
+
+                                                            // Create healthcheck
+                                                            var data = {
+                                                                lbruleid: lbID,
+                                                                pingpath: healthcheckPingPath
+                                                            };
+
+                                                            $.ajax({
+                                                                url: createURL('createLBHealthCheckPolicy'),
+                                                                data: data,
+                                                                success: function(json) {
+                                                                    var jobId = json.createlbhealthcheckpolicyresponse.jobid;
+                                                                    var createLBHealthCheckPolicyIntervalId = setInterval(function() {
+                                                                        $.ajax({
+                                                                            url: createURL('queryAsyncJobResult'),
+                                                                            data: {
+                                                                                jobid: jobId
+                                                                            },
+                                                                            success: function(json) {
+                                                                                var result = json.queryasyncjobresultresponse;
+                                                                                if (result.jobstatus === 0) {
+                                                                                    return; //Job has not completed
+                                                                                } else {
+                                                                                    clearInterval(createLBHealthCheckPolicyIntervalId);
+
+                                                                                    if (result.jobstatus === 1) {
+                                                                                        return;
+                                                                                    } else if (result.jobstatus === 2) {
+                                                                                        cloudStack.dialog.notice({
+                                                                                            message: _s(result.jobresult.errortext)
+                                                                                        });
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                    }, g_queryAsyncJobResultInterval);
+                                                                },
+                                                                error: function(json) {
+                                                                    cloudStack.dialog.notice({
+                                                                        message: _s(json.responseText)
+                                                                    });
+                                                                }
+
+                                                            });
+                                                            complete();
                                                         },
                                                         error: error
                                                     });
@@ -838,6 +895,7 @@
                         }
                     },
                     notification: {
+                        label: 'Load Balancer created',
                         poll: pollAsyncJobResult
                     }
                 }
