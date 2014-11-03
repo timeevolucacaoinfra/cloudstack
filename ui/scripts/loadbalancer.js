@@ -90,6 +90,9 @@
                             stickiness: {
                                 label: 'label.stickiness'
                             },
+                            healthchecktype: {
+                                label: 'Healthcheck Type'
+                            },
                             healthcheck: {
                                 label: 'Healthcheck'
                             },
@@ -103,7 +106,15 @@
                                 dataType: "json",
                                 async: false,
                                 success: function(json) {
-                                    args.jsonObj.stickiness = json.listlbstickinesspoliciesresponse.stickinesspolicies[0].stickinesspolicy[0].name;
+                                    var response = json.listlbstickinesspoliciesresponse.stickinesspolicies[0];
+                                    var stickiness = "";
+                                    if (!response || !response.stickinesspolicy ||
+                                        !response.stickinesspolicy[0] || !response.stickinesspolicy[0].name) {
+                                        stickiness = "None";
+                                    } else {
+                                        stickiness = response.stickinesspolicy[0].name;
+                                    }
+                                    args.jsonObj.stickiness = stickiness;
                                 },
                                 error: function (errorMessage) {
                                     args.response.error(errorMessage);
@@ -122,9 +133,10 @@
                                     // This logic is for GloboNetwork!
                                     if (!healthcheck || !healthcheck[0] || !healthcheck[0].pingpath || healthcheck[0].pingpath === "") {
                                         // This means it's TCP
-                                        args.jsonObj.healthcheck = "TCP";
+                                        args.jsonObj.healthchecktype = "TCP";
                                     } else {
-                                        args.jsonObj.healthcheck = "HTTP - GET " + healthcheck[0].pingpath;
+                                        args.jsonObj.healthchecktype = "HTTP";
+                                        args.jsonObj.healthcheck = healthcheck[0].pingpath;
                                     }
                                 },
                                 error: function (errorMessage) {
