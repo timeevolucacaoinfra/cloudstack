@@ -479,6 +479,10 @@
                                 args.response.success({
                                     _custom: {
                                         jobId: jobID,
+                                        notification: {
+                                            label: 'label.action.delete.load.balancer',
+                                            poll: pollAsyncJobResult
+                                        },
                                         onComplete: function(args) {
                                             $.ajax({
                                                 url: createURL('disassociateIpAddress'),
@@ -504,7 +508,6 @@
                         });
                     },
                     notification: {
-                        label: 'label.action.delete.load.balancer',
                         poll: pollAsyncJobResult
                     },
                 },
@@ -808,87 +811,43 @@
                                     success: function(data) {
                                         var jobID = data.createloadbalancerruleresponse.jobid;
                                         var lbID = data.createloadbalancerruleresponse.id;
-                                        var lbStickyCreated = false;
-                                        var lbHealthcheckCreated = false;
-                                        args.response.success({
-                                            _custom: {
-                                                jobId: jobID
+                                        // Create stickiness policy
+                                        if (stickyData &&
+                                            stickyData.methodname &&
+                                            stickyData.methodname != 'None') {
+                                            cloudStack.lbStickyPolicy.actions.add(lbID,
+                                                stickyData,
+                                                args.complete, args.error);
+                                        }
+
+                                        // Create healthcheck
+                                        var datahealthcheck = {
+                                            lbruleid: lbID,
+                                            pingpath: healthcheckPingPath
+                                        };
+
+                                        $.ajax({
+                                            url: createURL('createLBHealthCheckPolicy'),
+                                            data: datahealthcheck,
+                                            success: function(json) {
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: jobID,
+                                                        getUpdatedItem: function(json) {
+                                                            return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                        },
+                                                        notification: {
+                                                            poll: pollAsyncJobResult
+                                                        }
+                                                    }
+                                                });
                                             },
-                                            notification: {
-                                                label: 'label.add.load.balancer',
-                                                poll: function(args) {
-                                                    var complete = args.complete;
-                                                    var error = args.error;
-
-                                                    pollAsyncJobResult({
-                                                        _custom: {
-                                                            jobId: jobID
-                                                        },
-                                                        complete: function(args) {
-                                                            if (lbStickyCreated && lbHealthcheckCreated) return;
-
-                                                            lbStickyCreated = true;
-
-                                                            // Create stickiness policy
-                                                            if (stickyData &&
-                                                                stickyData.methodname &&
-                                                                stickyData.methodname != 'None') {
-                                                                cloudStack.lbStickyPolicy.actions.add(lbID,
-                                                                    stickyData,
-                                                                    complete, error);
-                                                            }
-
-                                                            lbHealthcheckCreated = true;
-
-                                                            // Create healthcheck
-                                                            var data = {
-                                                                lbruleid: lbID,
-                                                                pingpath: healthcheckPingPath
-                                                            };
-
-                                                            $.ajax({
-                                                                url: createURL('createLBHealthCheckPolicy'),
-                                                                data: data,
-                                                                success: function(json) {
-                                                                    var jobId = json.createlbhealthcheckpolicyresponse.jobid;
-                                                                    var createLBHealthCheckPolicyIntervalId = setInterval(function() {
-                                                                        $.ajax({
-                                                                            url: createURL('queryAsyncJobResult'),
-                                                                            data: {
-                                                                                jobid: jobId
-                                                                            },
-                                                                            success: function(json) {
-                                                                                var result = json.queryasyncjobresultresponse;
-                                                                                if (result.jobstatus === 0) {
-                                                                                    return; //Job has not completed
-                                                                                } else {
-                                                                                    clearInterval(createLBHealthCheckPolicyIntervalId);
-
-                                                                                    if (result.jobstatus === 1) {
-                                                                                        return;
-                                                                                    } else if (result.jobstatus === 2) {
-                                                                                        cloudStack.dialog.notice({
-                                                                                            message: _s(result.jobresult.errortext)
-                                                                                        });
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        });
-                                                                    }, g_queryAsyncJobResultInterval);
-                                                                },
-                                                                error: function(json) {
-                                                                    cloudStack.dialog.notice({
-                                                                        message: _s(json.responseText)
-                                                                    });
-                                                                }
-
-                                                            });
-                                                            complete();
-                                                        },
-                                                        error: error
-                                                    });
-                                                }
+                                            error: function(json) {
+                                                cloudStack.dialog.notice({
+                                                    message: _s(json.responseText)
+                                                });
                                             }
+
                                         });
                                     },
                                     error: function(json) {
