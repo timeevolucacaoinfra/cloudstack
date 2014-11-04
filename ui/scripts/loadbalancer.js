@@ -361,10 +361,13 @@
                                                 args.response.success({
                                                     _custom: {
                                                         jobId: data.removefromloadbalancerruleresponse.jobid,
-                                                    },
-                                                    notification: {
-                                                        label: 'label.remove.vms.from.lb',
-                                                        poll: pollAsyncJobResult
+                                                        notification: {
+                                                            label: 'label.remove.vms.from.lb',
+                                                            poll: pollAsyncJobResult
+                                                        },
+                                                        onComplete: function(args) {
+                                                            $(window).trigger('cloudStack.fullRefresh');
+                                                        }
                                                     }
                                                 });
                                             },
@@ -425,14 +428,14 @@
                                                 args.response.success({
                                                     _custom: {
                                                         jobId: data.assigntoloadbalancerruleresponse.jobid,
-                                                        getUpdatedItem: function(json) {
-                                                            return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                        notification: {
+                                                            label: 'label.add.vms.to.lb',
+                                                            poll: pollAsyncJobResult
+                                                        },
+                                                        onComplete: function(args) {
+                                                            $(window).trigger('cloudStack.fullRefresh');
                                                         }
                                                     },
-                                                    notification: {
-                                                        label: 'label.add.vms.to.lb',
-                                                        poll: pollAsyncJobResult
-                                                    }
                                                 });
                                             },
                                             error: function(errorMessage) {
