@@ -190,10 +190,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     static final int NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END = 2;
 	
 	private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Network", String.class, "globonetwork.vip.server.url", "", "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
-	private static final ConfigKey<String> GloboNetworkConnectionTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.connectiontimeout", "120000", "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<Long> GloboNetworkLBLockTimeout = new ConfigKey<Long>("Network", Long.class, "globonetwork.loadbalancer.lock.timeout", "60", "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
-	private static final ConfigKey<String> GloboNetworkReadTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.readtimeout", "120000", "GloboNetwork read timeout (in milliseconds)", true, ConfigKey.Scope.Global);
-	private static final ConfigKey<String> GloboNetworkNumberOfRetries = new ConfigKey<String>("Network", String.class, "globonetwork.numberofretries", "0", "GloboNetwork number of retries", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkConnectionTimeout = new ConfigKey<Long>("Network", Long.class, "globonetwork.connectiontimeout", "120000", "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GloboNetworkLBLockTimeout = new ConfigKey<Integer>("Network", Integer.class, "globonetwork.loadbalancer.lock.timeout", "60", "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkReadTimeout = new ConfigKey<Long>("Network", Long.class, "globonetwork.readtimeout", "120000", "GloboNetwork read timeout (in milliseconds)", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<Long> GloboNetworkNumberOfRetries = new ConfigKey<Long>("Network", Long.class, "globonetwork.numberofretries", "0", "GloboNetwork number of retries", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkVmEquipmentGroup = new ConfigKey<Long>("Network", Long.class, "globonetwork.vm.equipmentgroup", "", "Equipment group to be used when registering a VM NIC in GloboNetwork", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkModelVmUser = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.user", "83", "GloboNetwork model id to be used for User VMs", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkModelVmDomainRouter = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.domain.router", "84", "GloboNetwork model id to be used for Domain Router VMs", true, ConfigKey.Scope.Global);
@@ -866,16 +866,16 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 		params.put("zoneId", String.valueOf(zoneId));
 		params.put("name", Provider.GloboNetwork.getName());
 		
-		String readTimeout = GloboNetworkReadTimeout.value();
-		String connectTimeout = GloboNetworkConnectionTimeout.value();
-		String numberOfRetries = GloboNetworkNumberOfRetries.value();
+		Long readTimeout = GloboNetworkReadTimeout.value();
+		Long connectTimeout = GloboNetworkConnectionTimeout.value();
+		Long numberOfRetries = GloboNetworkNumberOfRetries.value();
 
 		params.put("url", url);
 		params.put("username", username);
 		params.put("password", password);
-		params.put("readTimeout", readTimeout);
-		params.put("connectTimeout", connectTimeout);
-		params.put("numberOfRetries", numberOfRetries);
+		params.put("readTimeout", readTimeout.toString());
+		params.put("connectTimeout", connectTimeout.toString());
+		params.put("numberOfRetries", numberOfRetries.toString());
 
 		final Map<String, Object> hostDetails = new HashMap<String, Object>();
 		hostDetails.putAll(params);
@@ -1811,7 +1811,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         try {
             // GloboNetwork doesn't allow concurrent call in same loadbalancer.
-            GlobalLock.executeWithLock("globonetworklb-" + rule.getId(), 10, new Callable<Void>() {
+            GlobalLock.executeWithLock("globonetworklb-" + rule.getId(), GloboNetworkLBLockTimeout.value(), new Callable<Void>() {
 
                 @Override
                 public Void call() throws Exception {
