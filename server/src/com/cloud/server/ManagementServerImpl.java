@@ -273,6 +273,7 @@ import org.apache.cloudstack.api.command.user.iso.UpdateIsoPermissionsCmd;
 import org.apache.cloudstack.api.command.user.job.ListAsyncJobsCmd;
 import org.apache.cloudstack.api.command.user.job.QueryAsyncJobResultCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.AssignCertToLoadBalancerCmd;
+import org.apache.cloudstack.api.command.user.loadbalancer.AssignNetworksToLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.AssignToLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateApplicationLoadBalancerCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
@@ -291,6 +292,7 @@ import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRules
 import org.apache.cloudstack.api.command.user.loadbalancer.ListSslCertsCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.RemoveCertFromLoadBalancerCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.RemoveFromLoadBalancerRuleCmd;
+import org.apache.cloudstack.api.command.user.loadbalancer.RemoveNetworksFromLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UploadSslCertCmd;
 import org.apache.cloudstack.api.command.user.nat.CreateIpForwardingRuleCmd;
@@ -2720,6 +2722,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(ListAsyncJobsCmd.class);
         cmdList.add(QueryAsyncJobResultCmd.class);
         cmdList.add(AssignToLoadBalancerRuleCmd.class);
+        cmdList.add(AssignNetworksToLoadBalancerRuleCmd.class);
         cmdList.add(CreateLBStickinessPolicyCmd.class);
         cmdList.add(CreateLBHealthCheckPolicyCmd.class);
         cmdList.add(CreateLoadBalancerRuleCmd.class);
@@ -2731,6 +2734,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(ListLoadBalancerRuleInstancesCmd.class);
         cmdList.add(ListLoadBalancerRulesCmd.class);
         cmdList.add(RemoveFromLoadBalancerRuleCmd.class);
+        cmdList.add(RemoveNetworksFromLoadBalancerRuleCmd.class);
         cmdList.add(UpdateLoadBalancerRuleCmd.class);
         cmdList.add(CreateIpForwardingRuleCmd.class);
         cmdList.add(DeleteIpForwardingRuleCmd.class);

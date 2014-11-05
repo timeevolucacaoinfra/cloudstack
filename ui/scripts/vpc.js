@@ -3646,13 +3646,13 @@
                                             args.response.success({
                                                 data: [{
                                                     name: 'roundrobin',
-                                                    description: _l('label.round.robin')
+                                                    description: _l('label.lb.algorithm.roundrobin')
                                                 }, {
                                                     name: 'leastconn',
-                                                    description: _l('label.least.connections')
+                                                    description: _l('label.lb.algorithm.leastconn')
                                                 }, {
                                                     name: 'source',
-                                                    description: _l('label.source')
+                                                    description: _l('label.lb.algorithm.source')
                                                 }]
                                             });
                                         }

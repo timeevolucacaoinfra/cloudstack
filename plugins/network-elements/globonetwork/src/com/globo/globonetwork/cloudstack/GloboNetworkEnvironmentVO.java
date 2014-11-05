@@ -29,9 +29,6 @@ import org.apache.cloudstack.api.InternalIdentity;
 @Table(name = "globonetwork_environment_ref")
 public class GloboNetworkEnvironmentVO implements InternalIdentity {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -2510501870987500493L;
 
 	@Id

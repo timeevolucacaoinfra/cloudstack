@@ -28,7 +28,6 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.context.CallContext;
@@ -40,6 +39,7 @@ import org.apache.cloudstack.region.PortableIp;
 import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpVO;
 import org.apache.cloudstack.region.Region;
+import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.alert.AlertManager;
@@ -138,14 +138,14 @@ import com.cloud.utils.db.DB;
 import com.cloud.utils.db.EntityManager;
 import com.cloud.utils.db.Filter;
 import com.cloud.utils.db.GlobalLock;
-import com.cloud.utils.db.TransactionCallback;
-import com.cloud.utils.db.TransactionCallbackNoReturn;
-import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.JoinBuilder.JoinType;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
 import com.cloud.utils.db.SearchCriteria.Op;
 import com.cloud.utils.db.Transaction;
+import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackNoReturn;
+import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionCallbackWithExceptionNoReturn;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -1051,8 +1051,13 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
     }
 
     @Override
-    @DB
     public IpAddress allocatePortableIp(final Account ipOwner, Account caller, final long dcId, final Long networkId, final Long vpcID) throws ConcurrentOperationException, ResourceAllocationException,
+    InsufficientAddressCapacityException {
+        return allocatePortableIp(ipOwner, caller, dcId, networkId, vpcID, null);
+    }
+
+    @DB
+    public IpAddress allocatePortableIp(final Account ipOwner, Account caller, final long dcId, final Long networkId, final Long vpcID, final String requestedIp) throws ConcurrentOperationException, ResourceAllocationException,
         InsufficientAddressCapacityException {
 
         GlobalLock portableIpLock = GlobalLock.getInternLock("PortablePublicIpRange");
@@ -1064,7 +1069,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             ipaddr = Transaction.execute(new TransactionCallbackWithException<IPAddressVO,InsufficientAddressCapacityException>() {
                 @Override
                 public IPAddressVO doInTransaction(TransactionStatus status) throws InsufficientAddressCapacityException {
-                    PortableIpVO allocatedPortableIp;
+                    PortableIpVO allocatedPortableIp = null;
 
                     List<PortableIpVO> portableIpVOs = _portableIpDao.listByRegionIdAndState(1, PortableIp.State.Free);
                     if (portableIpVOs == null || portableIpVOs.isEmpty()) {
@@ -1072,8 +1077,21 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
                         throw ex;
                     }
         
-                    // allocate first portable IP to the user
-                    allocatedPortableIp = portableIpVOs.get(0);
+                    // allocate first portable IP to the user if not specified
+                    if (requestedIp == null) {
+                        allocatedPortableIp = portableIpVOs.get(0);
+                    } else {
+                        for (PortableIpVO portableIp : portableIpVOs) {
+                            if (portableIp.getAddress().equals(requestedIp)) {
+                                allocatedPortableIp = portableIp;
+                                break;
+                            }
+                        }
+                        if (allocatedPortableIp == null) {
+                            InsufficientAddressCapacityException ex = new InsufficientAddressCapacityException("Unable to find portable IP addresses " + requestedIp, Region.class, new Long(1));
+                            throw ex;
+                        }
+                    }
                     allocatedPortableIp.setAllocatedTime(new Date());
                     allocatedPortableIp.setAllocatedToAccountId(ipOwner.getAccountId());
                     allocatedPortableIp.setAllocatedInDomainId(ipOwner.getDomainId());
@@ -1653,6 +1671,7 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             return Transaction.execute(new TransactionCallback<IPAddressVO>() {
                 @Override
                 public IPAddressVO doInTransaction(TransactionStatus status) {
+                    
                     if (updateIpResourceCount(ip)) {
                         _resourceLimitMgr.decrementResourceCount(_ipAddressDao.findById(addrId).getAllocatedToAccountId(), ResourceType.public_ip);
                     }

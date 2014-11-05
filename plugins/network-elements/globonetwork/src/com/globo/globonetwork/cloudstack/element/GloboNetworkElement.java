@@ -58,6 +58,7 @@ import com.cloud.network.element.IpDeployer;
 import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
 import com.cloud.network.rules.LoadBalancerContainer;
@@ -84,6 +85,8 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
     @Inject
     NetworkModel _networkManager;
     @Inject
+    LoadBalancingRulesManager _lbManager;
+    @Inject
     NetworkServiceMapDao _ntwkSrvcDao;
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -101,24 +104,11 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
 	private static Map<Service, Map<Capability, String>> setCapabilities() {
 
-//		Capability.SupportedLBAlgorithms, Capability.SupportedLBIsolation,
-//        Capability.SupportedProtocols, Capability.TrafficStatistics, Capability.LoadBalancingSupportedIps,
-//        Capability.SupportedStickinessMethods, Capability.ElasticLb, Capability.LbSchemes
-
 		// Set capabilities for LB service
         Map<Capability, String> lbCapabilities = new HashMap<Capability, String>();
-
-        // Specifies that the RoundRobin and Leastconn algorithms are supported for load balancing rules
-        lbCapabilities.put(Capability.SupportedLBAlgorithms, "least-conn, round-robin, weighted, uri-hash");
-
-        // specifies that F5 BIG IP network element can provide shared mode only
+        lbCapabilities.put(Capability.SupportedLBAlgorithms, "leastconn, roundrobin");
         lbCapabilities.put(Capability.SupportedLBIsolation, "dedicated, shared");
-
-        // Specifies that load balancing rules can be made for either TCP or UDP traffic
         lbCapabilities.put(Capability.SupportedProtocols, "tcp,udp,http");
-
-        // Specifies that this element can measure network usage on a per public IP basis
-//        lbCapabilities.put(Capability.TrafficStatistics, "per public ip");
 
         // Specifies that load balancing rules can only be made with public IPs that aren't source NAT IPs
         lbCapabilities.put(Capability.LoadBalancingSupportedIps, "additional");
@@ -131,13 +121,19 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
         LbStickinessMethod method;
         List<LbStickinessMethod> methodList = new ArrayList<LbStickinessMethod>();
-        method = new LbStickinessMethod(StickinessMethodType.LBCookieBased, "This is cookie based sticky method, can be used only for http");
+        method = new LbStickinessMethod(new StickinessMethodType("Cookie"), "This is cookie based sticky method");
         methodList.add(method);
-//        method.addParam("holdtime", false, "time period (in seconds) for which persistence is in effect.", false);
+        method = new LbStickinessMethod(new StickinessMethodType("Source-ip"), "This is source based sticky method");
+        methodList.add(method);
+        method = new LbStickinessMethod(new StickinessMethodType("Source-ip with persistence between ports"), "This is source based sticky method with stickiness between ports");
+        methodList.add(method);
 
         Gson gson = new Gson();
         String stickyMethodList = gson.toJson(methodList);
         lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
+
+        // Healthcheck
+        lbCapabilities.put(Capability.HealthCheckPolicy, "true");
         
 		Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
         capabilities.put(Service.Lb, lbCapabilities);
@@ -187,7 +183,10 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 			VirtualMachineProfile vm,
 			ReservationContext context) throws ConcurrentOperationException,
 			ResourceUnavailableException {
-		return true;
+		// Even though removing a VM will clean up load balancing resources later on,
+	    // we have to make sure VM is removed from the load balancer in GloboNetwork
+	    // before attempting to remove its NIC
+	    return _lbManager.removeVmFromLoadBalancers(vm.getId());
 	}
 
 	@Override
@@ -241,12 +240,19 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
     @Override
     public boolean applyLBRules(Network config, List<LoadBalancingRule> rules) throws ResourceUnavailableException {
-        return false;
+        boolean returnValue = true;
+        boolean result = false;
+        for (LoadBalancingRule loadBalancingRule : rules) {
+            result = _globoNetworkService.applyLbRuleInGloboNetwork(config, loadBalancingRule);
+            // Make sure the method returns false if there is at least one false return
+            returnValue = returnValue && result;
+        }
+        return returnValue;
     }
 
 	@Override
 	public boolean validateLBRule(Network network, LoadBalancingRule rule) {
-		return true;
+        return _globoNetworkService.validateLBRule(network, rule);
 	}
 
 	@Override

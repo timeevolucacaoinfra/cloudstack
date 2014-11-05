@@ -166,6 +166,8 @@ public class GloboNetworkVipResponse extends Answer {
 		private Boolean state;
 		
 		private String nic;
+		
+		private boolean isRevoked;
 
 		public String getVmName() {
 			return vmName;
@@ -217,5 +219,13 @@ public class GloboNetworkVipResponse extends Answer {
 		public void setNic(String nic) {
 			this.nic = nic;
 		}
+
+        public boolean isRevoked() {
+            return isRevoked;
+        }
+
+        public void setRevoked(boolean isRevoked) {
+            this.isRevoked = isRevoked;
+        }
 	}
 }

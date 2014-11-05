@@ -2662,6 +2662,10 @@ div.detail-group.actions td {
   background-position: -180px -23px;
 }
 
+#navigation ul li.loadbalancer span.icon {
+  background: url(../images/lbsection.png) no-repeat 2px 7px;
+}
+
 #navigation ul li.templates span.icon {
   background-position: -233px -23px;
 }

@@ -27,15 +27,18 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.network.Network;
+import com.cloud.network.addr.PublicIp;
+import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
-import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
@@ -51,6 +54,16 @@ public interface GloboNetworkService {
 	 * @return
 	 */
 	public GloboNetworkEnvironmentVO addGloboNetworkEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
+	
+    /**
+     * Add a GloboNetwork VIP Environment to a GloboNetwork Environment.
+     * @param name Name of the relationship
+     * @param physicalNetworkId
+     * @param napiEnvironmentId
+     * @param globoNetworkLBNetworkId
+     * @return
+     */
+    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId) throws ResourceAllocationException;	
 
 	/**
 	 * Create a new network in sync with GloboNetwork.
@@ -142,6 +155,14 @@ public interface GloboNetworkService {
 	 */
 	public List<GloboNetworkEnvironmentVO> listGloboNetworkEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
 
+	   /**
+     * List GloboNetwork VIP environments from database according to a specific GloboNetwork Environment ID.
+     * If this parameter is not passed, all GloboNetwork VIP environments from database are returned.
+     * @param physicalNetworkId
+     * @param globoNetworkEnvironmentId
+     */
+    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId);
+
 	/**
 	 * List all environments from GloboNetwork
 	 * @param zoneId
@@ -158,6 +179,15 @@ public interface GloboNetworkService {
 	 * @return
 	 */
 	public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId);
+	
+    /**
+     * Removes the relationship between VIP Environment and GloboNetwork environment
+     * @param physicalNetworkId
+     * @param globoNetworkEnvironmentId
+     * @param globoNetworkLBNetworkId
+     * @return
+     */
+    public boolean removeGloboNetworkLBNetwork(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBNetworkId);	
 
 	/**
 	 * Add GloboNetwork host details (provider) to CloudStack
@@ -169,13 +199,6 @@ public interface GloboNetworkService {
 	public Host addGloboNetworkHost(Long physicalNetworkId, String username,
 			String password, String url);
 	
-	/**
-	 * Retrieve VLAN info from GloboNetwork
-	 * @param network
-	 * @return
-	 */
-	public Vlan getVlanInfoFromGloboNetwork(Network network);
-
 	/**
 	 * Register VM NIC in GloboNetwork
 	 * @param nic
@@ -228,11 +251,13 @@ public interface GloboNetworkService {
 	 */
 	public void removeGloboNetworkVip(Long globoNetworkVipId);
 
-	/**
-	 * Find a single GloboNetowrk VIP
-	 * @param vipId
-	 * @param networkId 
-	 * @return
-	 */
 	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
+
+	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
+	
+    public PublicIp acquireLbIp(Long networkId, Long projectId, Long lbNetworkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
+    
+    public boolean releaseLbIpFromGloboNetwork(Network network, String ip);
+
+    public boolean validateLBRule(Network network, LoadBalancingRule rule);
 }

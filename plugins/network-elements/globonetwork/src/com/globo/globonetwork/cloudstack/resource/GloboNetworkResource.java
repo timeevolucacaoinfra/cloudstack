@@ -36,6 +36,7 @@ import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
+import com.cloud.network.rules.FirewallRule;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.net.Ip4Address;
@@ -49,563 +50,935 @@ import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
+import com.globo.globonetwork.client.model.VipEnvironment;
 import com.globo.globonetwork.client.model.Vlan;
+import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
+import com.globo.globonetwork.cloudstack.commands.GetNetworkFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
+import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.ReleaseIpFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 public class GloboNetworkResource extends ManagerBase implements ServerResource {
-	private String _zoneId;
-	
-	private String _guid;
-	
-	private String _name;
-	
-	private String _username;
-	
-	private String _url;
-	
-	private String _password;
-	
-	protected HttpXMLRequestProcessor _globoNetworkApi;
-	
-	private static final Logger s_logger = Logger.getLogger(GloboNetworkResource.class);
-	
-	private static final long NETWORK_TYPE = 6; // Rede invalida de equipamentos
-	
-	private static final Long EQUIPMENT_TYPE = 10L;
-	
+    private String _zoneId;
 
-	@Override
-	public boolean configure(String name, Map<String, Object> params)
-			throws ConfigurationException {
-		
-		try {
-			_zoneId = (String) params.get("zoneId");
-			if (_zoneId == null) {
-				throw new ConfigurationException("Unable to find zone");
-			}
-			
-			_guid = (String) params.get("guid");
-			if (_guid == null) {
-				throw new ConfigurationException("Unable to find guid");
-			}
-			
-			_name = (String) params.get("name");
-			if (_name == null) {
-				throw new ConfigurationException("Unable to find name");
-			}
+    private String _guid;
 
-			_url = (String) params.get("url");
-			if (_url == null) {
-				throw new ConfigurationException("Unable to find url");
-			}
-			
-			_username = (String) params.get("username");
-			if (_username == null) {
-				throw new ConfigurationException("Unable to find username");
-			}
+    private String _name;
 
-			_password = (String) params.get("password");
-			if (_password == null) {
-				throw new ConfigurationException("Unable to find password");
-			}
+    private String _username;
 
-			_globoNetworkApi = new HttpXMLRequestProcessor(_url, _username, _password);
+    private String _url;
 
-			if (params.containsKey("readTimeout")) {
-				_globoNetworkApi.setReadTimeout(Integer.valueOf((String) params.get("readTimeout")));
-			}
-			
-			if (params.containsKey("connectTimeout")) {
-				_globoNetworkApi.setConnectTimeout(Integer.valueOf((String) params.get("connectTimeout")));
-			}
+    private String _password;
 
-			if (params.containsKey("numberOfRetries")) {
-				_globoNetworkApi.setNumberOfRetries(Integer.valueOf((String) params.get("numberOfRetries")));
-			}
+    protected HttpXMLRequestProcessor _globoNetworkApi;
 
-			return true;
-		} catch (NumberFormatException e) {
-			s_logger.error("Invalid number in configuration parameters", e);
-			throw new ConfigurationException("Invalid number in configuration parameters: " + e);
-		}
-	}
+    private static final Logger s_logger = Logger.getLogger(GloboNetworkResource.class);
 
-	@Override
-	public boolean start() {
-		return true;
-	}
+    private static final long NETWORK_TYPE = 6; // Rede invalida de equipamentos
 
-	@Override
-	public boolean stop() {
-		return true;
-	}
+    private static final Long EQUIPMENT_TYPE = 10L;
 
-	@Override
-	public Type getType() {
-		return Host.Type.L2Networking;
-	}
+    private enum LbAlgorithm {
+        RoundRobin("round-robin"),
+        LeastConn("least-conn");
+        
+        String globoNetworkBalMethod;
+        
+        LbAlgorithm(String globoNetworkBalMethod) {
+            this.globoNetworkBalMethod = globoNetworkBalMethod;
+        }
+        
+        public String getGloboNetworkBalMethod() {
+            return globoNetworkBalMethod;
+        }
+    }
+        
+    @Override
+    public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
 
-	@Override
-	public StartupCommand[] initialize() {
-		StartupCommand cmd = new StartupCommand(getType());
-		cmd.setName(_name);
-		cmd.setGuid(_guid);
-		cmd.setDataCenter(_zoneId);
-		cmd.setPod("");
-		cmd.setPrivateIpAddress("");
-		cmd.setStorageIpAddress("");
-		cmd.setVersion(GloboNetworkResource.class.getPackage().getImplementationVersion());
-		return new StartupCommand[] {cmd};
-	}
+        try {
+            _zoneId = (String)params.get("zoneId");
+            if (_zoneId == null) {
+                throw new ConfigurationException("Unable to find zone");
+            }
 
-	@Override
-	public PingCommand getCurrentStatus(long id) {
-		return new PingCommand(getType(), id);
-	}
+            _guid = (String)params.get("guid");
+            if (_guid == null) {
+                throw new ConfigurationException("Unable to find guid");
+            }
 
-	@Override
-	public void disconnected() {
-	}
+            _name = (String)params.get("name");
+            if (_name == null) {
+                throw new ConfigurationException("Unable to find name");
+            }
 
-	@Override
-	public IAgentControl getAgentControl() {
-		return null;
-	}
+            _url = (String)params.get("url");
+            if (_url == null) {
+                throw new ConfigurationException("Unable to find url");
+            }
 
-	@Override
-	public void setAgentControl(IAgentControl agentControl) {
-	}
+            _username = (String)params.get("username");
+            if (_username == null) {
+                throw new ConfigurationException("Unable to find username");
+            }
 
-	@Override
-	public Answer executeRequest(Command cmd) {
-		if (cmd instanceof ReadyCommand) {
-			return new ReadyAnswer((ReadyCommand) cmd);
-		} else if (cmd instanceof MaintainCommand) {
-			return new MaintainAnswer((MaintainCommand) cmd);
-		} else if (cmd instanceof GetVlanInfoFromGloboNetworkCommand) {
-			return execute((GetVlanInfoFromGloboNetworkCommand) cmd);
-		} else if (cmd instanceof ValidateNicInVlanCommand) {
-			return execute((ValidateNicInVlanCommand) cmd);
-		} else if (cmd instanceof CreateNewVlanInGloboNetworkCommand) {
-			return execute((CreateNewVlanInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof ActivateNetworkCommand) {
-			return execute((ActivateNetworkCommand) cmd);
-		} else if (cmd instanceof ListAllEnvironmentsFromGloboNetworkCommand) {
-			return execute((ListAllEnvironmentsFromGloboNetworkCommand) cmd);
-		} else if (cmd instanceof RemoveNetworkInGloboNetworkCommand) {
-			return execute((RemoveNetworkInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof DeallocateVlanFromGloboNetworkCommand) {
-			return execute((DeallocateVlanFromGloboNetworkCommand) cmd);
-		} else if (cmd instanceof RegisterEquipmentAndIpInGloboNetworkCommand) {
-			return execute((RegisterEquipmentAndIpInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof UnregisterEquipmentAndIpInGloboNetworkCommand) {
-			return execute((UnregisterEquipmentAndIpInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof GetVipInfoFromGloboNetworkCommand) {
-			return execute((GetVipInfoFromGloboNetworkCommand) cmd);
-		} else if (cmd instanceof AddAndEnableRealInGloboNetworkCommand) {
-			return execute((AddAndEnableRealInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof DisableAndRemoveRealInGloboNetworkCommand) {
-			return execute((DisableAndRemoveRealInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof GenerateUrlForEditingVipCommand) {
-			return execute((GenerateUrlForEditingVipCommand) cmd);
-		} else if (cmd instanceof RemoveVipFromGloboNetworkCommand) {
-			return execute((RemoveVipFromGloboNetworkCommand) cmd);
-		}
-		return Answer.createUnsupportedCommandAnswer(cmd);
-	}
+            _password = (String)params.get("password");
+            if (_password == null) {
+                throw new ConfigurationException("Unable to find password");
+            }
 
-	private Answer handleGloboNetworkException(Command cmd, GloboNetworkException e) {
-		if (e instanceof GloboNetworkErrorCodeException) {
-			GloboNetworkErrorCodeException ex = (GloboNetworkErrorCodeException) e;
-			s_logger.error("Error accessing GloboNetwork: " + ex.getCode() + " - " + ex.getDescription(), ex);
-			return new GloboNetworkErrorAnswer(cmd, ex.getCode(), ex.getDescription());
-		} else {
-			s_logger.error("Generic error accessing GloboNetwork", e);
-			return new Answer(cmd, false, e.getMessage());
-		}
-	}
-	
-	/**
-	 * Validate if Nic ip and vlan number belongs to GloboNetwork VlanId
-	 * @param cmd
-	 * @return
-	 */
-	public Answer execute(ValidateNicInVlanCommand cmd) {
-		try {
-			Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
-			List<IPv4Network> networks = vlan.getIpv4Networks();
-			if (networks.isEmpty() || !networks.get(0).getActive()) {
-				return new Answer(cmd, false, "No active networks found in VlanId " + cmd.getVlanId());
-			}
-			
-			IPv4Network network = networks.get(0);
-			String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
-			long ipLong = NetUtils.ip2Long(cmd.getNicIp());
-			String netmask = network.getMaskOct1() + "." + network.getMaskOct2() + "." + network.getMaskOct3() + "." + network.getMaskOct4();
-			long cidrSize = NetUtils.getCidrSize(netmask);
-			String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
-			if (!(ipLong >= NetUtils.ip2Long(ipRange[0]) && ipLong <= NetUtils.ip2Long(ipRange[1]))) {
-				return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
-			}
-			return new Answer(cmd);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(AddAndEnableRealInGloboNetworkCommand cmd) {
-		try {
-			Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
-			}
+            _globoNetworkApi = new HttpXMLRequestProcessor(_url, _username, _password);
 
-			Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getEquipName());
-			if (equipment == null) {
-				// Equipment doesn't exist
-				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in GloboNetwork");
-			}
-			
-			List<Ip> ips = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
-			Ip ip = null;
-			for (Ip equipIp: ips) {
-				String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
-				if (equipIpString.equals(cmd.getIp())) {
-					ip = equipIp;
-				}
-			}
-			
-			if (ip == null) {
-				return new Answer(cmd, false, "IP doesn't exist in this GloboNetwork environment");
-			}
-			
-			if (!vip.getValidated()) {
-				_globoNetworkApi.getVipAPI().validate(cmd.getVipId());
-			}
-			
-			if (!vip.getCreated()) {
-				s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
-				_globoNetworkApi.getVipAPI().create(cmd.getVipId());
-			}
-			
-			if (vip.getRealsIp() != null) {
-				for (RealIP realIp:  vip.getRealsIp()) {
-					if (ip.getId().equals(realIp.getIpId())) {
-						// real already added. Only ensure is enabled
-						_globoNetworkApi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
-						return new Answer(cmd, true, "Real enabled successfully"); 
-					}
-				}
-			}
+            if (params.containsKey("readTimeout")) {
+                _globoNetworkApi.setReadTimeout(Integer.valueOf((String)params.get("readTimeout")));
+            }
 
-			// added reals are always enabled by default
-			_globoNetworkApi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
-			return new Answer(cmd, true, "Real added and enabled successfully");
-			
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(DisableAndRemoveRealInGloboNetworkCommand cmd) {
-		try {
-			Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
-			}
-			
-			Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getEquipName());
-			if (equipment == null) {
-				// Equipment doesn't exist. So, there is no Vip either.
-				return new Answer(cmd, true, "Equipment " + cmd.getEquipName() + " doesn't exist in GloboNetwork");
-			}
+            if (params.containsKey("connectTimeout")) {
+                _globoNetworkApi.setConnectTimeout(Integer.valueOf((String)params.get("connectTimeout")));
+            }
 
-			if (vip.getRealsIp() != null) {
-				for (RealIP realIp:  vip.getRealsIp()) {
-					if (cmd.getIp().equals(realIp.getRealIp())) {
-						// real exists in vip. Remove it.
-						_globoNetworkApi.getVipAPI().removeReal(cmd.getVipId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
-						return new Answer(cmd, true, "Real removed successfully"); 
-					}
-				}
-			}
-			return new Answer(cmd, true, "Real not in vipId " + cmd.getVipId());
-			
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
-		try {
+            if (params.containsKey("numberOfRetries")) {
+                _globoNetworkApi.setNumberOfRetries(Integer.valueOf((String)params.get("numberOfRetries")));
+            }
 
-			Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
-			
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, true, "Vip request " + cmd.getVipId() + " was previously removed from GloboNetwork");
-			}
-			
-			// remove VIP from network device
-			if (vip.getCreated()) {
-				s_logger.info("Requesting GloboNetwork to remove vip from network device vip_id=" + vip.getId());
-				_globoNetworkApi.getVipAPI().removeScriptVip(cmd.getVipId());
-			}
-			
-			// remove VIP from GloboNetwork DB
-			s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId());
-			_globoNetworkApi.getVipAPI().removeVip(cmd.getVipId());
-			
-			return new Answer(cmd);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
+            return true;
+        } catch (NumberFormatException e) {
+            s_logger.error("Invalid number in configuration parameters", e);
+            throw new ConfigurationException("Invalid number in configuration parameters: " + e);
+        }
+    }
 
-	public Answer execute(GetVlanInfoFromGloboNetworkCommand cmd) {
-		try {
-			Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
-			return createResponse(vlan, cmd);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
+    @Override
+    public boolean start() {
+        return true;
+    }
 
-	public Answer execute(CreateNewVlanInGloboNetworkCommand cmd) {
-		try {
-			Vlan vlan = _globoNetworkApi.getVlanAPI().allocateWithoutNetwork(cmd.getGloboNetworkEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
-			
-			/*Network network = */_globoNetworkApi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(NETWORK_TYPE), null);
-			
-			// Bug in GloboNetworkApi: I need to have a second call to get networkid
-			vlan = _globoNetworkApi.getVlanAPI().getById(vlan.getId());
-			return createResponse(vlan, cmd);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(ActivateNetworkCommand cmd) {
-		try {
-			_globoNetworkApi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
-			return new Answer(cmd, true, "Network created");
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(ListAllEnvironmentsFromGloboNetworkCommand cmd) {
-		try {
-			List<Environment> apiEnvironmentList = _globoNetworkApi.getEnvironmentAPI().listAll();
-			
-			List<GloboNetworkAllEnvironmentResponse.Environment> environmentList = new ArrayList<GloboNetworkAllEnvironmentResponse.Environment>(apiEnvironmentList.size());
-			for (Environment apiEnvironment : apiEnvironmentList) {
-				GloboNetworkAllEnvironmentResponse.Environment environment = new GloboNetworkAllEnvironmentResponse.Environment();
-				environment.setId(apiEnvironment.getId());
-				environment.setDcDivisionName(apiEnvironment.getDcDivisionName());
-				environment.setL3GroupName(apiEnvironment.getL3GroupName());
-				environment.setLogicalEnvironmentName(apiEnvironment.getLogicalEnvironmentName());
-				environmentList.add(environment);
-			}
-			
-			return new GloboNetworkAllEnvironmentResponse(cmd, environmentList);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(RemoveNetworkInGloboNetworkCommand cmd) {
-		try {
-			_globoNetworkApi.getVlanAPI().remove(cmd.getVlanId());
-			
-			return new Answer(cmd, true, "Network removed");
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(DeallocateVlanFromGloboNetworkCommand cmd) {
-		try {
-			_globoNetworkApi.getVlanAPI().deallocate(cmd.getVlanId());
-			return new Answer(cmd, true, "Vlan deallocated");
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(RegisterEquipmentAndIpInGloboNetworkCommand cmd) {
-		try {
-			Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getVmName());
-			if (equipment == null) {
-				s_logger.info("Registering virtualmachine " + cmd.getVmName() + " in GloboNetwork");
-				// Equipment (VM) does not exist, create it
-				equipment = _globoNetworkApi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, cmd.getEquipmentModelId(), cmd.getEquipmentGroupId());
-			}
-			
-			Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
-			
-			// Make sure this vlan has one IPv4 network associated to it
-			if (vlan.getIpv4Networks().size() == 0) {
-				return new Answer(cmd, false, "No IPv4 networks in this vlan");
-			} else if (vlan.getIpv4Networks().size() > 1) {
-				return new Answer(cmd, false, "Multiple IPv4 networks in this vlan");
-			}
-			Long networkId = vlan.getIpv4Networks().get(0).getId();
-			
-			Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
-			if (ip == null) {
-				// Doesn't exist, create it
-				ip = _globoNetworkApi.getIpAPI().saveIpv4(cmd.getNicIp(), equipment.getId(), cmd.getNicDescription(), networkId);
-			} else {
-				ip = _globoNetworkApi.getIpAPI().getIpv4(ip.getId());
-				if (!ip.getEquipments().contains(cmd.getVmName())) {
-					_globoNetworkApi.getIpAPI().assocIpv4(ip.getId(), equipment.getId(), networkId);
-				}
-			}
-			
-			if (ip == null) {
-				return new Answer(cmd, false, "Could not register NIC in GloboNetwork");
-			}
-			
-			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " registered successfully in GloboNetwork");
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
+    @Override
+    public boolean stop() {
+        return true;
+    }
 
-	public Answer execute(UnregisterEquipmentAndIpInGloboNetworkCommand cmd) {
-		try {
-			Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getVmName());
-			if (equipment == null) {
-				s_logger.warn("VM was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical, logging inconsistency: VM UUID " + cmd.getVmName());
-				return new Answer(cmd);
-			}
-			
-			if (cmd.getEnvironmentId() != null && cmd.getNicIp() != null) {
-				Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
-				if (ip == null) {
-					// Doesn't exist, ignore
-					s_logger.warn("IP was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
-				} else {
-					_globoNetworkApi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
-				}
-			}
+    @Override
+    public Type getType() {
+        return Host.Type.L2Networking;
+    }
 
-			// if there are no more IPs in equipment, remove it.
-			List<Ip> ipList = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
-			if (ipList.size() == 0) {
-				_globoNetworkApi.getEquipmentAPI().delete(equipment.getId());
-			}
+    @Override
+    public StartupCommand[] initialize() {
+        StartupCommand cmd = new StartupCommand(getType());
+        cmd.setName(_name);
+        cmd.setGuid(_guid);
+        cmd.setDataCenter(_zoneId);
+        cmd.setPod("");
+        cmd.setPrivateIpAddress("");
+        cmd.setStorageIpAddress("");
+        cmd.setVersion(GloboNetworkResource.class.getPackage().getImplementationVersion());
+        return new StartupCommand[] {cmd};
+    }
 
-			return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in GloboNetwork");
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(GetVipInfoFromGloboNetworkCommand cmd) {
-		try {
-			long vipId = cmd.getVipId();
-			Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
-			
-			if (vip == null) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
-			}
+    @Override
+    public PingCommand getCurrentStatus(long id) {
+        return new PingCommand(getType(), id);
+    }
 
-			// Using a map rather than a list because different ports come in different objects
-			// even though they have the same ID
-			// Example
-            // {
-            //    "id_ip": "33713",
-            //    "port_real": "8180",
-            //    "port_vip": "80",
-            //    "real_ip": "10.20.30.40",
-            //    "real_name": "MACHINE01"
-            // },
-            // {
-            //    "id_ip": "33713",
-            //    "port_real": "8280",
-            //    "port_vip": "80",
-            //    "real_ip": "10.20.30.40",
-            //    "real_name": "MACHINE01"
-            // },
+    @Override
+    public void disconnected() {
+    }
 
-			Map<Long, Real> reals = new HashMap<Long, Real>();
-			for(RealIP real : vip.getRealsIp()) {
-				Real realResponse = reals.get(real.getIpId());
-				if (realResponse == null) {
-					// Doesn't exist yet, first time iterating, so add IP parameter and add to list
-					realResponse = new Real();
-					realResponse.setIp(real.getRealIp());
-					realResponse.setVmName(real.getName());
-					reals.put(real.getIpId(), realResponse);
-				}
-				realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
-			}
+    @Override
+    public IAgentControl getAgentControl() {
+        return null;
+    }
 
-			GloboNetworkVipResponse vipResponse = new GloboNetworkVipResponse(cmd,
-					vipId, // id
-					vip.getHost(), // name
-					vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString(), // ip
-					null, // network
-					vip.getCache(), // cache
-					vip.getMethod(), // method
-					vip.getPersistence(), // persistence
-					vip.getHealthcheckType(), // healtcheck type
-					vip.getHealthcheck(), // healthcheck
-					vip.getMaxConn(), // maxconn,
-					vip.getPorts(),
-					reals.values());
-			 
-			return vipResponse;
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(GenerateUrlForEditingVipCommand cmd) {
+    @Override
+    public void setAgentControl(IAgentControl agentControl) {
+    }
 
-		try {
-			String url = _globoNetworkApi.getVipAPI().generateVipEditingUrl(cmd.getVipId(), cmd.getVipServerUrl());
-			return new Answer(cmd, true, url);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
+    @Override
+    public Answer executeRequest(Command cmd) {
+        if (cmd instanceof ReadyCommand) {
+            return new ReadyAnswer((ReadyCommand)cmd);
+        } else if (cmd instanceof MaintainCommand) {
+            return new MaintainAnswer((MaintainCommand)cmd);
+        } else if (cmd instanceof GetVlanInfoFromGloboNetworkCommand) {
+            return execute((GetVlanInfoFromGloboNetworkCommand)cmd);
+        } else if (cmd instanceof ValidateNicInVlanCommand) {
+            return execute((ValidateNicInVlanCommand)cmd);
+        } else if (cmd instanceof CreateNewVlanInGloboNetworkCommand) {
+            return execute((CreateNewVlanInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof ActivateNetworkCommand) {
+            return execute((ActivateNetworkCommand)cmd);
+        } else if (cmd instanceof ListAllEnvironmentsFromGloboNetworkCommand) {
+            return execute((ListAllEnvironmentsFromGloboNetworkCommand)cmd);
+        } else if (cmd instanceof RemoveNetworkInGloboNetworkCommand) {
+            return execute((RemoveNetworkInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof DeallocateVlanFromGloboNetworkCommand) {
+            return execute((DeallocateVlanFromGloboNetworkCommand)cmd);
+        } else if (cmd instanceof RegisterEquipmentAndIpInGloboNetworkCommand) {
+            return execute((RegisterEquipmentAndIpInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof UnregisterEquipmentAndIpInGloboNetworkCommand) {
+            return execute((UnregisterEquipmentAndIpInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof GetVipInfoFromGloboNetworkCommand) {
+            return execute((GetVipInfoFromGloboNetworkCommand)cmd);
+        } else if (cmd instanceof AddAndEnableRealInGloboNetworkCommand) {
+            return execute((AddAndEnableRealInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof DisableAndRemoveRealInGloboNetworkCommand) {
+            return execute((DisableAndRemoveRealInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof GenerateUrlForEditingVipCommand) {
+            return execute((GenerateUrlForEditingVipCommand)cmd);
+        } else if (cmd instanceof RemoveVipFromGloboNetworkCommand) {
+            return execute((RemoveVipFromGloboNetworkCommand)cmd);
+        } else if (cmd instanceof AcquireNewIpForLbCommand) {
+            return execute((AcquireNewIpForLbCommand)cmd);
+        } else if (cmd instanceof ReleaseIpFromGloboNetworkCommand) {
+            return execute((ReleaseIpFromGloboNetworkCommand) cmd);
+        } else if (cmd instanceof AddOrRemoveVipInGloboNetworkCommand) {
+            return execute((AddOrRemoveVipInGloboNetworkCommand) cmd);
+        } else if (cmd instanceof GetNetworkFromGloboNetworkCommand) {
+            return execute((GetNetworkFromGloboNetworkCommand) cmd);
+        }
+        return Answer.createUnsupportedCommandAnswer(cmd);
+    }
 
-	private Answer createResponse(Vlan vlan, Command cmd) {
-		
-		if (vlan.getIpv4Networks().isEmpty()) {
-			// Error code 116 from GloboNetwork: 116 : VlanNaoExisteError,
-			return new GloboNetworkErrorAnswer(cmd, 116, "No networks in this VLAN");
-		}
-		
-		IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
-		
-		String vlanName = vlan.getName();
-		String vlanDescription = vlan.getDescription();
-		Long vlanId = vlan.getId();
-		Long vlanNum = vlan.getVlanNum();
-		Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
-		Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
-		return new GloboNetworkVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask, ipv4Network.getId(), ipv4Network.getActive());
-	}
-	
+    private Answer execute(GetNetworkFromGloboNetworkCommand cmd) {
+        try {
+            if (cmd.getNetworkId() == null) {
+                return new Answer(cmd, false, "Invalid network ID");
+            }
+            IPv4Network network = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(cmd.getNetworkId());
+            if (network == null) {
+                return new Answer(cmd, false, "Network with ID " + cmd.getNetworkId() + " not found in GloboNetwork");
+            }
+            
+            return this.createNetworkResponse(network, cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    private Answer handleGloboNetworkException(Command cmd, GloboNetworkException e) {
+        if (e instanceof GloboNetworkErrorCodeException) {
+            GloboNetworkErrorCodeException ex = (GloboNetworkErrorCodeException)e;
+            s_logger.error("Error accessing GloboNetwork: " + ex.getCode() + " - " + ex.getDescription(), ex);
+            return new GloboNetworkErrorAnswer(cmd, ex.getCode(), ex.getDescription());
+        } else {
+            s_logger.error("Generic error accessing GloboNetwork", e);
+            return new Answer(cmd, false, e.getMessage());
+        }
+    }
+
+    /**
+     * Validate if Nic ip and vlan number belongs to GloboNetwork VlanId
+     * @param cmd
+     * @return
+     */
+    public Answer execute(ValidateNicInVlanCommand cmd) {
+        try {
+            Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
+            List<IPv4Network> networks = vlan.getIpv4Networks();
+            if (networks.isEmpty() || !networks.get(0).getActive()) {
+                return new Answer(cmd, false, "No active networks found in VlanId " + cmd.getVlanId());
+            }
+
+            IPv4Network network = networks.get(0);
+            String networkAddress = network.getOct1() + "." + network.getOct2() + "." + network.getOct3() + "." + network.getOct4();
+            long ipLong = NetUtils.ip2Long(cmd.getNicIp());
+            String netmask = network.getMaskOct1() + "." + network.getMaskOct2() + "." + network.getMaskOct3() + "." + network.getMaskOct4();
+            long cidrSize = NetUtils.getCidrSize(netmask);
+            String ipRange[] = NetUtils.getIpRangeFromCidr(networkAddress, cidrSize);
+            if (!(ipLong >= NetUtils.ip2Long(ipRange[0]) && ipLong <= NetUtils.ip2Long(ipRange[1]))) {
+                return new Answer(cmd, false, "Nic IP " + cmd.getNicIp() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
+            }
+            return new Answer(cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(AddAndEnableRealInGloboNetworkCommand cmd) {
+        try {
+            Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
+            if (vip == null || !cmd.getVipId().equals(vip.getId())) {
+                return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
+            }
+
+            Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getEquipName());
+            if (equipment == null) {
+                // Equipment doesn't exist
+                return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in GloboNetwork");
+            }
+
+            List<Ip> ips = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
+            Ip ip = null;
+            for (Ip equipIp : ips) {
+                String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
+                if (equipIpString.equals(cmd.getIp())) {
+                    ip = equipIp;
+                }
+            }
+
+            if (ip == null) {
+                return new Answer(cmd, false, "IP doesn't exist in this GloboNetwork environment");
+            }
+
+            if (!vip.getValidated()) {
+                _globoNetworkApi.getVipAPI().validate(cmd.getVipId());
+            }
+
+            if (!vip.getCreated()) {
+                s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
+                _globoNetworkApi.getVipAPI().create(cmd.getVipId());
+            }
+
+            if (vip.getRealsIp() != null) {
+                for (RealIP realIp : vip.getRealsIp()) {
+                    if (ip.getId().equals(realIp.getIpId())) {
+                        // real already added. Only ensure is enabled
+                        _globoNetworkApi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+                        return new Answer(cmd, true, "Real enabled successfully");
+                    }
+                }
+            }
+
+            // added reals are always enabled by default
+            _globoNetworkApi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
+            return new Answer(cmd, true, "Real added and enabled successfully");
+
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(DisableAndRemoveRealInGloboNetworkCommand cmd) {
+        try {
+            Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
+            if (vip == null || !cmd.getVipId().equals(vip.getId())) {
+                return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
+            }
+
+            Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getEquipName());
+            if (equipment == null) {
+                // Equipment doesn't exist. So, there is no Vip either.
+                return new Answer(cmd, true, "Equipment " + cmd.getEquipName() + " doesn't exist in GloboNetwork");
+            }
+
+            if (vip.getRealsIp() != null) {
+                for (RealIP realIp : vip.getRealsIp()) {
+                    if (cmd.getIp().equals(realIp.getRealIp())) {
+                        // real exists in vip. Remove it.
+                        _globoNetworkApi.getVipAPI().removeReal(cmd.getVipId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
+                        return new Answer(cmd, true, "Real removed successfully");
+                    }
+                }
+            }
+            return new Answer(cmd, true, "Real not in vipId " + cmd.getVipId());
+
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }    
+
+    private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
+       return  this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), false);
+    }
+    
+    private Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
+        try {
+
+            Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
+
+            if (vip == null) {
+                return new Answer(cmd, true, "Vip request " + vipId + " was previously removed from GloboNetwork");
+            }
+
+            // remove VIP from network device
+            if (vip.getCreated()) {
+                s_logger.info("Requesting GloboNetwork to remove vip from network device vip_id=" + vip.getId());
+                _globoNetworkApi.getVipAPI().removeScriptVip(vipId);
+            }
+
+            // remove VIP from GloboNetwork DB
+            s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId() + " keepIp=" + keepIp);
+            _globoNetworkApi.getVipAPI().removeVip(vipId, keepIp);
+
+            return new Answer(cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(GetVlanInfoFromGloboNetworkCommand cmd) {
+        try {
+            Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
+            return createResponse(vlan, cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(CreateNewVlanInGloboNetworkCommand cmd) {
+        try {
+            Vlan vlan = _globoNetworkApi.getVlanAPI().allocateWithoutNetwork(cmd.getGloboNetworkEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
+
+            /*Network network = */_globoNetworkApi.getNetworkAPI().addNetworkIpv4(vlan.getId(), Long.valueOf(NETWORK_TYPE), null);
+
+            // Bug in GloboNetworkApi: I need to have a second call to get networkid
+            vlan = _globoNetworkApi.getVlanAPI().getById(vlan.getId());
+            return createResponse(vlan, cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(ActivateNetworkCommand cmd) {
+        try {
+            _globoNetworkApi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId());
+            return new Answer(cmd, true, "Network created");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(ListAllEnvironmentsFromGloboNetworkCommand cmd) {
+        try {
+            List<Environment> apiEnvironmentList = _globoNetworkApi.getEnvironmentAPI().listAll();
+
+            List<GloboNetworkAllEnvironmentResponse.Environment> environmentList = new ArrayList<GloboNetworkAllEnvironmentResponse.Environment>(apiEnvironmentList.size());
+            for (Environment apiEnvironment : apiEnvironmentList) {
+                GloboNetworkAllEnvironmentResponse.Environment environment = new GloboNetworkAllEnvironmentResponse.Environment();
+                environment.setId(apiEnvironment.getId());
+                environment.setDcDivisionName(apiEnvironment.getDcDivisionName());
+                environment.setL3GroupName(apiEnvironment.getL3GroupName());
+                environment.setLogicalEnvironmentName(apiEnvironment.getLogicalEnvironmentName());
+                environmentList.add(environment);
+            }
+
+            return new GloboNetworkAllEnvironmentResponse(cmd, environmentList);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(RemoveNetworkInGloboNetworkCommand cmd) {
+        try {
+            _globoNetworkApi.getVlanAPI().remove(cmd.getVlanId());
+
+            return new Answer(cmd, true, "Network removed");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(DeallocateVlanFromGloboNetworkCommand cmd) {
+        try {
+            _globoNetworkApi.getVlanAPI().deallocate(cmd.getVlanId());
+            return new Answer(cmd, true, "Vlan deallocated");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(RegisterEquipmentAndIpInGloboNetworkCommand cmd) {
+        try {
+            Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getVmName());
+            if (equipment == null) {
+                s_logger.info("Registering virtualmachine " + cmd.getVmName() + " in GloboNetwork");
+                // Equipment (VM) does not exist, create it
+                equipment = _globoNetworkApi.getEquipmentAPI().insert(cmd.getVmName(), EQUIPMENT_TYPE, cmd.getEquipmentModelId(), cmd.getEquipmentGroupId());
+            }
+
+            Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
+
+            // Make sure this vlan has one IPv4 network associated to it
+            if (vlan.getIpv4Networks().size() == 0) {
+                return new Answer(cmd, false, "No IPv4 networks in this vlan");
+            } else if (vlan.getIpv4Networks().size() > 1) {
+                return new Answer(cmd, false, "Multiple IPv4 networks in this vlan");
+            }
+            Long networkId = vlan.getIpv4Networks().get(0).getId();
+
+            Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+            if (ip == null) {
+                // Doesn't exist, create it
+                ip = _globoNetworkApi.getIpAPI().saveIpv4(cmd.getNicIp(), equipment.getId(), cmd.getNicDescription(), networkId);
+            } else {
+                ip = _globoNetworkApi.getIpAPI().getIpv4(ip.getId());
+                if (!ip.getEquipments().contains(cmd.getVmName())) {
+                    _globoNetworkApi.getIpAPI().assocIpv4(ip.getId(), equipment.getId(), networkId);
+                }
+            }
+
+            if (ip == null) {
+                return new Answer(cmd, false, "Could not register NIC in GloboNetwork");
+            }
+
+            return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " registered successfully in GloboNetwork");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(UnregisterEquipmentAndIpInGloboNetworkCommand cmd) {
+        try {
+            Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getVmName());
+            if (equipment == null) {
+                s_logger.warn("VM was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical, logging inconsistency: VM UUID " + cmd.getVmName());
+                return new Answer(cmd);
+            }
+
+            if (cmd.getEnvironmentId() != null && cmd.getNicIp() != null) {
+                Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(cmd.getNicIp(), cmd.getEnvironmentId());
+                if (ip == null) {
+                    // Doesn't exist, ignore
+                    s_logger.warn("IP was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
+                } else {
+                    _globoNetworkApi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
+                }
+            }
+
+            // if there are no more IPs in equipment, remove it.
+            List<Ip> ipList = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
+            if (ipList.size() == 0) {
+                _globoNetworkApi.getEquipmentAPI().delete(equipment.getId());
+            }
+
+            return new Answer(cmd, true, "NIC " + cmd.getNicIp() + " deregistered successfully in GloboNetwork");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+    
+    public Answer execute(ReleaseIpFromGloboNetworkCommand cmd) {
+        try {
+            Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIp(), cmd.getVipEnvironmentId());
+            if (ip == null) {
+                // Doesn't exist, ignore
+                s_logger.warn("IP was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical.");
+            } else {
+                _globoNetworkApi.getIpAPI().deleteIpv4(ip.getId());
+            }
+            return new Answer(cmd, true, "IP deleted successfully from GloboNetwork");
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(GetVipInfoFromGloboNetworkCommand cmd) {
+        try {
+            Vip vip = null;
+            if (cmd.getVipId() != null) {
+                long vipId = cmd.getVipId();
+                vip = _globoNetworkApi.getVipAPI().getById(vipId);
+            } else {
+                Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIp(), cmd.getVipEnvironmentId());
+                if (ip != null) {
+                    List<Vip> vips = _globoNetworkApi.getVipAPI().getByIp(ip.getIpString());
+                    if (!vips.isEmpty()) {
+                        vip = vips.get(0);
+                    }
+                }
+            }
+            
+            if (vip == null) {
+                return new Answer(cmd, false, null);
+            }
+            return this.createVipResponse(vip, cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(GenerateUrlForEditingVipCommand cmd) {
+
+        try {
+            String url = _globoNetworkApi.getVipAPI().generateVipEditingUrl(cmd.getVipId(), cmd.getVipServerUrl());
+            return new Answer(cmd, true, url);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(AcquireNewIpForLbCommand cmd) {
+        try {
+            long globoLBNetworkId = cmd.getGloboLBNetworkId();
+            IPv4Network globoNetwork = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(globoLBNetworkId);
+            if (globoNetwork == null || globoNetwork.getVipEnvironmentId() == null) {
+                return new Answer(cmd, false, "Network with id " + globoLBNetworkId + " not found or don't have vip environment.");
+            }
+            
+            Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(globoNetwork.getVipEnvironmentId(), "");
+            if (globoIp == null) {
+                return new Answer(cmd, false, "Acquired new Ip for environment vip " + globoNetwork.getVipEnvironmentId() + " returns no answer");
+            }
+
+            // get network information
+            Long networkId = globoIp.getNetworkId();
+            IPv4Network network = _globoNetworkApi.getNetworkAPI().getNetworkIpv4(networkId);
+            if (network == null) {
+                return new Answer(cmd, false, "Network with id " + networkId + " not found");
+            }
+
+            GloboNetworkAndIPResponse answer = (GloboNetworkAndIPResponse) this.createNetworkResponse(network, cmd);
+
+            // ip information
+            answer.setIp(new com.cloud.utils.net.Ip(globoIp.getIpString()));
+            answer.setIpId(globoIp.getId());
+
+            return answer;
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+
+    public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
+        try {
+            // FIXME Change default values to be class attributes rather than method variables
+            Integer DEFAULT_REALS_PRIORITY = 10;
+            Integer DEFAULT_MAX_CONN = 0;
+            String DEFAULT_HEALTHCHECK_TYPE = "TCP";
+            String HEALTHCHECK_HTTP_STRING = "HTTP";
+            Long DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK = 25L;
+            Integer DEFAULT_TIMEOUT = 5;
+            String DEFAULT_CACHE = "(nenhum)";
+
+            // FIXME! These parameters will always be null?
+            String l7Filter = null;
+            List<Integer> realsWeights = null;
+
+
+            LbAlgorithm lbAlgorithm;
+            if ("roundrobin".equals(cmd.getMethodBal())) {
+                lbAlgorithm = LbAlgorithm.RoundRobin;
+            } else if ("leastconn".equals(cmd.getMethodBal())) {
+                lbAlgorithm = LbAlgorithm.LeastConn;
+            } else {
+                return new Answer(cmd, false, "Invalid balancing method provided.");
+            }
+            
+            String lbPersistence;
+            if (cmd.getPersistencePolicy() == null || "None".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "(nenhum)";
+            } else if ("Cookie".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "cookie";
+            } else if ("Source-ip".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "source-ip";
+            } else if ("Source-ip with persistence between ports".equals(cmd.getPersistencePolicy().getMethodName())) {
+                lbPersistence = "source-ip com persist. entre portas";
+            } else {
+                return new Answer(cmd, false, "Invalid persistence policy provided.");
+            }
+            
+            String healthcheckType;
+            String healthcheck;
+            Long expectedHealthcheckId;            
+            if (cmd.getHealthcheckPolicy() == null || cmd.getHealthcheckPolicy().isRevoked()) {
+                healthcheckType = DEFAULT_HEALTHCHECK_TYPE;
+                healthcheck = this.buildHealthcheckString(null, null);
+                expectedHealthcheckId = null;
+            } else {
+                healthcheckType = HEALTHCHECK_HTTP_STRING;
+                healthcheck = this.buildHealthcheckString(cmd.getHealthcheckPolicy().getpingpath(), cmd.getHost());
+                expectedHealthcheckId = DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK;
+            }
+            
+            // Values that come directly from command
+            String businessArea = cmd.getBusinessArea();
+            String host = cmd.getHost();
+            String serviceName = cmd.getServiceName();
+            List<String> ports = cmd.getPorts();
+
+            // Process IPs and set RealIP objects to create VIP
+            List<RealIP> realsIp = new ArrayList<RealIP>();
+            List<Integer> realsPriorities = new ArrayList<Integer>();
+            for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), cmd.getRealsEnvironmentId());
+                if (ip == null) {
+                    if (real.isRevoked()) {
+                        s_logger.warn("There's an inconsistency. Real with IP " + real.getIp() + " was not found in GloboNetwork.");                        
+                        continue;
+                    } else {
+                        return new Answer(cmd, false, "Could not get real IP information: " + real.getIp());
+                    }
+                }
+                RealIP realIP = new RealIP();
+                realIP.setName(real.getVmName());
+                realIP.setRealIp(real.getIp());
+                if (real.getPorts() == null) {
+                    return new Answer(cmd, false, "You need to specify a port for the real");
+                }
+                realIP.setRealPort(Integer.valueOf(real.getPorts().get(0))); // There's only one
+                realIP.setIpId(ip.getId());
+                realsIp.add(realIP);
+
+                realsPriorities.add(DEFAULT_REALS_PRIORITY);
+            }
+
+            // Check VIP IP in its environment
+            // Search for a VIP environment to get its info (needed for finality, client and environment)
+            VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
+            if (environmentVip == null) {
+                return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
+            }
+            String finality = environmentVip.getFinality();
+            String client = environmentVip.getClient();
+            String environment = environmentVip.getEnvironmentName();
+
+            Vip vip = null;
+            Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), cmd.getVipEnvironmentId());
+            if (ip != null) {
+                List<Vip> vips = _globoNetworkApi.getVipAPI().getByIp(ip.getIpString());
+                for (Vip vipCandidate : vips) {
+                    if (vipCandidate.getServicePorts().equals(ports)) {
+                        vip = vipCandidate;
+                        break;
+                    }
+                }
+            }
+            
+            if (cmd.getRuleState() == FirewallRule.State.Revoke) {
+                if (vip == null) {
+                    s_logger.warn("VIP already removed from GloboNetwork");
+                    return new Answer(cmd, true, "VIP " + cmd.getIpv4() + " already removed from GloboNetwork");
+                } else {
+                    // Delete VIP
+                    return this.removeVipFromGloboNetwork(cmd, vip.getId(), true);
+                }
+            } else {
+                if (ip == null) {
+                    return new Answer(cmd, false, "IP " + cmd.getIpv4() + " doesn't exist in VIP environment " + cmd.getVipEnvironmentId());
+                }
+                if (vip == null) {
+                    s_logger.info("Applying rule " + cmd.getRuleState() + " on VIP " + (vip == null ? null : vip.getId()));
+                    // Vip doesn't exist yet
+                    // Actually add the VIP to GloboNetwork
+                    vip = _globoNetworkApi.getVipAPI().add(ip.getId(), null, expectedHealthcheckId, finality, client, environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence,
+                            healthcheckType, healthcheck, DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+
+                    // Validate the vip
+                    _globoNetworkApi.getVipAPI().validate(vip.getId());
+
+                    // Create the vip on the equipment
+                    if (!vip.getCreated()) {
+                        s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
+                        _globoNetworkApi.getVipAPI().create(vip.getId());
+                    }
+                } else if (vip.getCreated()) {
+                    // Is VIP already created on the equipment?
+                    // Update reals
+                    for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                        if (real.isRevoked()) {
+                            this.removeReal(vip, real.getVmName(), real.getIp());
+                        } else {
+                            this.addAndEnableReal(vip, real.getVmName(), real.getIp()); 
+                        }
+                    }
+                    
+                    // Decide if we need to update persistence
+                    if (!lbPersistence.equals(vip.getPersistence())) {
+                        _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
+                    }
+                    
+                    // Decide if we need to update healthcheck
+                    if ((vip.getHealthcheckType() == null && healthcheckType != null) ||
+                            (vip.getHealthcheckType() != null && !vip.getHealthcheckType().equals(healthcheckType)) ||
+                            (vip.getHealthcheck() == null && healthcheck != null) ||
+                            (vip.getHealthcheck() != null && !vip.getHealthcheck().equals(healthcheck)) ||
+                            (vip.getExpectedHealthcheckId() == null && expectedHealthcheckId != null) ||
+                            (vip.getExpectedHealthcheckId() != null && vip.getExpectedHealthcheckId() == expectedHealthcheckId)) {
+                        _globoNetworkApi.getVipAPI().alterHealthcheck(vip.getId(), healthcheckType, healthcheck, expectedHealthcheckId);
+                    }
+                } else {
+                    // Otherwise, we update the VIP and validate it
+                    _globoNetworkApi.getVipAPI().alter(vip.getId(), ip.getId(), null, expectedHealthcheckId, vip.getValidated(), vip.getCreated(), finality, client,
+                            environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence, healthcheckType, healthcheck,
+                            DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
+
+                    _globoNetworkApi.getVipAPI().validate(vip.getId());
+                }
+                vip = _globoNetworkApi.getVipAPI().getById(vip.getId());
+            }
+            
+            return this.createVipResponse(vip, cmd);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
+    }
+    
+    protected String buildHealthcheckString(String path, String host) {
+        if (path == null || host == null) {
+            return "";
+        }
+        return "GET " + path + " HTTP/1.0\\r\\nHost: " + host + "\\r\\n\\r\\n";
+    }
+
+    private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
+        Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
+        if (equipment == null) {
+            // Equipment doesn't exist
+            return false;
+        }
+        
+        List<Ip> ips = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
+        Ip ip = null;
+        for (Ip equipIp : ips) {
+            String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
+            if (equipIpString.equals(realIpAddr)) {
+                ip = equipIp;
+            }
+        }
+
+        if (ip == null) {
+            return false;
+        }
+
+        if (vip.getRealsIp() != null) {
+            for (RealIP realIp : vip.getRealsIp()) {
+                if (ip.getId().equals(realIp.getIpId())) {
+                    // real already added. Only ensure is enabled
+                    _globoNetworkApi.getVipAPI().enableReal(vip.getId(), ip.getId(), equipment.getId(), null, null);
+                    return true;
+                }
+            }
+        }
+
+        // added reals are always enabled by default
+        _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), null, null);
+        return true;
+    }
+    
+    private boolean removeReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
+        Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
+        if (equipment == null) {
+            // Equipment doesn't exist. So, there is no Vip either.
+            return false;
+        }
+
+        if (vip.getRealsIp() != null) {
+            for (RealIP realIp : vip.getRealsIp()) {
+                if (realIpAddr.equals(realIp.getRealIp())) {
+                    // real exists in vip. Remove it.
+                    _globoNetworkApi.getVipAPI().removeReal(vip.getId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
+                    return true;
+                }
+            }
+        }
+        s_logger.warn("Did not find real in GloboNetwork: " + realIpAddr);
+        return true;
+    }
+
+    private Answer createVipResponse(Vip vip, Command cmd) {
+        if (vip == null) {
+            return new Answer(cmd, false, "Vip request was not created in GloboNetwork");
+        }
+
+        // Using a map rather than a list because different ports come in different objects
+        // even though they have the same ID
+        // Example
+        // {
+        //    "id_ip": "33713",
+        //    "port_real": "8180",
+        //    "port_vip": "80",
+        //    "real_ip": "10.20.30.40",
+        //    "real_name": "MACHINE01"
+        // },
+        // {
+        //    "id_ip": "33713",
+        //    "port_real": "8280",
+        //    "port_vip": "80",
+        //    "real_ip": "10.20.30.40",
+        //    "real_name": "MACHINE01"
+        // },
+
+        Map<Long, Real> reals = new HashMap<Long, Real>();
+        for (RealIP real : vip.getRealsIp()) {
+            Real realResponse = reals.get(real.getIpId());
+            if (realResponse == null) {
+                // Doesn't exist yet, first time iterating, so add IP parameter and add to list
+                realResponse = new Real();
+                realResponse.setIp(real.getRealIp());
+                realResponse.setVmName(real.getName());
+                reals.put(real.getIpId(), realResponse);
+            }
+            realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
+        }
+
+        GloboNetworkVipResponse vipResponse = new GloboNetworkVipResponse(cmd, vip.getId(), // id
+                vip.getHost(), // name
+                vip.getIps().size() == 1 ? vip.getIps().get(0) : vip.getIps().toString(), // ip
+                null, // network
+                vip.getCache(), // cache
+                vip.getMethod(), // method
+                vip.getPersistence(), // persistence
+                vip.getHealthcheckType(), // healtcheck type
+                vip.getHealthcheck(), // healthcheck
+                vip.getMaxConn(), // maxconn,
+                vip.getServicePorts(), reals.values());
+
+        return vipResponse;
+    }
+
+    private Answer createResponse(Vlan vlan, Command cmd) {
+
+        if (vlan.getIpv4Networks().isEmpty()) {
+            // Error code 116 from GloboNetwork: 116 : VlanNaoExisteError,
+            return new GloboNetworkErrorAnswer(cmd, 116, "No networks in this VLAN");
+        }
+
+        IPv4Network ipv4Network = vlan.getIpv4Networks().get(0);
+
+        String vlanName = vlan.getName();
+        String vlanDescription = vlan.getDescription();
+        Long vlanId = vlan.getId();
+        Long vlanNum = vlan.getVlanNum();
+        Ip4Address mask = new Ip4Address(ipv4Network.getMaskOct1() + "." + ipv4Network.getMaskOct2() + "." + ipv4Network.getMaskOct3() + "." + ipv4Network.getMaskOct4());
+        Ip4Address networkAddress = new Ip4Address(ipv4Network.getOct1() + "." + ipv4Network.getOct2() + "." + ipv4Network.getOct3() + "." + ipv4Network.getOct4());
+        return new GloboNetworkVlanResponse(cmd, vlanId, vlanName, vlanDescription, vlanNum, networkAddress, mask, ipv4Network.getId(), ipv4Network.getActive());
+    }
+
+    private Answer createNetworkResponse(IPv4Network network, Command cmd) throws GloboNetworkException {
+        GloboNetworkAndIPResponse answer = new GloboNetworkAndIPResponse(cmd);
+        answer.setNetworkId(network.getId());
+        answer.setVipEnvironmentId(network.getVipEnvironmentId());
+        answer.setNetworkAddress(network.getNetworkAddressAsString());
+        answer.setNetworkBroadcast(network.getBroadcast());
+        answer.setNetworkMask(network.getMaskAsString());
+        answer.setActive(Boolean.TRUE.equals(network.getActive()));
+        long size = network.getBlock();
+
+        answer.setNetworkCidr(network.getNetworkAddressAsString() + "/" + size);
+        // TODO Gateway is always the first ip in network. Change GloboNetwork to send gateway by itself
+        answer.setNetworkGateway(NetUtils.getIpRangeStartIpFromCidr(network.getNetworkAddressAsString(), size));
+
+        // get vlan information
+        Long vlanId = network.getVlanId();
+        Vlan vlan = _globoNetworkApi.getVlanAPI().getById(vlanId);
+        if (vlan == null) {
+            return new Answer(cmd, false, "Vlan with id " + vlanId + " not found");
+        }
+        answer.setVlanId(vlanId);
+        answer.setVlanName(vlan.getName());
+        answer.setVlanDescription(vlan.getDescription());
+        answer.setVlanNum(vlan.getVlanNum().intValue());
+        return answer;
+    }
 }

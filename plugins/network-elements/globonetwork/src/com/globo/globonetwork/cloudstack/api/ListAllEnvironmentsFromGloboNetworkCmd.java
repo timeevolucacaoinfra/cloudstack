@@ -36,8 +36,8 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
-import com.globo.globonetwork.cloudstack.response.GloboNetworkEnvironmentExternalResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkEnvironmentExternalResponse;
 
 @APICommand(name = "listAllEnvironmentsFromGloboNetwork", responseObject=GloboNetworkEnvironmentExternalResponse.class, description="Lists all environments from GloboNetwork")
 public class ListAllEnvironmentsFromGloboNetworkCmd extends BaseCmd {

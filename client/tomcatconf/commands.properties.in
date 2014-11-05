@@ -155,6 +155,8 @@ createLoadBalancerRule=15
 deleteLoadBalancerRule=15
 removeFromLoadBalancerRule=15
 assignToLoadBalancerRule=15
+assignNetworksToLoadBalancerRule=15
+removeNetworksFromLoadBalancerRule=15
 createLBStickinessPolicy=15
 deleteLBStickinessPolicy=15
 listLoadBalancerRules=15
@@ -712,19 +714,23 @@ importLdapUsers=3
 createServiceInstance=1
 
 ### GloboNetwork commands
-addGloboNetworkVlan=15
-addNetworkViaGloboNetwork=15
+acquireNewLBIp=15
 addGloboNetworkEnvironment=1
 addGloboNetworkHost=1
-listGloboNetworkEnvironments=15
-removeGloboNetworkEnvironment=1
-listAllEnvironmentsFromGloboNetwork=1
+addGloboNetworkLBNetwork=1
 addGloboNetworkVipToAccount=15
-listGloboNetworkVips=15
-listGloboNetworkReals=15
+addGloboNetworkVlan=15
+addNetworkViaGloboNetwork=15
 associateGloboNetworkRealToVip=15
 disassociateGloboNetworkRealFromVip=15
 generateUrlForEditingVip=15
+listAllEnvironmentsFromGloboNetwork=1
+listGloboNetworkEnvironments=15
+listGloboNetworkReals=15
+listGloboNetworkLBNetworks=15
+listGloboNetworkVips=15
+removeGloboNetworkEnvironment=1
+removeGloboNetworkLBNetwork=1
 removeGloboNetworkVip=15
 
 ### GloboDNS commands

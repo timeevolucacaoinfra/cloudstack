@@ -38,6 +38,7 @@ public class LoadBalancingRule {
     private List<LbHealthCheckPolicy> healthCheckPolicies;
     private LbSslCert sslCert;
     private String lbProtocol;
+    private List<Long> additionalNetworks;
 
     public LoadBalancingRule(LoadBalancer lb, List<LbDestination> destinations,
                              List<LbStickinessPolicy> stickinessPolicies, List<LbHealthCheckPolicy> healthCheckPolicies, Ip sourceIp) {
@@ -143,6 +144,14 @@ public class LoadBalancingRule {
     public LbSslCert getLbSslCert(){
         return sslCert;
     }
+    
+    public List<Long> getAdditionalNetworks() {
+        return additionalNetworks;
+    }
+    
+    public void setAdditionalNetworks(List<Long> additionalNetworks) {
+        this.additionalNetworks = additionalNetworks;
+    }
 
     public interface Destination {
         String getIpAddress();
@@ -150,8 +159,12 @@ public class LoadBalancingRule {
         int getDestinationPortStart();
 
         int getDestinationPortEnd();
+        
+        long getNetworkId();
 
         boolean isRevoked();
+        
+        long getInstanceId();
     }
 
     public static class LbStickinessPolicy {
@@ -246,12 +259,16 @@ public class LoadBalancingRule {
         private int portStart;
         private int portEnd;
         private String ip;
+        private long networkId;
+        private long instanceId;
         boolean revoked;
 
-        public LbDestination(int portStart, int portEnd, String ip, boolean revoked) {
+        public LbDestination(int portStart, int portEnd, String ip, long networkId, long instanceId, boolean revoked) {
             this.portStart = portStart;
             this.portEnd = portEnd;
             this.ip = ip;
+            this.networkId = networkId;
+            this.instanceId = instanceId;
             this.revoked = revoked;
         }
 
@@ -268,6 +285,16 @@ public class LoadBalancingRule {
         @Override
         public int getDestinationPortEnd() {
             return portEnd;
+        }
+        
+        @Override
+        public long getNetworkId() {
+            return networkId;
+        }
+        
+        @Override
+        public long getInstanceId() {
+            return instanceId;
         }
 
         @Override

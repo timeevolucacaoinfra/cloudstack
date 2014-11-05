@@ -170,6 +170,8 @@ import com.cloud.network.dao.FirewallRulesDao;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.LoadBalancerDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkDomainDao;
@@ -322,6 +324,7 @@ public class ApiDBUtils {
     static AccountGuestVlanMapDao _accountGuestVlanMapDao;
     static IPAddressDao _ipAddressDao;
     static LoadBalancerDao _loadBalancerDao;
+    static LoadBalancerNetworkMapDao _lbNetMapDao;
     static SecurityGroupDao _securityGroupDao;
     static SecurityGroupJoinDao _securityGroupJoinDao;
     static ServiceOfferingJoinDao _serviceOfferingJoinDao;
@@ -433,6 +436,7 @@ public class ApiDBUtils {
     @Inject private AccountGuestVlanMapDao accountGuestVlanMapDao;
     @Inject private IPAddressDao ipAddressDao;
     @Inject private LoadBalancerDao loadBalancerDao;
+    @Inject private LoadBalancerNetworkMapDao lbNetMapDao;
     @Inject private SecurityGroupDao securityGroupDao;
     @Inject private SecurityGroupJoinDao securityGroupJoinDao;
     @Inject private ServiceOfferingJoinDao serviceOfferingJoinDao;
@@ -548,6 +552,7 @@ public class ApiDBUtils {
         _hostDao = hostDao;
         _ipAddressDao = ipAddressDao;
         _loadBalancerDao = loadBalancerDao;
+        _lbNetMapDao = lbNetMapDao;
         _networkRuleConfigDao = networkRuleConfigDao;
         _podDao = podDao;
         _serviceOfferingDao = serviceOfferingDao;
@@ -1719,5 +1724,9 @@ public class ApiDBUtils {
     
     public static List<ResourceTagJoinVO> listResourceTagViewByResourceUUID(String resourceUUID, ResourceObjectType resourceType){
         return  _tagJoinDao.listBy(resourceUUID, resourceType);
+    }
+    
+    public static List<LoadBalancerNetworkMapVO> listLoadBalancerAdditionalNetworks(long loadBalancerId) {
+        return _lbNetMapDao.listByLoadBalancerId(loadBalancerId);
     }
 }

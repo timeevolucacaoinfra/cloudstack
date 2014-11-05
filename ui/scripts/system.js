@@ -6213,6 +6213,135 @@
                                             }                                     
                                         },                                        
                                     },
+                                    detailView: {
+                                        tabs: {
+                                            vipenvs: {
+                                                title: 'LB Networks',
+                                                listView: {
+                                                    label: 'LB Networks',
+                                                    id: 'globolbnetworks',
+                                                    fields: {
+                                                        name: {
+                                                            label: 'Local Name'
+                                                        },
+                                                        globolbnetworkid: {
+                                                            label: 'GloboNetwork Network ID'
+                                                        }
+                                                    },
+                                                    dataProvider: function(args) {
+                                                        var filter;
+                                                        if (args.filterBy.search.value) {
+                                                            filter = args.filterBy.search.value;
+                                                        }
+
+                                                        var items = [];
+                                                        $.ajax({
+                                                            url: createURL("listGloboNetworkLBNetworks&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                            success: function(json) {
+                                                                $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
+                                                                    if (this.name.match(new RegExp(filter, "i"))) {
+                                                                        items.push({
+                                                                            name: this.name,
+                                                                            globolbnetworkid: this.globonetworklbnetworkid,
+                                                                        });
+                                                                    }
+                                                                });
+                                                                args.response.success({
+                                                                    data: items
+                                                                });
+                                                            }
+                                                        });
+                                                    },
+                                                    actions: {
+                                                        add: {
+                                                            label: 'Add LB Network',
+                                                            createForm: {
+                                                                title: 'Add LB Network',
+                                                                fields: {
+                                                                    name: {
+                                                                        label: 'Name',
+                                                                        validation: {
+                                                                            required: true
+                                                                        }
+                                                                    },
+                                                                    globolbnetworkid: {
+                                                                        label: 'LB Network ID',
+                                                                        validation: {
+                                                                            required: true
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            action: function(args) {
+                                                                var physicalnetworkid = selectedPhysicalNetworkObj.id;
+                                                                var environmentid = args.context.napienvironments[0].environmentid;
+                                                                var globolbnetworkid = args.data.globolbnetworkid;
+                                                                var name = args.data.name;
+                                                                $.ajax({
+                                                                    url: createURL("addGloboNetworkLBNetwork&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&globolbnetworkid=" + globolbnetworkid + "&name=" + name),
+                                                                    dataType: "json",
+                                                                    async: true,
+                                                                    success: function(json) {
+                                                                        var jid = json.addglobonetworklbnetworkresponse.jobid;
+                                                                        args.response.success({
+                                                                            _custom: {
+                                                                                jobId: jid,
+                                                                                getUpdatedItem: function(json) {
+                                                                                    $(window).trigger('cloudStack.fullRefresh');
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                    }
+                                                                });
+                                                            },
+                                                            messages: {
+                                                                notification: function(args) {
+                                                                    return 'VIP Environment added successfully';
+                                                                }
+                                                            },
+                                                            notification: {
+                                                                poll: pollAsyncJobResult
+                                                            }
+                                                        },
+                                                        remove: {
+                                                            label: 'label.remove',
+                                                            messages: {
+                                                                confirm: function(args) {
+                                                                    return 'Are you sure you want to remove LB network ' + args.context.globolbnetworks[0].name + '(' + args.context.globolbnetworks[0].globolbnetworkid + ')?';
+                                                                },
+                                                                notification: function(args) {
+                                                                    return 'Remove GloboNetwork LB Network';
+                                                                }
+                                                            },
+                                                            action: function(args) {
+                                                                var physicalnetworkid = selectedPhysicalNetworkObj.id;
+                                                                var environmentid = args.context.napienvironments[0].environmentid;
+                                                                var globolbnetworkid = args.context.globolbnetworks[0].globolbnetworkid;
+                                                                $.ajax({
+                                                                    url: createURL("removeGloboNetworkLBNetwork&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&globolbnetworkid=" + globolbnetworkid),
+                                                                    dataType: "json",
+                                                                    async: true,
+                                                                    success: function(json) {
+                                                                        args.response.success();
+                                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                                    },
+                                                                    error: function(XMLHttpResponse) {
+                                                                        var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                                        args.response.error(errorMsg);
+                                                                    }
+                                                                });
+                                                            },
+                                                            notification: {
+                                                                poll: function(args) {
+                                                                    args.complete();
+                                                                }
+                                                            }
+                                                        },
+                                                    },
+                                                }
+                                            }
+                                        }
+                                    },
                                 }
                             }
                         },

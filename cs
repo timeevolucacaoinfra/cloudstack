@@ -12,8 +12,14 @@ case "$1" in
   compile)
     mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
     ;;
+  compile-changes)
+    mvn -Pdeveloper,systemvm -Dsimulator install -DskipTests
+    ;;
   compile-quick)
     mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
+    ;;
+  update-js)
+    cp -R ui/scripts client/target/generated-webapp/
     ;;
   deploydb)
     mvn -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
@@ -85,8 +91,10 @@ RUN
     run-simulator     Run Jetty w/ hypervisor simulator
     
 COMPILE
-    compile           Compile cloudstack
+    compile           Clean and Compile entire cloudstack
+    compile-changes   Compile only changes in all cloudstack
     compile-quick     Compile only globo elements
+    update-js         Update Javascript only
 
 DB
     deploydb          Create Required SQL Schema
