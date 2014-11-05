@@ -28,7 +28,6 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.context.CallContext;
@@ -40,6 +39,7 @@ import org.apache.cloudstack.region.PortableIp;
 import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpVO;
 import org.apache.cloudstack.region.Region;
+import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.alert.AlertManager;
@@ -104,7 +104,6 @@ import com.cloud.network.element.IpDeployingRequester;
 import com.cloud.network.element.NetworkElement;
 import com.cloud.network.element.StaticNatServiceProvider;
 import com.cloud.network.guru.NetworkGuru;
-import com.cloud.network.guru.NetworkGuruWithIPAM;
 import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.network.rules.FirewallManager;
 import com.cloud.network.rules.FirewallRule;
@@ -134,20 +133,19 @@ import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
 import com.cloud.utils.Pair;
 import com.cloud.utils.Ternary;
-import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.EntityManager;
 import com.cloud.utils.db.Filter;
 import com.cloud.utils.db.GlobalLock;
-import com.cloud.utils.db.TransactionCallback;
-import com.cloud.utils.db.TransactionCallbackNoReturn;
-import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.JoinBuilder.JoinType;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
 import com.cloud.utils.db.SearchCriteria.Op;
 import com.cloud.utils.db.Transaction;
+import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackNoReturn;
+import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionCallbackWithExceptionNoReturn;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -274,16 +272,6 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
     PortableIpDao _portableIpDao;
     SearchBuilder<IPAddressVO> AssignIpAddressSearch;
     SearchBuilder<IPAddressVO> AssignIpAddressFromPodVlanSearch;
-
-    List<NetworkGuru> _networkGurus;
-
-    public List<NetworkGuru> getNetworkGurus() {
-        return _networkGurus;
-    }
-
-    public void setNetworkGurus(List<NetworkGuru> _networkGurus) {
-        this._networkGurus = _networkGurus;
-    }
 
     @Override
     public boolean configure(String name, Map<String, Object> params) {
@@ -1683,8 +1671,6 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
             return Transaction.execute(new TransactionCallback<IPAddressVO>() {
                 @Override
                 public IPAddressVO doInTransaction(TransactionStatus status) {
-
-                    releaseIp(ip);
                     
                     if (updateIpResourceCount(ip)) {
                         _resourceLimitMgr.decrementResourceCount(_ipAddressDao.findById(addrId).getAllocatedToAccountId(), ResourceType.public_ip);
@@ -2003,22 +1989,6 @@ public class IpAddressManagerImpl extends ManagerBase implements IpAddressManage
 
         ipaddr = acquireGuestIpAddress(network, requestedIp);
         return ipaddr;
-    }
-
-    protected void releaseIp(IpAddress ip) {
-        if (ip == null) {
-            s_logger.error("Null IP or network can't be released.");
-            return;
-        }
-
-        if (ip.getAssociatedWithNetworkId() != null) {
-            Network guestNetwork = _networksDao.findById(ip.getAssociatedWithNetworkId());
-            // call guru to release ip, if is a NetworkWithIPAM
-            NetworkGuru guru = AdapterBase.getAdapterByName(_networkGurus, guestNetwork.getGuruName());
-            if (guru instanceof NetworkGuruWithIPAM) {
-                ((NetworkGuruWithIPAM) guru).release(guestNetwork, ip);
-            }
-        }
     }
 
     @Override

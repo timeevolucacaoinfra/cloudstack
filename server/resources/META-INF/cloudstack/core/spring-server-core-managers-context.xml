@@ -74,7 +74,6 @@
     </bean>
 
     <bean id="ipAddressManagerImpl" class="com.cloud.network.IpAddressManagerImpl">
-        <property name="networkGurus" value="#{networkGurusRegistry.registered}" />
     </bean>
 
     <bean id="networkModelImpl" class="com.cloud.network.NetworkModelImpl">
