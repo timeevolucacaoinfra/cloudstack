@@ -764,6 +764,8 @@
 
                         var provider = lbService.provider[0].name;
 
+                        // FIXME Check what happen if loadbalancer is not active in network
+
                         var url;
                         var data = {};
                         if (args.data.isportable === 'true' && provider === 'GloboNetwork') {
@@ -774,6 +776,7 @@
                             };
                         } else if (provider === 'GloboNetwork') {
                             // GloboNetwork should only work with portable IPs
+                            // FIXME Precisa testar isto
                             args.response.error("Network is provided by GloboNetwork and can only manage cross zone IPs (portable)");
                             return;
                         } else {
@@ -784,11 +787,18 @@
                             };
                         }
 
+                        var show_error_message = function(json) {
+                            console.error('error', json);
+                            // args.response.error(parseXMLHttpResponse(json));
+                            cloudStack.dialog.notice({
+                                message: _s(json.responseText)
+                            });
+                        };
+
                         $.ajax({
                             url: createURL(url),
                             data: data,
                             dataType: "json",
-                            async: true,
                             success: function(json) {
                                 var ipId = json.associateipaddressresponse.id;
 
@@ -810,17 +820,30 @@
                                     url: createURL('createLoadBalancerRule'),
                                     data: data,
                                     dataType: 'json',
-                                    async: true,
                                     success: function(data) {
                                         var jobID = data.createloadbalancerruleresponse.jobid;
                                         var lbID = data.createloadbalancerruleresponse.id;
+
+                                        args.response.success({
+                                            _custom: {
+                                                jobId: jobID,
+                                                getUpdatedItem: function(json) {
+                                                    return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                },
+                                                notification: {
+                                                    poll: pollAsyncJobResult
+                                                }
+                                            }
+                                        });
+
+
                                         // Create stickiness policy
                                         if (stickyData &&
                                             stickyData.methodname &&
                                             stickyData.methodname != 'None') {
                                             cloudStack.lbStickyPolicy.actions.add(lbID,
                                                 stickyData,
-                                                args.complete, args.error);
+                                                $.noop, $.noop);
                                         }
 
                                         // Create healthcheck
@@ -833,34 +856,25 @@
                                             url: createURL('createLBHealthCheckPolicy'),
                                             data: datahealthcheck,
                                             success: function(json) {
-                                                args.response.success({
-                                                    _custom: {
-                                                        jobId: jobID,
-                                                        getUpdatedItem: function(json) {
-                                                            return json.queryasyncjobresultresponse.jobresult.loadbalancer;
-                                                        },
-                                                        notification: {
-                                                            poll: pollAsyncJobResult
+                                                cloudStack.ui.notifications.add({
+                                                        desc: 'Add Healthcheck Policy',
+                                                        section: 'Network',
+                                                        poll: pollAsyncJobResult,
+                                                        _custom: {
+                                                            jobId: json.createlbhealthcheckpolicyresponse.jobid
                                                         }
-                                                    }
-                                                });
+                                                    },
+                                                    $.noop, {},
+                                                    $.noop, {}
+                                                );
                                             },
-                                            error: function(json) {
-                                                cloudStack.dialog.notice({
-                                                    message: _s(json.responseText)
-                                                });
-                                            }
-
+                                            error: show_error_message // healtcheck
                                         });
                                     },
-                                    error: function(json) {
-                                        args.response.error(parseXMLHttpResponse(json));
-                                    }
+                                    error: show_error_message
                                 });
                             },
-                            error: function(json) {
-                                args.response.error(parseXMLHttpResponse(json));
-                            }
+                            error: show_error_message // associateipaddress
                         });
                     },
                     messages: {
