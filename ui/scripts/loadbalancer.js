@@ -218,10 +218,25 @@
                                             dataType: "json",
                                             async: true,
                                             success: function(json) {
-                                                $(window).trigger('cloudStack.fullRefresh');
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid,
+                                                        fullRefreshAfterComplete: true,
+                                                        notification: {
+                                                            label: 'Remove Network From Load Balancer',
+                                                            poll: pollAsyncJobResult
+                                                        },
+                                                        onComplete: function(args) {
+                                                            $(window).trigger('cloudStack.fullRefresh');
+                                                        }
+                                                    },
+                                                });
                                             },
                                             error: function(errorMessage) {
                                                 args.response.error(errorMessage);
+                                                cloudStack.dialog.notice({
+                                                    message: parseXMLHttpResponse(json)
+                                                });
                                             }
                                         });
                                     },
@@ -275,8 +290,19 @@
                                             dataType: "json",
                                             async: true,
                                             success: function(json) {
-                                                // Refresh load balancer list
-                                                $(window).trigger('cloudStack.fullRefresh');
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: json.assignnetworkstoloadbalancerruleresponse.jobid,
+                                                        fullRefreshAfterComplete: true,
+                                                        notification: {
+                                                            label: 'Assign Network To Load Balancer',
+                                                            poll: pollAsyncJobResult
+                                                        },
+                                                        onComplete: function(args) {
+                                                            $(window).trigger('cloudStack.fullRefresh');
+                                                        }
+                                                    },
+                                                });
                                             },
                                             error: function(errorMessage) {
                                                 args.response.error(errorMessage);
