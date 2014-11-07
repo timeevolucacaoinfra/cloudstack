@@ -491,49 +491,56 @@
                             return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].name + '?';
                         },
                         notification: function(args) {
-                            return 'Remove Load Balancer Rule';
+                            return 'Removing Ip Address';
                         }
                     },
                     action: function(args) {
                         var ipToBeReleased = args.context.loadbalancers[0].publicipid;
+
+                        var show_error_message = function(json) {
+                            console.error('erro json', json);
+                            args.response.error(parseXMLHttpResponse(json));
+                        };
+
                         $.ajax({
                             url: createURL("deleteLoadBalancerRule"),
                             data: {
                                 id: args.context.loadbalancers[0].id
                             },
                             dataType: "json",
-                            async: true,
                             success: function(data) {
-                                var jobID = data.deleteloadbalancerruleresponse.jobid;
-                                args.response.success({
-                                    _custom: {
-                                        jobId: jobID,
-                                        notification: {
-                                            label: 'label.action.delete.load.balancer',
-                                            poll: pollAsyncJobResult
-                                        },
-                                        onComplete: function(args) {
-                                            $.ajax({
-                                                url: createURL('disassociateIpAddress'),
-                                                data: {
-                                                    id: ipToBeReleased
-                                                },
-                                                dataType: 'json',
-                                                async: true,
-                                                success: function(data) {
-                                                    $(window).trigger('cloudStack.fullRefresh');
-                                                },
-                                                error: function(data) {
-                                                    args.response.error(parseXMLHttpResponse(data));
-                                                }
-                                            });
+                                cloudStack.ui.notifications.add({
+                                        desc: 'label.action.delete.load.balancer',
+                                        section: 'Network',
+                                        poll: pollAsyncJobResult,
+                                        _custom: {
+                                            jobId: data.deleteloadbalancerruleresponse.jobid
                                         }
-                                    }
-                                });
+                                    },
+                                    function() {
+                                        $.ajax({
+                                            url: createURL('disassociateIpAddress'),
+                                            data: {
+                                                id: ipToBeReleased
+                                            },
+                                            dataType: 'json',
+                                            success: function(data) {
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: data.disassociateipaddressresponse.jobid,
+                                                        notification: {
+                                                            poll: pollAsyncJobResult
+                                                        }
+                                                    }
+                                                });
+                                            },
+                                            error: show_error_message
+                                        });
+                                    }, {},
+                                    show_error_message, {} // job deleteLoadBalancerRule
+                                );
                             },
-                            error: function(errorMessage) {
-                                args.response.error(parseXMLHttpResponse(data));
-                            }
+                            error: show_error_message // ajax deleteLoadBalancerRule
                         });
                     },
                     notification: {
