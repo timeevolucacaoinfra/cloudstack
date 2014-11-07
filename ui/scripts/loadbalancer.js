@@ -199,7 +199,7 @@
                             },
                             actions: {
                                 remove: {
-                                    label: 'label.remove',
+                                    label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
                                             return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
@@ -216,34 +216,20 @@
                                                 networkids: args.context.networks[0].id
                                             },
                                             dataType: "json",
-                                            async: true,
                                             success: function(json) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid,
-                                                        fullRefreshAfterComplete: true,
-                                                        notification: {
-                                                            label: 'Remove Network From Load Balancer',
-                                                            poll: pollAsyncJobResult
-                                                        },
-                                                        onComplete: function(args) {
-                                                            $(window).trigger('cloudStack.fullRefresh');
-                                                        }
+                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid
                                                     },
                                                 });
                                             },
                                             error: function(errorMessage) {
-                                                args.response.error(errorMessage);
-                                                cloudStack.dialog.notice({
-                                                    message: parseXMLHttpResponse(json)
-                                                });
+                                                args.response.error(parseXMLHttpResponse(errorMessage));
                                             }
                                         });
                                     },
                                     notification: {
-                                        poll: function(args) {
-                                            args.complete();
-                                        }
+                                        poll: pollAsyncJobResult
                                     }
                                 },
                                 add: {
@@ -288,24 +274,16 @@
                                                 networkids: args.data.network
                                             },
                                             dataType: "json",
-                                            async: true,
                                             success: function(json) {
                                                 args.response.success({
                                                     _custom: {
                                                         jobId: json.assignnetworkstoloadbalancerruleresponse.jobid,
-                                                        fullRefreshAfterComplete: true,
-                                                        notification: {
-                                                            label: 'Assign Network To Load Balancer',
-                                                            poll: pollAsyncJobResult
-                                                        },
-                                                        onComplete: function(args) {
-                                                            $(window).trigger('cloudStack.fullRefresh');
-                                                        }
+                                                        fullRefreshAfterComplete: true
                                                     },
                                                 });
                                             },
                                             error: function(errorMessage) {
-                                                args.response.error(errorMessage);
+                                                args.response.error(parseXMLHttpResponse(errorMessage));
                                             }
                                         });
                                     },
@@ -365,13 +343,13 @@
                             },
                             actions: {
                                 remove: {
-                                    label: 'label.remove',
+                                    label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
                                             return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
                                         },
                                         notification: function(args) {
-                                            return 'Remove VM From Load Balancer';
+                                            return 'label.remove.vm.from.lb';
                                         }
                                     },
                                     action: function(args) {
@@ -382,18 +360,10 @@
                                                 virtualmachineids: args.context.vms[0].id
                                             },
                                             dataType: "json",
-                                            async: true,
                                             success: function(data) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: data.removefromloadbalancerruleresponse.jobid,
-                                                        notification: {
-                                                            label: 'label.remove.vms.from.lb',
-                                                            poll: pollAsyncJobResult
-                                                        },
-                                                        onComplete: function(args) {
-                                                            $(window).trigger('cloudStack.fullRefresh');
-                                                        }
+                                                        jobId: data.removefromloadbalancerruleresponse.jobid
                                                     }
                                                 });
                                             },
@@ -403,9 +373,7 @@
                                         });
                                     },
                                     notification: {
-                                        poll: function(args) {
-                                            args.complete();
-                                        }
+                                        poll: pollAsyncJobResult
                                     }
                                 },
                                 add: {
@@ -454,14 +422,8 @@
                                                 args.response.success({
                                                     _custom: {
                                                         jobId: data.assigntoloadbalancerruleresponse.jobid,
-                                                        notification: {
-                                                            label: 'label.add.vms.to.lb',
-                                                            poll: pollAsyncJobResult
-                                                        },
-                                                        onComplete: function(args) {
-                                                            $(window).trigger('cloudStack.fullRefresh');
-                                                        }
-                                                    },
+                                                        fullRefreshAfterComplete: true
+                                                    }
                                                 });
                                             },
                                             error: function(errorMessage) {
@@ -471,7 +433,7 @@
                                     },
                                     messages: {
                                         notification: function(args) {
-                                            return 'VM added to Load Balancer';
+                                            return 'label.add.vms.to.lb';
                                         }
                                     },
                                     notification: {
@@ -485,7 +447,7 @@
             },
             actions: {
                 remove: {
-                    label: 'label.remove',
+                    label: 'label.delete',
                     messages: {
                         confirm: function(args) {
                             return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].name + '?';
@@ -498,7 +460,6 @@
                         var ipToBeReleased = args.context.loadbalancers[0].publicipid;
 
                         var show_error_message = function(json) {
-                            console.error('erro json', json);
                             args.response.error(parseXMLHttpResponse(json));
                         };
 
@@ -527,10 +488,7 @@
                                             success: function(data) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: data.disassociateipaddressresponse.jobid,
-                                                        notification: {
-                                                            poll: pollAsyncJobResult
-                                                        }
+                                                        jobId: data.disassociateipaddressresponse.jobid
                                                     }
                                                 });
                                             },
@@ -821,11 +779,7 @@
                         }
 
                         var show_error_message = function(json) {
-                            console.error('error', json);
-                            // args.response.error(parseXMLHttpResponse(json));
-                            cloudStack.dialog.notice({
-                                message: _s(json.responseText)
-                            });
+                            args.response.error(parseXMLHttpResponse(json));
                         };
 
                         $.ajax({
@@ -862,9 +816,6 @@
                                                 jobId: jobID,
                                                 getUpdatedItem: function(json) {
                                                     return json.queryasyncjobresultresponse.jobresult.loadbalancer;
-                                                },
-                                                notification: {
-                                                    poll: pollAsyncJobResult
                                                 }
                                             }
                                         });
