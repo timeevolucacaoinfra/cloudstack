@@ -480,7 +480,7 @@
                                     },
                                     function() {
                                         $.ajax({
-                                            url: createURL('disassociateIpAddress'),
+                                            url: createURL('disassociateIpAddressFromGloboNetwork'),
                                             data: {
                                                 id: ipToBeReleased
                                             },
@@ -488,7 +488,7 @@
                                             success: function(data) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: data.disassociateipaddressresponse.jobid
+                                                        jobId: data.disassociateipaddressfromglobonetworkresponse.jobid
                                                     }
                                                 });
                                             },

@@ -723,6 +723,7 @@ addGloboNetworkVlan=15
 addNetworkViaGloboNetwork=15
 associateGloboNetworkRealToVip=15
 disassociateGloboNetworkRealFromVip=15
+disassociateIpAddressFromGloboNetwork=15
 generateUrlForEditingVip=15
 listAllEnvironmentsFromGloboNetwork=1
 listGloboNetworkEnvironments=15
