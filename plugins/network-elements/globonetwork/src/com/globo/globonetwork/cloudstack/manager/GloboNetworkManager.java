@@ -1912,7 +1912,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
             String method = globoNetworkVip.getMethod();
             if (globoNetworkVip.getCreated() && !rule.getAlgorithm().equals(method)) {
-                throw new InvalidParameterValueException("It is not allowed to change balancing method.");
+                throw new InvalidParameterValueException("It is not allowed to change balancing method in GloboNetwork.");
             }
         }
         return true;
