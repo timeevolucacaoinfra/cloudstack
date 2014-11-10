@@ -113,6 +113,7 @@ import com.cloud.utils.db.Transaction;
 import com.cloud.utils.db.TransactionCallback;
 import com.cloud.utils.db.TransactionCallbackNoReturn;
 import com.cloud.utils.db.TransactionCallbackWithException;
+import com.cloud.utils.db.TransactionCallbackWithExceptionNoReturn;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
@@ -137,6 +138,7 @@ import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
+import com.globo.globonetwork.cloudstack.api.DisassociateIpAddrFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
@@ -913,6 +915,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(AddGloboNetworkVlanCmd.class);
         cmdList.add(AddNetworkViaGloboNetworkCmd.class);
         cmdList.add(DelGloboNetworkRealFromVipCmd.class);
+        cmdList.add(DisassociateIpAddrFromGloboNetworkCmd.class);
         cmdList.add(GenerateUrlForEditingVipCmd.class);
         cmdList.add(ListAllEnvironmentsFromGloboNetworkCmd.class);
         cmdList.add(ListGloboNetworkEnvironmentsCmd.class);
@@ -1672,20 +1675,50 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } catch (CloudException e) {
             // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
             s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
-            releaseLbIpFromGloboNetwork(network, globoNetwork.getIp().addr());
+            releaseLbIpFromGloboNetwork(network, globoNetwork.getVipEnvironmentId(), globoNetwork.getIp().addr());
             throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
         }
     }
     
     @Override
-    public boolean releaseLbIpFromGloboNetwork(Network network, String ip) {
-        if (network == null) {
-            throw new InvalidParameterValueException("Invalid network");
+    public boolean disassociateIpAddrFromGloboNetwork(final long ipId) {
+        final IPAddressVO ipVO = _ipAddrDao.findById(ipId);
+        if (ipVO == null) {
+            throw new InvalidParameterValueException("Unable to find ip address with id=" + ipId);
         }
-        
-        Long lbEnvironmentId = getLoadBalancerEnvironmentId(network, ip);
+
+        try {
+            boolean result = Transaction.execute(new TransactionCallbackWithExceptionNoReturn<CloudException>() {
+
+                @Override
+                public void doInTransactionWithoutResult(TransactionStatus status) throws CloudException {
+                    Network network = _ntwkDao.findById(ipVO.getAssociatedWithNetworkId());
+                    if (network == null) {
+                        throw new InvalidParameterValueException("Could not find associated network");
+                    }
+                    
+                    String ip = ipVO.getAddress().addr();
+
+                    Long lbEnvironmentId = getLoadBalancerEnvironmentId(network, ip);
+                    
+                    boolean resultCS = _ipAddrMgr.releasePortableIpAddress(ipId);
+                    if (resultCS) {
+                        releaseLbIpFromGloboNetwork(network, lbEnvironmentId, ip);
+                    } else {
+                        throw new CloudException("Could not disassociate portable IP in Cloudstack");
+                    }
+                }                
+            });
+            
+            return result;
+        } catch (CloudException e) {
+            throw new CloudRuntimeException("Could not disassociate IP address", e);
+        }
+    }
+    
+    private boolean releaseLbIpFromGloboNetwork(Network network, Long lbEnvironmentId, String ip) {
         if (lbEnvironmentId == null) {
-            throw new InvalidParameterValueException("There is no lb environment associated to network " + network.getId());
+            throw new InvalidParameterValueException("Invalid parameter lbEnvironmentId when releasing IP " + ip + " from GloboNetwork");
         }
 
         ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(ip, lbEnvironmentId);
