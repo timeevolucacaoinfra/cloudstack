@@ -17,6 +17,99 @@
 
 (function(cloudStack, $) {
 
+    /**
+    cascadeAsyncCmds({
+        commands: [
+            {
+                name: 'createLoadBalancer',
+                url: '' // optional
+                data: { name: 'xxx', otherProperty: true}
+                result: null, // será colocado automaticamente pelo comando
+            },
+            {
+                name: 'createHealthcheck',
+                data: function(last_result, command_index, commands) { return { pingpath: 'xxx', lbruleid: json.lbresponse.id } }
+            },
+        ]
+    });
+    */
+    var cascadeAsyncCmds = function(args) {
+
+        var process_command = function(index, last_result) {
+            var command = args.commands[index];
+
+            var process_success = function(result, jobId) {
+                command.result = result;
+                if (index === args.commands.length-1) {
+                    // runned last command.
+                    args.success(result, jobId);
+                } else {
+                    // run next command
+                    process_command(index+1, result);
+                }
+            };
+
+            if ($.isFunction(command.data)) {
+                command.data = command.data(last_result, index, args);
+            }
+
+            // sometimes, command must be skipped
+            if (command.data === false) {
+                process_success(last_result, null);
+                return;
+            }
+
+            if (!command.url) {
+                command.url = createURL(command.name);
+            }
+
+            $.ajax({
+                url: command.url,
+                data: command.data,
+                dataType: "json",
+                success: function(result) {
+                    var jobId, timerControl;
+
+                    // get jobid
+                    for (var prop in result) {
+                        if (result.hasOwnProperty(prop) && prop.match(/response$/)) {
+                            jobId = result[prop].jobid;
+                            break;
+                        }
+                    }
+
+                    if (!jobId) {
+                        // jobid not found. Synchronous command
+                        process_success(result, null);
+                    } else {
+                        // pool jobid for completion
+                        timerControl = setInterval(function() {
+                            console.debug('Checking job' + command.name);
+                            pollAsyncJobResult({
+                                _custom: {
+                                    jobId: jobId
+                                },
+                                complete: function(json) {
+                                    clearInterval(timerControl);
+                                    process_success(result, jobId);
+                                },
+                                error: function(message) {
+                                    clearInterval(timerControl);
+                                    args.error(message, index, args);
+                                }
+                            });
+                        }, g_queryAsyncJobResultInterval);
+                    }
+                },
+                error: function (json) {
+                    args.error(parseXMLHttpResponse(json), index, args);
+                }
+            });
+        };
+
+        process_command(0, {});
+    };
+
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
         id: 'loadbalancer',
@@ -98,6 +191,9 @@
                             },
                         }],
                         dataProvider: function(args) {
+                            if (!args.jsonObj) {
+                                args.jsonObj = args.context.loadbalancers[0];
+                            }
                             $.ajax({
                                 url: createURL("listLBStickinessPolicies"),
                                 data: {
@@ -199,7 +295,7 @@
                             },
                             actions: {
                                 remove: {
-                                    label: 'label.remove',
+                                    label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
                                             return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
@@ -216,19 +312,20 @@
                                                 networkids: args.context.networks[0].id
                                             },
                                             dataType: "json",
-                                            async: true,
                                             success: function(json) {
-                                                $(window).trigger('cloudStack.fullRefresh');
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid
+                                                    },
+                                                });
                                             },
                                             error: function(errorMessage) {
-                                                args.response.error(errorMessage);
+                                                args.response.error(parseXMLHttpResponse(errorMessage));
                                             }
                                         });
                                     },
                                     notification: {
-                                        poll: function(args) {
-                                            args.complete();
-                                        }
+                                        poll: pollAsyncJobResult
                                     }
                                 },
                                 add: {
@@ -273,13 +370,16 @@
                                                 networkids: args.data.network
                                             },
                                             dataType: "json",
-                                            async: true,
                                             success: function(json) {
-                                                // Refresh load balancer list
-                                                $(window).trigger('cloudStack.fullRefresh');
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: json.assignnetworkstoloadbalancerruleresponse.jobid,
+                                                        fullRefreshAfterComplete: true
+                                                    },
+                                                });
                                             },
                                             error: function(errorMessage) {
-                                                args.response.error(errorMessage);
+                                                args.response.error(parseXMLHttpResponse(errorMessage));
                                             }
                                         });
                                     },
@@ -339,13 +439,13 @@
                             },
                             actions: {
                                 remove: {
-                                    label: 'label.remove',
+                                    label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
                                             return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
                                         },
                                         notification: function(args) {
-                                            return 'Remove VM From Load Balancer';
+                                            return 'label.remove.vm.from.lb';
                                         }
                                     },
                                     action: function(args) {
@@ -356,18 +456,10 @@
                                                 virtualmachineids: args.context.vms[0].id
                                             },
                                             dataType: "json",
-                                            async: true,
                                             success: function(data) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: data.removefromloadbalancerruleresponse.jobid,
-                                                        notification: {
-                                                            label: 'label.remove.vms.from.lb',
-                                                            poll: pollAsyncJobResult
-                                                        },
-                                                        onComplete: function(args) {
-                                                            $(window).trigger('cloudStack.fullRefresh');
-                                                        }
+                                                        jobId: data.removefromloadbalancerruleresponse.jobid
                                                     }
                                                 });
                                             },
@@ -377,9 +469,7 @@
                                         });
                                     },
                                     notification: {
-                                        poll: function(args) {
-                                            args.complete();
-                                        }
+                                        poll: pollAsyncJobResult
                                     }
                                 },
                                 add: {
@@ -428,14 +518,8 @@
                                                 args.response.success({
                                                     _custom: {
                                                         jobId: data.assigntoloadbalancerruleresponse.jobid,
-                                                        notification: {
-                                                            label: 'label.add.vms.to.lb',
-                                                            poll: pollAsyncJobResult
-                                                        },
-                                                        onComplete: function(args) {
-                                                            $(window).trigger('cloudStack.fullRefresh');
-                                                        }
-                                                    },
+                                                        fullRefreshAfterComplete: true
+                                                    }
                                                 });
                                             },
                                             error: function(errorMessage) {
@@ -445,7 +529,7 @@
                                     },
                                     messages: {
                                         notification: function(args) {
-                                            return 'VM added to Load Balancer';
+                                            return 'label.add.vms.to.lb';
                                         }
                                     },
                                     notification: {
@@ -456,58 +540,190 @@
                         }
                     },
                 },
+                actions: {
+                    editHealthcheck: {
+                        label: 'Edit Healthcheck',
+                        custom: {
+                            buttonLabel: 'label.configure'
+                        },
+                        action: function(args) {
+                            var pingpath1;
+
+                            var lbruleid = args.context.loadbalancers[0].id;
+
+                            $.ajax({
+                                url: createURL('listLBHealthCheckPolicies'),
+                                data: {
+                                    lbruleid: lbruleid
+                                },
+                                async: false,
+                                success: function(json) {
+                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] != undefined) {
+                                        policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
+                                        pingpath1 = policyObj.pingpath; //API bug: API doesn't return it
+                                    }
+                                }
+                            });
+
+                            cloudStack.dialog.createForm({
+                                form: {
+                                    title: 'Editing Healthcheck',
+                                    fields: {
+                                        healthcheck: {
+                                            label: 'Healthcheck',
+                                            defaultValue: pingpath1
+                                        }
+                                    }
+                                },
+                                after: function(args2) {
+                                    var lastJobId;
+                                    args.response.success({
+                                        _custom: {
+                                            getLastJobId: function() { return lastJobId; },
+                                            getUpdatedItem: function() {
+                                                var loadbalancer = null;
+                                                $.ajax({
+                                                    url: createURL("listLoadBalancerRules"),
+                                                    data: {
+                                                        id: lbruleid
+                                                    },
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(data) {
+                                                        var loadBalancerData = data.listloadbalancerrulesresponse.loadbalancerrule;
+                                                        $(loadBalancerData).each(function() {
+                                                            this.ports = this.publicport + ':' + this.privateport;
+                                                        });
+                                                        loadbalancer = loadBalancerData[0];
+                                                    }
+                                                });
+                                                return loadbalancer;
+                                            }
+                                        }
+                                    });
+
+                                    cascadeAsyncCmds({
+                                        commands: [
+                                            {
+                                                name: 'listLBHealthCheckPolicies',
+                                                data: { lbruleid: lbruleid }
+                                            },
+                                            {
+                                                name: 'deleteLBHealthCheckPolicy',
+                                                data: function(last_result) { 
+                                                    if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
+                                                        last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
+                                                        return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
+                                                    }
+                                                    // skip this command
+                                                    return false;
+                                                }
+                                            },
+                                            {
+                                                name: 'createLBHealthCheckPolicy',
+                                                data: function() {
+                                                    if (args2.data.healthcheck.trim() === '') {
+                                                        return false;
+                                                    }
+                                                    return {
+                                                        lbruleid: lbruleid,
+                                                        pingpath: args2.data.healthcheck.trim()
+                                                    };
+                                                }
+                                            }
+                                        ],
+                                        success: function(data, jobId) {
+                                            lastJobId = jobId;
+                                        },
+                                        error: function(message) {
+                                            lastJobId = -1;
+                                            args.response.error(message);
+                                        }
+                                    });
+                                }
+                            }).find('.cancel').bind("click", function( event, ui ) {
+                                $('.loading-overlay').remove();
+                                return true;
+                            });
+                        },
+                        messages: {
+                            notification: function() {
+                                return 'Changing Healthcheck';
+                            }
+                        },
+                        notification: {
+                            poll: function(args) {
+                                var lastJobId = args._custom.getLastJobId();
+                                console.log('lastJobId', lastJobId);
+                                if (lastJobId === undefined) {
+                                    return;
+                                } else if (lastJobId === null) {
+                                    args.complete({
+                                        data: args._custom.getUpdatedItem()
+                                    });
+                                    return;
+                                }
+                                args._custom.jobId = lastJobId;
+                                return pollAsyncJobResult(args);
+                            }
+                        }
+                    }
+                }
             },
             actions: {
                 remove: {
-                    label: 'label.remove',
+                    label: 'label.delete',
                     messages: {
                         confirm: function(args) {
                             return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].name + '?';
                         },
                         notification: function(args) {
-                            return 'Remove Load Balancer Rule';
+                            return 'Removing Ip Address';
                         }
                     },
                     action: function(args) {
                         var ipToBeReleased = args.context.loadbalancers[0].publicipid;
+
+                        var show_error_message = function(json) {
+                            args.response.error(parseXMLHttpResponse(json));
+                        };
+
                         $.ajax({
                             url: createURL("deleteLoadBalancerRule"),
                             data: {
                                 id: args.context.loadbalancers[0].id
                             },
                             dataType: "json",
-                            async: true,
                             success: function(data) {
-                                var jobID = data.deleteloadbalancerruleresponse.jobid;
-                                args.response.success({
-                                    _custom: {
-                                        jobId: jobID,
-                                        notification: {
-                                            label: 'label.action.delete.load.balancer',
-                                            poll: pollAsyncJobResult
-                                        },
-                                        onComplete: function(args) {
-                                            $.ajax({
-                                                url: createURL('disassociateIpAddress'),
-                                                data: {
-                                                    id: ipToBeReleased
-                                                },
-                                                dataType: 'json',
-                                                async: true,
-                                                success: function(data) {
-                                                    $(window).trigger('cloudStack.fullRefresh');
-                                                },
-                                                error: function(data) {
-                                                    args.response.error(parseXMLHttpResponse(data));
-                                                }
-                                            });
+                                cloudStack.ui.notifications.add({
+                                        desc: 'label.action.delete.load.balancer',
+                                        section: 'Network',
+                                        poll: pollAsyncJobResult,
+                                        _custom: {
+                                            jobId: data.deleteloadbalancerruleresponse.jobid
                                         }
-                                    }
-                                });
+                                    },
+                                    function() {
+                                        $.ajax({
+                                            url: createURL('disassociateIpAddressFromGloboNetwork'),
+                                            data: {
+                                                id: ipToBeReleased
+                                            },
+                                            dataType: 'json',
+                                            success: function(data) {
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: data.disassociateipaddressfromglobonetworkresponse.jobid
+                                                    }
+                                                });
+                                            },
+                                            error: show_error_message
+                                        });
+                                    }, {},
+                                    show_error_message, {} // job deleteLoadBalancerRule
+                                );
                             },
-                            error: function(errorMessage) {
-                                args.response.error(parseXMLHttpResponse(data));
-                            }
+                            error: show_error_message // ajax deleteLoadBalancerRule
                         });
                     },
                     notification: {
@@ -764,6 +980,8 @@
 
                         var provider = lbService.provider[0].name;
 
+                        // FIXME Check what happen if loadbalancer is not active in network
+
                         var url;
                         var data = {};
                         if (args.data.isportable === 'true' && provider === 'GloboNetwork') {
@@ -774,6 +992,7 @@
                             };
                         } else if (provider === 'GloboNetwork') {
                             // GloboNetwork should only work with portable IPs
+                            // FIXME Precisa testar isto
                             args.response.error("Network is provided by GloboNetwork and can only manage cross zone IPs (portable)");
                             return;
                         } else {
@@ -784,11 +1003,14 @@
                             };
                         }
 
+                        var show_error_message = function(json) {
+                            args.response.error(parseXMLHttpResponse(json));
+                        };
+
                         $.ajax({
                             url: createURL(url),
                             data: data,
                             dataType: "json",
-                            async: true,
                             success: function(json) {
                                 var ipId = json.associateipaddressresponse.id;
 
@@ -810,57 +1032,60 @@
                                     url: createURL('createLoadBalancerRule'),
                                     data: data,
                                     dataType: 'json',
-                                    async: true,
                                     success: function(data) {
                                         var jobID = data.createloadbalancerruleresponse.jobid;
                                         var lbID = data.createloadbalancerruleresponse.id;
+
+                                        args.response.success({
+                                            _custom: {
+                                                jobId: jobID,
+                                                getUpdatedItem: function(json) {
+                                                    return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                }
+                                            }
+                                        });
+
+
                                         // Create stickiness policy
                                         if (stickyData &&
                                             stickyData.methodname &&
                                             stickyData.methodname != 'None') {
                                             cloudStack.lbStickyPolicy.actions.add(lbID,
                                                 stickyData,
-                                                args.complete, args.error);
+                                                $.noop, $.noop);
                                         }
 
-                                        // Create healthcheck
-                                        var datahealthcheck = {
-                                            lbruleid: lbID,
-                                            pingpath: healthcheckPingPath
-                                        };
+                                        if (healthcheckPingPath !== '') {
+                                            // Create healthcheck
+                                            var datahealthcheck = {
+                                                lbruleid: lbID,
+                                                pingpath: healthcheckPingPath
+                                            };
 
-                                        $.ajax({
-                                            url: createURL('createLBHealthCheckPolicy'),
-                                            data: datahealthcheck,
-                                            success: function(json) {
-                                                args.response.success({
-                                                    _custom: {
-                                                        jobId: jobID,
-                                                        getUpdatedItem: function(json) {
-                                                            return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                            $.ajax({
+                                                url: createURL('createLBHealthCheckPolicy'),
+                                                data: datahealthcheck,
+                                                success: function(json) {
+                                                    cloudStack.ui.notifications.add({
+                                                            desc: 'Add Healthcheck Policy',
+                                                            section: 'Network',
+                                                            poll: pollAsyncJobResult,
+                                                            _custom: {
+                                                                jobId: json.createlbhealthcheckpolicyresponse.jobid
+                                                            }
                                                         },
-                                                        notification: {
-                                                            poll: pollAsyncJobResult
-                                                        }
-                                                    }
-                                                });
-                                            },
-                                            error: function(json) {
-                                                cloudStack.dialog.notice({
-                                                    message: _s(json.responseText)
-                                                });
-                                            }
-
-                                        });
+                                                        $.noop, {},
+                                                        $.noop, {}
+                                                    );
+                                                },
+                                                error: show_error_message // healtcheck
+                                            });
+                                        }
                                     },
-                                    error: function(json) {
-                                        args.response.error(parseXMLHttpResponse(json));
-                                    }
+                                    error: show_error_message
                                 });
                             },
-                            error: function(json) {
-                                args.response.error(parseXMLHttpResponse(json));
-                            }
+                            error: show_error_message // associateipaddress
                         });
                     },
                     messages: {
