@@ -576,10 +576,29 @@
                                     }
                                 },
                                 after: function(args2) {
-                                    var lastJobId = null;
+                                    var lastJobId;
                                     args.response.success({
                                         _custom: {
-                                            getLastJobId: function() { return lastJobId; }
+                                            getLastJobId: function() { return lastJobId; },
+                                            getUpdatedItem: function() {
+                                                var loadbalancer = null;
+                                                $.ajax({
+                                                    url: createURL("listLoadBalancerRules"),
+                                                    data: {
+                                                        id: lbruleid
+                                                    },
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(data) {
+                                                        var loadBalancerData = data.listloadbalancerrulesresponse.loadbalancerrule;
+                                                        $(loadBalancerData).each(function() {
+                                                            this.ports = this.publicport + ':' + this.privateport;
+                                                        });
+                                                        loadbalancer = loadBalancerData[0];
+                                                    }
+                                                });
+                                                return loadbalancer;
+                                            }
                                         }
                                     });
 
@@ -602,10 +621,15 @@
                                             },
                                             {
                                                 name: 'createLBHealthCheckPolicy',
-                                                data: {
+                                                data: function() {
+                                                    if (args2.data.healthcheck.trim() === '') {
+                                                        return false;
+                                                    }
+                                                    return {
                                                         lbruleid: lbruleid,
                                                         pingpath: args2.data.healthcheck.trim()
-                                                    }
+                                                    };
+                                                }
                                             }
                                         ],
                                         success: function(data, jobId) {
@@ -631,7 +655,12 @@
                             poll: function(args) {
                                 var lastJobId = args._custom.getLastJobId();
                                 console.log('lastJobId', lastJobId);
-                                if (lastJobId === null) {
+                                if (lastJobId === undefined) {
+                                    return;
+                                } else if (lastJobId === null) {
+                                    args.complete({
+                                        data: args._custom.getUpdatedItem()
+                                    });
                                     return;
                                 }
                                 args._custom.jobId = lastJobId;
@@ -1026,30 +1055,32 @@
                                                 $.noop, $.noop);
                                         }
 
-                                        // Create healthcheck
-                                        var datahealthcheck = {
-                                            lbruleid: lbID,
-                                            pingpath: healthcheckPingPath
-                                        };
+                                        if (healthcheckPingPath !== '') {
+                                            // Create healthcheck
+                                            var datahealthcheck = {
+                                                lbruleid: lbID,
+                                                pingpath: healthcheckPingPath
+                                            };
 
-                                        $.ajax({
-                                            url: createURL('createLBHealthCheckPolicy'),
-                                            data: datahealthcheck,
-                                            success: function(json) {
-                                                cloudStack.ui.notifications.add({
-                                                        desc: 'Add Healthcheck Policy',
-                                                        section: 'Network',
-                                                        poll: pollAsyncJobResult,
-                                                        _custom: {
-                                                            jobId: json.createlbhealthcheckpolicyresponse.jobid
-                                                        }
-                                                    },
-                                                    $.noop, {},
-                                                    $.noop, {}
-                                                );
-                                            },
-                                            error: show_error_message // healtcheck
-                                        });
+                                            $.ajax({
+                                                url: createURL('createLBHealthCheckPolicy'),
+                                                data: datahealthcheck,
+                                                success: function(json) {
+                                                    cloudStack.ui.notifications.add({
+                                                            desc: 'Add Healthcheck Policy',
+                                                            section: 'Network',
+                                                            poll: pollAsyncJobResult,
+                                                            _custom: {
+                                                                jobId: json.createlbhealthcheckpolicyresponse.jobid
+                                                            }
+                                                        },
+                                                        $.noop, {},
+                                                        $.noop, {}
+                                                    );
+                                                },
+                                                error: show_error_message // healtcheck
+                                            });
+                                        }
                                     },
                                     error: show_error_message
                                 });
