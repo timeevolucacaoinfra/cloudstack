@@ -39,11 +39,12 @@ public class GloboNetworkVipResponse extends Answer {
 	private Integer maxConn;
 	private List<String> ports;
 	private List<Real> reals;
+	private Boolean created;
 
 	public GloboNetworkVipResponse(Command command, Long id, String name,
 			String ip, String network, String cache, String method,
 			String persistence, String healthcheckType, String healthcheck,
-			Integer maxConn, Collection<String> ports, Collection<Real> reals) {
+			Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
 		super(command, true, null);
 		this.id = id;
 		this.name = name;
@@ -56,6 +57,7 @@ public class GloboNetworkVipResponse extends Answer {
 		this.maxConn = maxConn;
 		this.ports = new ArrayList<String>(ports);
 		this.reals = new ArrayList<Real>(reals);
+		this.setCreated(created);
 	}
 
 	public Long getId() {
@@ -154,7 +156,15 @@ public class GloboNetworkVipResponse extends Answer {
 		this.networkIds = networkIds;
 	}
 
-	public static class Real extends BaseResponse {
+	public Boolean getCreated() {
+        return created;
+    }
+
+    public void setCreated(Boolean created) {
+        this.created = created;
+    }
+
+    public static class Real extends BaseResponse {
 		private String vmName;
 
 		private String ip;

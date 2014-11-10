@@ -559,7 +559,7 @@
                                 },
                                 async: false,
                                 success: function(json) {
-                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] != undefined) {
+                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
                                         policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
                                         pingpath1 = policyObj.pingpath; //API bug: API doesn't return it
                                     }
@@ -611,7 +611,7 @@
                                             },
                                             {
                                                 name: 'deleteLBHealthCheckPolicy',
-                                                data: function(last_result) { 
+                                                data: function(last_result) {
                                                     if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
                                                         last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
                                                         return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
@@ -941,6 +941,7 @@
 
                             healthcheck: {
                                 label: 'Healthcheck',
+                                docID: 'helpHealthcheck'
                             },
                         },
                     },

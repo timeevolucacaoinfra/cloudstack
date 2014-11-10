@@ -1914,6 +1914,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (!port.equals(globoNetworkVip.getPorts().get(0))) {
                 throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
             }
+            String method = globoNetworkVip.getMethod();
+            if (globoNetworkVip.getCreated() && !rule.getAlgorithm().equals(method)) {
+                throw new InvalidParameterValueException("It is not allowed to change balancing method in GloboNetwork.");
+            }
         }
         return true;
     }
