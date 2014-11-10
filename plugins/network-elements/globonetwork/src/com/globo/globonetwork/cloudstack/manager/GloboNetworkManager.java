@@ -90,6 +90,7 @@ import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.lb.LoadBalancingRule.LbDestination;
+import com.cloud.network.lb.LoadBalancingRule.LbHealthCheckPolicy;
 import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
@@ -1765,8 +1766,16 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         // Healthcheck
-        if (rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().size() > 1) {
-            throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain only one");
+        if (rule.getHealthCheckPolicies() != null) {
+            int numberOfpolicies = 0;
+            for (LbHealthCheckPolicy healthcheckpolicy : rule.getHealthCheckPolicies()) {
+                if (!healthcheckpolicy.isRevoked()) {
+                    numberOfpolicies++;
+                }
+            }
+            if (numberOfpolicies > 1) {
+                throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain at maximum one");
+            }
         }
         
         // Port mapping

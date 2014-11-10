@@ -17,6 +17,99 @@
 
 (function(cloudStack, $) {
 
+    /**
+    cascadeAsyncCmds({
+        commands: [
+            {
+                name: 'createLoadBalancer',
+                url: '' // optional
+                data: { name: 'xxx', otherProperty: true}
+                result: null, // será colocado automaticamente pelo comando
+            },
+            {
+                name: 'createHealthcheck',
+                data: function(last_result, command_index, commands) { return { pingpath: 'xxx', lbruleid: json.lbresponse.id } }
+            },
+        ]
+    });
+    */
+    var cascadeAsyncCmds = function(args) {
+
+        var process_command = function(index, last_result) {
+            var command = args.commands[index];
+
+            var process_success = function(result, jobId) {
+                command.result = result;
+                if (index === args.commands.length-1) {
+                    // runned last command.
+                    args.success(result, jobId);
+                } else {
+                    // run next command
+                    process_command(index+1, result);
+                }
+            };
+
+            if ($.isFunction(command.data)) {
+                command.data = command.data(last_result, index, args);
+            }
+
+            // sometimes, command must be skipped
+            if (command.data === false) {
+                process_success(last_result, null);
+                return;
+            }
+
+            if (!command.url) {
+                command.url = createURL(command.name);
+            }
+
+            $.ajax({
+                url: command.url,
+                data: command.data,
+                dataType: "json",
+                success: function(result) {
+                    var jobId, timerControl;
+
+                    // get jobid
+                    for (var prop in result) {
+                        if (result.hasOwnProperty(prop) && prop.match(/response$/)) {
+                            jobId = result[prop].jobid;
+                            break;
+                        }
+                    }
+
+                    if (!jobId) {
+                        // jobid not found. Synchronous command
+                        process_success(result, null);
+                    } else {
+                        // pool jobid for completion
+                        timerControl = setInterval(function() {
+                            console.debug('Checking job' + command.name);
+                            pollAsyncJobResult({
+                                _custom: {
+                                    jobId: jobId
+                                },
+                                complete: function(json) {
+                                    clearInterval(timerControl);
+                                    process_success(result, jobId);
+                                },
+                                error: function(message) {
+                                    clearInterval(timerControl);
+                                    args.error(message, index, args);
+                                }
+                            });
+                        }, g_queryAsyncJobResultInterval);
+                    }
+                },
+                error: function (json) {
+                    args.error(parseXMLHttpResponse(json), index, args);
+                }
+            });
+        };
+
+        process_command(0, {});
+    };
+
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
         id: 'loadbalancer',
@@ -446,6 +539,77 @@
                 },
             },
             actions: {
+                editHealthcheck: {
+                    label: 'label.edit',
+                    createForm: {
+                        title: 'Editing Healthcheck',
+                        fields: {
+                            healthcheck: {
+                                label: 'Healthcheck',
+                            }
+                        }
+                    },
+                    action: function(args) {
+                        var lastJobId = null;
+                        args.response.success({
+                            _custom: {
+                                getLastJobId: function() { return lastJobId; }
+                            }
+                        });
+
+                        cascadeAsyncCmds({
+                            commands: [
+                                {
+                                    name: 'listLBHealthCheckPolicies',
+                                    data: { lbruleid: args.context.loadbalancers[0].id }
+                                },
+                                {
+                                    name: 'deleteLBHealthCheckPolicy',
+                                    data: function(last_result) { 
+                                        if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
+                                            last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
+                                            return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
+                                        }
+                                        // skip this command
+                                        return false;
+                                    }
+                                },
+                                {
+                                    name: 'createLBHealthCheckPolicy',
+                                    data: {
+                                            lbruleid: args.context.loadbalancers[0].id,
+                                            pingpath: args.data.healthcheck.trim()
+                                        }
+                                }
+                            ],
+                            success: function(data, jobId) {
+                                console.log('data of success', data);
+                                lastJobId = jobId;
+                            },
+                            error: function(message) {
+                                console.log('result of error', message);
+                                lastJobId = -1;
+                                args.response.error(message);
+                            }
+                        });
+                    },
+                    messages: {
+                        notification: function(args) {
+                            return 'Changing Healthcheck';
+                        }
+                    },
+                    notification: {
+                        poll: function(args) {
+                            var lastJobId = args._custom.getLastJobId();
+                            console.log('chamado pool lastJob=', lastJobId);
+                            if (lastJobId === null) {
+                                return;
+                            }
+                            args._custom.jobId = lastJobId;
+                            return pollAsyncJobResult(args);
+                        }
+                    }
+                },
                 remove: {
                     label: 'label.delete',
                     messages: {
