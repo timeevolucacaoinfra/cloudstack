@@ -1780,7 +1780,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public boolean applyLbRuleInGloboNetwork(final Network network, final LoadBalancingRule rule) {
+    public boolean applyLbRuleInGloboNetwork(final Network network, final LoadBalancingRule rule) throws ResourceUnavailableException {
         // Validate params
         if (network == null || rule == null) {
             return false;
@@ -1853,16 +1853,20 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         try {
             // GloboNetwork doesn't allow concurrent call in same loadbalancer.
-            GlobalLock.executeWithLock("globonetworklb-" + rule.getId(), GloboNetworkLBLockTimeout.value(), new Callable<Void>() {
+            Boolean result = GlobalLock.executeWithLock("globonetworklb-" + rule.getId(), GloboNetworkLBLockTimeout.value(), new Callable<Boolean>() {
 
                 @Override
-                public Void call() throws Exception {
+                public Boolean call() throws Exception {
                     GloboNetworkManager.this.callCommand(cmd, network.getDataCenterId());
-                    return null;
+                    return true;
                 }
             });
+            if (!Boolean.TRUE.equals(result)) {
+                throw new ResourceUnavailableException("Error acquiring lock to manage load balancer " + rule.getUuid(), DataCenter.class, network.getDataCenterId());
+            }
+            
         } catch (Exception e) {
-            throw new CloudRuntimeException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), e);
+            throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId());
         }
 
         return true;

@@ -253,7 +253,7 @@ public interface GloboNetworkService {
 
 	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
 
-	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
+	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule) throws ResourceUnavailableException;
 	
     public PublicIp acquireLbIp(Long networkId, Long projectId, Long lbNetworkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
     

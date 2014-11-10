@@ -855,6 +855,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             for (RealIP realIp : vip.getRealsIp()) {
                 if (ip.getId().equals(realIp.getIpId())) {
                     // real already added. Only ensure is enabled
+                    s_logger.info("Enabling real " + ip.getIpString() + " on loadbalancer " + vip.getId());
                     _globoNetworkApi.getVipAPI().enableReal(vip.getId(), ip.getId(), equipment.getId(), null, null);
                     return true;
                 }
@@ -862,6 +863,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
 
         // added reals are always enabled by default
+        s_logger.info("Adding real " + ip.getIpString() + " on loadbalancer " + vip.getId());
         _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), null, null);
         return true;
     }
@@ -877,12 +879,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             for (RealIP realIp : vip.getRealsIp()) {
                 if (realIpAddr.equals(realIp.getRealIp())) {
                     // real exists in vip. Remove it.
+                    s_logger.info("Removing real " + realIpAddr + " from loadbalancer " + vip.getId());
                     _globoNetworkApi.getVipAPI().removeReal(vip.getId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
                     return true;
                 }
             }
         }
-        s_logger.warn("Did not find real in GloboNetwork: " + realIpAddr);
+        s_logger.info("Can't remove real " + realIpAddr + " from loadbalancer " + vip.getId() + "  because isn't in LB");
         return true;
     }
 
