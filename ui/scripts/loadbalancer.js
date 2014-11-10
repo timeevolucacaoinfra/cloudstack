@@ -191,6 +191,9 @@
                             },
                         }],
                         dataProvider: function(args) {
+                            if (!args.jsonObj) {
+                                args.jsonObj = args.context.loadbalancers[0];
+                            }
                             $.ajax({
                                 url: createURL("listLBStickinessPolicies"),
                                 data: {
@@ -537,79 +540,108 @@
                         }
                     },
                 },
-            },
-            actions: {
-                editHealthcheck: {
-                    label: 'label.edit',
-                    createForm: {
-                        title: 'Editing Healthcheck',
-                        fields: {
-                            healthcheck: {
-                                label: 'Healthcheck',
-                            }
-                        }
-                    },
-                    action: function(args) {
-                        var lastJobId = null;
-                        args.response.success({
-                            _custom: {
-                                getLastJobId: function() { return lastJobId; }
-                            }
-                        });
+                actions: {
+                    editHealthcheck: {
+                        label: 'Edit Healthcheck',
+                        custom: {
+                            buttonLabel: 'label.configure'
+                        },
+                        action: function(args) {
+                            var pingpath1;
 
-                        cascadeAsyncCmds({
-                            commands: [
-                                {
-                                    name: 'listLBHealthCheckPolicies',
-                                    data: { lbruleid: args.context.loadbalancers[0].id }
+                            var lbruleid = args.context.loadbalancers[0].id;
+
+                            $.ajax({
+                                url: createURL('listLBHealthCheckPolicies'),
+                                data: {
+                                    lbruleid: lbruleid
                                 },
-                                {
-                                    name: 'deleteLBHealthCheckPolicy',
-                                    data: function(last_result) { 
-                                        if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
-                                            last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
-                                            return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
+                                async: false,
+                                success: function(json) {
+                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] != undefined) {
+                                        policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
+                                        pingpath1 = policyObj.pingpath; //API bug: API doesn't return it
+                                    }
+                                }
+                            });
+
+                            cloudStack.dialog.createForm({
+                                form: {
+                                    title: 'Editing Healthcheck',
+                                    fields: {
+                                        healthcheck: {
+                                            label: 'Healthcheck',
+                                            defaultValue: pingpath1
                                         }
-                                        // skip this command
-                                        return false;
                                     }
                                 },
-                                {
-                                    name: 'createLBHealthCheckPolicy',
-                                    data: {
-                                            lbruleid: args.context.loadbalancers[0].id,
-                                            pingpath: args.data.healthcheck.trim()
+                                after: function(args2) {
+                                    var lastJobId = null;
+                                    args.response.success({
+                                        _custom: {
+                                            getLastJobId: function() { return lastJobId; }
                                         }
+                                    });
+
+                                    cascadeAsyncCmds({
+                                        commands: [
+                                            {
+                                                name: 'listLBHealthCheckPolicies',
+                                                data: { lbruleid: lbruleid }
+                                            },
+                                            {
+                                                name: 'deleteLBHealthCheckPolicy',
+                                                data: function(last_result) { 
+                                                    if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
+                                                        last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
+                                                        return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
+                                                    }
+                                                    // skip this command
+                                                    return false;
+                                                }
+                                            },
+                                            {
+                                                name: 'createLBHealthCheckPolicy',
+                                                data: {
+                                                        lbruleid: lbruleid,
+                                                        pingpath: args2.data.healthcheck.trim()
+                                                    }
+                                            }
+                                        ],
+                                        success: function(data, jobId) {
+                                            lastJobId = jobId;
+                                        },
+                                        error: function(message) {
+                                            lastJobId = -1;
+                                            args.response.error(message);
+                                        }
+                                    });
                                 }
-                            ],
-                            success: function(data, jobId) {
-                                console.log('data of success', data);
-                                lastJobId = jobId;
-                            },
-                            error: function(message) {
-                                console.log('result of error', message);
-                                lastJobId = -1;
-                                args.response.error(message);
+                            }).find('.cancel').bind("click", function( event, ui ) {
+                                $('.loading-overlay').remove();
+                                return true;
+                            });
+                        },
+                        messages: {
+                            notification: function() {
+                                return 'Changing Healthcheck';
                             }
-                        });
-                    },
-                    messages: {
-                        notification: function(args) {
-                            return 'Changing Healthcheck';
-                        }
-                    },
-                    notification: {
-                        poll: function(args) {
-                            var lastJobId = args._custom.getLastJobId();
-                            console.log('chamado pool lastJob=', lastJobId);
-                            if (lastJobId === null) {
-                                return;
+                        },
+                        notification: {
+                            poll: function(args) {
+                                var lastJobId = args._custom.getLastJobId();
+                                console.log('lastJobId', lastJobId);
+                                if (lastJobId === null) {
+                                    return;
+                                }
+                                args._custom.jobId = lastJobId;
+                                return pollAsyncJobResult(args);
                             }
-                            args._custom.jobId = lastJobId;
-                            return pollAsyncJobResult(args);
                         }
                     }
-                },
+                }
+            },
+            actions: {
                 remove: {
                     label: 'label.delete',
                     messages: {
