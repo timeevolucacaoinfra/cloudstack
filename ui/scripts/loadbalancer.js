@@ -84,7 +84,6 @@
                     } else {
                         // pool jobid for completion
                         timerControl = setInterval(function() {
-                            console.debug('Checking job' + command.name);
                             pollAsyncJobResult({
                                 _custom: {
                                     jobId: jobId
@@ -262,7 +261,7 @@
                                         id: args.context.loadbalancers[0].id,
                                     },
                                     dataType: "json",
-                                    async: true,
+                                    async: false,
                                     success: function(json) {
                                         args.context.loadbalancers[0] = json.listloadbalancerrulesresponse.loadbalancerrule[0];
                                     },
@@ -315,7 +314,8 @@
                                             success: function(json) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid
+                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid,
+                                                        fullRefreshAfterComplete: true
                                                     },
                                                 });
                                             },
@@ -363,10 +363,11 @@
                                         },
                                     },
                                     action: function(args) {
+                                        var lbruleid = args.context.loadbalancers[0].id;
                                         $.ajax({
                                             url: createURL("assignNetworksToLoadBalancerRule"),
                                             data: {
-                                                id: args.context.loadbalancers[0].id,
+                                                id: lbruleid,
                                                 networkids: args.data.network
                                             },
                                             dataType: "json",
@@ -654,7 +655,6 @@
                         notification: {
                             poll: function(args) {
                                 var lastJobId = args._custom.getLastJobId();
-                                console.log('lastJobId', lastJobId);
                                 if (lastJobId === undefined) {
                                     return;
                                 } else if (lastJobId === null) {
