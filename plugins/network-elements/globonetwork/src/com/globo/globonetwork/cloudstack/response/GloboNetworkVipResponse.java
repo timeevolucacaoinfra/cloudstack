@@ -30,6 +30,8 @@ public class GloboNetworkVipResponse extends Answer {
 	private Long id;
 	private String name;
 	private String ip;
+	private Long ipId;
+	private Long lbEnvironmentId;
 	private String cache;
 	private String method;
 	private String persistence;
@@ -42,13 +44,15 @@ public class GloboNetworkVipResponse extends Answer {
 	private Boolean created;
 
 	public GloboNetworkVipResponse(Command command, Long id, String name,
-			String ip, String network, String cache, String method,
+			String ip, Long ipId, Long lbEnvironmentId, String network, String cache, String method,
 			String persistence, String healthcheckType, String healthcheck,
 			Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
 		super(command, true, null);
 		this.id = id;
 		this.name = name;
 		this.ip = ip;
+		this.ipId = ipId;
+		this.lbEnvironmentId = lbEnvironmentId;
 		this.cache = cache;
 		this.method = method;
 		this.persistence = persistence;
@@ -82,6 +86,14 @@ public class GloboNetworkVipResponse extends Answer {
 
 	public void setIp(String ip) {
 		this.ip = ip;
+	}
+	
+	public Long getIpId() {
+	    return this.ipId;
+	}
+	
+	public void setIpId(Long ipId) {
+	    this.ipId = ipId;
 	}
 
 	public String getCache() {
@@ -162,6 +174,14 @@ public class GloboNetworkVipResponse extends Answer {
 
     public void setCreated(Boolean created) {
         this.created = created;
+    }
+
+    public Long getLbEnvironmentId() {
+        return lbEnvironmentId;
+    }
+
+    public void setLbEnvironmentId(Long lbEnvironmentId) {
+        this.lbEnvironmentId = lbEnvironmentId;
     }
 
     public static class Real extends BaseResponse {

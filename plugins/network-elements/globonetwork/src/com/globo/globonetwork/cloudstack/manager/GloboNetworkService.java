@@ -34,6 +34,7 @@ import com.cloud.host.Host;
 import com.cloud.network.Network;
 import com.cloud.network.addr.PublicIp;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.rules.LoadBalancer;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
@@ -260,4 +261,6 @@ public interface GloboNetworkService {
     public boolean disassociateIpAddrFromGloboNetwork(long ipId);
 
     public boolean validateLBRule(Network network, LoadBalancingRule rule);
+    
+    public LoadBalancer importGloboNetworkLoadBalancer(Long lbId, Long networkId, Long projectId);
 }
