@@ -725,6 +725,7 @@ associateGloboNetworkRealToVip=15
 disassociateGloboNetworkRealFromVip=15
 disassociateIpAddressFromGloboNetwork=15
 generateUrlForEditingVip=15
+importGloboNetworkLoadBalancer=15
 listAllEnvironmentsFromGloboNetwork=1
 listGloboNetworkEnvironments=15
 listGloboNetworkReals=15
