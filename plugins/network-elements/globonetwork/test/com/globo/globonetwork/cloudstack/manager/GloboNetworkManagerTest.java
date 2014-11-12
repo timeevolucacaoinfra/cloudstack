@@ -100,7 +100,6 @@ import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetwork
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkLBNetworkDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
-import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -328,10 +327,6 @@ public class GloboNetworkManagerTest {
     	@Bean
     	public GloboNetworkEnvironmentDao globoNetworkEnvironmentDao() {
     		return mock(GloboNetworkEnvironmentDao.class);
-    	}
-    	@Bean
-    	public GloboNetworkVipAccDao globoNetworkVipAccDao() {
-    		return mock(GloboNetworkVipAccDao.class);
     	}
     	@Bean
     	public GloboNetworkLBNetworkDao globoNetworkLBEnvironmentDao() {

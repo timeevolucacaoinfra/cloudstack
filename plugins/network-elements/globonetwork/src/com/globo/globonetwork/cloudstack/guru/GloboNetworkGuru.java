@@ -52,11 +52,8 @@ import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.NicProfile;
-import com.cloud.vm.NicVO;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachineProfile;
-import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
-import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 @Component
@@ -72,8 +69,6 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
     VpcVirtualNetworkApplianceManager _routerMgr;
     @Inject
     AccountManager _accountMgr;
-    @Inject
-    GloboNetworkVipAccDao _globoNetworkVipDao;
 
     protected NetworkType _networkType = NetworkType.Advanced;
     
@@ -197,13 +192,6 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 		s_logger.debug("Asking GuestNetworkGuru to deallocate NIC " + nic.toString()
 				+ " from VM " + vm.getInstanceName());
 		
-		long networkId = nic.getNetworkId();
-		List<GloboNetworkVipAccVO> vips = _globoNetworkVipDao.findByNetwork(networkId);
-		for (GloboNetworkVipAccVO vip: vips) {
-			NicVO nicVO = _nicDao.findById(nic.getId());
-			_globoNetworkService.disassociateNicFromVip(vip.getGloboNetworkVipId(), nicVO);
-		}
-
 		_globoNetworkService.unregisterNicInGloboNetwork(nic, vm);
 		
 		super.deallocate(network, nic, vm);
@@ -212,11 +200,6 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 	@Override
 	public void shutdown(NetworkProfile profile, NetworkOffering offering) {
 		
-		List<GloboNetworkVipAccVO> vips = _globoNetworkVipDao.findByNetwork(profile.getId());
-	    if (vips != null && !vips.isEmpty()) {
-	    	throw new CloudRuntimeException("There is VIPs related to this network. Network destroyed will be aborted. Delete VIP before.");
-	    }
-
 		try {
 			List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
 			for (VirtualRouter router: routers) {

@@ -718,22 +718,14 @@ acquireNewLBIp=15
 addGloboNetworkEnvironment=1
 addGloboNetworkHost=1
 addGloboNetworkLBNetwork=1
-addGloboNetworkVipToAccount=15
-addGloboNetworkVlan=15
 addNetworkViaGloboNetwork=15
-associateGloboNetworkRealToVip=15
-disassociateGloboNetworkRealFromVip=15
 disassociateIpAddressFromGloboNetwork=15
-generateUrlForEditingVip=15
 importGloboNetworkLoadBalancer=15
 listAllEnvironmentsFromGloboNetwork=1
 listGloboNetworkEnvironments=15
-listGloboNetworkReals=15
 listGloboNetworkLBNetworks=15
-listGloboNetworkVips=15
 removeGloboNetworkEnvironment=1
 removeGloboNetworkLBNetwork=1
-removeGloboNetworkVip=15
 
 ### GloboDNS commands
 addGloboDnsHost=1

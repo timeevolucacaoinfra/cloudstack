@@ -22,7 +22,6 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 
-import com.cloud.exception.CloudException;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -35,14 +34,11 @@ import com.cloud.network.Network;
 import com.cloud.network.addr.PublicIp;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.LoadBalancer;
-import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
-import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
-import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 public interface GloboNetworkService {
 
@@ -89,29 +85,6 @@ public interface GloboNetworkService {
 			Boolean displayNetwork, Long aclId)
 			throws ResourceAllocationException, ResourceUnavailableException,
 			ConcurrentOperationException, InsufficientCapacityException;
-
-	/**
-	 * Create a new network based on existed vlanId from GloboNetwork.
-	 * 
-	 * @param vlanId Id (to the vlan number) of vlan.
-	 * @param globoNetworkEnvironmentId Id of the environment in GloboNetwork
-	 * @param zoneId
-	 * @param networkOfferingId
-	 * @param physicalNetworkId
-	 * @return
-	 * @throws ResourceUnavailableException
-	 * @throws ConfigurationException
-	 * @throws ResourceAllocationException
-	 * @throws ConcurrentOperationException
-	 * @throws InsufficientCapacityException
-	 */
-	public Network createNetworkFromGloboNetworkVlan(Long vlanId, Long globoNetworkEnvironmentId, Long zoneId,
-			Long networkOfferingId, Long physicalNetworkId,
-			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, Boolean subdomainAccess,
-			Boolean displayNetwork, Long aclId)
-			throws ResourceUnavailableException, 
-			ConcurrentOperationException, CloudException;
 
 	/**
 	 * Validate if nicProfile in compatible with Network and destination dest.
@@ -214,45 +187,6 @@ public interface GloboNetworkService {
 	 * @param vm
 	 */
 	public void unregisterNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm);
-	
-	/**
-	 * List all GloboNetwork VIPs associated to an account/project
-	 * @param projectId
-	 * @return
-	 */
-	public List<GloboNetworkVipResponse> listGloboNetworkVips(Long projectId);
-
-	/**
-	 * Associate GloboNetwork VIP to an account and network in Cloudstack
-	 * @param networkId
-	 * @param globoNetworkVipId
-	 * @return
-	 */
-	public GloboNetworkVipAccVO addGloboNetworkVipToAcc(Long networkId, Long globoNetworkVipId);
-	
-	/**
-	 * Associate nic (real) to GloboNetwork Vip.
-	 * @param vipId
-	 * @param nicId
-	 */
-	public void associateNicToVip(Long vipId, Nic nic);
-
-	/**
-	 * Deassociate nic (real) from GloboNetwork Vip.
-	 * @param vipId
-	 * @param nicId
-	 */
-	public void disassociateNicFromVip(Long vipId, Nic nic);
-	
-	public String generateUrlForEditingVip(Long vipId, Network network);
-
-	/**
-	 * Remove Load Balancer (VIP) from GloboNetwork
-	 * @param globoNetworkVipId
-	 */
-	public void removeGloboNetworkVip(Long globoNetworkVipId);
-
-	public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId);
 
 	public boolean applyLbRuleInGloboNetwork(Network network, LoadBalancingRule rule);
 	
