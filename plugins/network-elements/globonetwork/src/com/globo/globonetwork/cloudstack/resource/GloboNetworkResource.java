@@ -51,18 +51,14 @@ import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
+import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
@@ -220,14 +216,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 			return execute((UnregisterEquipmentAndIpInGloboNetworkCommand) cmd);
 		} else if (cmd instanceof GetVipInfoFromGloboNetworkCommand) {
 			return execute((GetVipInfoFromGloboNetworkCommand) cmd);
-		} else if (cmd instanceof AddAndEnableRealInGloboNetworkCommand) {
-			return execute((AddAndEnableRealInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof DisableAndRemoveRealInGloboNetworkCommand) {
-			return execute((DisableAndRemoveRealInGloboNetworkCommand) cmd);
-		} else if (cmd instanceof GenerateUrlForEditingVipCommand) {
-			return execute((GenerateUrlForEditingVipCommand) cmd);
-		} else if (cmd instanceof RemoveVipFromGloboNetworkCommand) {
-			return execute((RemoveVipFromGloboNetworkCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -271,114 +259,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 		}
 	}
 	
-	public Answer execute(AddAndEnableRealInGloboNetworkCommand cmd) {
-		try {
-			Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
-			}
-
-			Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getEquipName());
-			if (equipment == null) {
-				// Equipment doesn't exist
-				return new Answer(cmd, false, "Equipment " + cmd.getEquipName() + " doesn't exist in GloboNetwork");
-			}
-			
-			List<Ip> ips = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
-			Ip ip = null;
-			for (Ip equipIp: ips) {
-				String equipIpString = equipIp.getOct1() + "." + equipIp.getOct2() + "." + equipIp.getOct3() + "." + equipIp.getOct4();
-				if (equipIpString.equals(cmd.getIp())) {
-					ip = equipIp;
-				}
-			}
-			
-			if (ip == null) {
-				return new Answer(cmd, false, "IP doesn't exist in this GloboNetwork environment");
-			}
-			
-			if (!vip.getValidated()) {
-				_globoNetworkApi.getVipAPI().validate(cmd.getVipId());
-			}
-			
-			if (!vip.getCreated()) {
-				s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
-				_globoNetworkApi.getVipAPI().create(cmd.getVipId());
-			}
-			
-			if (vip.getRealsIp() != null) {
-				for (RealIP realIp:  vip.getRealsIp()) {
-					if (ip.getId().equals(realIp.getIpId())) {
-						// real already added. Only ensure is enabled
-						_globoNetworkApi.getVipAPI().enableReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
-						return new Answer(cmd, true, "Real enabled successfully"); 
-					}
-				}
-			}
-
-			// added reals are always enabled by default
-			_globoNetworkApi.getVipAPI().addReal(cmd.getVipId(), ip.getId(), equipment.getId(), null, null);
-			return new Answer(cmd, true, "Real added and enabled successfully");
-			
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	public Answer execute(DisableAndRemoveRealInGloboNetworkCommand cmd) {
-		try {
-			Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, false, "Vip request " + cmd.getVipId() + " not found in GloboNetwork");
-			}
-			
-			Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(cmd.getEquipName());
-			if (equipment == null) {
-				// Equipment doesn't exist. So, there is no Vip either.
-				return new Answer(cmd, true, "Equipment " + cmd.getEquipName() + " doesn't exist in GloboNetwork");
-			}
-
-			if (vip.getRealsIp() != null) {
-				for (RealIP realIp:  vip.getRealsIp()) {
-					if (cmd.getIp().equals(realIp.getRealIp())) {
-						// real exists in vip. Remove it.
-						_globoNetworkApi.getVipAPI().removeReal(cmd.getVipId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
-						return new Answer(cmd, true, "Real removed successfully"); 
-					}
-				}
-			}
-			return new Answer(cmd, true, "Real not in vipId " + cmd.getVipId());
-			
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-	
-	private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
-		try {
-
-			Vip vip = _globoNetworkApi.getVipAPI().getById(cmd.getVipId());
-			
-			if (vip == null || !cmd.getVipId().equals(vip.getId())) {
-				return new Answer(cmd, true, "Vip request " + cmd.getVipId() + " was previously removed from GloboNetwork");
-			}
-			
-			// remove VIP from network device
-			if (vip.getCreated()) {
-				s_logger.info("Requesting GloboNetwork to remove vip from network device vip_id=" + vip.getId());
-				_globoNetworkApi.getVipAPI().removeScriptVip(cmd.getVipId());
-			}
-			
-			// remove VIP from GloboNetwork DB
-			s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId());
-			_globoNetworkApi.getVipAPI().removeVip(cmd.getVipId());
-			
-			return new Answer(cmd);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-
 	public Answer execute(GetVlanInfoFromGloboNetworkCommand cmd) {
 		try {
 			Vlan vlan = _globoNetworkApi.getVlanAPI().getById(cmd.getVlanId());
@@ -580,16 +460,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 		}
 	}
 	
-	public Answer execute(GenerateUrlForEditingVipCommand cmd) {
-
-		try {
-			String url = _globoNetworkApi.getVipAPI().generateVipEditingUrl(cmd.getVipId(), cmd.getVipServerUrl());
-			return new Answer(cmd, true, url);
-		} catch (GloboNetworkException e) {
-			return handleGloboNetworkException(cmd, e);
-		}
-	}
-
 	private Answer createResponse(Vlan vlan, Command cmd) {
 		
 		if (vlan.getIpv4Networks().isEmpty()) {
