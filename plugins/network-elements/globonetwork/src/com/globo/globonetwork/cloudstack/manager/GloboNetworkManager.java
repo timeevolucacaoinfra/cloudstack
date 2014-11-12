@@ -1916,10 +1916,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
             String method = globoNetworkVip.getMethod();
             // Translating to GloboNetwork balancing methods
-            if ("leastconn".equals(method)) {
-            	method = "least-conn";
-            } else if ("roundrobin".equals(method)) {
-            	method = "round-robin";
+            if ("least-conn".equals(method)) {
+            	method = "leastconn";
+            } else if ("round-robin".equals(method)) {
+            	method = "roundrobin";
             }
             if (globoNetworkVip.getCreated() && !rule.getAlgorithm().equals(method)) {
                 throw new InvalidParameterValueException("It is not allowed to change balancing method in GloboNetwork.");
