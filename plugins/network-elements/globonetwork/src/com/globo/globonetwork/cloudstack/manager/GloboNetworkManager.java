@@ -1093,7 +1093,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         List<GloboNetworkLBNetworkVO> globoNetworkLBNetworkVOList;
 
-        if (globoNetworkEnvironmentId != null) {
+        if (glbEnvId != null) {
             globoNetworkLBNetworkVOList = _globoNetworkLBNetworkDao.listByEnvironmentRefId(globoNetworkEnvironment.getId());
 
         } else {
