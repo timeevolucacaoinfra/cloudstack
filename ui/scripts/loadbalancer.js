@@ -732,6 +732,34 @@
                 },
                 add: {
                     label: 'Create new Load Balancer',
+                    preAction: function() {
+                        var networks = [];
+                        var message;
+                        $.ajax({
+                            url: createURL("listNetworks"),
+                            data: {
+                                supportedservices: 'lb'
+                            },
+                            dataType: "json",
+                            async: false,
+                            success: function(json) {
+                                $(json.listnetworksresponse.network).each(function() {
+                                    networks.push({id: this.id, description: this.name});
+                                });
+                            },
+                            error: function(json) {
+                                message = parseXMLHttpResponse(json);
+                            }
+                        });
+
+                        if (networks.length === 0) {
+                            cloudStack.dialog.notice({
+                                message: message || 'There are no networks. Please create a network before creating a load balancer.'
+                            });
+                            return false;
+                        }
+                        return true;
+                    },
                     createForm: {
                         fields: {
                             name: {
