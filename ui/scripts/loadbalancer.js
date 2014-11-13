@@ -386,7 +386,7 @@
                                     },
                                     messages: {
                                         notification: function(args) {
-                                            return 'Network associated to Load Balancer';
+                                            return 'Assign network to Load Balancer';
                                         }
                                     },
                                     notification: {
@@ -649,7 +649,7 @@
                         },
                         messages: {
                             notification: function() {
-                                return 'Changing Healthcheck';
+                                return 'Update Healthcheck';
                             }
                         },
                         notification: {
@@ -1119,7 +1119,7 @@
                     },
                     messages: {
                         notification: function(args) {
-                            return 'Load Balancer created';
+                            return 'Create Load Balancer';
                         }
                     },
                     notification: {

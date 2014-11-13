@@ -6291,12 +6291,15 @@
                                                                                 }
                                                                             }
                                                                         });
+                                                                    },
+                                                                    error: function(errorMessage) {
+                                                                        args.response.error(parseXMLHttpResponse(errorMessage));
                                                                     }
                                                                 });
                                                             },
                                                             messages: {
                                                                 notification: function(args) {
-                                                                    return 'VIP Environment added successfully';
+                                                                    return 'Add LB Environment';
                                                                 }
                                                             },
                                                             notification: {
