@@ -628,7 +628,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             
             Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIp4ForVip(globoNetwork.getVipEnvironmentId(), "");
             if (globoIp == null) {
-                return new Answer(cmd, false, "Acquired new Ip for environment vip " + globoNetwork.getVipEnvironmentId() + " returns no answer");
+                return new Answer(cmd, false, "No available ip address for network " + globoNetwork.getNetworkAddressAsString() + "(id " + globoNetwork.getId() + ")");
             }
 
             // get network information
