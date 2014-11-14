@@ -31,6 +31,7 @@ import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
@@ -80,6 +81,7 @@ import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.lb.LoadBalancingRulesManager;
+import com.cloud.network.lb.LoadBalancingRulesService;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
@@ -340,6 +342,14 @@ public class GloboNetworkManagerTest {
     	public IPAddressDao ipAddressDao() {
     	    return mock(IPAddressDao.class);
     	}
+        @Bean
+        public PortableIpRangeDao portableIpRangeDao() {
+            return mock(PortableIpRangeDao.class);
+        }
+        @Bean
+        public PortableIpDao portableIpDao() {
+            return mock(PortableIpDao.class);
+        }
     	@Bean
     	public NetworkModel networkModel() {
     		return mock(NetworkModel.class);
@@ -381,12 +391,12 @@ public class GloboNetworkManagerTest {
     	    return mock(IpAddressManager.class);
     	}
     	@Bean
-    	public PortableIpRangeDao portableDao() {
-    	    return mock(PortableIpRangeDao.class);
-    	}
-    	@Bean
     	public LoadBalancingRulesManager loadBalancingRulesManager() {
     	    return mock(LoadBalancingRulesManager.class);
+    	}
+    	@Bean
+    	public LoadBalancingRulesService loadBalancingRulesService() {
+    	    return mock(LoadBalancingRulesService.class);
     	}
     
         public static class Library implements TypeFilter {
