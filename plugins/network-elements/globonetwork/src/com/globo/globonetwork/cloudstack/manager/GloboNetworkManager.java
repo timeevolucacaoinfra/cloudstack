@@ -182,7 +182,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     static final int NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START = 1;
     static final int NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END = 2;
 	
-	private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Network", String.class, "globonetwork.vip.server.url", "", "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkConnectionTimeout = new ConfigKey<Long>("Network", Long.class, "globonetwork.connectiontimeout", "120000", "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
     private static final ConfigKey<Integer> GloboNetworkLBLockTimeout = new ConfigKey<Integer>("Network", Integer.class, "globonetwork.loadbalancer.lock.timeout", "60", "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkReadTimeout = new ConfigKey<Long>("Network", Long.class, "globonetwork.readtimeout", "120000", "GloboNetwork read timeout (in milliseconds)", true, ConfigKey.Scope.Global);
@@ -1255,7 +1254,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 	@Override
 	public ConfigKey<?>[] getConfigKeys() {
-		return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, 
+		return new ConfigKey<?>[] { 
 				GloboNetworkConnectionTimeout,
 				GloboNetworkLBLockTimeout,
 				GloboNetworkReadTimeout, 
