@@ -14,24 +14,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-package com.globo.globonetwork.cloudstack.commands;
+package com.globo.globonetwork.cloudstack.dao;
 
-import com.cloud.agent.api.Command;
+import com.cloud.utils.db.GenericDao;
+import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
 
-public class AcquireNewIpForLbCommand extends Command {
-	
-	private long globoNetworkLBEnvironmentId;
-	
-	public AcquireNewIpForLbCommand(long globoNetworkLBEnvironmentId) {
-		this.globoNetworkLBEnvironmentId = globoNetworkLBEnvironmentId;
-	}
-	
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
+public interface GloboNetworkIpDetailDao extends GenericDao<GloboNetworkIpDetailVO, Long> {
 
-	public long getGloboNetworkLBEnvironmentId() {
-		return globoNetworkLBEnvironmentId;
-	}
+    GloboNetworkIpDetailVO findByIp(long ipId);
+
 }

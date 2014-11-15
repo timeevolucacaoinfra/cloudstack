@@ -38,7 +38,7 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 @APICommand(name = "listGloboNetworkLBNetworks", responseObject=GloboNetworkLBNetworkResponse.class, description="Lists GloboNetwork LB networks")
@@ -76,16 +76,16 @@ public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
         	s_logger.debug("listGloboNetworkLBNetworksCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId);
-        	List<GloboNetworkLBNetworkVO> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.networkId, this.globoNetworkEnvironmentId);
+        	List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.networkId, this.globoNetworkEnvironmentId);
         	
         	List<GloboNetworkLBNetworkResponse> responseList = new ArrayList<GloboNetworkLBNetworkResponse>();
     		
-    		for (GloboNetworkLBNetworkVO globoNetworkLBNetworkVO : globoNetworkLBNetworks) {
+    		for (GloboNetworkLoadBalancerEnvironment globoNetworkLBNetworkVO : globoNetworkLBNetworks) {
     		    GloboNetworkLBNetworkResponse lbNetworkResponse = new GloboNetworkLBNetworkResponse();
 				lbNetworkResponse.setId(globoNetworkLBNetworkVO.getId());
 				lbNetworkResponse.setName(globoNetworkLBNetworkVO.getName());
 				lbNetworkResponse.setGloboNetworkEnvironmentId(globoNetworkLBNetworkVO.getGloboNetworkEnvironmentRefId());
-				lbNetworkResponse.setGloboNetworkLBNetworkId(globoNetworkLBNetworkVO.getGloboNetworkLBNetworkId());
+				lbNetworkResponse.setGloboNetworkLBEnvironmentId(globoNetworkLBNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
 				lbNetworkResponse.setObjectName("globonetworklbnetworks");
 				responseList.add(lbNetworkResponse);
 			}

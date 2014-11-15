@@ -33,7 +33,7 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 @APICommand(name = "addGloboNetworkLBNetwork", responseObject = GloboNetworkLBNetworkResponse.class, description = "Adds a LB network to a GloboNetwork environment")
@@ -88,12 +88,12 @@ public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			GloboNetworkLBNetworkVO globoLBNetworkVO = _globoNetworkService.addGloboNetworkLBNetwork(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
+			GloboNetworkLoadBalancerEnvironment globoLBNetworkVO = _globoNetworkService.addGloboNetworkLBNetwork(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
 			GloboNetworkLBNetworkResponse response = new GloboNetworkLBNetworkResponse();
 			response.setId(globoLBNetworkVO.getId());
 			response.setName(globoLBNetworkVO.getName());
 			response.setGloboNetworkEnvironmentId(globoLBNetworkVO.getGloboNetworkEnvironmentRefId());
-			response.setGloboNetworkLBNetworkId(globoLBNetworkVO.getGloboNetworkLBNetworkId());
+			response.setGloboNetworkLBEnvironmentId(globoLBNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
 			response.setObjectName("globonetworklbnetwork");
 			response.setResponseName(getCommandName());
 			this.setResponseObject(response);

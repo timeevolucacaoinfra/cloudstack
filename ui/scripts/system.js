@@ -6193,7 +6193,11 @@
                                                 var physicalnetworkid = args.context.physicalNetworks[0].id;
                                                 var environmentid = args.context.napienvironments[0].environmentid;
                                                 $.ajax({
-                                                    url: createURL("removeGloboNetworkEnvironment&physicalnetworkid=" + physicalnetworkid + "&environmentid=" + environmentid),
+                                                    url: createURL("removeGloboNetworkEnvironment"),
+                                                    data: {
+                                                        physicalnetworkid: physicalnetworkid,
+                                                        environmentid: environmentid
+                                                    },
                                                     dataType: "json",
                                                     async: true,
                                                     success: function(json) {
@@ -6224,8 +6228,8 @@
                                                         name: {
                                                             label: 'Local Name'
                                                         },
-                                                        globolbnetworkid: {
-                                                            label: 'GloboNetwork Network ID'
+                                                        globonetworklbenvironmentid: {
+                                                            label: 'GloboNetwork Load Balancer ID'
                                                         }
                                                     },
                                                     dataProvider: function(args) {
@@ -6242,7 +6246,7 @@
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
-                                                                            globolbnetworkid: this.globonetworklbnetworkid,
+                                                                            globolbnetworkid: this.globonetworklbenvironmentid,
                                                                         });
                                                                     }
                                                                 });
@@ -6278,19 +6282,20 @@
                                                                 var globolbnetworkid = args.data.globolbnetworkid;
                                                                 var name = args.data.name;
                                                                 $.ajax({
-                                                                    url: createURL("addGloboNetworkLBNetwork&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&globolbnetworkid=" + globolbnetworkid + "&name=" + name),
+                                                                    url: createURL("addGloboNetworkLBNetwork"),
+                                                                    data: {
+                                                                        physicalnetworkid: physicalnetworkid,
+                                                                        napienvironmentid: environmentid,
+                                                                        globolbnetworkid: globolbnetworkid,
+                                                                        name: name
+                                                                    },
                                                                     dataType: "json",
                                                                     async: true,
                                                                     success: function(json) {
-                                                                        var jid = json.addglobonetworklbnetworkresponse.jobid;
-                                                                        args.response.success({
-                                                                            _custom: {
-                                                                                jobId: jid,
-                                                                                getUpdatedItem: function(json) {
-                                                                                    $(window).trigger('cloudStack.fullRefresh');
-                                                                                }
-                                                                            }
-                                                                        });
+                                                                        args.response.success();
+                                                                        setTimeout(function() {
+                                                                            $(window).trigger('cloudStack.fullRefresh');
+                                                                        }, 500);
                                                                     },
                                                                     error: function(errorMessage) {
                                                                         args.response.error(parseXMLHttpResponse(errorMessage));
@@ -6303,7 +6308,9 @@
                                                                 }
                                                             },
                                                             notification: {
-                                                                poll: pollAsyncJobResult
+                                                                poll: function(args) {
+                                                                    args.complete();
+                                                                }
                                                             }
                                                         },
                                                         remove: {
@@ -6313,7 +6320,7 @@
                                                                     return 'Are you sure you want to remove LB network ' + args.context.globolbnetworks[0].name + '(' + args.context.globolbnetworks[0].globolbnetworkid + ')?';
                                                                 },
                                                                 notification: function(args) {
-                                                                    return 'Remove GloboNetwork LB Network';
+                                                                    return 'Remove Load Balancer Environment';
                                                                 }
                                                             },
                                                             action: function(args) {
@@ -6321,12 +6328,15 @@
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
                                                                 var globolbnetworkid = args.context.globolbnetworks[0].globolbnetworkid;
                                                                 $.ajax({
-                                                                    url: createURL("removeGloboNetworkLBNetwork&physicalnetworkid=" + physicalnetworkid + "&napienvironmentid=" + environmentid + "&globolbnetworkid=" + globolbnetworkid),
+                                                                    url: createURL("removeGloboNetworkLBNetwork"),
+                                                                    data: {
+                                                                        physicalnetworkid: physicalnetworkid,
+                                                                        napienvironmentid: environmentid,
+                                                                        globolbnetworkid: globolbnetworkid
+                                                                    },
                                                                     dataType: "json",
-                                                                    async: true,
                                                                     success: function(json) {
                                                                         args.response.success();
-                                                                        $(window).trigger('cloudStack.fullRefresh');
                                                                     },
                                                                     error: function(XMLHttpResponse) {
                                                                         var errorMsg = parseXMLHttpResponse(XMLHttpResponse);

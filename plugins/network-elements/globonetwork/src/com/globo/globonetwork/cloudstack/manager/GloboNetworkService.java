@@ -38,7 +38,7 @@ import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
@@ -63,7 +63,7 @@ public interface GloboNetworkService {
      * @param globoNetworkLBNetworkId
      * @return
      */
-    public GloboNetworkLBNetworkVO addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId) throws ResourceAllocationException;	
+    public GloboNetworkLoadBalancerEnvironment addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId) throws ResourceAllocationException;	
 
 	/**
 	 * Create a new network in sync with GloboNetwork.
@@ -161,7 +161,7 @@ public interface GloboNetworkService {
      * @param physicalNetworkId
      * @param globoNetworkEnvironmentId
      */
-    public List<GloboNetworkLBNetworkVO> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId);
+    public List<GloboNetworkLoadBalancerEnvironment> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId);
 
 	/**
 	 * List all environments from GloboNetwork

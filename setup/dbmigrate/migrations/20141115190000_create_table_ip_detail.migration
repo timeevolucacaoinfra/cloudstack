@@ -1,0 +1,26 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+CREATE TABLE
+    globonetwork_ip_detail
+    (
+        id bigint unsigned NOT NULL AUTO_INCREMENT,
+        user_ip_address_id bigint unsigned NOT NULL,
+        globonetwork_lbenvironment_ref_id bigint unsigned,
+        globonetwork_vip_id bigint unsigned,
+        globonetwork_ip_id bigint unsigned NOT NULL,
+        PRIMARY KEY (id),
+        CONSTRAINT fk_lbenvironment FOREIGN KEY (globonetwork_lbenvironment_ref_id) REFERENCES
+        globonetwork_loadbalancer_environments (id) ,
+        CONSTRAINT fk_userip FOREIGN KEY (user_ip_address_id) REFERENCES user_ip_address (id) ON
+    DELETE
+        CASCADE,
+        INDEX fk_lbenvironment (globonetwork_lbenvironment_ref_id),
+        INDEX fk_userip (user_ip_address_id),
+        INDEX idx_vip (globonetwork_vip_id)
+    )
+    ENGINE=InnoDB DEFAULT CHARSET=utf8;
+"""
+
+SQL_DOWN = u"""
+DROP TABLE globonetwork_ip_detail;
+"""

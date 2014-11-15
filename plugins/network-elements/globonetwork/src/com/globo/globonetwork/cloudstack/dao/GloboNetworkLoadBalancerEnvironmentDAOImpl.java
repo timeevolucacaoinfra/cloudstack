@@ -27,56 +27,40 @@ import com.cloud.utils.db.GenericDaoBase;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
 import com.cloud.utils.db.SearchCriteria.Op;
-import com.globo.globonetwork.cloudstack.GloboNetworkLBNetworkVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 
 @Component
-@Local(value = GloboNetworkLBNetworkDao.class)
+@Local(value = GloboNetworkLoadBalancerEnvironmentDAO.class)
 @DB
-public class GloboNetworkLBNetworkDaoImpl extends GenericDaoBase<GloboNetworkLBNetworkVO, Long> implements GloboNetworkLBNetworkDao {
+public class GloboNetworkLoadBalancerEnvironmentDAOImpl extends GenericDaoBase<GloboNetworkLoadBalancerEnvironment, Long> implements GloboNetworkLoadBalancerEnvironmentDAO {
 
-    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefId;
+    final SearchBuilder<GloboNetworkLoadBalancerEnvironment> byNetworkEnvironmentRefId;
     
-    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndLBNetworkId;
+    final SearchBuilder<GloboNetworkLoadBalancerEnvironment> byNetworkEnvironmentRefIdAndLBNetworkId;
 
-    final SearchBuilder<GloboNetworkLBNetworkVO> byNetworkEnvironmentRefIdAndPortableIpRangeId;
-
-    protected GloboNetworkLBNetworkDaoImpl() {
+    protected GloboNetworkLoadBalancerEnvironmentDAOImpl() {
         byNetworkEnvironmentRefId = createSearchBuilder();
         byNetworkEnvironmentRefId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
         byNetworkEnvironmentRefId.done();
         
         byNetworkEnvironmentRefIdAndLBNetworkId = createSearchBuilder();
         byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_lb_network_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkLBNetworkId(), Op.EQ);
+        byNetworkEnvironmentRefIdAndLBNetworkId.and("globonetwork_lb_network_id", byNetworkEnvironmentRefIdAndLBNetworkId.entity().getGloboNetworkLoadBalancerEnvironmentId(), Op.EQ);
         byNetworkEnvironmentRefIdAndLBNetworkId.done();        
-
-        byNetworkEnvironmentRefIdAndPortableIpRangeId = createSearchBuilder();
-        byNetworkEnvironmentRefIdAndPortableIpRangeId.and("globonetwork_environment_ref_id", byNetworkEnvironmentRefIdAndPortableIpRangeId.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndPortableIpRangeId.and("portable_ip_range_id", byNetworkEnvironmentRefIdAndPortableIpRangeId.entity().getPortableIpRangeId(), Op.EQ);
-        byNetworkEnvironmentRefIdAndPortableIpRangeId.done();        
-
     }
 
     @Override
-    public List<GloboNetworkLBNetworkVO> listByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
-        SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefId.create();
+    public List<GloboNetworkLoadBalancerEnvironment> listByEnvironmentRefId(long globoNetworkEnvironmentRefId) {
+        SearchCriteria<GloboNetworkLoadBalancerEnvironment> sc = byNetworkEnvironmentRefId.create();
         sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
         return listBy(sc);
     }
 
     @Override
-    public GloboNetworkLBNetworkVO findByEnvironmentRefAndLBNetwork(long globoNetworkEnvironmentRefId, long globoNetworkLBNetworkId) {
-        SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
+    public GloboNetworkLoadBalancerEnvironment findByEnvironmentRefAndLBNetwork(long globoNetworkEnvironmentRefId, long globoNetworkLBNetworkId) {
+        SearchCriteria<GloboNetworkLoadBalancerEnvironment> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
         sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
         sc.setParameters("globonetwork_lb_network_id", globoNetworkLBNetworkId);
-        return findOneBy(sc);
-    }
-
-    @Override
-    public GloboNetworkLBNetworkVO findByEnvironmentRefAndPortableIpRangeId(long globoNetworkEnvironmentRefId, long vlanId) {
-        SearchCriteria<GloboNetworkLBNetworkVO> sc = byNetworkEnvironmentRefIdAndLBNetworkId.create();
-        sc.setParameters("globonetwork_environment_ref_id", globoNetworkEnvironmentRefId);
-        sc.setParameters("portable_ip_range_id", vlanId);
         return findOneBy(sc);
     }
 

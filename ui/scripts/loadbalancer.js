@@ -831,7 +831,7 @@
                                 }
                             },
                             lbnetwork: {
-                                label: 'LB Network',
+                                label: 'Load Balancer Environment',
                                 validation: {
                                     required: true
                                 },
@@ -864,7 +864,7 @@
                                         success: function(json) {
                                             var data = [];
                                             $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
-                                                data.push({id: this.globonetworklbnetworkid, name: this.name, description: this.name});
+                                                data.push({id: this.id, name: this.name, description: this.name});
                                             });
                                             args.response.success({
                                                 data: data

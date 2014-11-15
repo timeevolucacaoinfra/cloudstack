@@ -26,6 +26,8 @@ public class GetVipInfoFromGloboNetworkCommand extends Command {
 	
 	private Long vipEnvironmentId;
 	
+	// FIXME Remover
+	@Deprecated
 	public GetVipInfoFromGloboNetworkCommand(String ip, Long vipEnvironmentId) {
 	    this.ip = ip;
 	    this.vipEnvironmentId = vipEnvironmentId;

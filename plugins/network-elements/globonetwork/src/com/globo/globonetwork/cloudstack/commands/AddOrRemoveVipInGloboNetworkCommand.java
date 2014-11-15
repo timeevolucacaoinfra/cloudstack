@@ -27,6 +27,8 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	
     private FirewallRule.State ruleState;
     
+    private Long vipId;
+    
 	private String ipv4;
 	
 	private String methodBal;
@@ -52,6 +54,14 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	@Override
 	public boolean executeInSequence() {
 		return false;
+	}
+	
+	public Long getVipId() {
+	    return vipId;
+	}
+	
+	public void setVipId(Long vipId) {
+	    this.vipId = vipId;
 	}
 	
 	public String getIpv4() {
