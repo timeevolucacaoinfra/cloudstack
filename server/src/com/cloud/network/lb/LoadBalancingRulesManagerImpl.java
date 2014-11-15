@@ -2207,8 +2207,9 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
-        List<UserVmVO> userVms = _vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(),
-                loadBalancer.getNetworkId());
+        Set<UserVmVO> userVms = new HashSet<UserVmVO>();
+        userVms.addAll(_vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(),
+                loadBalancer.getNetworkId()));
         
         // Check for VMs in additional networks
         List<LoadBalancerNetworkMapVO> lbNetMaps = _lbNetMapDao.listByLoadBalancerId(loadBalancer.getId());
