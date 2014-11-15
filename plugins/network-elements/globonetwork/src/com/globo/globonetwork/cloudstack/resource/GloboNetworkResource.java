@@ -842,13 +842,17 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         if (ip == null) {
             return false;
         }
+        
+        String servicePorts = vip.getServicePorts().get(0);
+        int vipPort = Integer.parseInt(servicePorts.split(":")[0]);
+        int realPort = Integer.parseInt(servicePorts.split(":")[1]);
 
         if (vip.getRealsIp() != null) {
             for (RealIP realIp : vip.getRealsIp()) {
                 if (ip.getId().equals(realIp.getIpId())) {
                     // real already added. Only ensure is enabled
                     s_logger.info("Enabling real " + ip.getIpString() + " on loadbalancer " + vip.getId());
-                    _globoNetworkApi.getVipAPI().enableReal(vip.getId(), ip.getId(), equipment.getId(), null, null);
+                    _globoNetworkApi.getVipAPI().enableReal(vip.getId(), ip.getId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
                     return true;
                 }
             }
@@ -856,7 +860,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
         // added reals are always enabled by default
         s_logger.info("Adding real " + ip.getIpString() + " on loadbalancer " + vip.getId());
-        _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), null, null);
+        _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), vipPort, realPort);
         return true;
     }
     
