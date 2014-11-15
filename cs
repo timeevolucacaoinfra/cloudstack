@@ -3,20 +3,20 @@
 case "$1" in
   run)
     rm -f *.log
-    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -pl :cloud-client-ui jetty:run
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Djava.awt.headless=true -pl :cloud-client-ui jetty:run
     ;;
   run-simulator)
     rm -f *.log
-    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Dsimulator -pl :cloud-client-ui jetty:run
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Djava.awt.headless=true -Dsimulator -pl :cloud-client-ui jetty:run
     ;;
   compile)
-    mvn -Pdeveloper,systemvm -Dsimulator clean install -DskipTests
+    mvn -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator clean install -DskipTests
     ;;
   compile-changes)
-    mvn -Pdeveloper,systemvm -Dsimulator install -DskipTests
+    mvn -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator install -DskipTests
     ;;
   compile-quick)
-    mvn -Pdeveloper,systemvm -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
+    mvn -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
   update-js)
     cp -R ui/scripts client/target/generated-webapp/
