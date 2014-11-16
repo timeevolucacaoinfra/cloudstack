@@ -112,9 +112,6 @@
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
         id: 'loadbalancer',
-        preFilter: function(args) {
-            return isAdmin();
-        },
         listView: {
             id: 'loadbalancers',
             fields: {
