@@ -6229,7 +6229,7 @@
                                                             label: 'Local Name'
                                                         },
                                                         globonetworklbenvironmentid: {
-                                                            label: 'GloboNetwork Load Balancer ID'
+                                                            label: 'Load Balancer Environment ID'
                                                         }
                                                     },
                                                     dataProvider: function(args) {
@@ -6258,9 +6258,9 @@
                                                     },
                                                     actions: {
                                                         add: {
-                                                            label: 'Add LB Network',
+                                                            label: 'Add LB Environment',
                                                             createForm: {
-                                                                title: 'Add LB Network',
+                                                                title: 'Add LB Environment',
                                                                 fields: {
                                                                     name: {
                                                                         label: 'Name',
@@ -6269,7 +6269,7 @@
                                                                         }
                                                                     },
                                                                     globolbnetworkid: {
-                                                                        label: 'LB Network ID',
+                                                                        label: 'LB Environment ID',
                                                                         validation: {
                                                                             required: true
                                                                         }
