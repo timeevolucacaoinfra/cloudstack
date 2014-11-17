@@ -6219,10 +6219,10 @@
                                     },
                                     detailView: {
                                         tabs: {
-                                            vipenvs: {
-                                                title: 'LB Networks',
+                                            lbenvironments: {
+                                                title: 'LB Environments',
                                                 listView: {
-                                                    label: 'LB Networks',
+                                                    label: 'LB Environments',
                                                     id: 'globolbnetworks',
                                                     fields: {
                                                         name: {
@@ -6246,7 +6246,7 @@
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
-                                                                            globolbnetworkid: this.globonetworklbenvironmentid,
+                                                                            globonetworklbenvironmentid: this.globonetworklbenvironmentid,
                                                                         });
                                                                     }
                                                                 });
