@@ -731,7 +731,7 @@ listGloboNetworkReals=15
 listGloboNetworkLBNetworks=15
 listGloboNetworkVips=15
 removeGloboNetworkEnvironment=1
-removeGloboNetworkLBNetwork=1
+removeGloboNetworkLBEnvironment=1
 removeGloboNetworkVip=15
 
 ### GloboDNS commands

@@ -149,7 +149,7 @@ import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
-import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkLBNetworkCmd;
+import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkLBEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
@@ -243,7 +243,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	@Inject
 	GloboNetworkVipAccDao _globoNetworkVipAccDao;
 	@Inject
-	GloboNetworkLoadBalancerEnvironmentDAO _globoNetworkLBNetworkDao;
+	GloboNetworkLoadBalancerEnvironmentDAO _globoNetworkLBEnvironmentDao;
     @Inject
     VMInstanceDao _vmDao;
     @Inject
@@ -809,7 +809,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 @Override
                 public GloboNetworkLoadBalancerEnvironment doInTransaction(TransactionStatus status) throws CloudException {
                     GloboNetworkLoadBalancerEnvironment globoNetworkLBNetworkVO = new GloboNetworkLoadBalancerEnvironment(name, globoNetworkEnvironment.getId(), globoNetworkLBNetworkId);
-                    _globoNetworkLBNetworkDao.persist(globoNetworkLBNetworkVO);
+                    _globoNetworkLBEnvironmentDao.persist(globoNetworkLBNetworkVO);
                     return globoNetworkLBNetworkVO;
                 }
             });
@@ -913,7 +913,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(ListGloboNetworkRealsCmd.class);
         cmdList.add(ListGloboNetworkVipsCmd.class);
         cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
-        cmdList.add(RemoveGloboNetworkLBNetworkCmd.class);
+        cmdList.add(RemoveGloboNetworkLBEnvironmentCmd.class);
         cmdList.add(RemoveGloboNetworkVipCmd.class);
         return cmdList;
 	}
@@ -1084,10 +1084,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBNetworkVOList;
 
         if (glbEnvId != null) {
-            globoNetworkLBNetworkVOList = _globoNetworkLBNetworkDao.listByEnvironmentRefId(globoNetworkEnvironment.getId());
+            globoNetworkLBNetworkVOList = _globoNetworkLBEnvironmentDao.listByEnvironmentRefId(globoNetworkEnvironment.getId());
 
         } else {
-            globoNetworkLBNetworkVOList = _globoNetworkLBNetworkDao.listAll();
+            globoNetworkLBNetworkVOList = _globoNetworkLBEnvironmentDao.listAll();
         }
         
         return globoNetworkLBNetworkVOList;
@@ -1119,7 +1119,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	
     @Override
     @DB
-    public boolean removeGloboNetworkLBNetwork(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBNetworkId) {
+    public boolean removeGloboNetworkLBEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBEnvironmentId) {
         
         // Retrieve napiEnvironment from DB
         GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId);
@@ -1130,15 +1130,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         // Retrieve LB Network from DB
-        final GloboNetworkLoadBalancerEnvironment globoNetworkLBNetworkVO = _globoNetworkLBNetworkDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(), globoNetworkLBNetworkId);
-        if (globoNetworkLBNetworkVO == null) {
-            throw new InvalidParameterValueException("Unable to find a relationship between environment " + globoNetworkEnvironmentId + " and LB network " + globoNetworkLBNetworkId);
+        final GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironmentVO = _globoNetworkLBEnvironmentDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(), globoNetworkLBEnvironmentId);
+        if (globoNetworkLBEnvironmentVO == null) {
+            throw new InvalidParameterValueException("Unable to find a relationship between environment " + globoNetworkEnvironmentId + " and LB network " + globoNetworkLBEnvironmentId);
         }
         
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {
-                _globoNetworkLBNetworkDao.remove(globoNetworkLBNetworkVO.getId());
+                _globoNetworkLBEnvironmentDao.remove(globoNetworkLBEnvironmentVO.getId());
                 
                 // never remove portable ip range because can be used in others zones.
 //                if (_portableIpRangeDao.findById(globoNetworkLBNetworkVO.getPortableIpRangeId()) != null) {
@@ -1638,7 +1638,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId() + " and GloboNetwork environment=" + glbEnvId);
         }
 
-        final GloboNetworkLoadBalancerEnvironment globoNetworkLBNetwork = _globoNetworkLBNetworkDao.findById(lbNetworkId);
+        final GloboNetworkLoadBalancerEnvironment globoNetworkLBNetwork = _globoNetworkLBEnvironmentDao.findById(lbNetworkId);
         if (globoNetworkLBNetwork == null) {
             throw new InvalidParameterValueException("Could not find LB network " + lbNetworkId);
         }
@@ -1699,7 +1699,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     _ipAddrMgr.releasePortableIpAddress(ipId);
                     
                     if (gnIpDetail != null && gnIpDetail.getGloboNetworkEnvironmentRefId() != null) {
-                        GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBNetworkDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
+                        GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBEnvironmentDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
                         if (gnLbNetworkVO == null) {
                             throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnIpDetail.getGloboNetworkEnvironmentRefId());
                         }
@@ -1754,7 +1754,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") can't be used to load balancing");
             }
             
-            GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBNetworkDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
+            GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBEnvironmentDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
             if (gnLbNetworkVO == null) {
                 throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnIpDetail.getGloboNetworkEnvironmentRefId());
             }

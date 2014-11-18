@@ -187,7 +187,7 @@ public interface GloboNetworkService {
      * @param globoNetworkLBNetworkId
      * @return
      */
-    public boolean removeGloboNetworkLBNetwork(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBNetworkId);	
+    public boolean removeGloboNetworkLBEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBEnvironmentId);	
 
 	/**
 	 * Add GloboNetwork host details (provider) to CloudStack
