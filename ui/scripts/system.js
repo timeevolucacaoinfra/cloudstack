@@ -6223,7 +6223,7 @@
                                                 title: 'LB Environments',
                                                 listView: {
                                                     label: 'LB Environments',
-                                                    id: 'globolbnetworks',
+                                                    id: 'globolbenvironments',
                                                     fields: {
                                                         name: {
                                                             label: 'Local Name'
@@ -6240,9 +6240,9 @@
 
                                                         var items = [];
                                                         $.ajax({
-                                                            url: createURL("listGloboNetworkLBNetworks&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                            url: createURL("listGloboNetworkLBEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
                                                             success: function(json) {
-                                                                $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
+                                                                $(json.listglobonetworklbenvironmentsresponse.globonetworklbenvironments).each(function() {
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
@@ -6268,7 +6268,7 @@
                                                                             required: true
                                                                         }
                                                                     },
-                                                                    globolbnetworkid: {
+                                                                    globolbenvironmentid: {
                                                                         label: 'LB Environment ID',
                                                                         validation: {
                                                                             required: true
@@ -6279,14 +6279,14 @@
                                                             action: function(args) {
                                                                 var physicalnetworkid = selectedPhysicalNetworkObj.id;
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
-                                                                var globolbnetworkid = args.data.globolbnetworkid;
+                                                                var globolbenvironmentid = args.data.globolbenvironmentid;
                                                                 var name = args.data.name;
                                                                 $.ajax({
-                                                                    url: createURL("addGloboNetworkLBNetwork"),
+                                                                    url: createURL("addGloboNetworkLBEnvironment"),
                                                                     data: {
                                                                         physicalnetworkid: physicalnetworkid,
                                                                         napienvironmentid: environmentid,
-                                                                        globolbnetworkid: globolbnetworkid,
+                                                                        globolbenvironmentid: globolbenvironmentid,
                                                                         name: name
                                                                     },
                                                                     dataType: "json",
@@ -6317,7 +6317,7 @@
                                                             label: 'label.remove',
                                                             messages: {
                                                                 confirm: function(args) {
-                                                                    return 'Are you sure you want to remove LB network ' + args.context.globolbnetworks[0].name + '(' + args.context.globolbnetworks[0].globolbnetworkid + ')?';
+                                                                    return 'Are you sure you want to remove LB Environment ' + args.context.globolbenvironments[0].name + '(' + args.context.globolbenvironments[0].globonetworklbenvironmentid + ')?';
                                                                 },
                                                                 notification: function(args) {
                                                                     return 'Remove Load Balancer Environment';
@@ -6326,13 +6326,13 @@
                                                             action: function(args) {
                                                                 var physicalnetworkid = selectedPhysicalNetworkObj.id;
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
-                                                                var globolbnetworkid = args.context.globolbnetworks[0].globolbnetworkid;
+                                                                var globolbenvironmentid = args.context.globolbenvironments[0].globonetworklbenvironmentid;
                                                                 $.ajax({
-                                                                    url: createURL("removeGloboNetworkLBNetwork"),
+                                                                    url: createURL("removeGloboNetworkLBEnvironment"),
                                                                     data: {
                                                                         physicalnetworkid: physicalnetworkid,
                                                                         napienvironmentid: environmentid,
-                                                                        globolbnetworkid: globolbnetworkid
+                                                                        globolbenvironmentid: globolbenvironmentid
                                                                     },
                                                                     dataType: "json",
                                                                     success: function(json) {

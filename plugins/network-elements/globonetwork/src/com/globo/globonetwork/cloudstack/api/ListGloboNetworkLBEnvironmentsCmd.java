@@ -41,11 +41,11 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listGloboNetworkLBNetworks", responseObject=GloboNetworkLBNetworkResponse.class, description="Lists GloboNetwork LB networks")
-public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
+@APICommand(name = "listGloboNetworkLBEnvironments", responseObject=GloboNetworkLBEnvironmentResponse.class, description="Lists GloboNetwork LB environments")
+public class ListGloboNetworkLBEnvironmentsCmd extends BaseCmd {
 
-    public static final Logger s_logger = Logger.getLogger(ListGloboNetworkLBNetworksCmd.class);
-    private static final String s_name = "listglobonetworklbnetworksresponse";
+    public static final Logger s_logger = Logger.getLogger(ListGloboNetworkLBEnvironmentsCmd.class);
+    private static final String s_name = "listglobonetworklbenvironmentsresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -75,22 +75,22 @@ public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listGloboNetworkLBNetworksCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId + " and networkId=" + this.networkId);
-        	List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.networkId, this.globoNetworkEnvironmentId);
+        	s_logger.debug("listGloboNetworkLBEnvironmentsCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId + " and networkId=" + this.networkId);
+        	List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBEnvironments = _globoNetworkService.listGloboNetworkLBEnvironmentsFromDB(this.physicalNetworkId, this.networkId, this.globoNetworkEnvironmentId);
         	
-        	List<GloboNetworkLBNetworkResponse> responseList = new ArrayList<GloboNetworkLBNetworkResponse>();
+        	List<GloboNetworkLBEnvironmentResponse> responseList = new ArrayList<GloboNetworkLBEnvironmentResponse>();
     		
-    		for (GloboNetworkLoadBalancerEnvironment globoNetworkLBNetworkVO : globoNetworkLBNetworks) {
-    		    GloboNetworkLBNetworkResponse lbNetworkResponse = new GloboNetworkLBNetworkResponse();
-				lbNetworkResponse.setId(globoNetworkLBNetworkVO.getId());
-				lbNetworkResponse.setName(globoNetworkLBNetworkVO.getName());
-				lbNetworkResponse.setGloboNetworkEnvironmentId(globoNetworkLBNetworkVO.getGloboNetworkEnvironmentRefId());
-				lbNetworkResponse.setGloboNetworkLBEnvironmentId(globoNetworkLBNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
-				lbNetworkResponse.setObjectName("globonetworklbnetworks");
+    		for (GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironmentVO : globoNetworkLBEnvironments) {
+    		    GloboNetworkLBEnvironmentResponse lbNetworkResponse = new GloboNetworkLBEnvironmentResponse();
+				lbNetworkResponse.setId(globoNetworkLBEnvironmentVO.getId());
+				lbNetworkResponse.setName(globoNetworkLBEnvironmentVO.getName());
+				lbNetworkResponse.setGloboNetworkEnvironmentId(globoNetworkLBEnvironmentVO.getGloboNetworkEnvironmentRefId());
+				lbNetworkResponse.setGloboNetworkLBEnvironmentId(globoNetworkLBEnvironmentVO.getGloboNetworkLoadBalancerEnvironmentId());
+				lbNetworkResponse.setObjectName("globonetworklbenvironments");
 				responseList.add(lbNetworkResponse);
 			}
     		 
-    		ListResponse<GloboNetworkLBNetworkResponse> response = new ListResponse<GloboNetworkLBNetworkResponse>();
+    		ListResponse<GloboNetworkLBEnvironmentResponse> response = new ListResponse<GloboNetworkLBEnvironmentResponse>();
     		response.setResponses(responseList);
     		response.setResponseName(getCommandName());
     		this.setResponseObject(response);

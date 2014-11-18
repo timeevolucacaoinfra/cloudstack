@@ -36,10 +36,10 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addGloboNetworkLBNetwork", responseObject = GloboNetworkLBNetworkResponse.class, description = "Adds a LB network to a GloboNetwork environment")
-public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
+@APICommand(name = "addGloboNetworkLBEnvironment", responseObject = GloboNetworkLBEnvironmentResponse.class, description = "Add a LB environment to a GloboNetwork environment")
+public class AddGloboNetworkLBEnvironmentCmd extends BaseAsyncCmd {
 
-	private static final String s_name = "addglobonetworklbnetworkresponse";
+	private static final String s_name = "addglobonetworklbenvironmentresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
@@ -56,8 +56,8 @@ public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
 	private Long globoNetworkEnvironmentId;
 	
-	@Parameter(name = "globolbnetworkid", type = CommandType.LONG, required = true, description = "the Id of LB network in GloboNetwork")
-	private Long globoNetworkLBNetworkId;
+	@Parameter(name = "globolbenvironmentid", type = CommandType.LONG, required = true, description = "the Id of LB environment in GloboNetwork")
+	private Long globoNetworkLBEnvironmentId;
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
@@ -75,8 +75,8 @@ public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 		return globoNetworkEnvironmentId;
 	}
 	
-    public Long getGloboNetworkLBNetworkId() {
-        return globoNetworkLBNetworkId;
+    public Long getGloboNetworkLBEnvironmentId() {
+        return globoNetworkLBEnvironmentId;
     }	
 
 	// ///////////////////////////////////////////////////
@@ -88,13 +88,13 @@ public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			GloboNetworkLoadBalancerEnvironment globoLBNetworkVO = _globoNetworkService.addGloboNetworkLBNetwork(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
-			GloboNetworkLBNetworkResponse response = new GloboNetworkLBNetworkResponse();
-			response.setId(globoLBNetworkVO.getId());
-			response.setName(globoLBNetworkVO.getName());
-			response.setGloboNetworkEnvironmentId(globoLBNetworkVO.getGloboNetworkEnvironmentRefId());
-			response.setGloboNetworkLBEnvironmentId(globoLBNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
-			response.setObjectName("globonetworklbnetwork");
+			GloboNetworkLoadBalancerEnvironment globoLBEnvironmentVO = _globoNetworkService.addGloboNetworkLBEnvironment(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBEnvironmentId);
+			GloboNetworkLBEnvironmentResponse response = new GloboNetworkLBEnvironmentResponse();
+			response.setId(globoLBEnvironmentVO.getId());
+			response.setName(globoLBEnvironmentVO.getName());
+			response.setGloboNetworkEnvironmentId(globoLBEnvironmentVO.getGloboNetworkEnvironmentRefId());
+			response.setGloboNetworkLBEnvironmentId(globoLBEnvironmentVO.getGloboNetworkLoadBalancerEnvironmentId());
+			response.setObjectName("globonetworklbenvironment");
 			response.setResponseName(getCommandName());
 			this.setResponseObject(response);
 			

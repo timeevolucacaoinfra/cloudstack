@@ -36,10 +36,10 @@ import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "removeGloboNetworkLBNetwork", responseObject = SuccessResponse.class, description = "Removes relationship between an environment and a LB network")
-public class RemoveGloboNetworkLBNetworkCmd extends BaseCmd {
+@APICommand(name = "removeGloboNetworkLBEnvironment", responseObject = SuccessResponse.class, description = "Removes relationship between an environment and a LB network")
+public class RemoveGloboNetworkLBEnvironmentCmd extends BaseCmd {
 
-	private static final String s_name = "removeglobonetworklbnetworkresponse";
+	private static final String s_name = "removeglobonetworklbenvironmentresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
@@ -53,8 +53,8 @@ public class RemoveGloboNetworkLBNetworkCmd extends BaseCmd {
 	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
 	private Long globoNetworkEnvironmentId;
 	
-    @Parameter(name = "globolbnetworkid", type = CommandType.LONG, required = true, description = "the Id of LB network in GloboNetwork")
-    private Long globoNetworkLBNetworkId;	
+    @Parameter(name = "globolbenvironmentid", type = CommandType.LONG, required = true, description = "the Id of LB environment in GloboNetwork")
+    private Long globoNetworkLBEnvironmentId;	
 
 	// ///////////////////////////////////////////////////
 	// ///////////////// Accessors ///////////////////////
@@ -69,7 +69,7 @@ public class RemoveGloboNetworkLBNetworkCmd extends BaseCmd {
 	}
 	
     public Long getGloboNetworkLBNetworkId() {
-        return globoNetworkLBNetworkId;
+        return globoNetworkLBEnvironmentId;
     }
 
 	// ///////////////////////////////////////////////////
@@ -81,7 +81,7 @@ public class RemoveGloboNetworkLBNetworkCmd extends BaseCmd {
 			InsufficientCapacityException, ServerApiException,
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
-			boolean result = _globoNetworkService.removeGloboNetworkLBNetwork(physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
+			boolean result = _globoNetworkService.removeGloboNetworkLBEnvironment(physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBEnvironmentId);
 
 			if (result) {
 				SuccessResponse response = new SuccessResponse(getCommandName());

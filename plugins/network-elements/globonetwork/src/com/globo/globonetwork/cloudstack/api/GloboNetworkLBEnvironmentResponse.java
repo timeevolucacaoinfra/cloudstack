@@ -25,7 +25,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.google.gson.annotations.SerializedName;
 
 @EntityReference(value = GloboNetworkLoadBalancerEnvironment.class)
-public class GloboNetworkLBNetworkResponse extends BaseResponse {
+public class GloboNetworkLBEnvironmentResponse extends BaseResponse {
 
 	@SerializedName("id") @Param(description = "ID of the relationship between environment ID and LB network")
 	private Long id;
@@ -51,8 +51,8 @@ public class GloboNetworkLBNetworkResponse extends BaseResponse {
 		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
 	}
 	
-    public void setGloboNetworkLBEnvironmentId(Long globoNetworkLBNetworkId) {
-        this.globoNetworkLBEnvironmentId = globoNetworkLBNetworkId;
+    public void setGloboNetworkLBEnvironmentId(Long globoNetworkLBEnvironmentId) {
+        this.globoNetworkLBEnvironmentId = globoNetworkLBEnvironmentId;
     }	
 
 }

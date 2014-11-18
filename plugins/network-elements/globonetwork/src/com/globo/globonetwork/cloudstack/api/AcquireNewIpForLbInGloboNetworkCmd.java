@@ -63,7 +63,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
             description="Project the IP address will be associated with")
     private Long projectId;
 
-    @Parameter(name="lbnetworkid", type=CommandType.LONG, entityType = GloboNetworkLBNetworkResponse.class,
+    @Parameter(name="lbnetworkid", type=CommandType.LONG, entityType = GloboNetworkLBEnvironmentResponse.class,
             description="Globo Network LB Network Id", required=true)
     private Long globoNetworkLBNetworkId;
 
