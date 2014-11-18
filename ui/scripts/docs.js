@@ -1206,7 +1206,7 @@ cloudStack.docs = {
     },
     // Add Load Balancer
     helpHealthcheck: {
-        desc: 'The path for a HTTP healthcheck. Leave it blank for TCP',
+        desc: 'The path for a GET HTTP healthcheck. Optionally, provide full HTTP request (GET or POST). Leave it blank for TCP',
         externalLink: ''
     }
 };
