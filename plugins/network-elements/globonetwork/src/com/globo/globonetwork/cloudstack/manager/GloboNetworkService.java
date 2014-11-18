@@ -161,7 +161,7 @@ public interface GloboNetworkService {
      * @param physicalNetworkId
      * @param globoNetworkEnvironmentId
      */
-    public List<GloboNetworkLoadBalancerEnvironment> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId);
+    public List<GloboNetworkLoadBalancerEnvironment> listGloboNetworkLBEnvironmentsFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId);
 
 	/**
 	 * List all environments from GloboNetwork

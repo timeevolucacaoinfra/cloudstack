@@ -36,7 +36,7 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addGloboNetworkLBNetwork", responseObject = GloboNetworkLBNetworkResponse.class, description = "Adds a LB network to a GloboNetwork environment")
+@APICommand(name = "addGloboNetworkLBNetwork", responseObject = GloboNetworkLBEnvironmentResponse.class, description = "Adds a LB network to a GloboNetwork environment")
 public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 
 	private static final String s_name = "addglobonetworklbnetworkresponse";
@@ -89,7 +89,7 @@ public class AddGloboNetworkLBNetworkCmd extends BaseAsyncCmd {
 			ConcurrentOperationException, ResourceAllocationException {
 		try {
 			GloboNetworkLoadBalancerEnvironment globoLBNetworkVO = _globoNetworkService.addGloboNetworkLBNetwork(name, physicalNetworkId, globoNetworkEnvironmentId, globoNetworkLBNetworkId);
-			GloboNetworkLBNetworkResponse response = new GloboNetworkLBNetworkResponse();
+			GloboNetworkLBEnvironmentResponse response = new GloboNetworkLBEnvironmentResponse();
 			response.setId(globoLBNetworkVO.getId());
 			response.setName(globoLBNetworkVO.getName());
 			response.setGloboNetworkEnvironmentId(globoLBNetworkVO.getGloboNetworkEnvironmentRefId());

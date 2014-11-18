@@ -6240,9 +6240,9 @@
 
                                                         var items = [];
                                                         $.ajax({
-                                                            url: createURL("listGloboNetworkLBNetworks&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                            url: createURL("listGloboNetworkLBEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
                                                             success: function(json) {
-                                                                $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
+                                                                $(json.listglobonetworklbnetworksresponse.globonetworklbenvironments).each(function() {
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
