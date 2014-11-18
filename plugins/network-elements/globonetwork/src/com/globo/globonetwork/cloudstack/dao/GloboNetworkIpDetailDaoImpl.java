@@ -16,6 +16,8 @@
 */
 package com.globo.globonetwork.cloudstack.dao;
 
+import java.util.List;
+
 import javax.ejb.Local;
 
 import org.springframework.stereotype.Component;
@@ -33,11 +35,16 @@ import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
 public class GloboNetworkIpDetailDaoImpl extends GenericDaoBase<GloboNetworkIpDetailVO, Long> implements GloboNetworkIpDetailDao {
 
     final SearchBuilder<GloboNetworkIpDetailVO> byIpAddress;
+    final SearchBuilder<GloboNetworkIpDetailVO> byLBEnvironmentRef;
 
     protected GloboNetworkIpDetailDaoImpl() {
         byIpAddress = createSearchBuilder();
         byIpAddress.and("ip_address_id", byIpAddress.entity().getIpAddressId(), Op.EQ);
         byIpAddress.done();
+        
+        byLBEnvironmentRef = createSearchBuilder();
+        byLBEnvironmentRef.and("globonetwork_lbenvironment_ref_id", byLBEnvironmentRef.entity().getGloboNetworkEnvironmentRefId(), Op.EQ);
+        byLBEnvironmentRef.done();
     }
 
     @Override
@@ -46,5 +53,12 @@ public class GloboNetworkIpDetailDaoImpl extends GenericDaoBase<GloboNetworkIpDe
         sc.setParameters("ip_address_id", ipAddressId);
         return findOneBy(sc);
     }
+
+	@Override
+	public List<GloboNetworkIpDetailVO> listByLBEnvironmentRef(long lbEnvironmentRefId) {
+		SearchCriteria<GloboNetworkIpDetailVO> sc = byLBEnvironmentRef.create();
+        sc.setParameters("globonetwork_lbenvironment_ref_id", lbEnvironmentRefId);
+        return listBy(sc);
+	}
 
 }

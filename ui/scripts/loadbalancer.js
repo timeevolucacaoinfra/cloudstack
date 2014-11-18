@@ -827,7 +827,7 @@
                                     });
                                 }
                             },
-                            lbnetwork: {
+                            lbenvironment: {
                                 label: 'Load Balancer Environment',
                                 validation: {
                                     required: true
@@ -851,7 +851,7 @@
                                     });
 
                                     $.ajax({
-                                        url: createURL("listGloboNetworkLBNetworks"),
+                                        url: createURL("listGloboNetworkLBEnvironments"),
                                         data: {
                                             physicalnetworkid: network.physicalnetworkid,
                                             networkid: network.id
@@ -860,7 +860,7 @@
                                         async: false,
                                         success: function(json) {
                                             var data = [];
-                                            $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
+                                            $(json.listglobonetworklbenvironmentsresponse.globonetworklbenvironments).each(function() {
                                                 data.push({id: this.id, name: this.name, description: this.name});
                                             });
                                             args.response.success({
@@ -1014,7 +1014,7 @@
                             url = "acquireNewLBIp";
                             data = {
                                 networkid: args.data.network,
-                                lbnetworkid: args.data.lbnetwork
+                                lbenvironmentid: args.data.lbenvironment
                             };
                         } else if (provider === 'GloboNetwork') {
                             // GloboNetwork should only work with portable IPs

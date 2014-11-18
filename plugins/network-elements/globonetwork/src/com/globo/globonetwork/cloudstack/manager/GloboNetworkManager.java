@@ -251,7 +251,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     @Inject
     PortableIpRangeDao _portableIpRangeDao;
     @Inject
-    GloboNetworkIpDetailDao _globoNetworkIpDetail;
+    GloboNetworkIpDetailDao _globoNetworkIpDetailDao;
 	
 	// Managers
 	@Inject
@@ -1131,10 +1131,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and GloboNetwork environment=" + globoNetworkEnvironmentId);
         }
 
-        // Retrieve LB Network from DB
+        // Retrieve LB Environment from DB
         final GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironmentVO = _globoNetworkLBEnvironmentDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(), globoNetworkLBEnvironmentId);
         if (globoNetworkLBEnvironmentVO == null) {
             throw new InvalidParameterValueException("Unable to find a relationship between environment " + globoNetworkEnvironmentId + " and LB network " + globoNetworkLBEnvironmentId);
+        }
+        
+        List<GloboNetworkIpDetailVO> ipDetailVOList = _globoNetworkIpDetailDao.listByLBEnvironmentRef(globoNetworkLBEnvironmentVO.getId());
+        if (!ipDetailVOList.isEmpty()) {
+            throw new InvalidParameterValueException("There are Load Balancers in environment '" + globoNetworkLBEnvironmentVO.getName() + "'");
         }
         
         Transaction.execute(new TransactionCallbackNoReturn() {
@@ -1593,7 +1598,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	}
 	
     @Override
-    public PublicIp acquireLbIp(final Long networkId, Long projectId, Long lbNetworkId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+    public PublicIp acquireLbIp(final Long networkId, Long projectId, Long lbEnvironmentId) throws ResourceAllocationException, ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
 
         // First of all, check user permission
         final Account caller = CallContext.current().getCallingAccount();
@@ -1640,12 +1645,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId() + " and GloboNetwork environment=" + glbEnvId);
         }
 
-        final GloboNetworkLoadBalancerEnvironment globoNetworkLBNetwork = _globoNetworkLBEnvironmentDao.findById(lbNetworkId);
-        if (globoNetworkLBNetwork == null) {
-            throw new InvalidParameterValueException("Could not find LB network " + lbNetworkId);
+        final GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironment = _globoNetworkLBEnvironmentDao.findById(lbEnvironmentId);
+        if (globoNetworkLBEnvironment == null) {
+            throw new InvalidParameterValueException("Could not find LB network " + lbEnvironmentId);
         }
         
-        Long gnLoadBalancerEnvironment = globoNetworkLBNetwork.getGloboNetworkLoadBalancerEnvironmentId();
+        Long gnLoadBalancerEnvironment = globoNetworkLBEnvironment.getGloboNetworkLoadBalancerEnvironmentId();
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(gnLoadBalancerEnvironment);
         
         final GloboNetworkAndIPResponse globoNetwork =  (GloboNetworkAndIPResponse) this.callCommand(cmd, network.getDataCenterId());
@@ -1666,8 +1671,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     IPAddressVO ip = (IPAddressVO) _ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetwork.getIp().addr());
                     
                     GloboNetworkIpDetailVO gnIpDetail = new GloboNetworkIpDetailVO(ip.getId(), globoNetwork.getIpId());
-                    gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBNetwork.getId());
-                    _globoNetworkIpDetail.persist(gnIpDetail);
+                    gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBEnvironment.getId());
+                    _globoNetworkIpDetailDao.persist(gnIpDetail);
                     
                     VlanVO vlan = _vlanDao.findById(ip.getVlanId());
                     return PublicIp.createFromAddrAndVlan(ip, vlan);
@@ -1696,7 +1701,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
                 @Override
                 public void doInTransactionWithoutResult(TransactionStatus status) throws CloudException {
-                    GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetail.findByIp(ipId);
+                    GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipId);
                     
                     _ipAddrMgr.releasePortableIpAddress(ipId);
                     
@@ -1708,7 +1713,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         
                         ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(ipVO.getAddress().addr(), gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
                         GloboNetworkManager.this.callCommand(cmdRelease, ipVO.getDataCenterId());
-                        _globoNetworkIpDetail.remove(gnIpDetail.getId());
+                        _globoNetworkIpDetailDao.remove(gnIpDetail.getId());
                     } else {
                         s_logger.warn("Ip " + ipVO.getAddress().addr() + " is not associate with GloboNetwork");
                     }
@@ -1744,7 +1749,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
             }
             
-            GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetail.findByIp(ipVO.getId());
+            GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipVO.getId());
             if (gnIpDetail == null) {
                 throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") is not associate with globo network");
             } else if (gnIpDetail.getGloboNetworkEnvironmentRefId() == null) {
@@ -1828,10 +1833,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 GloboNetworkVipResponse vipResponse = (GloboNetworkVipResponse) answer;
     
                 gnIpDetail.setGloboNetworkVipId(vipResponse.getId());
-                _globoNetworkIpDetail.persist(gnIpDetail);
+                _globoNetworkIpDetailDao.persist(gnIpDetail);
             } else if (gnIpDetail.getGloboNetworkVipId() != null && FirewallRule.State.Revoke.equals(rule.getState())) {
                 gnIpDetail.setGloboNetworkVipId(null);
-                _globoNetworkIpDetail.persist(gnIpDetail);
+                _globoNetworkIpDetailDao.persist(gnIpDetail);
             }
             
         } catch (Exception e) {
@@ -1873,7 +1878,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
         }
         
-        GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetail.findByIp(ipVO.getId());
+        GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipVO.getId());
         if (gnIpDetail == null) {
             throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") is not associate with globo network");
         } else if (gnIpDetail.getGloboNetworkEnvironmentRefId() == null) {

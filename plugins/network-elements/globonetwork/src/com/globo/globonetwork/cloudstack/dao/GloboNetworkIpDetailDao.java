@@ -16,11 +16,14 @@
 */
 package com.globo.globonetwork.cloudstack.dao;
 
+import java.util.List;
+
 import com.cloud.utils.db.GenericDao;
 import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
 
 public interface GloboNetworkIpDetailDao extends GenericDao<GloboNetworkIpDetailVO, Long> {
 
     GloboNetworkIpDetailVO findByIp(long ipId);
+    List<GloboNetworkIpDetailVO> listByLBEnvironmentRef(long lbEnvironmentRefId);
 
 }
