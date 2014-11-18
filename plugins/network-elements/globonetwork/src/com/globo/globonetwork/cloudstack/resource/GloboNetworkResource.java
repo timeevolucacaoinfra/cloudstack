@@ -720,7 +720,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             List<RealIP> realsIp = new ArrayList<RealIP>();
             List<Integer> realsPriorities = new ArrayList<Integer>();
             for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
-                Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), cmd.getRealsEnvironmentId());
+                Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), real.getEnvironmentId());
                 if (ip == null) {
                     if (real.isRevoked()) {
                         s_logger.warn("There's an inconsistency. Real with IP " + real.getIp() + " was not found in GloboNetwork.");                        

@@ -1739,11 +1739,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         "Failed to acquire lock for load balancer %s" + rule.getUuid()), DataCenter.class, network.getDataCenterId());
             }
 
-            GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
-            if (globoNetworkNetworkVO == null) {
-                throw new InvalidParameterValueException("Could not obtain mapping for network in GloboNetwork.");
-            }
-            
             IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
             if (ipVO == null) {
                 throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
@@ -1794,6 +1789,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     real.setVmName(getEquipNameFromUuid(vm.getUuid()));
                     real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
                     real.setRevoked(destVM.isRevoked());
+
+                    GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
+                    if (globoNetworkRealNetworkVO == null) {
+                        throw new InvalidParameterValueException("Could not obtain mapping for network " + destVM.getNetworkId() + " and VM " + destVM.getInstanceId() + " in GloboNetwork.");
+                    }
+                    real.setEnvironmentId(globoNetworkRealNetworkVO.getGloboNetworkEnvironmentId());
                     realList.add(real);
                 } else {
                     throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
@@ -1818,7 +1819,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             cmd.setRuleState(rule.getState());
             
             // Reals infos
-            cmd.setRealsEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
             cmd.setRealList(realList);
     
             Answer answer = GloboNetworkManager.this.callCommand(cmd, network.getDataCenterId());
@@ -1837,7 +1837,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } catch (Exception e) {
             // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions
             // only show 'error'
-            throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId());
+            throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId(), e);
         } finally {
             if (lock != null) {
                 lock.unlock();
