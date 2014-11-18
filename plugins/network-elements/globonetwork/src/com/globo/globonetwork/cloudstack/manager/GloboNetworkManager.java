@@ -1062,15 +1062,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     public List<GloboNetworkLoadBalancerEnvironment> listGloboNetworkLBNetworksFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId) {
 
         Long glbEnvId = null;
-        if (globoNetworkEnvironmentId == null && networkId != null) {
+        if (networkId != null) {
             // Retrieve glbEnvId from network
             GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
             if (globoNetworkNetworkVO == null) {
                 throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
             }
             glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
-        } else {
+        } else if (globoNetworkEnvironmentId != null) {
             glbEnvId = globoNetworkEnvironmentId;
+        } else {
+            throw new InvalidParameterValueException("NetworkId or GloboNetworkEnvironmentId is required");
         }
         
         // Retrieve napiEnvironment from DB
