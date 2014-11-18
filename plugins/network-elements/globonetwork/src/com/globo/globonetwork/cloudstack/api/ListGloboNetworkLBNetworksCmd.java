@@ -75,7 +75,7 @@ public class ListGloboNetworkLBNetworksCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listGloboNetworkLBNetworksCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId);
+        	s_logger.debug("listGloboNetworkLBNetworksCmd command with physicalnetwork=" + physicalNetworkId + " and environmentId=" + globoNetworkEnvironmentId + " and networkId=" + this.networkId);
         	List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBNetworks = _globoNetworkService.listGloboNetworkLBNetworksFromDB(this.physicalNetworkId, this.networkId, this.globoNetworkEnvironmentId);
         	
         	List<GloboNetworkLBNetworkResponse> responseList = new ArrayList<GloboNetworkLBNetworkResponse>();
