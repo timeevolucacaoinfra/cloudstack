@@ -60,10 +60,10 @@ public interface GloboNetworkService {
      * @param name Name of the relationship
      * @param physicalNetworkId
      * @param napiEnvironmentId
-     * @param globoNetworkLBNetworkId
+     * @param globoNetworkLBEnvironmentId
      * @return
      */
-    public GloboNetworkLoadBalancerEnvironment addGloboNetworkLBNetwork(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBNetworkId) throws ResourceAllocationException;	
+    public GloboNetworkLoadBalancerEnvironment addGloboNetworkLBEnvironment(String name, Long physicalNetworkId, Long napiEnvironmentId, Long globoNetworkLBEnvironmentId) throws ResourceAllocationException;	
 
 	/**
 	 * Create a new network in sync with GloboNetwork.

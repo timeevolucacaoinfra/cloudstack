@@ -6242,7 +6242,7 @@
                                                         $.ajax({
                                                             url: createURL("listGloboNetworkLBEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id + "&environmentid=" + args.context.napienvironments[0].environmentid),
                                                             success: function(json) {
-                                                                $(json.listglobonetworklbnetworksresponse.globonetworklbenvironments).each(function() {
+                                                                $(json.listglobonetworklbenvironmentsresponse.globonetworklbenvironments).each(function() {
                                                                     if (this.name.match(new RegExp(filter, "i"))) {
                                                                         items.push({
                                                                             name: this.name,
@@ -6268,7 +6268,7 @@
                                                                             required: true
                                                                         }
                                                                     },
-                                                                    globolbnetworkid: {
+                                                                    globolbenvironmentid: {
                                                                         label: 'LB Environment ID',
                                                                         validation: {
                                                                             required: true
@@ -6279,14 +6279,14 @@
                                                             action: function(args) {
                                                                 var physicalnetworkid = selectedPhysicalNetworkObj.id;
                                                                 var environmentid = args.context.napienvironments[0].environmentid;
-                                                                var globolbnetworkid = args.data.globolbnetworkid;
+                                                                var globolbenvironmentid = args.data.globolbenvironmentid;
                                                                 var name = args.data.name;
                                                                 $.ajax({
-                                                                    url: createURL("addGloboNetworkLBNetwork"),
+                                                                    url: createURL("addGloboNetworkLBEnvironment"),
                                                                     data: {
                                                                         physicalnetworkid: physicalnetworkid,
                                                                         napienvironmentid: environmentid,
-                                                                        globolbnetworkid: globolbnetworkid,
+                                                                        globolbenvironmentid: globolbenvironmentid,
                                                                         name: name
                                                                     },
                                                                     dataType: "json",

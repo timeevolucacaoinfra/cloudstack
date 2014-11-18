@@ -45,7 +45,7 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 public class ListGloboNetworkLBEnvironmentsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkLBEnvironmentsCmd.class);
-    private static final String s_name = "listglobonetworklbnetworksresponse";
+    private static final String s_name = "listglobonetworklbenvironmentsresponse";
     
     @Inject
     GloboNetworkService _globoNetworkService;

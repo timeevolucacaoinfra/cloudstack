@@ -39,7 +39,7 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 @APICommand(name = "removeGloboNetworkLBEnvironment", responseObject = SuccessResponse.class, description = "Removes relationship between an environment and a LB network")
 public class RemoveGloboNetworkLBEnvironmentCmd extends BaseCmd {
 
-	private static final String s_name = "removeglobonetworklbnetworkresponse";
+	private static final String s_name = "removeglobonetworklbenvironmentresponse";
 	@Inject
 	GloboNetworkService _globoNetworkService;
 
