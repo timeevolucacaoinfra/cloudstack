@@ -170,6 +170,8 @@ public class GloboNetworkVipResponse extends Answer {
 		private String ip;
 		
 		private String network;
+		
+		private Long environmentId;
 
 		private List<String> ports;
 
@@ -236,6 +238,14 @@ public class GloboNetworkVipResponse extends Answer {
 
         public void setRevoked(boolean isRevoked) {
             this.isRevoked = isRevoked;
+        }
+
+        public Long getEnvironmentId() {
+            return environmentId;
+        }
+
+        public void setEnvironmentId(Long environmentId) {
+            this.environmentId = environmentId;
         }
 	}
 }
