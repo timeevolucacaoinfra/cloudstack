@@ -3281,9 +3281,11 @@ public class ApiResponseHelper implements ResponseGenerator {
         Account account = ApiDBUtils.findAccountById(usageRecord.getAccountId());
         if (account.getType() == Account.ACCOUNT_TYPE_PROJECT) {
             //find the project
-            Project project = ApiDBUtils.findProjectByProjectAccountId(account.getId());
-            usageRecResponse.setProjectId(project.getUuid());
-            usageRecResponse.setProjectName(project.getName());
+            Project project = ApiDBUtils.findProjectByProjectAccountIdIncludingRemoved(account.getId());
+            if (project != null) {
+                usageRecResponse.setProjectId(project.getUuid());
+                usageRecResponse.setProjectName(project.getName());
+            }
         } else {
             usageRecResponse.setAccountId(account.getUuid());
             usageRecResponse.setAccountName(account.getAccountName());
@@ -3304,7 +3306,7 @@ public class ApiResponseHelper implements ResponseGenerator {
         usageRecResponse.setUsage(usageRecord.getUsageDisplay());
         usageRecResponse.setUsageType(usageRecord.getUsageType());
         if (usageRecord.getVmInstanceId() != null) {
-            VMInstanceVO vm = _entityMgr.findById(VMInstanceVO.class, usageRecord.getVmInstanceId());
+            VMInstanceVO vm = _entityMgr.findByIdIncludingRemoved(VMInstanceVO.class, usageRecord.getVmInstanceId());
             if (vm != null) {
                 usageRecResponse.setVirtualMachineId(vm.getUuid());
             }
