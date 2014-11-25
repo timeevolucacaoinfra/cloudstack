@@ -26,56 +26,62 @@ import javax.persistence.Table;
 import org.apache.cloudstack.api.InternalIdentity;
 
 @Entity
-@Table(name = "globonetwork_environment_lb_network_ref")
-public class GloboNetworkLBNetworkVO implements InternalIdentity {
+@Table(name = "globonetwork_ip_detail")
+public class GloboNetworkIpDetailVO implements InternalIdentity {
 
 	private static final long serialVersionUID = 1L;
 
 	@Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
 	@Column(name = "id")
-	private long id;
+	private Long id;
+	
+	@Column(name = "globonetwork_ip_id")
+	private long globoNetworkIpId;
 
-	@Column(name = "name")
-	private String name;
+	@Column(name = "user_ip_address_id")
+	private long ipAddressId;
 
-	@Column(name = "globonetwork_environment_ref_id")
-	private long globoNetworkEnvironmentRefId;
+	@Column(name = "globonetwork_lbenvironment_ref_id", nullable=true)
+	private Long globoNetworkEnvironmentRefId;
 
-	@Column(name = "globonetwork_lb_network_id")
-    private long globoNetworkLBNetworkId;
+	@Column(name = "globonetwork_vip_id", nullable=true)
+    private Long globoNetworkVipId;
 
-    @Column(name = "portable_ip_range_id")
-    private long portableIpRangeId;
-
-	public GloboNetworkLBNetworkVO() {
+	public GloboNetworkIpDetailVO() {
 	}
 
-	public GloboNetworkLBNetworkVO(String name,
-	        long globoNetworkEnvironmentId, long globoNetworkLBNetworkId, long portableIpRangeId) {
-		this.name = name;
-		this.globoNetworkEnvironmentRefId = globoNetworkEnvironmentId;
-        this.globoNetworkLBNetworkId = globoNetworkLBNetworkId;
-        this.portableIpRangeId = portableIpRangeId;
+	public GloboNetworkIpDetailVO(long ipAddressId, Long globoNetworkIpId) {
+		this.ipAddressId = ipAddressId;
+        this.globoNetworkIpId = globoNetworkIpId;
 	}
 
 	public long getId() {
 		return id;
 	}
 
-	public String getName() {
-		return name;
-	}
+    public long getIpAddressId() {
+        return ipAddressId;
+    }
 
-    public long getGloboNetworkEnvironmentRefId() {
+    public Long getGloboNetworkVipId() {
+        return globoNetworkVipId;
+    }
+
+    public void setGloboNetworkVipId(Long globoNetworkVipId) {
+        this.globoNetworkVipId = globoNetworkVipId;
+    }
+
+    public Long getGloboNetworkEnvironmentRefId() {
         return globoNetworkEnvironmentRefId;
     }
 
-    public long getGloboNetworkLBNetworkId() {
-        return globoNetworkLBNetworkId;
+    public void setGloboNetworkEnvironmentRefId(Long globoNetworkEnvironmentRefId) {
+        this.globoNetworkEnvironmentRefId = globoNetworkEnvironmentRefId;
     }
-    
-    public long getPortableIpRangeId() {
-        return portableIpRangeId;
+
+    public long getGloboNetworkIpId() {
+        return globoNetworkIpId;
     }
+
 }

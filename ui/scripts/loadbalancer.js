@@ -84,7 +84,6 @@
                     } else {
                         // pool jobid for completion
                         timerControl = setInterval(function() {
-                            console.debug('Checking job' + command.name);
                             pollAsyncJobResult({
                                 _custom: {
                                     jobId: jobId
@@ -113,9 +112,6 @@
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
         id: 'loadbalancer',
-        preFilter: function(args) {
-            return isAdmin();
-        },
         listView: {
             id: 'loadbalancers',
             fields: {
@@ -262,7 +258,7 @@
                                         id: args.context.loadbalancers[0].id,
                                     },
                                     dataType: "json",
-                                    async: true,
+                                    async: false,
                                     success: function(json) {
                                         args.context.loadbalancers[0] = json.listloadbalancerrulesresponse.loadbalancerrule[0];
                                     },
@@ -315,7 +311,8 @@
                                             success: function(json) {
                                                 args.response.success({
                                                     _custom: {
-                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid
+                                                        jobId: json.removenetworksfromloadbalancerruleresponse.jobid,
+                                                        fullRefreshAfterComplete: true
                                                     },
                                                 });
                                             },
@@ -363,10 +360,11 @@
                                         },
                                     },
                                     action: function(args) {
+                                        var lbruleid = args.context.loadbalancers[0].id;
                                         $.ajax({
                                             url: createURL("assignNetworksToLoadBalancerRule"),
                                             data: {
-                                                id: args.context.loadbalancers[0].id,
+                                                id: lbruleid,
                                                 networkids: args.data.network
                                             },
                                             dataType: "json",
@@ -385,7 +383,7 @@
                                     },
                                     messages: {
                                         notification: function(args) {
-                                            return 'Network associated to Load Balancer';
+                                            return 'Assign network to Load Balancer';
                                         }
                                     },
                                     notification: {
@@ -558,7 +556,7 @@
                                 },
                                 async: false,
                                 success: function(json) {
-                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] != undefined) {
+                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
                                         policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
                                         pingpath1 = policyObj.pingpath; //API bug: API doesn't return it
                                     }
@@ -610,7 +608,7 @@
                                             },
                                             {
                                                 name: 'deleteLBHealthCheckPolicy',
-                                                data: function(last_result) { 
+                                                data: function(last_result) {
                                                     if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
                                                         last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
                                                         return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
@@ -648,13 +646,12 @@
                         },
                         messages: {
                             notification: function() {
-                                return 'Changing Healthcheck';
+                                return 'Update Healthcheck';
                             }
                         },
                         notification: {
                             poll: function(args) {
                                 var lastJobId = args._custom.getLastJobId();
-                                console.log('lastJobId', lastJobId);
                                 if (lastJobId === undefined) {
                                     return;
                                 } else if (lastJobId === null) {
@@ -732,6 +729,34 @@
                 },
                 add: {
                     label: 'Create new Load Balancer',
+                    preAction: function() {
+                        var networks = [];
+                        var message;
+                        $.ajax({
+                            url: createURL("listNetworks"),
+                            data: {
+                                supportedservices: 'lb'
+                            },
+                            dataType: "json",
+                            async: false,
+                            success: function(json) {
+                                $(json.listnetworksresponse.network).each(function() {
+                                    networks.push({id: this.id, description: this.name});
+                                });
+                            },
+                            error: function(json) {
+                                message = parseXMLHttpResponse(json);
+                            }
+                        });
+
+                        if (networks.length === 0) {
+                            cloudStack.dialog.notice({
+                                message: message || 'There are no networks. Please create a network before creating a load balancer.'
+                            });
+                            return false;
+                        }
+                        return true;
+                    },
                     createForm: {
                         fields: {
                             name: {
@@ -802,8 +827,8 @@
                                     });
                                 }
                             },
-                            lbnetwork: {
-                                label: 'LB Network',
+                            lbenvironment: {
+                                label: 'Load Balancer Environment',
                                 validation: {
                                     required: true
                                 },
@@ -826,7 +851,7 @@
                                     });
 
                                     $.ajax({
-                                        url: createURL("listGloboNetworkLBNetworks"),
+                                        url: createURL("listGloboNetworkLBEnvironments"),
                                         data: {
                                             physicalnetworkid: network.physicalnetworkid,
                                             networkid: network.id
@@ -835,8 +860,8 @@
                                         async: false,
                                         success: function(json) {
                                             var data = [];
-                                            $(json.listglobonetworklbnetworksresponse.globonetworklbnetworks).each(function() {
-                                                data.push({id: this.globonetworklbnetworkid, name: this.name, description: this.name});
+                                            $(json.listglobonetworklbenvironmentsresponse.globonetworklbenvironments).each(function() {
+                                                data.push({id: this.id, name: this.name, description: this.name});
                                             });
                                             args.response.success({
                                                 data: data
@@ -941,6 +966,7 @@
 
                             healthcheck: {
                                 label: 'Healthcheck',
+                                docID: 'helpHealthcheck'
                             },
                         },
                     },
@@ -988,7 +1014,7 @@
                             url = "acquireNewLBIp";
                             data = {
                                 networkid: args.data.network,
-                                lbnetworkid: args.data.lbnetwork
+                                lbenvironmentid: args.data.lbenvironment
                             };
                         } else if (provider === 'GloboNetwork') {
                             // GloboNetwork should only work with portable IPs
@@ -1090,7 +1116,7 @@
                     },
                     messages: {
                         notification: function(args) {
-                            return 'Load Balancer created';
+                            return 'Create Load Balancer';
                         }
                     },
                     notification: {

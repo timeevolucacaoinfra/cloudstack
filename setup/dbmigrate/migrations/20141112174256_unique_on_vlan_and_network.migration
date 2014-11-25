@@ -1,0 +1,16 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref DROP INDEX unique_on_vlan_and_network;
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref ADD CONSTRAINT unique_lb_network_environment
+    UNIQUE (globonetwork_environment_ref_id, globonetwork_lb_network_id);
+"""
+
+SQL_DOWN = u"""
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref DROP INDEX unique_lb_network_environment;
+ALTER TABLE
+    cloud.globonetwork_environment_lb_network_ref ADD CONSTRAINT unique_on_vlan_and_network
+    UNIQUE KEY unique_on_vlan_and_network (globonetwork_lb_network_id);
+"""

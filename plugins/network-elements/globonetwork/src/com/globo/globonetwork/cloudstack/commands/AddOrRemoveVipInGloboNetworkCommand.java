@@ -27,6 +27,8 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	
     private FirewallRule.State ruleState;
     
+    private Long vipId;
+    
 	private String ipv4;
 	
 	private String methodBal;
@@ -34,8 +36,6 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	private LoadBalancingRule.LbStickinessPolicy persistencePolicy;
 	
 	private Long vipEnvironmentId;
-	
-	private Long realsEnvironmentId;
 	
 	private String businessArea;
 	
@@ -52,6 +52,14 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 	@Override
 	public boolean executeInSequence() {
 		return false;
+	}
+	
+	public Long getVipId() {
+	    return vipId;
+	}
+	
+	public void setVipId(Long vipId) {
+	    this.vipId = vipId;
 	}
 	
 	public String getIpv4() {
@@ -116,14 +124,6 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     public void setRealList(List<GloboNetworkVipResponse.Real> realList) {
         this.realList = realList;
-    }
-
-    public Long getRealsEnvironmentId() {
-        return realsEnvironmentId;
-    }
-
-    public void setRealsEnvironmentId(Long realsEnvironmentId) {
-        this.realsEnvironmentId = realsEnvironmentId;
     }
 
     public FirewallRule.State getRuleState() {

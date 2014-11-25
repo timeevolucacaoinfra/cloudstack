@@ -964,7 +964,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         if (provider == null || provider.size() == 0) {
             return false;
         }
-        if (provider.get(0) == Provider.Netscaler || provider.get(0) == Provider.F5BigIp) {
+        if (provider.get(0) == Provider.Netscaler || provider.get(0) == Provider.F5BigIp || provider.get(0) == Provider.GloboNetwork) {
             return true;
         }
         return false;
@@ -2121,6 +2121,12 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         if (algorithm != null) {
             lb.setAlgorithm(algorithm);
         }
+        
+        // Validate rule in LB provider
+        LoadBalancingRule rule = getLoadBalancerRuleToApply(lb);
+        if (!validateLbRule(rule)) {
+            throw new InvalidParameterValueException("Modifications in lb rule " + lbRuleId + " are not supported.");
+        }
 
         boolean success = _lbDao.update(lbRuleId, lb);
 
@@ -2201,8 +2207,9 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
-        List<UserVmVO> userVms = _vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(),
-                loadBalancer.getNetworkId());
+        Set<UserVmVO> userVms = new HashSet<UserVmVO>();
+        userVms.addAll(_vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(),
+                loadBalancer.getNetworkId()));
         
         // Check for VMs in additional networks
         List<LoadBalancerNetworkMapVO> lbNetMaps = _lbNetMapDao.listByLoadBalancerId(loadBalancer.getId());

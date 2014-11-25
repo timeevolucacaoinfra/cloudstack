@@ -1203,5 +1203,10 @@ cloudStack.docs = {
     helpLdapGroupName: {
         desc: 'The group name from which you want to import LDAP users',
         externalLink: ''
+    },
+    // Add Load Balancer
+    helpHealthcheck: {
+        desc: 'The path for a GET HTTP healthcheck. Optionally, provide full HTTP request (GET or POST). Leave it blank for TCP',
+        externalLink: ''
     }
 };

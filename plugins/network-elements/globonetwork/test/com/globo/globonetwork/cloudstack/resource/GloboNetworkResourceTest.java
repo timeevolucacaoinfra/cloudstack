@@ -234,7 +234,6 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("leastconn");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironmentId);
 
         for (RealIP vipReal : vip.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
@@ -242,6 +241,7 @@ public class GloboNetworkResourceTest {
             real.setVmName(vipReal.getName());
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(false);
+            real.setEnvironmentId(realEnvironmentId);
             cmd.setRealList(Arrays.asList(real));
         }
 
@@ -303,7 +303,6 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vipServiceNameNew);
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironmentId);
 
         for (RealIP vipReal : vip2.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
@@ -311,6 +310,7 @@ public class GloboNetworkResourceTest {
             real.setVmName(vipReal.getName());
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(false);
+            real.setEnvironmentId(realEnvironmentId);
             cmd.setRealList(Arrays.asList(real));
         }
 
@@ -363,13 +363,13 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironmentId);
 
         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
         real.setIp(realIp);
         real.setVmName(realName);
         real.setPorts(Arrays.asList(realPort));
         real.setRevoked(false);
+        real.setEnvironmentId(realEnvironmentId);
         cmd.setRealList(Arrays.asList(real));
 
         Equipment realEquipment = new Equipment();
@@ -435,7 +435,6 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironmentId);
 
         for (RealIP vipReal : vip.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
@@ -443,6 +442,7 @@ public class GloboNetworkResourceTest {
             real.setVmName(vipReal.getName());
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(true);
+            real.setEnvironmentId(realEnvironmentId);
             cmd.setRealList(Arrays.asList(real));
         }
 
@@ -505,7 +505,6 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironmentId);
         
         LbStickinessPolicy persistencePolicy = new LbStickinessPolicy("Cookie", null);
         cmd.setPersistencePolicy(persistencePolicy);
@@ -516,6 +515,7 @@ public class GloboNetworkResourceTest {
             real.setVmName(vipReal.getName());
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(true);
+            real.setEnvironmentId(realEnvironmentId);
             cmd.setRealList(Arrays.asList(real));
         }
 
@@ -586,7 +586,6 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
-        cmd.setRealsEnvironmentId(realEnvironmentId);
         
         LbHealthCheckPolicy healthcheckPolicy = new LbHealthCheckPolicy(healthcheck, "", 0, 0, 0, 0);
         cmd.setHealthcheckPolicy(healthcheckPolicy);
@@ -597,6 +596,7 @@ public class GloboNetworkResourceTest {
             real.setVmName(vipReal.getName());
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(true);
+            real.setEnvironmentId(realEnvironmentId);
             cmd.setRealList(Arrays.asList(real));
         }
 

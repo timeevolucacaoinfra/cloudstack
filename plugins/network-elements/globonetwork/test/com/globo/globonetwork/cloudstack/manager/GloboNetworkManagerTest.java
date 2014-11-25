@@ -98,7 +98,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
-import com.globo.globonetwork.cloudstack.dao.GloboNetworkLBNetworkDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkLoadBalancerEnvironmentDAO;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
@@ -334,8 +334,8 @@ public class GloboNetworkManagerTest {
     		return mock(GloboNetworkVipAccDao.class);
     	}
     	@Bean
-    	public GloboNetworkLBNetworkDao globoNetworkLBEnvironmentDao() {
-    	    return mock(GloboNetworkLBNetworkDao.class);
+    	public GloboNetworkLoadBalancerEnvironmentDAO globoNetworkLBEnvironmentDao() {
+    	    return mock(GloboNetworkLoadBalancerEnvironmentDAO.class);
     	}
     	@Bean
     	public VMInstanceDao vmDao() {
