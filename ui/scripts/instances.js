@@ -308,9 +308,12 @@
                 }
 
                 if ("hosts" in args.context) {
+                    g_hostid = args.context.hosts[0].id;
                     $.extend(data, {
                         hostid: args.context.hosts[0].id
                     });
+                } else {
+                    g_hostid = null;
                 }
 
                 if ("affinityGroups" in args.context) {
@@ -324,6 +327,18 @@
                     $.extend(data, {
                         vpcid: args.context.vpc[0].id,
                         networkid: args.context.networks[0].id
+                    });
+                }
+
+                if ("templates" in args.context) {
+                    $.extend(data, {
+                        templateid: args.context.templates[0].id
+                    });
+                }
+
+                if ("isos" in args.context) {
+                    $.extend(data, {
+                        isoid: args.context.isos[0].id
                     });
                 }
 
@@ -354,7 +369,7 @@
                     path: '_zone.hosts',
                     label: 'label.hosts',
                     preFilter: function(args) {
-                        return isAdmin();
+                        return (isAdmin() && (args.context.instances[0].hostid != null));
                     },
                     updateContext: function(args) {
                         var instance = args.context.instances[0];
@@ -1906,13 +1921,30 @@
                                                         domainid: args.context.instances[0].domainid
                                                     },
                                                     success: function(json) {
+                                                        var networkObjs = json.listnetworksresponse.network;
+                                                        var nicObjs = args.context.instances[0].nic;
+                                                        var items = [];
+
+                                                        for (var i = 0; i < networkObjs.length; i++) {
+                                                            var networkObj = networkObjs[i];
+                                                            var isNetworkExists = false;
+
+                                                            for (var j = 0; j < nicObjs.length; j++) {
+                                                                if (nicObjs[j].networkid == networkObj.id) {
+                                                                    isNetworkExists = true;
+                                                                    break;
+                                                               }
+                                                            }
+
+                                                            if (!isNetworkExists) {
+                                                                items.push({
+                                                                    id: networkObj.id,
+                                                                    description: networkObj.name
+                                                                });
+                                                            }
+                                                        }
                                                         args.response.success({
-                                                            data: $.map(json.listnetworksresponse.network, function(network) {
-                                                                return {
-                                                                    id: network.id,
-                                                                    description: network.name
-                                                                };
-                                                            })
+                                                            data: items
                                                         });
                                                     }
                                                 });
@@ -1930,7 +1962,10 @@
                                         success: function(json) {
                                             args.response.success({
                                                 _custom: {
-                                                    jobId: json.addnictovirtualmachineresponse.jobid
+                                                    jobId: json.addnictovirtualmachineresponse.jobid,
+                                                    getUpdatedItem: function(json) {
+                                                        return json.queryasyncjobresultresponse.jobresult.virtualmachine;
+                                                    }
                                                 }
                                             });
                                         }
@@ -1996,7 +2031,10 @@
                                         success: function(json) {
                                             args.response.success({
                                                 _custom: {
-                                                    jobId: json.removenicfromvirtualmachineresponse.jobid
+                                                    jobId: json.removenicfromvirtualmachineresponse.jobid,
+                                                    getUpdatedItem: function(json) {
+                                                        return json.queryasyncjobresultresponse.jobresult.virtualmachine;
+                                                    }
                                                 }
                                             })
                                         }
@@ -2024,6 +2062,9 @@
                             ipaddress: {
                                 label: 'label.ip.address'
                             },
+                            secondaryips: {
+                                label: 'Secondary IPs'
+                            },
                             gateway: {
                                 label: 'label.gateway'
                             },
@@ -2050,8 +2091,8 @@
                         }],
                         viewAll: {
                             path: 'network.secondaryNicIps',
-                            attachTo: 'ipaddress',
-                            label: 'label.view.secondary.ips',
+                            attachTo: 'secondaryips',
+                            label: 'Edit secondary IPs',
                             title: function(args) {
                                 var title = _l('label.menu.ipaddresses') + ' - ' + args.context.nics[0].name;
 
@@ -2074,6 +2115,19 @@
                                             }
                                         },
                                         data: $.map(json.listvirtualmachinesresponse.virtualmachine[0].nic, function(nic, index) {
+                                            if (nic.secondaryip != null) {
+                                                var secondaryips = "";
+                                                for (var i = 0; i < nic.secondaryip.length; i++) {
+                                                    if (i == 0)
+                                                        secondaryips = nic.secondaryip[i].ipaddress;
+                                                    else
+                                                        secondaryips = secondaryips + " , " + nic.secondaryip[i].ipaddress;
+                                                }
+                                                $.extend(nic, {
+                                                    secondaryips: secondaryips
+                                                })
+                                            }
+                                                
                                             var name = 'NIC ' + (index + 1);
                                             if (nic.isdefault) {
                                                 name += ' (' + _l('label.default') + ')';
