@@ -32,41 +32,38 @@ import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 @Component
 @Local(value = GloboNetworkNetworkDao.class)
 @DB
-public class GloboNetworkEnvironmentDaoImpl extends
-		GenericDaoBase<GloboNetworkEnvironmentVO, Long> implements
-		GloboNetworkEnvironmentDao {
+public class GloboNetworkEnvironmentDaoImpl extends GenericDaoBase<GloboNetworkEnvironmentVO, Long> implements GloboNetworkEnvironmentDao {
 
-	final SearchBuilder<GloboNetworkEnvironmentVO> physicalNetworkIdSearch;
-	final SearchBuilder<GloboNetworkEnvironmentVO> physicalNetworkIdAndEnvironmentIdSearch;
+    final SearchBuilder<GloboNetworkEnvironmentVO> physicalNetworkIdSearch;
+    final SearchBuilder<GloboNetworkEnvironmentVO> physicalNetworkIdAndEnvironmentIdSearch;
 
-	protected GloboNetworkEnvironmentDaoImpl() {
-		super();
+    protected GloboNetworkEnvironmentDaoImpl() {
+        super();
 
-		physicalNetworkIdSearch = createSearchBuilder();
-		physicalNetworkIdSearch.and("physical_network_id", physicalNetworkIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
-		physicalNetworkIdSearch.done();
+        physicalNetworkIdSearch = createSearchBuilder();
+        physicalNetworkIdSearch.and("physical_network_id", physicalNetworkIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
+        physicalNetworkIdSearch.done();
 
-		physicalNetworkIdAndEnvironmentIdSearch = createSearchBuilder();
-		physicalNetworkIdAndEnvironmentIdSearch.and("physical_network_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
-		physicalNetworkIdAndEnvironmentIdSearch.and("napi_environment_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getGloboNetworkEnvironmentId(), Op.EQ);
-		physicalNetworkIdAndEnvironmentIdSearch.done();
+        physicalNetworkIdAndEnvironmentIdSearch = createSearchBuilder();
+        physicalNetworkIdAndEnvironmentIdSearch.and("physical_network_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getPhysicalNetworkId(), Op.EQ);
+        physicalNetworkIdAndEnvironmentIdSearch.and("napi_environment_id", physicalNetworkIdAndEnvironmentIdSearch.entity().getGloboNetworkEnvironmentId(), Op.EQ);
+        physicalNetworkIdAndEnvironmentIdSearch.done();
 
-	}
+    }
 
-	@Override
-	public List<GloboNetworkEnvironmentVO> listByPhysicalNetworkId(long physicalNetworkId) {
-		SearchCriteria<GloboNetworkEnvironmentVO> sc = physicalNetworkIdSearch.create();
-		sc.setParameters("physical_network_id", physicalNetworkId);
-		return listBy(sc);
-	}
+    @Override
+    public List<GloboNetworkEnvironmentVO> listByPhysicalNetworkId(long physicalNetworkId) {
+        SearchCriteria<GloboNetworkEnvironmentVO> sc = physicalNetworkIdSearch.create();
+        sc.setParameters("physical_network_id", physicalNetworkId);
+        return listBy(sc);
+    }
 
-	@Override
-	public GloboNetworkEnvironmentVO findByPhysicalNetworkIdAndEnvironmentId(
-			long physicalNetworkId, long environmentId) {
-		SearchCriteria<GloboNetworkEnvironmentVO> sc = physicalNetworkIdAndEnvironmentIdSearch.create();
-		sc.setParameters("physical_network_id", physicalNetworkId);
-		sc.setParameters("napi_environment_id", environmentId);
-		return findOneBy(sc);
-	}
+    @Override
+    public GloboNetworkEnvironmentVO findByPhysicalNetworkIdAndEnvironmentId(long physicalNetworkId, long environmentId) {
+        SearchCriteria<GloboNetworkEnvironmentVO> sc = physicalNetworkIdAndEnvironmentIdSearch.create();
+        sc.setParameters("physical_network_id", physicalNetworkId);
+        sc.setParameters("napi_environment_id", environmentId);
+        return findOneBy(sc);
+    }
 
 }

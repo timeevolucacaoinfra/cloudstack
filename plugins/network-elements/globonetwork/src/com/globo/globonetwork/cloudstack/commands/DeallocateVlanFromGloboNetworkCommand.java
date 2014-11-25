@@ -24,20 +24,20 @@ import com.cloud.agent.api.Command;
  *
  */
 public class DeallocateVlanFromGloboNetworkCommand extends Command {
-	
-	private Long vlanId;
-	
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
 
-	public Long getVlanId() {
-		return vlanId;
-	}
+    private Long vlanId;
 
-	public void setVlanId(Long vlanId) {
-		this.vlanId = vlanId;
-	}
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
+
+    public Long getVlanId() {
+        return vlanId;
+    }
+
+    public void setVlanId(Long vlanId) {
+        this.vlanId = vlanId;
+    }
 
 }

@@ -20,23 +20,23 @@ import org.apache.cloudstack.api.BaseResponse;
 
 public class GloboNetworkEnvironmentExternalResponse extends BaseResponse {
 
-	private Long environmentId;
-	
-	private String environmentFullName;
+    private Long environmentId;
 
-	public Long getEnvironmentId() {
-		return environmentId;
-	}
+    private String environmentFullName;
 
-	public void setEnvironmentId(Long environmentId) {
-		this.environmentId = environmentId;
-	}
+    public Long getEnvironmentId() {
+        return environmentId;
+    }
 
-	public String getEnvironmentFullName() {
-		return environmentFullName;
-	}
+    public void setEnvironmentId(Long environmentId) {
+        this.environmentId = environmentId;
+    }
 
-	public void setEnvironmentFullName(String environmentFullName) {
-		this.environmentFullName = environmentFullName;
-	}
+    public String getEnvironmentFullName() {
+        return environmentFullName;
+    }
+
+    public void setEnvironmentFullName(String environmentFullName) {
+        this.environmentFullName = environmentFullName;
+    }
 }

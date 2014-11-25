@@ -29,48 +29,48 @@ import org.apache.cloudstack.api.InternalIdentity;
 @Table(name = "globonetwork_environment_ref")
 public class GloboNetworkEnvironmentVO implements InternalIdentity {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -2510501870987500493L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -2510501870987500493L;
 
-	@Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name = "id")
-	private long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
 
-	@Column(name = "physical_network_id")
-	private long physicalNetworkId;
+    @Column(name = "physical_network_id")
+    private long physicalNetworkId;
 
-	@Column(name = "name")
-	private String name;
+    @Column(name = "name")
+    private String name;
 
-	@Column(name = "globonetwork_environment_id")
-	private long globoNetworkEnvironmentId;
+    @Column(name = "globonetwork_environment_id")
+    private long globoNetworkEnvironmentId;
 
-	public GloboNetworkEnvironmentVO() {
-	}
+    public GloboNetworkEnvironmentVO() {
+    }
 
-	public GloboNetworkEnvironmentVO(long physicalNetworkId, String name, long globoNetworkEnvironmentId) {
-		this.physicalNetworkId = physicalNetworkId;
-		this.name = name;
-		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
-	}
+    public GloboNetworkEnvironmentVO(long physicalNetworkId, String name, long globoNetworkEnvironmentId) {
+        this.physicalNetworkId = physicalNetworkId;
+        this.name = name;
+        this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
+    }
 
-	public long getId() {
-		return id;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public long getGloboNetworkEnvironmentId() {
-		return globoNetworkEnvironmentId;
-	}
+    public long getGloboNetworkEnvironmentId() {
+        return globoNetworkEnvironmentId;
+    }
 
-	public long getPhysicalNetworkId() {
-		return physicalNetworkId;
-	}
-	
-	public String getName() {
-		return name;
-	}
+    public long getPhysicalNetworkId() {
+        return physicalNetworkId;
+    }
+
+    public String getName() {
+        return name;
+    }
 
 }

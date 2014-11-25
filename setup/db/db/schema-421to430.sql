@@ -1135,17 +1135,3 @@ CREATE TABLE `cloud`.`globonetwork_network_ref` (
   KEY `napi_environment_index` (`globonetwork_environment_id`),
   CONSTRAINT `fk_napi_network_ref__network_id` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- globonetwork_vip_acc_ref
-CREATE TABLE `cloud`.`globonetwork_vip_acc_ref` (
-  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `globonetwork_vip_id` bigint(20) unsigned DEFAULT NULL,
-  `account_id` bigint(20) unsigned NOT NULL,
-  `network_id` bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `networkapi_vip_acc_ref_ix1` (`globonetwork_vip_id`),
-  KEY `networkapi_vip_acc_ref_fk2` (`account_id`),
-  KEY `networkapi_vip_acc_ref_fk3` (`network_id`),
-  CONSTRAINT `networkapi_vip_acc_ref_fk2` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `networkapi_vip_acc_ref_fk3` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;

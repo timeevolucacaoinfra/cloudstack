@@ -29,48 +29,48 @@ import org.apache.cloudstack.api.InternalIdentity;
 @Table(name = "globonetwork_network_ref")
 public class GloboNetworkNetworkVO implements InternalIdentity {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 1119504366663225252L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 1119504366663225252L;
 
-	@Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name = "id")
-	private long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
 
-	@Column(name = "globonetwork_vlan_id")
-	private long globoNetworkVlanId;
+    @Column(name = "globonetwork_vlan_id")
+    private long globoNetworkVlanId;
 
-	@Column(name = "network_id")
-	private long networkId;
-	
-	@Column(name = "globonetwork_environment_id")
-	private long globoNetworkEnvironmentId;
+    @Column(name = "network_id")
+    private long networkId;
 
-	public GloboNetworkNetworkVO() {
-	}
+    @Column(name = "globonetwork_environment_id")
+    private long globoNetworkEnvironmentId;
 
-	public GloboNetworkNetworkVO(long globoNetworkVlanId, long networkId, long globoNetworkEnvironmentId) {
-		this.globoNetworkVlanId = globoNetworkVlanId;
-		this.networkId = networkId;
-		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
-	}
+    public GloboNetworkNetworkVO() {
+    }
 
-	public long getId() {
-		return id;
-	}
+    public GloboNetworkNetworkVO(long globoNetworkVlanId, long networkId, long globoNetworkEnvironmentId) {
+        this.globoNetworkVlanId = globoNetworkVlanId;
+        this.networkId = networkId;
+        this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
+    }
 
-	public long getGloboNetworkVlanId() {
-		return globoNetworkVlanId;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public long getNetworkId() {
-		return networkId;
-	}
-	
-	public long getGloboNetworkEnvironmentId() {
-		return globoNetworkEnvironmentId;
-	}
+    public long getGloboNetworkVlanId() {
+        return globoNetworkVlanId;
+    }
+
+    public long getNetworkId() {
+        return networkId;
+    }
+
+    public long getGloboNetworkEnvironmentId() {
+        return globoNetworkEnvironmentId;
+    }
 
 }

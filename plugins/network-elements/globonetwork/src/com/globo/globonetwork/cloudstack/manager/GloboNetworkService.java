@@ -38,141 +38,132 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResp
 
 public interface GloboNetworkService {
 
+    /**
+     * Add a GloboNetwork Environment to an specific zone.
+     * @param physicalNetworkId
+     * @param name Name of the relationship, for example, BACKEND, FRONTEND
+     * @param napiEnvironmentId
+     * @return
+     */
+    public GloboNetworkEnvironmentVO addGloboNetworkEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
 
-	/**
-	 * Add a GloboNetwork Environment to an specific zone.
-	 * @param physicalNetworkId
-	 * @param name Name of the relationship, for example, BACKEND, FRONTEND
-	 * @param napiEnvironmentId
-	 * @return
-	 */
-	public GloboNetworkEnvironmentVO addGloboNetworkEnvironment(Long physicalNetworkId, String name, Long napiEnvironmentId);
+    /**
+     * Create a new network in sync with GloboNetwork.
+     * 
+     * @param zoneId
+     * @param networkOfferingId
+     * @param physicalNetworkId
+     * @param networkDomain
+     * @param aclType
+     * @param accountName
+     * @param projectId
+     * @param domainId
+     * @param subdomainAccess
+     * @param displayNetwork
+     * @param aclId
+     * @return
+     */
+    public Network createNetwork(String name, String displayText, Long zoneId, Long networkOfferingId, Long napiEnvironmentId, String networkDomain, ACLType aclType,
+            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId) throws ResourceAllocationException,
+            ResourceUnavailableException, ConcurrentOperationException, InsufficientCapacityException;
 
-	/**
-	 * Create a new network in sync with GloboNetwork.
-	 * 
-	 * @param zoneId
-	 * @param networkOfferingId
-	 * @param physicalNetworkId
-	 * @param networkDomain
-	 * @param aclType
-	 * @param accountName
-	 * @param projectId
-	 * @param domainId
-	 * @param subdomainAccess
-	 * @param displayNetwork
-	 * @param aclId
-	 * @return
-	 */
-	public Network createNetwork(String name, String displayText, Long zoneId,
-			Long networkOfferingId, Long napiEnvironmentId,
-			String networkDomain, ACLType aclType, String accountName,
-			Long projectId, Long domainId, Boolean subdomainAccess,
-			Boolean displayNetwork, Long aclId)
-			throws ResourceAllocationException, ResourceUnavailableException,
-			ConcurrentOperationException, InsufficientCapacityException;
+    /**
+     * Validate if nicProfile in compatible with Network and destination dest.
+     * 
+     * @param NicProfile
+     * @param network
+     * @return
+     * @throws InsufficientVirtualNetworkCapcityException
+     * @throws InsufficientAddressCapacityException
+     */
+    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapcityException,
+            InsufficientAddressCapacityException;
 
-	/**
-	 * Validate if nicProfile in compatible with Network and destination dest.
-	 * 
-	 * @param NicProfile
-	 * @param network
-	 * @return
-	 * @throws InsufficientVirtualNetworkCapcityException
-	 * @throws InsufficientAddressCapacityException
-	 */
-	public Network validateNic(NicProfile nicProfile,
-			VirtualMachineProfile vm,
-			Network network)
-			throws InsufficientVirtualNetworkCapcityException,
-			InsufficientAddressCapacityException;
+    /**
+     * Ensure network is created and active in GloboNetwork. If network is not created, create it.
+     * @param network
+     * @throws ConfigurationException
+     */
+    public void implementNetwork(Network network) throws ConfigurationException;
 
-	/**
-	 * Ensure network is created and active in GloboNetwork. If network is not created, create it.
-	 * @param network
-	 * @throws ConfigurationException
-	 */
-	public void implementNetwork(Network network) throws ConfigurationException;
-	
-	/**
-	 * Remove network from GloboNetwork and inactivate the vlan
-	 * @param network
-	 */
-	public void removeNetworkFromGloboNetwork(Network network);
-	
-	/**
-	 * Deallocate Vlan from GloboNetwork. 
-	 * The vlan must have been previously inactivated with the 'removeNetworkFromGloboNetwork' method.
-	 * @param network
-	 */
-	public void deallocateVlanFromGloboNetwork(Network network);
-	
-	/**
-	 * List GloboNetwork environments from database with optional parameter physicalNetworkId or zoneId. If all parameters are null
-	 * all GloboNetwork environments from database are returned.
-	 * @param physicalNetworkId
-	 * @param zoneId
-	 */
-	public List<GloboNetworkEnvironmentVO> listGloboNetworkEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
+    /**
+     * Remove network from GloboNetwork and inactivate the vlan
+     * @param network
+     */
+    public void removeNetworkFromGloboNetwork(Network network);
 
-	/**
-	 * List all environments from GloboNetwork
-	 * @param zoneId
-	 * @return
-	 */
-	public List<Environment> listAllEnvironmentsFromGloboNetwork(Long zoneId);
-	
-	boolean canEnable(Long physicalNetworkId);
+    /**
+     * Deallocate Vlan from GloboNetwork. 
+     * The vlan must have been previously inactivated with the 'removeNetworkFromGloboNetwork' method.
+     * @param network
+     */
+    public void deallocateVlanFromGloboNetwork(Network network);
 
-	/**
-	 * Removes the relationship between physical network and GloboNetwork environment
-	 * @param physicalNetworkId
-	 * @param globoNetworkEnvironmentId
-	 * @return
-	 */
-	public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId);
+    /**
+     * List GloboNetwork environments from database with optional parameter physicalNetworkId or zoneId. If all parameters are null
+     * all GloboNetwork environments from database are returned.
+     * @param physicalNetworkId
+     * @param zoneId
+     */
+    public List<GloboNetworkEnvironmentVO> listGloboNetworkEnvironmentsFromDB(Long physicalNetworkId, Long zoneId);
 
-	/**
-	 * Add GloboNetwork host details (provider) to CloudStack
-	 * @param physicalNetworkId
-	 * @param username
-	 * @param password
-	 * @param url
-	 */
-	public Host addGloboNetworkHost(Long physicalNetworkId, String username,
-			String password, String url);
-	
-	/**
-	 * Retrieve VLAN info from GloboNetwork
-	 * @param network
-	 * @return
-	 */
-	public Vlan getVlanInfoFromGloboNetwork(Network network);
+    /**
+     * List all environments from GloboNetwork
+     * @param zoneId
+     * @return
+     */
+    public List<Environment> listAllEnvironmentsFromGloboNetwork(Long zoneId);
 
-	/**
-	 * Register VM NIC in GloboNetwork
-	 * @param nic
-	 * @param vm
-	 * @param network
-	 */
-	public void registerNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm, Network network);
+    boolean canEnable(Long physicalNetworkId);
 
-	/**
-	 * Unregister NIC in GloboNetwork
-	 * @param nic
-	 * @param vm
-	 */
-	public void unregisterNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm);
+    /**
+     * Removes the relationship between physical network and GloboNetwork environment
+     * @param physicalNetworkId
+     * @param globoNetworkEnvironmentId
+     * @return
+     */
+    public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId);
 
-	/**
-	 * Domain suffix for all networks.
-	 * @return
-	 */
-	public String getDomainSuffix();
-	
-	/**
-	 * If custom network domain is supported
-	 * @return
-	 */
-	public boolean isSupportedCustomNetworkDomain();
+    /**
+     * Add GloboNetwork host details (provider) to CloudStack
+     * @param physicalNetworkId
+     * @param username
+     * @param password
+     * @param url
+     */
+    public Host addGloboNetworkHost(Long physicalNetworkId, String username, String password, String url);
+
+    /**
+     * Retrieve VLAN info from GloboNetwork
+     * @param network
+     * @return
+     */
+    public Vlan getVlanInfoFromGloboNetwork(Network network);
+
+    /**
+     * Register VM NIC in GloboNetwork
+     * @param nic
+     * @param vm
+     * @param network
+     */
+    public void registerNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm, Network network);
+
+    /**
+     * Unregister NIC in GloboNetwork
+     * @param nic
+     * @param vm
+     */
+    public void unregisterNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm);
+
+    /**
+     * Domain suffix for all networks.
+     * @return
+     */
+    public String getDomainSuffix();
+
+    /**
+     * If custom network domain is supported
+     * @return
+     */
+    public boolean isSupportedCustomNetworkDomain();
 }

@@ -23,8 +23,8 @@ import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 
 public interface GloboNetworkEnvironmentDao extends GenericDao<GloboNetworkEnvironmentVO, Long> {
 
-	List<GloboNetworkEnvironmentVO> listByPhysicalNetworkId(long physicalNetworkId);
+    List<GloboNetworkEnvironmentVO> listByPhysicalNetworkId(long physicalNetworkId);
 
-	GloboNetworkEnvironmentVO findByPhysicalNetworkIdAndEnvironmentId(long physicalNetworkId, long environmentId);
+    GloboNetworkEnvironmentVO findByPhysicalNetworkIdAndEnvironmentId(long physicalNetworkId, long environmentId);
 
 }

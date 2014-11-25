@@ -29,47 +29,47 @@ import org.apache.cloudstack.api.InternalIdentity;
 @Table(name = "globonetwork_vip_acc_ref")
 public class GloboNetworkVipAccVO implements InternalIdentity {
 
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = -6276857308303296742L;
+    /**
+     * 
+     */
+    private static final long serialVersionUID = -6276857308303296742L;
 
-	@Id
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
-	@Column(name = "id")
-	private long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private long id;
 
-	@Column(name = "globonetwork_vip_id")
-	private long globoNetworkVipId;
+    @Column(name = "globonetwork_vip_id")
+    private long globoNetworkVipId;
 
-	@Column(name = "account_id")
-	private long accountId;
-	
-	@Column(name = "network_id")
-	private long networkId;
+    @Column(name = "account_id")
+    private long accountId;
 
-	public GloboNetworkVipAccVO() {
-	}
+    @Column(name = "network_id")
+    private long networkId;
 
-	public GloboNetworkVipAccVO(long globoNetworkVipId, long accountId, long networkId) {
-		this.globoNetworkVipId = globoNetworkVipId;
-		this.accountId = accountId;
-		this.networkId = networkId;
-	}
+    public GloboNetworkVipAccVO() {
+    }
 
-	public long getId() {
-		return id;
-	}
+    public GloboNetworkVipAccVO(long globoNetworkVipId, long accountId, long networkId) {
+        this.globoNetworkVipId = globoNetworkVipId;
+        this.accountId = accountId;
+        this.networkId = networkId;
+    }
 
-	public long getGloboNetworkVipId() {
-		return globoNetworkVipId;
-	}
-	
-	public long getAccountId() {
-		return accountId;
-	}
+    public long getId() {
+        return id;
+    }
 
-	public long getNetworkId() {
-		return networkId;
-	}
+    public long getGloboNetworkVipId() {
+        return globoNetworkVipId;
+    }
+
+    public long getAccountId() {
+        return accountId;
+    }
+
+    public long getNetworkId() {
+        return networkId;
+    }
 }

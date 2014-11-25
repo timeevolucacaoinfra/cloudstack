@@ -27,32 +27,36 @@ import com.google.gson.annotations.SerializedName;
 @EntityReference(value = GloboNetworkEnvironmentVO.class)
 public class GloboNetworkEnvironmentResponse extends BaseResponse {
 
-	@SerializedName("id") @Param(description = "id of the GloboNetwork Environment ref")
-	private Long id;
+    @SerializedName("id")
+    @Param(description = "id of the GloboNetwork Environment ref")
+    private Long id;
 
-	@SerializedName(ApiConstants.PHYSICAL_NETWORK_ID) @Param(description = "the physicalNetworkId of GloboNetwork environment belongs to")
-	private String physicalNetworkId;
+    @SerializedName(ApiConstants.PHYSICAL_NETWORK_ID)
+    @Param(description = "the physicalNetworkId of GloboNetwork environment belongs to")
+    private String physicalNetworkId;
 
-	@SerializedName(ApiConstants.NAME) @Param(description = "name of the provider")
-	private String name;
+    @SerializedName(ApiConstants.NAME)
+    @Param(description = "name of the provider")
+    private String name;
 
-	@SerializedName("napienvironmentid") @Param(description = "id of environment in GloboNetwork")
-	private Long napiEnvironmentId;
+    @SerializedName("napienvironmentid")
+    @Param(description = "id of environment in GloboNetwork")
+    private Long napiEnvironmentId;
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public void setPhysicalNetworkId(String physicalNetworkId) {
-		this.physicalNetworkId = physicalNetworkId;
-	}
+    public void setPhysicalNetworkId(String physicalNetworkId) {
+        this.physicalNetworkId = physicalNetworkId;
+    }
 
-	public void setNapiEnvironmentId(Long napiEnvironmentId) {
-		this.napiEnvironmentId = napiEnvironmentId;
-	}
+    public void setNapiEnvironmentId(Long napiEnvironmentId) {
+        this.napiEnvironmentId = napiEnvironmentId;
+    }
 
 }

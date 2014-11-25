@@ -19,37 +19,37 @@ package com.globo.globonetwork.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 public class UnregisterEquipmentAndIpInGloboNetworkCommand extends Command {
-	
-	private String nicIp;
-	private String vmName;
-	private Long environmentId;
 
-	@Override
-	public boolean executeInSequence() {
-		return true;
-	}
+    private String nicIp;
+    private String vmName;
+    private Long environmentId;
 
-	public String getNicIp() {
-		return nicIp;
-	}
+    @Override
+    public boolean executeInSequence() {
+        return true;
+    }
 
-	public void setNicIp(String nicIp) {
-		this.nicIp = nicIp;
-	}
+    public String getNicIp() {
+        return nicIp;
+    }
 
-	public String getVmName() {
-		return vmName;
-	}
+    public void setNicIp(String nicIp) {
+        this.nicIp = nicIp;
+    }
 
-	public void setVmName(String vmName) {
-		this.vmName = vmName;
-	}
+    public String getVmName() {
+        return vmName;
+    }
 
-	public Long getEnvironmentId() {
-		return environmentId;
-	}
+    public void setVmName(String vmName) {
+        this.vmName = vmName;
+    }
 
-	public void setEnvironmentId(Long environmentId) {
-		this.environmentId = environmentId;
-	}
+    public Long getEnvironmentId() {
+        return environmentId;
+    }
+
+    public void setEnvironmentId(Long environmentId) {
+        this.environmentId = environmentId;
+    }
 }

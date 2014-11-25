@@ -39,65 +39,61 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 @APICommand(name = "removeGloboNetworkEnvironment", responseObject = SuccessResponse.class, description = "Removes a GloboNetwork environment from a zone")
 public class RemoveGloboNetworkEnvironmentCmd extends BaseCmd {
 
-	private static final String s_name = "removeglobonetworkresponse";
-	@Inject
-	GloboNetworkService _globoNetworkService;
+    private static final String s_name = "removeglobonetworkresponse";
+    @Inject
+    GloboNetworkService _globoNetworkService;
 
-	// ///////////////////////////////////////////////////
-	// ////////////// API parameters /////////////////////
-	// ///////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////
+    // ////////////// API parameters /////////////////////
+    // ///////////////////////////////////////////////////
 
-	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
-	private Long physicalNetworkId;
+    @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
+    private Long physicalNetworkId;
 
-	@Parameter(name = "environmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
-	private Long globoNetworkEnvironmentId;
+    @Parameter(name = "environmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
+    private Long globoNetworkEnvironmentId;
 
-	// ///////////////////////////////////////////////////
-	// ///////////////// Accessors ///////////////////////
-	// ///////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////
+    // ///////////////// Accessors ///////////////////////
+    // ///////////////////////////////////////////////////
 
-	public Long getPhysicalNetworkId() {
-		return physicalNetworkId;
-	}
+    public Long getPhysicalNetworkId() {
+        return physicalNetworkId;
+    }
 
-	public Long getGloboNetworkEnvironmentId() {
-		return globoNetworkEnvironmentId;
-	}
+    public Long getGloboNetworkEnvironmentId() {
+        return globoNetworkEnvironmentId;
+    }
 
-	// ///////////////////////////////////////////////////
-	// ///////////// API Implementation///////////////////
-	// ///////////////////////////////////////////////////
-
-	@Override
-	public void execute() throws ResourceUnavailableException,
-			InsufficientCapacityException, ServerApiException,
-			ConcurrentOperationException, ResourceAllocationException {
-		try {
-			boolean result = _globoNetworkService.removeGloboNetworkEnvironment(physicalNetworkId, globoNetworkEnvironmentId);
-
-			if (result) {
-				SuccessResponse response = new SuccessResponse(getCommandName());
-				this.setResponseObject(response);
-			} else {
-                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to remove the environment.");
-			}	
-		} catch (InvalidParameterValueException invalidParamExcp) {
-			throw new ServerApiException(ApiErrorCode.PARAM_ERROR,
-					invalidParamExcp.getMessage());
-		} catch (CloudRuntimeException runtimeExcp) {
-			throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR,
-					runtimeExcp.getMessage());
-		}
-	}
+    // ///////////////////////////////////////////////////
+    // ///////////// API Implementation///////////////////
+    // ///////////////////////////////////////////////////
 
     @Override
-	public String getCommandName() {
-		return s_name;
-	}
+    public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
+        try {
+            boolean result = _globoNetworkService.removeGloboNetworkEnvironment(physicalNetworkId, globoNetworkEnvironmentId);
 
-	@Override
-	public long getEntityOwnerId() {
-		return CallContext.current().getCallingAccountId();
-	}
+            if (result) {
+                SuccessResponse response = new SuccessResponse(getCommandName());
+                this.setResponseObject(response);
+            } else {
+                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to remove the environment.");
+            }
+        } catch (InvalidParameterValueException invalidParamExcp) {
+            throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
+        } catch (CloudRuntimeException runtimeExcp) {
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
+        }
+    }
+
+    @Override
+    public String getCommandName() {
+        return s_name;
+    }
+
+    @Override
+    public long getEntityOwnerId() {
+        return CallContext.current().getCallingAccountId();
+    }
 }

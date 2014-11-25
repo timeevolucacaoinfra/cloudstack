@@ -40,86 +40,82 @@ import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 @APICommand(name = "addGloboNetworkEnvironment", responseObject = GloboNetworkEnvironmentResponse.class, description = "Adds a GloboNetwork environment to a zone")
 public class AddGloboNetworkEnvironmentCmd extends BaseAsyncCmd {
 
-	private static final String s_name = "addglobonetworkenvironmentresponse";
-	@Inject
-	GloboNetworkService _globoNetworkService;
+    private static final String s_name = "addglobonetworkenvironmentresponse";
+    @Inject
+    GloboNetworkService _globoNetworkService;
 
-	// ///////////////////////////////////////////////////
-	// ////////////// API parameters /////////////////////
-	// ///////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////
+    // ////////////// API parameters /////////////////////
+    // ///////////////////////////////////////////////////
 
-	@Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
-	private Long physicalNetworkId;
+    @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = true, description = "the Physical Network ID")
+    private Long physicalNetworkId;
 
-	@Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between zone and GloboNetwork environment (like BACKEND, FRONTEND)")
-	private String name;
+    @Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "Name of the relationship between zone and GloboNetwork environment (like BACKEND, FRONTEND)")
+    private String name;
 
-	@Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
-	private Long globoNetworkEnvironmentId;
+    @Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "the Id of environment in GloboNetwork")
+    private Long globoNetworkEnvironmentId;
 
-	// ///////////////////////////////////////////////////
-	// ///////////////// Accessors ///////////////////////
-	// ///////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////
+    // ///////////////// Accessors ///////////////////////
+    // ///////////////////////////////////////////////////
 
-	public Long getPhysicalNetworkId() {
-		return physicalNetworkId;
-	}
+    public Long getPhysicalNetworkId() {
+        return physicalNetworkId;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public Long getGloboNetworkEnvironmentId() {
-		return globoNetworkEnvironmentId;
-	}
+    public Long getGloboNetworkEnvironmentId() {
+        return globoNetworkEnvironmentId;
+    }
 
-	// ///////////////////////////////////////////////////
-	// ///////////// API Implementation///////////////////
-	// ///////////////////////////////////////////////////
-
-	@Override
-	public void execute() throws ResourceUnavailableException,
-			InsufficientCapacityException, ServerApiException,
-			ConcurrentOperationException, ResourceAllocationException {
-		try {
-			GloboNetworkEnvironmentVO napiEnvironmentVO = _globoNetworkService.addGloboNetworkEnvironment(physicalNetworkId, name, globoNetworkEnvironmentId);
-			GloboNetworkEnvironmentResponse response = new GloboNetworkEnvironmentResponse();
-			response.setId(napiEnvironmentVO.getId());
-			response.setName(napiEnvironmentVO.getName());
-			response.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(napiEnvironmentVO.getPhysicalNetworkId()).getUuid());
-			response.setNapiEnvironmentId(napiEnvironmentVO.getGloboNetworkEnvironmentId());
-			response.setObjectName("globonetworkenvironment");
-			response.setResponseName(getCommandName());
-			this.setResponseObject(response);
-			
-		} catch (InvalidParameterValueException invalidParamExcp) {
-			throw new ServerApiException(ApiErrorCode.PARAM_ERROR,
-					invalidParamExcp.getMessage());
-		} catch (CloudRuntimeException runtimeExcp) {
-			throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR,
-					runtimeExcp.getMessage());
-		}
-	}
+    // ///////////////////////////////////////////////////
+    // ///////////// API Implementation///////////////////
+    // ///////////////////////////////////////////////////
 
     @Override
-	public String getCommandName() {
-		return s_name;
-	}
+    public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
+        try {
+            GloboNetworkEnvironmentVO napiEnvironmentVO = _globoNetworkService.addGloboNetworkEnvironment(physicalNetworkId, name, globoNetworkEnvironmentId);
+            GloboNetworkEnvironmentResponse response = new GloboNetworkEnvironmentResponse();
+            response.setId(napiEnvironmentVO.getId());
+            response.setName(napiEnvironmentVO.getName());
+            response.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(napiEnvironmentVO.getPhysicalNetworkId()).getUuid());
+            response.setNapiEnvironmentId(napiEnvironmentVO.getGloboNetworkEnvironmentId());
+            response.setObjectName("globonetworkenvironment");
+            response.setResponseName(getCommandName());
+            this.setResponseObject(response);
 
-	@Override
-	public long getEntityOwnerId() {
-		return CallContext.current().getCallingAccountId();
-	}
+        } catch (InvalidParameterValueException invalidParamExcp) {
+            throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
+        } catch (CloudRuntimeException runtimeExcp) {
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
+        }
+    }
 
-	@Override
-	public String getEventType() {
-		//EventTypes.EVENT_NETWORK_CREATE
-		return EventTypes.EVENT_NETWORK_CREATE;
-	}
+    @Override
+    public String getCommandName() {
+        return s_name;
+    }
 
-	@Override
-	public String getEventDescription() {
-		return "Adding a GloboNetwork Environment to Zone";
-	}
+    @Override
+    public long getEntityOwnerId() {
+        return CallContext.current().getCallingAccountId();
+    }
+
+    @Override
+    public String getEventType() {
+        //EventTypes.EVENT_NETWORK_CREATE
+        return EventTypes.EVENT_NETWORK_CREATE;
+    }
+
+    @Override
+    public String getEventDescription() {
+        return "Adding a GloboNetwork Environment to Zone";
+    }
 
 }

@@ -16,7 +16,6 @@
 */
 package com.globo.globonetwork.cloudstack.resource;
 
-
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
@@ -36,86 +35,86 @@ import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 
 public class GloboNetworkResourceTest {
-	GloboNetworkResource _resource;
-	
-	@Before
-	public void setUp() throws ConfigurationException {
-		_resource = new GloboNetworkResource();
-	}
+    GloboNetworkResource _resource;
 
-	@Test
-	public void testValidateNicReturnsAnswerResultTrue() throws Exception {
+    @Before
+    public void setUp() throws ConfigurationException {
+        _resource = new GloboNetworkResource();
+    }
 
-		long vlanId = 100l;
-		_resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
-		when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
+    @Test
+    public void testValidateNicReturnsAnswerResultTrue() throws Exception {
 
-		// Returning objects
-		Vlan vlan = new Vlan();
-		vlan.setId(vlanId);
-		
-		// Setting network to 10.2.3.0/24
-		IPv4Network ipv4Network = new IPv4Network();
-		ipv4Network.setOct1(10);
-		ipv4Network.setOct2(2);
-		ipv4Network.setOct3(3);
-		ipv4Network.setOct4(0);
-		ipv4Network.setMaskOct1(255);
-		ipv4Network.setMaskOct2(255);
-		ipv4Network.setMaskOct3(255);
-		ipv4Network.setMaskOct4(0);
-		ipv4Network.setActive(true);
-		
-		List<IPv4Network> ipv4Networks = new ArrayList<IPv4Network>();
-		ipv4Networks.add(ipv4Network);
-		vlan.setIpv4Networks(ipv4Networks);
-		
-		// Mocking return statement
-		when (_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
-		
-		ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
-		cmd.setVlanId(vlanId);
-		cmd.setNicIp("10.2.3.34");
-		cmd.setVlanNum(3929l);
-		Answer answer = _resource.execute(cmd);
-		assertTrue(answer.getResult());
-	}
-	
-	@Test
-	public void testValidateNicReturnsAnswerResultFalse() throws Exception {
+        long vlanId = 100l;
+        _resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
+        when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
 
-		long vlanId = 100L;
-		_resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
-		when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
+        // Returning objects
+        Vlan vlan = new Vlan();
+        vlan.setId(vlanId);
 
-		// Returning objects
-		Vlan vlan = new Vlan();
-		vlan.setId(vlanId);
-		
-		// Setting network to 10.1.3.0/24
-		IPv4Network ipv4Network = new IPv4Network();
-		ipv4Network.setOct1(10);
-		ipv4Network.setOct2(1);
-		ipv4Network.setOct3(3);
-		ipv4Network.setOct4(0);
-		ipv4Network.setMaskOct1(255);
-		ipv4Network.setMaskOct2(255);
-		ipv4Network.setMaskOct3(255);
-		ipv4Network.setMaskOct4(0);
-		ipv4Network.setActive(true);
-		
-		List<IPv4Network> ipv4Networks = new ArrayList<IPv4Network>();
-		ipv4Networks.add(ipv4Network);
-		vlan.setIpv4Networks(ipv4Networks);
-		
-		// Mocking return statement
-		when (_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
-		
-		ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
-		cmd.setVlanId(vlanId);
-		cmd.setNicIp("10.2.3.34");
-		Answer answer = _resource.execute(cmd);
-		assertFalse(answer.getResult());
-	}
+        // Setting network to 10.2.3.0/24
+        IPv4Network ipv4Network = new IPv4Network();
+        ipv4Network.setOct1(10);
+        ipv4Network.setOct2(2);
+        ipv4Network.setOct3(3);
+        ipv4Network.setOct4(0);
+        ipv4Network.setMaskOct1(255);
+        ipv4Network.setMaskOct2(255);
+        ipv4Network.setMaskOct3(255);
+        ipv4Network.setMaskOct4(0);
+        ipv4Network.setActive(true);
+
+        List<IPv4Network> ipv4Networks = new ArrayList<IPv4Network>();
+        ipv4Networks.add(ipv4Network);
+        vlan.setIpv4Networks(ipv4Networks);
+
+        // Mocking return statement
+        when(_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
+
+        ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
+        cmd.setVlanId(vlanId);
+        cmd.setNicIp("10.2.3.34");
+        cmd.setVlanNum(3929l);
+        Answer answer = _resource.execute(cmd);
+        assertTrue(answer.getResult());
+    }
+
+    @Test
+    public void testValidateNicReturnsAnswerResultFalse() throws Exception {
+
+        long vlanId = 100L;
+        _resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
+        when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
+
+        // Returning objects
+        Vlan vlan = new Vlan();
+        vlan.setId(vlanId);
+
+        // Setting network to 10.1.3.0/24
+        IPv4Network ipv4Network = new IPv4Network();
+        ipv4Network.setOct1(10);
+        ipv4Network.setOct2(1);
+        ipv4Network.setOct3(3);
+        ipv4Network.setOct4(0);
+        ipv4Network.setMaskOct1(255);
+        ipv4Network.setMaskOct2(255);
+        ipv4Network.setMaskOct3(255);
+        ipv4Network.setMaskOct4(0);
+        ipv4Network.setActive(true);
+
+        List<IPv4Network> ipv4Networks = new ArrayList<IPv4Network>();
+        ipv4Networks.add(ipv4Network);
+        vlan.setIpv4Networks(ipv4Networks);
+
+        // Mocking return statement
+        when(_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
+
+        ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
+        cmd.setVlanId(vlanId);
+        cmd.setNicIp("10.2.3.34");
+        Answer answer = _resource.execute(cmd);
+        assertFalse(answer.getResult());
+    }
 
 }

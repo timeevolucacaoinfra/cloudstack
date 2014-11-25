@@ -24,26 +24,26 @@ import org.apache.log4j.Logger;
 
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listGloboNetworkCapabilities", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists GloboNetwork capabilities")
+@APICommand(name = "listGloboNetworkCapabilities", responseObject = GloboNetworkEnvironmentResponse.class, description = "Lists GloboNetwork capabilities")
 public class ListGloboNetworkCapabilitiesCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkCapabilitiesCmd.class);
     private static final String s_name = "listglobonetworkcapabilitiesresponse";
-    
+
     @Inject
     GloboNetworkService _globoNetworkService;
-    
+
     @Override
     public void execute() {
-    	s_logger.debug("listGloboNetworkCapabilities command");
-    	GloboNetworkCapabilitiesResponse response = new GloboNetworkCapabilitiesResponse();
-    	response.setDomainSuffix(_globoNetworkService.getDomainSuffix());
-    	response.setSupportCustomNetworkDomain(_globoNetworkService.isSupportedCustomNetworkDomain());
+        s_logger.debug("listGloboNetworkCapabilities command");
+        GloboNetworkCapabilitiesResponse response = new GloboNetworkCapabilitiesResponse();
+        response.setDomainSuffix(_globoNetworkService.getDomainSuffix());
+        response.setSupportCustomNetworkDomain(_globoNetworkService.isSupportedCustomNetworkDomain());
         response.setObjectName("globoNetworkCapability");
         response.setResponseName(getCommandName());
         this.setResponseObject(response);
     }
- 
+
     @Override
     public String getCommandName() {
         return s_name;
@@ -51,6 +51,6 @@ public class ListGloboNetworkCapabilitiesCmd extends BaseCmd {
 
     @Override
     public long getEntityOwnerId() {
-    	return CallContext.current().getCallingAccountId();
+        return CallContext.current().getCallingAccountId();
     }
 }

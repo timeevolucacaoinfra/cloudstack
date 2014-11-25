@@ -23,11 +23,13 @@ import com.google.gson.annotations.SerializedName;
 
 public class GloboNetworkCapabilitiesResponse extends BaseResponse {
 
-	@SerializedName("domainSuffix") @Param(description = "Domain suffix of all networks")
-	private String domainSuffix;
+    @SerializedName("domainSuffix")
+    @Param(description = "Domain suffix of all networks")
+    private String domainSuffix;
 
-	@SerializedName("supportCustomNetworkDomain") @Param(description = "user can customize network domain")
-	private Boolean supportCustomNetworkDomain;
+    @SerializedName("supportCustomNetworkDomain")
+    @Param(description = "user can customize network domain")
+    private Boolean supportCustomNetworkDomain;
 
     public String getDomainSuffix() {
         return domainSuffix;

@@ -42,106 +42,102 @@ import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "addNetworkViaGloboNetworkCmd", responseObject=NetworkResponse.class, description="Adds a vlan/network in Cloudstack and GloboNetwork")
+@APICommand(name = "addNetworkViaGloboNetworkCmd", responseObject = NetworkResponse.class, description = "Adds a vlan/network in Cloudstack and GloboNetwork")
 public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(AddNetworkViaGloboNetworkCmd.class.getName());
     private static final String s_name = "addnetworkviaglobonetworkresponse";
-    
+
     @Inject
     GloboNetworkService _globoNetworkService;
 
-    @Parameter(name=ApiConstants.NAME, type=CommandType.STRING, required=true, description="the name of the network")
+    @Parameter(name = ApiConstants.NAME, type = CommandType.STRING, required = true, description = "the name of the network")
     private String name;
 
-    @Parameter(name=ApiConstants.DISPLAY_TEXT, type=CommandType.STRING, required=true, description="the display text of the network")
+    @Parameter(name = ApiConstants.DISPLAY_TEXT, type = CommandType.STRING, required = true, description = "the display text of the network")
     private String displayText;
 
-    @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
-            required=true, description="the Zone ID for the network")
+    @Parameter(name = ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, required = true, description = "the Zone ID for the network")
     private Long zoneId;
-    
-    @Parameter(name=ApiConstants.NETWORK_OFFERING_ID, type=CommandType.UUID, entityType = NetworkOfferingResponse.class,
-            required=true, description="the network offering id")
+
+    @Parameter(name = ApiConstants.NETWORK_OFFERING_ID, type = CommandType.UUID, entityType = NetworkOfferingResponse.class, required = true, description = "the network offering id")
     private Long networkOfferingId;
-    
-    @Parameter(name=ApiConstants.NETWORK_DOMAIN, type=CommandType.STRING, description="network domain")
+
+    @Parameter(name = ApiConstants.NETWORK_DOMAIN, type = CommandType.STRING, description = "network domain")
     private String networkDomain;
 
-    @Parameter(name=ApiConstants.ACL_TYPE, type=CommandType.STRING, description="Access control type; supported values" +
-            " are account and domain. In 3.0 all shared networks should have aclType=Domain, and all Isolated networks" +
-            " - Account. Account means that only the account owner can use the network, domain - all accouns in the domain can use the network")
+    @Parameter(name = ApiConstants.ACL_TYPE, type = CommandType.STRING, description = "Access control type; supported values"
+            + " are account and domain. In 3.0 all shared networks should have aclType=Domain, and all Isolated networks"
+            + " - Account. Account means that only the account owner can use the network, domain - all accouns in the domain can use the network")
     private String aclType;
 
-    @Parameter(name=ApiConstants.ACCOUNT, type=CommandType.STRING, description="account who will own the network")
+    @Parameter(name = ApiConstants.ACCOUNT, type = CommandType.STRING, description = "account who will own the network")
     private String accountName;
 
-    @Parameter(name=ApiConstants.PROJECT_ID, type=CommandType.UUID, entityType = ProjectResponse.class,
-            description="an optional project for the ssh key")
+    @Parameter(name = ApiConstants.PROJECT_ID, type = CommandType.UUID, entityType = ProjectResponse.class, description = "an optional project for the ssh key")
     private Long projectId;
 
-    @Parameter(name=ApiConstants.DOMAIN_ID, type=CommandType.UUID, entityType = DomainResponse.class,
-            description="domain ID of the account owning a network")
+    @Parameter(name = ApiConstants.DOMAIN_ID, type = CommandType.UUID, entityType = DomainResponse.class, description = "domain ID of the account owning a network")
     private Long domainId;
 
-    @Parameter(name=ApiConstants.SUBDOMAIN_ACCESS, type=CommandType.BOOLEAN, description="Defines whether to allow" +
-            " subdomains to use networks dedicated to their parent domain(s). Should be used with aclType=Domain, defaulted to allow.subdomain.network.access global config if not specified")
+    @Parameter(name = ApiConstants.SUBDOMAIN_ACCESS, type = CommandType.BOOLEAN, description = "Defines whether to allow"
+            + " subdomains to use networks dedicated to their parent domain(s). Should be used with aclType=Domain, defaulted to allow.subdomain.network.access global config if not specified")
     private Boolean subdomainAccess;
 
-    @Parameter(name=ApiConstants.DISPLAY_NETWORK, type=CommandType.BOOLEAN, description="an optional field, whether to the display the network to the end user or not.")
+    @Parameter(name = ApiConstants.DISPLAY_NETWORK, type = CommandType.BOOLEAN, description = "an optional field, whether to the display the network to the end user or not.")
     private Boolean displayNetwork;
 
-    @Parameter(name=ApiConstants.ACL_ID, type=CommandType.UUID, entityType = NetworkACLResponse.class,
-            description="Network ACL Id associated for the network")
+    @Parameter(name = ApiConstants.ACL_ID, type = CommandType.UUID, entityType = NetworkACLResponse.class, description = "Network ACL Id associated for the network")
     private Long aclId;
 
-    @Parameter(name="napienvironmentid", type=CommandType.LONG, required = true, description="GloboNetwork environment ID.")
+    @Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "GloboNetwork environment ID.")
     private Long globoNetworkEnvironmentId;
 
     public Long getZoneId() {
-    	return zoneId;
+        return zoneId;
     }
-    
+
     public Long getNetworkOfferingId() {
-    	return networkOfferingId;
+        return networkOfferingId;
     }
 
     public ACLType getACLType() {
-    	if (aclType == null) {
-    		return null;
-    	}
-    	for (ACLType aclTypeEnum : ACLType.values()) {
-    		if (aclType.equalsIgnoreCase(aclTypeEnum.name())) {
-    			return aclTypeEnum;
-    		}
-    	}
-    	s_logger.warn("Invalid value for ACLType: " + aclType);
-    	return null;
+        if (aclType == null) {
+            return null;
+        }
+        for (ACLType aclTypeEnum : ACLType.values()) {
+            if (aclType.equalsIgnoreCase(aclTypeEnum.name())) {
+                return aclTypeEnum;
+            }
+        }
+        s_logger.warn("Invalid value for ACLType: " + aclType);
+        return null;
     }
 
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("addNetworkViaGloboNetworkCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId=" + networkOfferingId +
-        			" networkDomain=" +  networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId +
-        			" domainId" + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid=" + globoNetworkEnvironmentId);
-        	Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
-        			projectId, domainId, subdomainAccess, displayNetwork, aclId);
-        	if (network != null) {
-        		NetworkResponse response = _responseGenerator.createNetworkResponse(network);
-        		response.setResponseName(getCommandName());
-        		this.setResponseObject(response);
-        	} else {
-        		throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from GloboNetwork.");
-        	}
-        }  catch (InvalidParameterValueException invalidParamExcp) {
+            s_logger.debug("addNetworkViaGloboNetworkCmd command with name=" + name + " displayText=" + displayText + " zoneId=" + zoneId + " networkOfferingId="
+                    + networkOfferingId + " networkDomain=" + networkDomain + " aclType=" + aclType + " accountName=" + accountName + " projectId=" + projectId + " domainId"
+                    + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid="
+                    + globoNetworkEnvironmentId);
+            Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
+                    projectId, domainId, subdomainAccess, displayNetwork, aclId);
+            if (network != null) {
+                NetworkResponse response = _responseGenerator.createNetworkResponse(network);
+                response.setResponseName(getCommandName());
+                this.setResponseObject(response);
+            } else {
+                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create network from GloboNetwork.");
+            }
+        } catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }
     }
- 
+
     @Override
     public String getCommandName() {
         return s_name;
@@ -149,6 +145,6 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
 
     @Override
     public long getEntityOwnerId() {
-    	return CallContext.current().getCallingAccountId();
+        return CallContext.current().getCallingAccountId();
     }
 }

@@ -42,61 +42,59 @@ import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listGloboNetworkEnvironments", responseObject=GloboNetworkEnvironmentResponse.class, description="Lists GloboNetwork environments")
+@APICommand(name = "listGloboNetworkEnvironments", responseObject = GloboNetworkEnvironmentResponse.class, description = "Lists GloboNetwork environments")
 public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkEnvironmentsCmd.class);
     private static final String s_name = "listglobonetworkenvironmentsresponse";
-    
+
     @Inject
     GloboNetworkService _globoNetworkService;
-    
-    @Parameter(name=ApiConstants.PHYSICAL_NETWORK_ID, type=CommandType.UUID, entityType = PhysicalNetworkResponse.class,
-            required=false, description="the Physical Network ID the network belongs to")
+
+    @Parameter(name = ApiConstants.PHYSICAL_NETWORK_ID, type = CommandType.UUID, entityType = PhysicalNetworkResponse.class, required = false, description = "the Physical Network ID the network belongs to")
     private Long physicalNetworkId;
 
-    @Parameter(name=ApiConstants.ZONE_ID, type=CommandType.UUID, entityType = ZoneResponse.class,
-            required=false, description="the ZoneID")
+    @Parameter(name = ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, required = false, description = "the ZoneID")
     private Long zoneId;
 
     public Long getPhysicalNetworkId() {
-    	return physicalNetworkId;
+        return physicalNetworkId;
     }
 
     public Long getZoneId() {
-    	return zoneId;
+        return zoneId;
     }
 
     /* Implementation */
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-        	s_logger.debug("listGloboNetworkEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId + " zoneId=" + zoneId);
-        	List<GloboNetworkEnvironmentVO> globoNetworkEnvironments = _globoNetworkService.listGloboNetworkEnvironmentsFromDB(this.physicalNetworkId, this.zoneId);
-        	
-        	List<GloboNetworkEnvironmentResponse> responseList = new ArrayList<GloboNetworkEnvironmentResponse>();
-    		
-    		for (GloboNetworkEnvironmentVO globoNetworkEnvironmentVO : globoNetworkEnvironments) {
-				GloboNetworkEnvironmentResponse envResponse = new GloboNetworkEnvironmentResponse();
-				envResponse.setId(globoNetworkEnvironmentVO.getId());
-				envResponse.setName(globoNetworkEnvironmentVO.getName());
-				envResponse.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(globoNetworkEnvironmentVO.getPhysicalNetworkId()).getUuid());
-				envResponse.setNapiEnvironmentId(globoNetworkEnvironmentVO.getGloboNetworkEnvironmentId());
-				envResponse.setObjectName("globonetworkenvironment");
-				responseList.add(envResponse);
-			}
-    		 
-    		ListResponse<GloboNetworkEnvironmentResponse> response = new ListResponse<GloboNetworkEnvironmentResponse>();
-    		response.setResponses(responseList);
-    		response.setResponseName(getCommandName());
-    		this.setResponseObject(response);
-        }  catch (InvalidParameterValueException invalidParamExcp) {
+            s_logger.debug("listGloboNetworkEnvironmentsCmd command with physicalNetowrkId=" + physicalNetworkId + " zoneId=" + zoneId);
+            List<GloboNetworkEnvironmentVO> globoNetworkEnvironments = _globoNetworkService.listGloboNetworkEnvironmentsFromDB(this.physicalNetworkId, this.zoneId);
+
+            List<GloboNetworkEnvironmentResponse> responseList = new ArrayList<GloboNetworkEnvironmentResponse>();
+
+            for (GloboNetworkEnvironmentVO globoNetworkEnvironmentVO : globoNetworkEnvironments) {
+                GloboNetworkEnvironmentResponse envResponse = new GloboNetworkEnvironmentResponse();
+                envResponse.setId(globoNetworkEnvironmentVO.getId());
+                envResponse.setName(globoNetworkEnvironmentVO.getName());
+                envResponse.setPhysicalNetworkId(ApiDBUtils.findPhysicalNetworkById(globoNetworkEnvironmentVO.getPhysicalNetworkId()).getUuid());
+                envResponse.setNapiEnvironmentId(globoNetworkEnvironmentVO.getGloboNetworkEnvironmentId());
+                envResponse.setObjectName("globonetworkenvironment");
+                responseList.add(envResponse);
+            }
+
+            ListResponse<GloboNetworkEnvironmentResponse> response = new ListResponse<GloboNetworkEnvironmentResponse>();
+            response.setResponses(responseList);
+            response.setResponseName(getCommandName());
+            this.setResponseObject(response);
+        } catch (InvalidParameterValueException invalidParamExcp) {
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, invalidParamExcp.getMessage());
         } catch (CloudRuntimeException runtimeExcp) {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }
     }
- 
+
     @Override
     public String getCommandName() {
         return s_name;
@@ -104,6 +102,6 @@ public class ListGloboNetworkEnvironmentsCmd extends BaseCmd {
 
     @Override
     public long getEntityOwnerId() {
-    	return CallContext.current().getCallingAccountId();
+        return CallContext.current().getCallingAccountId();
     }
 }

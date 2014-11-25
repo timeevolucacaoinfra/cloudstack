@@ -19,73 +19,73 @@ package com.globo.globonetwork.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 public class RegisterEquipmentAndIpInGloboNetworkCommand extends Command {
-	
-	private String nicIp;
-	private String nicDescription;
-	private String vmName;
-	private Long vlanId;
-	private Long environmentId;
-	private Long equipmentGroupId;
-	private Long equipmentModelId;
 
-	@Override
-	public boolean executeInSequence() {
-		return true;
-	}
+    private String nicIp;
+    private String nicDescription;
+    private String vmName;
+    private Long vlanId;
+    private Long environmentId;
+    private Long equipmentGroupId;
+    private Long equipmentModelId;
 
-	public String getNicIp() {
-		return nicIp;
-	}
+    @Override
+    public boolean executeInSequence() {
+        return true;
+    }
 
-	public void setNicIp(String nicIp) {
-		this.nicIp = nicIp;
-	}
+    public String getNicIp() {
+        return nicIp;
+    }
 
-	public String getNicDescription() {
-		return nicDescription;
-	}
+    public void setNicIp(String nicIp) {
+        this.nicIp = nicIp;
+    }
 
-	public void setNicDescription(String nicDescription) {
-		this.nicDescription = nicDescription;
-	}
+    public String getNicDescription() {
+        return nicDescription;
+    }
 
-	public String getVmName() {
-		return vmName;
-	}
+    public void setNicDescription(String nicDescription) {
+        this.nicDescription = nicDescription;
+    }
 
-	public void setVmName(String vmName) {
-		this.vmName = vmName;
-	}
-	
-	public Long getVlanId() {
-		return vlanId;
-	}
+    public String getVmName() {
+        return vmName;
+    }
 
-	public void setVlanId(Long vlanId) {
-		this.vlanId = vlanId;
-	}
+    public void setVmName(String vmName) {
+        this.vmName = vmName;
+    }
 
-	public Long getEnvironmentId() {
-		return environmentId;
-	}
+    public Long getVlanId() {
+        return vlanId;
+    }
 
-	public void setEnvironmentId(Long environmentId) {
-		this.environmentId = environmentId;
-	}
+    public void setVlanId(Long vlanId) {
+        this.vlanId = vlanId;
+    }
 
-	public Long getEquipmentGroupId() {
-		return equipmentGroupId;
-	}
+    public Long getEnvironmentId() {
+        return environmentId;
+    }
 
-	public void setEquipmentGroupId(Long equipmentGroupId) {
-		this.equipmentGroupId = equipmentGroupId;
-	}
+    public void setEnvironmentId(Long environmentId) {
+        this.environmentId = environmentId;
+    }
 
-	public Long getEquipmentModelId() {
-		return equipmentModelId;
-	}
-	
-	public void setEquipmentModelId(Long equipmentModelId) {
-		this.equipmentModelId = equipmentModelId;
-	}
+    public Long getEquipmentGroupId() {
+        return equipmentGroupId;
+    }
+
+    public void setEquipmentGroupId(Long equipmentGroupId) {
+        this.equipmentGroupId = equipmentGroupId;
+    }
+
+    public Long getEquipmentModelId() {
+        return equipmentModelId;
+    }
+
+    public void setEquipmentModelId(Long equipmentModelId) {
+        this.equipmentModelId = equipmentModelId;
+    }
 }

@@ -24,40 +24,40 @@ import com.cloud.agent.api.Command;
  *
  */
 public class ValidateNicInVlanCommand extends Command {
-	
-	private String nicIp;
-	
-	private Long vlanNum;
-	
-	private Long vlanId;
-	
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
 
-	public String getNicIp() {
-		return nicIp;
-	}
+    private String nicIp;
 
-	public void setNicIp(String nicIp) {
-		this.nicIp = nicIp;
-	}
+    private Long vlanNum;
 
-	public Long getVlanNum() {
-		return vlanNum;
-	}
+    private Long vlanId;
 
-	public void setVlanNum(Long vlanNum) {
-		this.vlanNum = vlanNum;
-	}
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
 
-	public Long getVlanId() {
-		return vlanId;
-	}
+    public String getNicIp() {
+        return nicIp;
+    }
 
-	public void setVlanId(Long vlanId) {
-		this.vlanId = vlanId;
-	}
+    public void setNicIp(String nicIp) {
+        this.nicIp = nicIp;
+    }
+
+    public Long getVlanNum() {
+        return vlanNum;
+    }
+
+    public void setVlanNum(Long vlanNum) {
+        this.vlanNum = vlanNum;
+    }
+
+    public Long getVlanId() {
+        return vlanId;
+    }
+
+    public void setVlanId(Long vlanId) {
+        this.vlanId = vlanId;
+    }
 
 }

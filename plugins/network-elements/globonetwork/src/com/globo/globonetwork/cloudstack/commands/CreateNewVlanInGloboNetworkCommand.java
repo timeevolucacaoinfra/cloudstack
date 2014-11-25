@@ -19,40 +19,40 @@ package com.globo.globonetwork.cloudstack.commands;
 import com.cloud.agent.api.Command;
 
 public class CreateNewVlanInGloboNetworkCommand extends Command {
-	
-	private String vlanName;
-	
-	private String vlanDescription;
 
-	private Long globoNetworkEnvironmentId;
+    private String vlanName;
 
-	@Override
-	public boolean executeInSequence() {
-		return false;
-	}
+    private String vlanDescription;
 
-	public String getVlanName() {
-		return vlanName;
-	}
+    private Long globoNetworkEnvironmentId;
 
-	public void setVlanName(String vlanName) {
-		this.vlanName = vlanName;
-	}
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
 
-	public String getVlanDescription() {
-		return vlanDescription;
-	}
+    public String getVlanName() {
+        return vlanName;
+    }
 
-	public void setVlanDescription(String vlanDescription) {
-		this.vlanDescription = vlanDescription;
-	}
+    public void setVlanName(String vlanName) {
+        this.vlanName = vlanName;
+    }
 
-	public Long getGloboNetworkEnvironmentId() {
-		return globoNetworkEnvironmentId;
-	}
+    public String getVlanDescription() {
+        return vlanDescription;
+    }
 
-	public void setGloboNetworkEnvironmentId(Long globoNetworkEnvironmentId) {
-		this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
-	}
+    public void setVlanDescription(String vlanDescription) {
+        this.vlanDescription = vlanDescription;
+    }
+
+    public Long getGloboNetworkEnvironmentId() {
+        return globoNetworkEnvironmentId;
+    }
+
+    public void setGloboNetworkEnvironmentId(Long globoNetworkEnvironmentId) {
+        this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
+    }
 
 }

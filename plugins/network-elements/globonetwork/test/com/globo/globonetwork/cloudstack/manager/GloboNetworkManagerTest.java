@@ -16,7 +16,6 @@
 */
 package com.globo.globonetwork.cloudstack.manager;
 
-
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
@@ -98,7 +97,7 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(loader = AnnotationConfigContextLoader.class)
-@DirtiesContext(classMode=ClassMode.AFTER_EACH_TEST_METHOD)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class GloboNetworkManagerTest {
 
     private static long zoneId = 5L;
@@ -108,39 +107,39 @@ public class GloboNetworkManagerTest {
     private static long globoNetworkHostId = 7L;
     private static long domainId = 10L;
     private AccountVO acct = null;
-	private UserVO user = null;
-	
-	@Inject
-	GloboNetworkService _globoNetworkService;
- 
-	@Inject
-	DataCenterDao _dcDao;
-	
-	@Inject
-	PhysicalNetworkDao _physicalNetworkDao;
-	
-	@Inject
-	GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
-	
-	@Inject
-	HostDao _hostDao;
-	
-	@Inject
-	ConfigurationDao _configDao;
-	
-	@Inject
-	AgentManager _agentMgr;
+    private UserVO user = null;
 
-	@Inject
-	ResourceManager _resourceMgr;
-	
-	@Inject
-	AccountManager _acctMgr; 
- 
+    @Inject
+    GloboNetworkService _globoNetworkService;
+
+    @Inject
+    DataCenterDao _dcDao;
+
+    @Inject
+    PhysicalNetworkDao _physicalNetworkDao;
+
+    @Inject
+    GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
+
+    @Inject
+    HostDao _hostDao;
+
+    @Inject
+    ConfigurationDao _configDao;
+
+    @Inject
+    AgentManager _agentMgr;
+
+    @Inject
+    ResourceManager _resourceMgr;
+
+    @Inject
+    AccountManager _acctMgr;
+
     @BeforeClass
     public static void setUp() throws ConfigurationException {
     }
- 
+
     @Before
     public void testSetUp() {
         ComponentContext.initComponentsLifeCycle();
@@ -157,210 +156,232 @@ public class GloboNetworkManagerTest {
         when(_acctMgr.getSystemAccount()).thenReturn(this.acct);
         when(_acctMgr.getSystemUser()).thenReturn(this.user);
     }
-    
+
     @After
     public void testTearDown() {
-    	CallContext.unregister();
-    	acct = null;
+        CallContext.unregister();
+        acct = null;
     }
- 
+
     @Test
     public void revertGloboNetworkCreationWhenFailureNetworkCreation() throws CloudException {
 
-    	DataCenterVO dc = new DataCenterVO(0L, null, null, null, null, null, null, null, null, null, null, null, null);
-    	when(_dcDao.findById(anyLong())).thenReturn(dc);
-    	
-    	List<PhysicalNetworkVO> pNtwList = new ArrayList<PhysicalNetworkVO>();
-    	pNtwList.add(new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null));
-    	when(_physicalNetworkDao.listByZone(zoneId)).thenReturn(pNtwList);
-    	String networkName = "MockTestNetwork";
-    	when(_globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId)).thenReturn(new GloboNetworkEnvironmentVO(physicalNetworkId, networkName, globoNetworkEnvironmentId));
-    	
-    	HostVO napiHost = new HostVO(globoNetworkHostId, null, null, null, null, null, null, 
-    			null, null, null, null, null, null, null, null, null, null, zoneId, null,
-    			0L, 0L, null, null, null, 0L, null);    	
-    	when(_hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
-    	
-    	Answer answer = new GloboNetworkVlanResponse(new CreateNewVlanInGloboNetworkCommand(), null, null, null, null, null, null, null, false);
-    	when(_agentMgr.easySend(eq(globoNetworkHostId), any(CreateNewVlanInGloboNetworkCommand.class))).thenReturn(answer);
-    	
-    	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(null);
-    	
-    	try {
-	    	_globoNetworkService.createNetwork(networkName, networkName, zoneId, networkOfferingId, globoNetworkEnvironmentId, null, 
-	    			ACLType.Domain, null, null, null, null, true, null);
-	    	// This command must throw InvalidParameterValueException, otherwise fails
-	    	Assert.fail();
-    	} catch (ResourceAllocationException e) {
-		   verify(_agentMgr, atLeastOnce()).easySend(eq(globoNetworkHostId), any(DeallocateVlanFromGloboNetworkCommand.class));
-    	}
+        DataCenterVO dc = new DataCenterVO(0L, null, null, null, null, null, null, null, null, null, null, null, null);
+        when(_dcDao.findById(anyLong())).thenReturn(dc);
+
+        List<PhysicalNetworkVO> pNtwList = new ArrayList<PhysicalNetworkVO>();
+        pNtwList.add(new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null));
+        when(_physicalNetworkDao.listByZone(zoneId)).thenReturn(pNtwList);
+        String networkName = "MockTestNetwork";
+        when(_globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId)).thenReturn(
+                new GloboNetworkEnvironmentVO(physicalNetworkId, networkName, globoNetworkEnvironmentId));
+
+        HostVO napiHost = new HostVO(globoNetworkHostId, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, zoneId, null, 0L, 0L,
+                null, null, null, 0L, null);
+        when(_hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
+
+        Answer answer = new GloboNetworkVlanResponse(new CreateNewVlanInGloboNetworkCommand(), null, null, null, null, null, null, null, false);
+        when(_agentMgr.easySend(eq(globoNetworkHostId), any(CreateNewVlanInGloboNetworkCommand.class))).thenReturn(answer);
+
+        when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(null);
+
+        try {
+            _globoNetworkService.createNetwork(networkName, networkName, zoneId, networkOfferingId, globoNetworkEnvironmentId, null, ACLType.Domain, null, null, null, null, true,
+                    null);
+            // This command must throw InvalidParameterValueException, otherwise fails
+            Assert.fail();
+        } catch (ResourceAllocationException e) {
+            verify(_agentMgr, atLeastOnce()).easySend(eq(globoNetworkHostId), any(DeallocateVlanFromGloboNetworkCommand.class));
+        }
     }
-    
+
     @Test
     public void checkPermissionsBeforeCreatingVlanOnGloboNetwork() throws CloudException {
-    	try {
-    		when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
+        try {
+            when(_acctMgr.finalizeOwner(eq(acct), eq(acct.getAccountName()), eq(domainId), anyLong())).thenThrow(new PermissionDeniedException(""));
 
-    		acct.setDomainId(domainId+1);
-        	_globoNetworkService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, globoNetworkEnvironmentId, null, ACLType.Domain, acct.getAccountName(), null, domainId, null, true, null);
-        	fail();
-    	} catch (PermissionDeniedException e) {
-    		verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));
-    	}
+            acct.setDomainId(domainId + 1);
+            _globoNetworkService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, globoNetworkEnvironmentId, null, ACLType.Domain, acct.getAccountName(), null,
+                    domainId, null, true, null);
+            fail();
+        } catch (PermissionDeniedException e) {
+            verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));
+        }
     }
 
     @Test(expected = InvalidParameterValueException.class)
     public void addGloboNetworkHostInvalidParameters() throws CloudException {
-    	
-    	String username = null;
-    	String password = null;
-    	String url = null;
-    	
-    	CallContext.register(user, acct);
-    	
-	    _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url); 
+
+        String username = null;
+        String password = null;
+        String url = null;
+
+        CallContext.register(user, acct);
+
+        _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
     }
-    
+
     @Test(expected = InvalidParameterValueException.class)
     public void addGloboNetworkHostEmptyParameters() throws CloudException {
-    	
-    	String username = "";
-    	String password = "";
-    	String url = "";
-    	
-    	CallContext.register(user, acct);
-    	
-	    _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url); 
+
+        String username = "";
+        String password = "";
+        String url = "";
+
+        CallContext.register(user, acct);
+
+        _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
     }
-      
+
     @Test
     public void addGloboNetworkHost() throws CloudException {
-    	
-    	String username = "testUser";
-    	String password = "testPwd";
-    	String url = "testUrl";
-    	
-    	PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
-    	when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
-    	    	
-    	HostVO globoNetworkHost = new HostVO(1L, "GloboNetwork", null, "Up", "L2Networking", "", null, 
-    			null, "", null, null, null, null, null, null, null, null, zoneId, null,
-    			0L, 0L, null, null, null, 0L, null);
 
-    	when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(globoNetworkHost);
-    	
-    	TransactionLegacy tx = TransactionLegacy.open(TransactionLegacy.CLOUD_DB);
-    	try {
-    		CallContext.register(user, acct);
-	    	
-		    Host host = _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
-		    assertNotNull(host);
-		    assertEquals(host.getDataCenterId(), zoneId);
-		    assertEquals(host.getName(), "GloboNetwork");
-    	} finally {
-    		tx.rollback();
-    	}
+        String username = "testUser";
+        String password = "testPwd";
+        String url = "testUrl";
+
+        PhysicalNetworkVO pNtwk = new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null);
+        when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(pNtwk);
+
+        HostVO globoNetworkHost = new HostVO(1L, "GloboNetwork", null, "Up", "L2Networking", "", null, null, "", null, null, null, null, null, null, null, null, zoneId, null, 0L,
+                0L, null, null, null, 0L, null);
+
+        when(_resourceMgr.addHost(eq(zoneId), any(ServerResource.class), eq(Host.Type.L2Networking), anyMapOf(String.class, String.class))).thenReturn(globoNetworkHost);
+
+        TransactionLegacy tx = TransactionLegacy.open(TransactionLegacy.CLOUD_DB);
+        try {
+            CallContext.register(user, acct);
+
+            Host host = _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
+            assertNotNull(host);
+            assertEquals(host.getDataCenterId(), zoneId);
+            assertEquals(host.getName(), "GloboNetwork");
+        } finally {
+            tx.rollback();
+        }
     }
-    
+
     @Configuration
     @ComponentScan(basePackageClasses = {GloboNetworkManager.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
     public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
-    	
-    	@Bean
-    	public DomainDao domainDao() {
-    		return mock(DomainDao.class);
-    	}
-    	@Bean
-    	public HostDao hostDao() {
-    		return mock(HostDao.class);
-    	}
-    	@Bean
-    	public DataCenterDao dataCenterDao() {
-    		return mock(DataCenterDao.class);
-    	}
-    	@Bean
-    	public HostPodDao hostPodDao() {
-    		return mock(HostPodDao.class);
-    	}
-    	@Bean
-    	public PhysicalNetworkDao physicalNetworkDao() {
-    		return mock(PhysicalNetworkDao.class);
-    	}
-    	@Bean
-    	public NetworkOfferingDao networkOfferingDao() {
-    		return mock(NetworkOfferingDao.class);
-    	}
-    	@Bean
-    	public UserDao userDao() {
-    		return mock(UserDao.class);
-    	}
-    	@Bean
-    	public NetworkDao networkDao() {
-    		return mock(NetworkDao.class);
-    	}
-    	@Bean
-    	public NetworkServiceMapDao networkServiceMapDao() {
-    		return mock(NetworkServiceMapDao.class);
-    	}
-    	@Bean
-    	public GloboNetworkNetworkDao globoNetworkNetworkDao() {
-    		return mock(GloboNetworkNetworkDao.class);
-    	}
-    	@Bean
-    	public GloboNetworkEnvironmentDao globoNetworkEnvironmentDao() {
-    		return mock(GloboNetworkEnvironmentDao.class);
-    	}
-    	@Bean
-    	public VMInstanceDao vmDao() {
-    		return mock(VMInstanceDao.class);
-    	}
-    	@Bean
-    	public NicDao nicDao() {
-    		return mock(NicDao.class);
-    	}
-    	@Bean
-    	public ConfigurationDao configurationDao() {
-    		return mock(ConfigurationDao.class);
-    	}
-    	@Bean
-    	public NetworkModel networkModel() {
-    		return mock(NetworkModel.class);
-    	}
-    	@Bean
-    	public AgentManager agentManager() {
-    		return mock(AgentManager.class);
-    	}
-    	@Bean
-    	public ConfigurationManager configurationManager() {
-    		return mock(ConfigurationManager.class);
-    	}
-    	@Bean
-    	public ResourceManager resourceManager() {
-    		return mock(ResourceManager.class);
-    	}
-    	@Bean
-    	public DomainManager domainManager() {
-    		return mock(DomainManager.class);
-    	}
-    	@Bean
-    	public NetworkOrchestrationService networkOrchestrationService() {
-    		return mock(NetworkOrchestrationService.class);
-    	}
-    	@Bean
-    	public AccountManager accountManager() {
-    		return mock(AccountManager.class);
-    	}
-    	@Bean
-    	public ProjectManager projectManager() {
-    		return mock(ProjectManager.class);
-    	}
-    	@Bean
-    	public NetworkService networkService() {
-    		return mock(NetworkService.class);
-    	}
-    
+
+        @Bean
+        public DomainDao domainDao() {
+            return mock(DomainDao.class);
+        }
+
+        @Bean
+        public HostDao hostDao() {
+            return mock(HostDao.class);
+        }
+
+        @Bean
+        public DataCenterDao dataCenterDao() {
+            return mock(DataCenterDao.class);
+        }
+
+        @Bean
+        public HostPodDao hostPodDao() {
+            return mock(HostPodDao.class);
+        }
+
+        @Bean
+        public PhysicalNetworkDao physicalNetworkDao() {
+            return mock(PhysicalNetworkDao.class);
+        }
+
+        @Bean
+        public NetworkOfferingDao networkOfferingDao() {
+            return mock(NetworkOfferingDao.class);
+        }
+
+        @Bean
+        public UserDao userDao() {
+            return mock(UserDao.class);
+        }
+
+        @Bean
+        public NetworkDao networkDao() {
+            return mock(NetworkDao.class);
+        }
+
+        @Bean
+        public NetworkServiceMapDao networkServiceMapDao() {
+            return mock(NetworkServiceMapDao.class);
+        }
+
+        @Bean
+        public GloboNetworkNetworkDao globoNetworkNetworkDao() {
+            return mock(GloboNetworkNetworkDao.class);
+        }
+
+        @Bean
+        public GloboNetworkEnvironmentDao globoNetworkEnvironmentDao() {
+            return mock(GloboNetworkEnvironmentDao.class);
+        }
+
+        @Bean
+        public VMInstanceDao vmDao() {
+            return mock(VMInstanceDao.class);
+        }
+
+        @Bean
+        public NicDao nicDao() {
+            return mock(NicDao.class);
+        }
+
+        @Bean
+        public ConfigurationDao configurationDao() {
+            return mock(ConfigurationDao.class);
+        }
+
+        @Bean
+        public NetworkModel networkModel() {
+            return mock(NetworkModel.class);
+        }
+
+        @Bean
+        public AgentManager agentManager() {
+            return mock(AgentManager.class);
+        }
+
+        @Bean
+        public ConfigurationManager configurationManager() {
+            return mock(ConfigurationManager.class);
+        }
+
+        @Bean
+        public ResourceManager resourceManager() {
+            return mock(ResourceManager.class);
+        }
+
+        @Bean
+        public DomainManager domainManager() {
+            return mock(DomainManager.class);
+        }
+
+        @Bean
+        public NetworkOrchestrationService networkOrchestrationService() {
+            return mock(NetworkOrchestrationService.class);
+        }
+
+        @Bean
+        public AccountManager accountManager() {
+            return mock(AccountManager.class);
+        }
+
+        @Bean
+        public ProjectManager projectManager() {
+            return mock(ProjectManager.class);
+        }
+
+        @Bean
+        public NetworkService networkService() {
+            return mock(NetworkService.class);
+        }
+
         public static class Library implements TypeFilter {
- 
+
             @Override
             public boolean match(MetadataReader mdr, MetadataReaderFactory arg1) throws IOException {
                 ComponentScan cs = TestConfiguration.class.getAnnotation(ComponentScan.class);
