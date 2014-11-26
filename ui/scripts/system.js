@@ -221,9 +221,9 @@
                         $.ajax({
                             url: createURL('listZones'),
                             data: {
-                            	listAll: true,
-                                page: 1,
-                                pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
+                               listAll: true,
+                               page: 1,
+                               pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
                             success: function (json) {
                                 dataFns.podCount($.extend(data, {
@@ -238,9 +238,9 @@
                         $.ajax({
                             url: createURL('listPods'),
                             data: {
-                            	listAll: true,
-                                page: 1,
-                                pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
+                               listAll: true,
+                               page: 1,
+                               pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
                             success: function (json) {
                                 dataFns.clusterCount($.extend(data, {
@@ -254,7 +254,7 @@
                         $.ajax({
                             url: createURL('listClusters'),
                             data: {
-                            	listAll: true,
+                                listAll: true,
                                 page: 1,
                                 pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
@@ -332,7 +332,7 @@
                         $.ajax({
                             url: createURL('listSystemVms'),
                             data: {
-                            	listAll: true,
+                                listAll: true,
                                 page: 1,
                                 pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
@@ -1535,7 +1535,13 @@
                                         //scope: { label: 'label.scope' }
                                     },
                                     actions: {
-                                        add: addGuestNetworkDialog.def
+                                        // add: addGuestNetworkDialog.def
+                                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                                            isHeader: true
+                                        }),
+                                        addGloboNetworkNetwork: $.extend({}, globoNetworkAPI.networkDialog.def, {
+                                            isHeader: true
+                                        })
                                     },
                                     
                                     dataProvider: function (args) {
@@ -6206,8 +6212,7 @@
                             }
                         }
                     },
-                    
-                    
+
                     // MidoNet provider detailView
                     midoNet: {
                         id: 'midoNet',
@@ -7603,6 +7608,332 @@
                                 action: function(args) {
                                     $.ajax({
                                         url: createURL("deleteNetworkServiceProvider&id=" + nspMap["GloboDns"].id),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.deletenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid
+                                                }
+                                            });
+
+                                            $(window).trigger('cloudStack.fullRefresh');
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.shutdown.provider';
+                                    },
+                                    notification: function(args) {
+                                        return 'label.shutdown.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            }
+                        }
+                    },
+
+                    // GloboNetwork provider detail view
+                    GloboNetwork: {
+                        isMaximized: true,
+                        type: 'detailView',
+                        id: 'globoNetworkProvider',
+                        label: 'label.globoNetwork',
+                        tabs: {
+                            details: {
+                                title: 'label.details',
+                                fields: [{
+                                    name: {
+                                        label: 'label.name'
+                                    },
+                                    state: {
+                                        label: 'label.state'
+                                    }
+                                }],
+                                dataProvider: function(args) {
+                                    refreshNspData("GloboNetwork");
+                                    var providerObj;
+                                    $(nspHardcodingArray).each(function() {
+                                        if (this.id == "GloboNetwork") {
+                                            providerObj = this;
+                                            return false; //break each loop
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: providerObj,
+                                        actionFilter: networkProviderActionFilter('GloboNetwork')
+                                    });
+                                }
+                            },
+                            instances: {
+                                title: 'Environments',
+                                listView: {
+                                    label: 'Environments',
+                                    id: 'napienvironments',
+                                    fields: {
+                                        name: {
+                                            label: 'Local Name'
+                                        },
+                                        environmentid: {
+                                            label: 'GloboNetwork Environment ID'
+                                        }
+                                    },
+                                    dataProvider: function(args) {
+                                        var filter;
+                                        if (args.filterBy.search.value) {
+                                            filter = args.filterBy.search.value;
+                                        }
+
+                                        var items = [];
+                                        $.ajax({
+                                            url: createURL("listGloboNetworkEnvironments&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            success: function(json) {
+                                                $(json.listglobonetworkenvironmentsresponse.globonetworkenvironment).each(function() {
+                                                    if (this.name.match(new RegExp(filter, "i"))) {
+                                                        items.push({
+                                                            name: this.name,
+                                                            environmentid: this.napienvironmentid,
+                                                        });
+                                                    }
+                                                });
+                                                args.response.success({
+                                                    data: items
+                                                });
+                                            }
+                                        });
+                                    },                                    
+                                    actions: {
+                                        add: {
+                                            label: 'Add Environment',
+                                            createForm: {
+                                                title: 'Add a GloboNetwork Environment',
+                                                fields: {
+                                                    name: {
+                                                        label: 'Name',
+                                                        validation: {
+                                                            required: true
+                                                        }
+                                                    },
+                                                    napiEnvironmentId: {
+                                                        label: 'Environment',
+                                                        validation: {
+                                                            required: true
+                                                        },
+                                                        select: function(args) {
+                                                            $.ajax({
+                                                                url: createURL("listAllEnvironmentsFromGloboNetwork&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                                                dataType: "json",
+                                                                async: false,
+                                                                success: function(json) {
+                                                                    var items = [];
+                                                                    $(json.listallenvironmentsfromglobonetworkresponse.globonetworkenvironment).each(function() {
+                                                                        items.push({
+                                                                            id: this.environmentId,
+                                                                            description: this.environmentFullName
+                                                                        });
+                                                                    });
+                                                                    args.response.success({
+                                                                        data: items
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            action: function(args) {
+                                                addGloboNetworkEnvironment(args, selectedPhysicalNetworkObj, "addGloboNetworkEnvironment", "addglobonetworkenvironmentresponse", "globonetworkenvironment");
+                                            },
+                                            messages: {
+                                                notification: function(args) {
+                                                    return 'Environment added successfully';
+                                                }
+                                            },
+                                            notification: {
+                                                poll: pollAsyncJobResult
+                                            }
+                                        },
+                                        remove: {
+                                            label: 'label.remove',
+                                            messages: {
+                                                confirm: function(args) {
+                                                    return 'Are you sure you want to remove environment ' + args.context.napienvironments[0].name + '(' + args.context.napienvironments[0].environmentid + ')?';
+                                                },
+                                                notification: function(args) {
+                                                    return 'Remove GloboNetwork environment';
+                                                }
+                                            },
+                                            action: function(args) {
+                                                var physicalnetworkid = args.context.physicalNetworks[0].id;
+                                                var environmentid = args.context.napienvironments[0].environmentid;
+                                                $.ajax({
+                                                    url: createURL("removeGloboNetworkEnvironment&physicalnetworkid=" + physicalnetworkid + "&environmentid=" + environmentid),
+                                                    dataType: "json",
+                                                    async: true,
+                                                    success: function(json) {
+                                                        args.response.success();
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    },
+                                                    error: function(XMLHttpResponse) {
+                                                        var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                        args.response.error(errorMsg);
+                                                    }
+                                                });
+                                            },
+                                            notification: {
+                                                poll: function(args) {
+                                                    args.complete();
+                                                }
+                                            }                                     
+                                        },                                        
+                                    },
+                                }
+                            }
+                        },
+                        actions: {
+                            add: {
+                                label: 'GloboNetwork Configuration',
+                                createForm: {
+                                    title: 'GloboNetwork Configuration',
+                                    fields: {
+                                        username: {
+                                            label: 'Username',
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        password: {
+                                            label: 'Password',
+                                            isPassword: true,
+                                            validation: {
+                                                required: true
+                                            }
+                                        },
+                                        url: {
+                                            label: 'URL',
+                                            validation: {
+                                                required: true
+                                            }
+                                        }
+                                    }
+                                },
+                                action: function(args) {
+                                    if (nspMap["GloboNetwork"] == null) {
+                                        $.ajax({
+                                            url: createURL("addNetworkServiceProvider&name=GloboNetwork&physicalnetworkid=" + selectedPhysicalNetworkObj.id),
+                                            dataType: "json",
+                                            async: true,
+                                            success: function(json) {
+                                                var jobId = json.addnetworkserviceproviderresponse.jobid;
+                                                var addGloboNetworkProviderIntervalID = setInterval(function() {
+                                                    $.ajax({
+                                                        url: createURL("queryAsyncJobResult&jobId=" + jobId),
+                                                        dataType: "json",
+                                                        success: function(json) {
+                                                            var result = json.queryasyncjobresultresponse;
+                                                            if (result.jobstatus == 0) {
+                                                                return; //Job has not completed
+                                                            } else {
+                                                                clearInterval(addGloboNetworkProviderIntervalID);
+                                                                if (result.jobstatus == 1) {
+                                                                    nspMap["GloboNetwork"] = json.queryasyncjobresultresponse.jobresult.networkserviceprovider;
+                                                                    addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addGloboNetworkHost", "addglobonetworkhostresponse");
+                                                                } else if (result.jobstatus == 2) {
+                                                                    alert("addNetworkServiceProvider&name=GloboNetwork failed. Error: " + _s(result.jobresult.errortext));
+                                                                }
+                                                            }
+                                                        },
+                                                        error: function(XMLHttpResponse) {
+                                                            var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                            alert("addNetworkServiceProvider&name=GloboNetwork failed. Error: " + errorMsg);
+                                                        }
+                                                    });
+                                                }, g_queryAsyncJobResultInterval);
+                                            }
+                                        });
+                                    } else {
+                                        addGloboNetworkHost(args, selectedPhysicalNetworkObj, "addGloboNetworkHost", "addglobonetworkhostresponse");
+                                    }
+                                },
+                                messages: {
+                                    notification: function(args) {
+                                        return 'label.globonetwork.add.device';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            enable: {
+                                label: 'label.enable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["GloboNetwork"].id + "&state=Enabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.enable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.enable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            disable: {
+                                label: 'label.disable.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("updateNetworkServiceProvider&id=" + nspMap["GloboNetwork"].id + "&state=Disabled"),
+                                        dataType: "json",
+                                        success: function(json) {
+                                            var jid = json.updatenetworkserviceproviderresponse.jobid;
+                                            args.response.success({
+                                                _custom: {
+                                                    jobId: jid,
+                                                    getUpdatedItem: function(json) {
+                                                        $(window).trigger('cloudStack.fullRefresh');
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'message.confirm.disable.provider';
+                                    },
+                                    notification: function() {
+                                        return 'label.disable.provider';
+                                    }
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+                            destroy: {
+                                label: 'label.shutdown.provider',
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("deleteNetworkServiceProvider&id=" + nspMap["GloboNetwork"].id),
                                         dataType: "json",
                                         success: function(json) {
                                             var jid = json.deletenetworkserviceproviderresponse.jobid;
@@ -10555,14 +10886,14 @@
                                                             var routerCountFromAllPages = json.listroutersresponse.count;
                                                             var routerCountFromFirstPageToCurrentPage = json.listroutersresponse.router.length;
                                                             var routerRequiresUpgrade = 0;
-                                                            
+
                                                             var items = json.listroutersresponse.router;
-                	                            			for (var k = 0; k < items.length; k++) {    	                                                    				
-                	                            				if (items[k].requiresupgrade) {
-                	                            					routerRequiresUpgrade++;
-                	                            				}
-                	                            			}  
-                                                            
+                                                            for (var k = 0; k < items.length; k++) {
+                                                                if (items[k].requiresupgrade) {
+                                                                    routerRequiresUpgrade++;
+                                                                }
+                                                            }
+
                                                             var callListApiWithPage = function () {
                                                                 $.ajax({
                                                                     url: createURL('listRouters'),
@@ -10696,14 +11027,14 @@
                                                         var routerCountFromAllPages = json.listroutersresponse.count;
                                                         var routerCountFromFirstPageToCurrentPage = json.listroutersresponse.router.length;
                                                         var routerRequiresUpgrade = 0;
-                                                        
+
                                                         var items = json.listroutersresponse.router;
-            	                            			for (var k = 0; k < items.length; k++) {    	                                                    				
-            	                            				if (items[k].requiresupgrade) {
-            	                            					routerRequiresUpgrade++;
-            	                            				}
-            	                            			}  
-                                                        
+                                                        for (var k = 0; k < items.length; k++) {
+                                                            if (items[k].requiresupgrade) {
+                                                                routerRequiresUpgrade++;
+                                                            }
+                                                        }
+
                                                         var callListApiWithPage = function () {
                                                             $.ajax({
                                                                 url: createURL('listRouters'),
@@ -21063,4 +21394,51 @@
             }
         });
     }
+
+    function addGloboNetworkHost(args, physicalNetworkObj, apiCmd, apiCmdRes) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&username=" + todb(args.data.username));
+        array1.push("&password=" + todb(args.data.password));
+        array1.push("&url=" + todb(args.data.url));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                    }
+                });
+            }
+        });
+    }
+
+    function addGloboNetworkEnvironment(args, physicalNetworkObj, apiCmd, apiCmdRes, apiCmdObj) {
+        var array1 = [];
+        array1.push("&physicalnetworkid=" + physicalNetworkObj.id);
+        array1.push("&napienvironmentid=" + todb(args.data.napiEnvironmentId));
+        array1.push("&name=" + todb(args.data.name));
+
+        $.ajax({
+            url: createURL(apiCmd + array1.join("")),
+            dataType: "json",
+            type: "POST",
+            success: function(json) {
+                var jid = json[apiCmdRes].jobid;
+                args.response.success({
+                    _custom: {
+                        jobId: jid,
+                        getUpdatedItem: function(json) {
+                            $(window).trigger('cloudStack.fullRefresh');
+                        }
+                    }
+                });
+            }
+        });
+    }
+
 })($, cloudStack);

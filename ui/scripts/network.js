@@ -758,10 +758,12 @@
                             }
                         },
 
-                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                        // rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                            // isHeader: true
+                        // })
+                        addGloboNetworkNetwork: $.extend({}, globoNetworkAPI.networkDialog.def, {
                             isHeader: true
-                        })
-
+                        }),
                     },
                     id: 'networks',
                     fields: {
