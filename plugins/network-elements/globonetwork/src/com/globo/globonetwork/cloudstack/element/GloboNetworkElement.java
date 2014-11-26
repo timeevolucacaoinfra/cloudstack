@@ -23,6 +23,7 @@ import java.util.Set;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
+import javax.naming.ConfigurationException;
 
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -97,6 +98,14 @@ public class GloboNetworkElement extends AdapterBase implements NetworkElement, 
     @Override
     public Provider getProvider() {
         return Provider.GloboNetwork;
+    }
+
+    @Override
+    public boolean configure(String name, Map<String, Object> params)
+            throws ConfigurationException {
+        super.configure(name, params);
+        _resourceMgr.registerResourceStateAdapter(name, this);
+        return true;
     }
 
     protected boolean canHandle(Network network, Service service) {
