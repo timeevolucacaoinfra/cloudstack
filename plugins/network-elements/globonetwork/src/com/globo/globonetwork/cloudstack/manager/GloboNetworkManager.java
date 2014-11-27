@@ -59,7 +59,7 @@ import com.cloud.exception.CloudException;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
-import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.ResourceAllocationException;
@@ -388,7 +388,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Specified zone id was not found");
         }
 
-        if (Grouping.AllocationState.Disabled == zone.getAllocationState() && !_accountMgr.isAdmin(caller.getType())) {
+        if (Grouping.AllocationState.Disabled == zone.getAllocationState() && !_accountMgr.isAdmin(caller.getAccountId())) {
             // See DataCenterVO.java
             PermissionDeniedException ex = new PermissionDeniedException("Cannot perform this operation since specified Zone is currently disabled");
             ex.addProxyObject(zone.getUuid(), "zoneId");
@@ -543,7 +543,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapcityException,
+    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapacityException,
             InsufficientAddressCapacityException {
 
         ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
@@ -555,7 +555,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         if (answer == null || !answer.getResult()) {
             msg = answer == null ? msg : answer.getDetails();
-            throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
+            throw new InsufficientVirtualNetworkCapacityException(msg, Nic.class, nicProfile.getId());
         }
 
         // everything is ok

@@ -23,6 +23,7 @@ import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
+import org.apache.cloudstack.api.ResponseObject.ResponseView;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.DomainResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
@@ -125,7 +126,7 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
             Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
                     projectId, domainId, subdomainAccess, displayNetwork, aclId);
             if (network != null) {
-                NetworkResponse response = _responseGenerator.createNetworkResponse(network);
+                NetworkResponse response = _responseGenerator.createNetworkResponse(ResponseView.Full, network);
                 response.setResponseName(getCommandName());
                 this.setResponseObject(response);
             } else {

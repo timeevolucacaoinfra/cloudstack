@@ -25,7 +25,7 @@ import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
-import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
@@ -76,7 +76,7 @@ public interface GloboNetworkService {
      * @throws InsufficientVirtualNetworkCapcityException
      * @throws InsufficientAddressCapacityException
      */
-    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapcityException,
+    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapacityException,
             InsufficientAddressCapacityException;
 
     /**

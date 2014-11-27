@@ -31,7 +31,7 @@ import com.cloud.deploy.DeploymentPlan;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientNetworkCapacityException;
-import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Provider;
@@ -121,7 +121,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
     }
 
     @Override
-    public Network implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws InsufficientVirtualNetworkCapcityException {
+    public Network implement(Network network, NetworkOffering offering, DeployDestination dest, ReservationContext context) throws InsufficientVirtualNetworkCapacityException {
         s_logger.debug("Creating network " + network.getName() + " in equipment using GloboNetwork");
 
         try {
@@ -133,7 +133,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
     }
 
     @Override
-    public NicProfile allocate(final Network network, final NicProfile nic, final VirtualMachineProfile vm) throws InsufficientVirtualNetworkCapcityException,
+    public NicProfile allocate(final Network network, final NicProfile nic, final VirtualMachineProfile vm) throws InsufficientVirtualNetworkCapacityException,
             InsufficientAddressCapacityException {
 
         NicProfile nicProf;
@@ -152,14 +152,14 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
             throw e;
         } catch (InsufficientNetworkCapacityException e) {
             s_logger.error(e.getMessage(), e);
-            throw new InsufficientVirtualNetworkCapcityException(e.getMessage(), e.getScope(), e.getId());
+            throw new InsufficientVirtualNetworkCapacityException(e.getMessage(), e.getScope(), e.getId());
         }
         return nicProf;
     }
 
     @Override
     public void reserve(NicProfile nic, Network network, VirtualMachineProfile vm, DeployDestination dest, ReservationContext context)
-            throws InsufficientVirtualNetworkCapcityException, InsufficientAddressCapacityException {
+            throws InsufficientVirtualNetworkCapacityException, InsufficientAddressCapacityException {
         s_logger.debug("Asking GuestNetworkGuru to reserve nic " + nic.toString() + " for network " + network.getName());
 
         super.reserve(nic, network, vm, dest, context);
