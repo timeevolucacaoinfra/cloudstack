@@ -30,6 +30,7 @@ import com.cloud.network.rules.LbStickinessMethod;
 import com.cloud.network.rules.LoadBalancer;
 import com.cloud.network.rules.LoadBalancerContainer.Scheme;
 import com.cloud.user.Account;
+import com.cloud.vm.Nic;
 
 public interface LoadBalancingRulesManager {
 
@@ -70,4 +71,6 @@ public interface LoadBalancingRulesManager {
     void removeLBRule(LoadBalancer rule);
 
     void isLbServiceSupportedInNetwork(long networkId, Scheme scheme);
+
+    Nic getLbInstanceNic(long lbid, long vmid);
 }

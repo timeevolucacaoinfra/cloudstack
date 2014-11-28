@@ -20,3 +20,13 @@
 --
 
 INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'management-server', "stats.output.uri", "", "URI to additionally send StatsCollector statistics to", "", NULL, NULL, 0);
+
+CREATE TABLE load_balancer_network_map
+(
+    id bigint unsigned NOT NULL AUTO_INCREMENT,
+    network_id bigint unsigned NOT NULL,
+    load_balancer_id bigint unsigned NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT load_balancer_network_map_ix1 UNIQUE (network_id, load_balancer_id)
+)
+ENGINE=InnoDB DEFAULT CHARSET=utf8;

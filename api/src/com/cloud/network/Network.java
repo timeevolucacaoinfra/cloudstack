@@ -51,7 +51,8 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         public static final Service Firewall = new Service("Firewall", Capability.SupportedProtocols, Capability.MultipleIps, Capability.TrafficStatistics,
                 Capability.SupportedTrafficDirection, Capability.SupportedEgressProtocols);
         public static final Service Lb = new Service("Lb", Capability.SupportedLBAlgorithms, Capability.SupportedLBIsolation, Capability.SupportedProtocols,
-                Capability.TrafficStatistics, Capability.LoadBalancingSupportedIps, Capability.SupportedStickinessMethods, Capability.ElasticLb, Capability.LbSchemes);
+                Capability.TrafficStatistics, Capability.LoadBalancingSupportedIps, Capability.SupportedStickinessMethods, Capability.ElasticLb, Capability.LbSchemes,
+                Capability.MultiNetworkSupport);
         public static final Service UserData = new Service("UserData");
         public static final Service SourceNat = new Service("SourceNat", Capability.SupportedSourceNatTypes, Capability.RedundantRouter);
         public static final Service StaticNat = new Service("StaticNat", Capability.ElasticIp);
@@ -212,6 +213,7 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         public static final Capability DistributedRouter = new Capability("DistributedRouter");
         public static final Capability StretchedL2Subnet = new Capability("StretchedL2Subnet");
         public static final Capability RegionLevelVpc = new Capability("RegionLevelVpc");
+        public static final Capability MultiNetworkSupport = new Capability("MultiNetworkSupport");
 
         private final String name;
 
