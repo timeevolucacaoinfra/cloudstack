@@ -950,6 +950,9 @@ cloudStack.actionFilter = {
             allowedActions.push('edit'); //only Isolated network is allowed to upgrade to a different network offering (Shared network is not allowed to)
             allowedActions.push('restart');
             allowedActions.push('remove');
+        } else if (jsonObj.type == 'Shared' && jsonObj.guruname == "GloboNetworkGuru") {
+            allowedActions.push('restart');
+            allowedActions.push('remove');
         } else if (jsonObj.type == 'Shared') {
             if (isAdmin()) {
                 allowedActions.push('restart');
