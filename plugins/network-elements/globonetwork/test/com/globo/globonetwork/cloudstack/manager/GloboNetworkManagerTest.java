@@ -393,6 +393,10 @@ public class GloboNetworkManagerTest {
     	public LoadBalancingRulesManager loadBalancingRulesManager() {
     	    return mock(LoadBalancingRulesManager.class);
     	}
+        @Bean
+        public GloboNetworkIpDetailDao globoNetworkIpDetailDao() {
+            return mock(GloboNetworkIpDetailDao.class);
+        }
     
         public static class Library implements TypeFilter {
  
