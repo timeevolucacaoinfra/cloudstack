@@ -145,8 +145,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     static final int NUMBER_OF_RESERVED_IPS_FROM_START = 5;
     static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 5;
 
-    private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Network", String.class, "globonetwork.vip.server.url", "",
-            "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
     private static final ConfigKey<String> GloboNetworkConnectionTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.connectiontimeout", "120000",
             "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
     private static final ConfigKey<String> GloboNetworkReadTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.readtimeout", "120000",
@@ -1044,7 +1042,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, GloboNetworkConnectionTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries, GloboNetworkVmEquipmentGroup,
+        return new ConfigKey<?>[] {GloboNetworkConnectionTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries, GloboNetworkVmEquipmentGroup,
                 GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm, GloboNetworkModelVmElasticIpVm,
                 GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal, GloboNetworkDomainSuffix,
                 GloboNetworkDomainPattern};

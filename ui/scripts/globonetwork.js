@@ -16,7 +16,7 @@ globoNetworkAPI.getCapability = function(name) {
         });
     }
     return globoNetworkAPI.capabilities[name];
-}
+};
 
 globoNetworkAPI.networkDialog = {
     zoneObjs: [],
@@ -40,11 +40,6 @@ globoNetworkAPI.networkDialog = {
             title: 'Add GloboNetwork Network',
 
             preFilter: function(args) {
-                if ('zones' in args.context) {
-                    args.$form.find('.form-item[rel=zoneId]').hide();
-                } else {
-                    args.$form.find('.form-item[rel=zoneId]').css('display', 'inline-block');
-                }
                 if (!globoNetworkAPI.getCapability('supportCustomNetworkDomain')) {
                     args.$form.find('.form-item[rel=networkdomain]').hide();
                 }
@@ -79,16 +74,17 @@ globoNetworkAPI.networkDialog = {
                         } else {
                             $.ajax({
                                 url: createURL('listZones'),
+                                data: {
+                                    networktype: 'Advanced'
+                                },
                                 async: false,
                                 success: function(json) {
                                     globoNetworkAPI.networkDialog.zoneObjs = []; //reset
-                                    var items = json.listzonesresponse.zone;
-                                    if (items !== null) {
-                                        for (var i = 0; i < items.length; i++) {
-                                            if (items[i].networktype == 'Advanced') {
-                                                globoNetworkAPI.networkDialog.zoneObjs.push(items[i]);
-                                            }
-                                        }
+                                    var zones = json.listzonesresponse.zone;
+                                    if (zones) {
+                                        zones.forEach(function(zone) {
+                                            globoNetworkAPI.networkDialog.zoneObjs.push(zone);
+                                        });
                                     }
                                 }
                             });
@@ -101,8 +97,7 @@ globoNetworkAPI.networkDialog = {
                                 };
                             })
                         });
-                    },
-                    isHidden: true
+                    }
                 },
 
                 napiEnvironmentId: {
@@ -112,50 +107,48 @@ globoNetworkAPI.networkDialog = {
                         if ('globoNetworkEnvironmentsObjs' in args.context) {
                             globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs = args.context.globoNetworkEnvironmentsObjs;
                         } else {
-                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
-                            $.ajax({
-                                url: createURL('listGloboNetworkEnvironments'),
-                                data: {
-                                    zoneid: selectedZoneId
-                                },
-                                async: false,
-                                success: function(json) {
-                                    globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs = json.listglobonetworkenvironmentsresponse.globonetworkenvironment;
-                                }
-                            });
-                        }
-                        var items = [];
-                        if (globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs != null) {
-                            for (var i = 0; i < globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs.length; i++) {
-                                items.push({
-                                    id: globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs[i].napienvironmentid,
-                                    description: globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs[i].name
+                            var envObjs = [];
+                            if (args.zoneId) {
+                                $.ajax({
+                                    url: createURL('listGloboNetworkEnvironments'),
+                                    data: {
+                                        zoneid: args.zoneId
+                                    },
+                                    async: false,
+                                    success: function(json) {
+                                        envObjs = json.listglobonetworkenvironmentsresponse.globonetworkenvironment;
+                                    }
                                 });
                             }
+                            globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs = envObjs;
                         }
                         args.response.success({
-                            data: items
+                            data: $.map(globoNetworkAPI.networkDialog.globoNetworkEnvironmentsObjs, function(env) {
+                                return {
+                                    id: env.napienvironmentid,
+                                    description: env.name
+                                };
+                            })
                         });
-                    },
-                    isHidden: false
+                    }
                 },
 
                 scope: {
                     label: 'label.scope',
                     select: function(args) {
-                        var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
+                        var selectedZoneId = args.zoneId;
                         var selectedZoneObj = {};
-                        if (globoNetworkAPI.networkDialog.zoneObjs != null && selectedZoneId != "") {
-                            for (var i = 0; i < globoNetworkAPI.networkDialog.zoneObjs.length; i++) {
-                                if (globoNetworkAPI.networkDialog.zoneObjs[i].id == selectedZoneId) {
-                                    selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[i];
+                        if (globoNetworkAPI.networkDialog.zoneObjs && selectedZoneId) {
+                            for (var index in globoNetworkAPI.networkDialog.zoneObjs) {
+                                if (globoNetworkAPI.networkDialog.zoneObjs[index].id == selectedZoneId) {
+                                    selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[index];
                                     break;
                                 }
                             }
                         }
 
                         var array1 = [];
-                        if (selectedZoneObj.networktype == "Advanced" && selectedZoneObj.securitygroupsenabled == true) {
+                        if (selectedZoneObj.networktype === "Advanced" && selectedZoneObj.securitygroupsenabled) {
                             array1.push({
                                 id: 'zone-wide',
                                 description: 'All'
@@ -230,12 +223,12 @@ globoNetworkAPI.networkDialog = {
                     },
                     select: function(args) {
                         var items = [];
-                        var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
+                        var selectedZoneId = args.zoneId;
                         var selectedZoneObj = {};
-                        if (globoNetworkAPI.networkDialog.zoneObjs != null && selectedZoneId != "") {
-                            for (var i = 0; i < globoNetworkAPI.networkDialog.zoneObjs.length; i++) {
-                                if (globoNetworkAPI.networkDialog.zoneObjs[i].id == selectedZoneId) {
-                                    selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[i];
+                        if (globoNetworkAPI.networkDialog.zoneObjs && selectedZoneId) {
+                            for (var index in globoNetworkAPI.networkDialog.zoneObjs) {
+                                if (globoNetworkAPI.networkDialog.zoneObjs[index].id == selectedZoneId) {
+                                    selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[index];
                                     break;
                                 }
                             }
@@ -245,7 +238,7 @@ globoNetworkAPI.networkDialog = {
                             items.push({
                                 id: args.context.users[0].domainid,
                             });
-                        } else if (selectedZoneObj.domainid != null) { //list only domains under selectedZoneObj.domainid
+                        } else if (selectedZoneObj.domainid) { //list only domains under selectedZoneObj.domainid
                             $.ajax({
                                 url: createURL("listDomainChildren&id=" + selectedZoneObj.domainid + "&isrecursive=true"),
                                 dataType: "json",
@@ -335,9 +328,10 @@ globoNetworkAPI.networkDialog = {
                     label: 'label.network.offering',
                     dependsOn: ['zoneId', 'scope'],
                     select: function(args) {
+                        var zoneId = args.zoneId;
                         var data = {
                             state: 'Enabled',
-                            zoneid: args.$form.find('.form-item[rel=zoneId]').find('select').val()
+                            zoneid: zoneId
                         };
 
                         //Network tab in Guest Traffic Type in Infrastructure menu is only available when it's under Advanced zone.
@@ -349,47 +343,48 @@ globoNetworkAPI.networkDialog = {
                         }
 
                         var items = [];
-                        $.ajax({
-                            url: createURL('listNetworkOfferings'),
-                            data: data,
-                            async: false,
-                            success: function(json) {
-                                globoNetworkAPI.networkDialog.networkOfferingObjs = json.listnetworkofferingsresponse.networkoffering;
-                                if (globoNetworkAPI.networkDialog.networkOfferingObjs != null && globoNetworkAPI.networkDialog.networkOfferingObjs.length > 0) {
-                                    var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
-                                    var selectedZoneObj = {};
-                                    if (globoNetworkAPI.networkDialog.zoneObjs != null && selectedZoneId != "") {
-                                        for (var i = 0; i < globoNetworkAPI.networkDialog.zoneObjs.length; i++) {
-                                            if (globoNetworkAPI.networkDialog.zoneObjs[i].id == selectedZoneId) {
-                                                selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[i];
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    for (var i = 0; i < globoNetworkAPI.networkDialog.networkOfferingObjs.length; i++) {
-                                        //for zone-wide network in Advanced SG-enabled zone, list only SG network offerings
-                                        if (selectedZoneObj.networktype == 'Advanced' && selectedZoneObj.securitygroupsenabled == true) {
-                                            if (args.scope == "zone-wide") {
-                                                var includingSecurityGroup = false;
-                                                var serviceObjArray = globoNetworkAPI.networkDialog.networkOfferingObjs[i].service;
-                                                for (var k = 0; k < serviceObjArray.length; k++) {
-                                                    if (serviceObjArray[k].name == "SecurityGroup") {
-                                                        includingSecurityGroup = true;
-                                                        break;
-                                                    }
+                        if (zoneId) {
+                            $.ajax({
+                                url: createURL('listNetworkOfferings'),
+                                data: data,
+                                async: false,
+                                success: function(json) {
+                                    globoNetworkAPI.networkDialog.networkOfferingObjs = json.listnetworkofferingsresponse.networkoffering;
+                                    if (globoNetworkAPI.networkDialog.networkOfferingObjs) {
+                                        var selectedZoneObj = {};
+                                        if (globoNetworkAPI.networkDialog.zoneObjs) {
+                                            for (var index in globoNetworkAPI.networkDialog.zoneObjs) {
+                                                if (globoNetworkAPI.networkDialog.zoneObjs[index].id == zoneId) {
+                                                    selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[index];
+                                                    break;
                                                 }
-                                                if (includingSecurityGroup == false)
-                                                    continue; //skip to next network offering
                                             }
                                         }
-                                        items.push({
-                                            id: globoNetworkAPI.networkDialog.networkOfferingObjs[i].id,
-                                            description: globoNetworkAPI.networkDialog.networkOfferingObjs[i].displaytext
-                                        });
+                                        for (var i = 0; i < globoNetworkAPI.networkDialog.networkOfferingObjs.length; i++) {
+                                            //for zone-wide network in Advanced SG-enabled zone, list only SG network offerings
+                                            if (selectedZoneObj.networktype === 'Advanced' && selectedZoneObj.securitygroupsenabled) {
+                                                if (args.scope == "zone-wide") {
+                                                    var includingSecurityGroup = false;
+                                                    var serviceObjArray = globoNetworkAPI.networkDialog.networkOfferingObjs[i].service;
+                                                    for (var k = 0; k < serviceObjArray.length; k++) {
+                                                        if (serviceObjArray[k].name == "SecurityGroup") {
+                                                            includingSecurityGroup = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (!includingSecurityGroup)
+                                                        continue; //skip to next network offering
+                                                }
+                                            }
+                                            items.push({
+                                                id: globoNetworkAPI.networkDialog.networkOfferingObjs[i].id,
+                                                description: globoNetworkAPI.networkDialog.networkOfferingObjs[i].displaytext
+                                            });
+                                        }
                                     }
                                 }
-                            }
-                        });
+                            });
+                        }
                         args.response.success({
                             data: items
                         });
@@ -407,10 +402,10 @@ globoNetworkAPI.networkDialog = {
 
             //Pass physical network ID to addNetworkViaGloboNetworkCmd API only when network offering's guestiptype is Shared.
             var selectedNetworkOfferingObj;
-            if (globoNetworkAPI.networkDialog.networkOfferingObjs != null) {
-                for (var i = 0; i < globoNetworkAPI.networkDialog.networkOfferingObjs.length; i++) {
-                    if (globoNetworkAPI.networkDialog.networkOfferingObjs[i].id == args.data.networkOfferingId) {
-                        selectedNetworkOfferingObj = globoNetworkAPI.networkDialog.networkOfferingObjs[i]
+            if (globoNetworkAPI.networkDialog.networkOfferingObjs) {
+                for (var index in globoNetworkAPI.networkDialog.networkOfferingObjs) {
+                    if (globoNetworkAPI.networkDialog.networkOfferingObjs[index].id == args.data.networkOfferingId) {
+                        selectedNetworkOfferingObj = globoNetworkAPI.networkDialog.networkOfferingObjs[index];
                         break;
                     }
                 }
@@ -482,5 +477,5 @@ globoNetworkAPI.networkDialog = {
             }
         }
     }
-}
+};
 // END GLOBONETWORK

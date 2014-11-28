@@ -21142,6 +21142,9 @@
                             case "GloboDns":
                                 nspMap["GloboDns"] = items[i];
                                 break;
+                            case "GloboNetwork":
+                                nspMap["GloboNetwork"] = items[i];
+                                break;
                         }
                     }
                 }
@@ -21245,6 +21248,11 @@
                 name: 'GloboDNS',
                 state: nspMap.GloboDns ? nspMap.GloboDns.state : 'Disabled'
             });
+            nspHardcodingArray.push({
+                id: 'GloboNetwork',
+                name: 'GloboNetwork',
+                state: nspMap.GloboNetwork ? nspMap.GloboNetwork.state : 'Disabled'
+            });            
             
             //CLOUDSTACK-6840: OVS refers to SDN provider. However, we are not supporting SDN in this release.
             /*
