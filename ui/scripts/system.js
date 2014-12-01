@@ -1535,7 +1535,6 @@
                                         //scope: { label: 'label.scope' }
                                     },
                                     actions: {
-                                        // add: addGuestNetworkDialog.def
                                         rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
                                             isHeader: true
                                         }),

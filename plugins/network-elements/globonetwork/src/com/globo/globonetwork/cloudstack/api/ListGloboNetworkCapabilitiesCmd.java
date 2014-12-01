@@ -15,6 +15,8 @@
 
 package com.globo.globonetwork.cloudstack.api;
 
+import java.util.List;
+
 import javax.inject.Inject;
 
 import org.apache.cloudstack.api.APICommand;
@@ -22,9 +24,10 @@ import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
+import com.cloud.dc.DataCenter;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
-@APICommand(name = "listGloboNetworkCapabilities", responseObject = GloboNetworkEnvironmentResponse.class, description = "Lists GloboNetwork capabilities")
+@APICommand(name = "listGloboNetworkCapabilities", responseObject = GloboNetworkCapabilitiesResponse.class, description = "Lists GloboNetwork capabilities")
 public class ListGloboNetworkCapabilitiesCmd extends BaseCmd {
 
     public static final Logger s_logger = Logger.getLogger(ListGloboNetworkCapabilitiesCmd.class);
@@ -36,9 +39,12 @@ public class ListGloboNetworkCapabilitiesCmd extends BaseCmd {
     @Override
     public void execute() {
         s_logger.debug("listGloboNetworkCapabilities command");
+        List<DataCenter> enabledInZones = _globoNetworkService.getAllZonesThatProviderAreEnabled();
+
         GloboNetworkCapabilitiesResponse response = new GloboNetworkCapabilitiesResponse();
         response.setDomainSuffix(_globoNetworkService.getDomainSuffix());
         response.setSupportCustomNetworkDomain(_globoNetworkService.isSupportedCustomNetworkDomain());
+        response.setEnabled(enabledInZones != null && !enabledInZones.isEmpty());
         response.setObjectName("globoNetworkCapability");
         response.setResponseName(getCommandName());
         this.setResponseObject(response);

@@ -31,6 +31,10 @@ public class GloboNetworkCapabilitiesResponse extends BaseResponse {
     @Param(description = "user can customize network domain")
     private Boolean supportCustomNetworkDomain;
 
+    @SerializedName("enabled")
+    @Param(description = "is GloboNetwork provider enabled in any zone")
+    private Boolean enabled;
+
     public String getDomainSuffix() {
         return domainSuffix;
     }
@@ -45,6 +49,10 @@ public class GloboNetworkCapabilitiesResponse extends BaseResponse {
 
     public void setSupportCustomNetworkDomain(Boolean supportCustomNetworkDomain) {
         this.supportCustomNetworkDomain = supportCustomNetworkDomain;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
 }

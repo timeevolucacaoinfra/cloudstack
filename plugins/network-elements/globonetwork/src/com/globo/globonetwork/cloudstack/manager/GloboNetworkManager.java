@@ -1057,4 +1057,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     public boolean isSupportedCustomNetworkDomain() {
         return !StringUtils.isNotBlank(GloboNetworkDomainPattern.value());
     }
+
+    @Override
+    public List<DataCenter> getAllZonesThatProviderAreEnabled() {
+        List<DataCenter> zonesEnabled = new ArrayList<DataCenter>();
+        for (DataCenter dc : _dcDao.listEnabledZones()) {
+            if (_networkManager.isProviderEnabledInZone(dc.getId(), Provider.GloboNetwork.getName())) {
+                zonesEnabled.add(dc);
+            }
+        }
+        return zonesEnabled;
+    }
 }

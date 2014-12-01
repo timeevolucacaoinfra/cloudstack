@@ -24,20 +24,20 @@ globoNetworkAPI.networkDialog = {
     networkOfferingObjs: [],
     globoNetworkEnvironmentsObjs: [],
     def: {
-        label: 'Add GloboNetwork Network',
+        label: 'Add GloboNetwork',
 
         messages: {
             notification: function(args) {
-                return 'Add GloboNetwork Network';
+                return 'Add GloboNetwork';
             }
         },
 
         preFilter: function(args) {
-            return true; // No restrictions
+            return globoNetworkAPI.getCapability('enabled');
         },
 
         createForm: {
-            title: 'Add GloboNetwork Network',
+            title: 'Add GloboNetwork',
 
             preFilter: function(args) {
                 if (!globoNetworkAPI.getCapability('supportCustomNetworkDomain')) {

@@ -22,6 +22,7 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 
+import com.cloud.dc.DataCenter;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
@@ -166,4 +167,6 @@ public interface GloboNetworkService {
      * @return
      */
     public boolean isSupportedCustomNetworkDomain();
+
+    public List<DataCenter> getAllZonesThatProviderAreEnabled();
 }
