@@ -88,6 +88,7 @@ import com.cloud.resource.ResourceManager;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.DomainManager;
+import com.cloud.user.User;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
 import com.cloud.utils.Journal;
@@ -114,6 +115,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkNetworkVO;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
+import com.globo.globonetwork.cloudstack.api.DeleteNetworkInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkCapabilitiesCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
@@ -752,6 +754,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
         cmdList.add(AddGloboNetworkHostCmd.class);
         cmdList.add(ListGloboNetworkCapabilitiesCmd.class);
+        cmdList.add(DeleteNetworkInGloboNetworkCmd.class);
         return cmdList;
     }
 
@@ -809,6 +812,41 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } else {
             // Otherwise, there was a different error and we should abort the operation
             throw e;
+        }
+    }
+
+    public boolean destroyGloboNetwork(long networkId, boolean forced) {
+
+        Network network = _ntwSvc.getNetwork(networkId);
+        if (network == null) {
+            InvalidParameterValueException ex = new InvalidParameterValueException("unable to find network with specified id");
+            ex.addProxyObject(String.valueOf(networkId), "networkId");
+            throw ex;
+        }
+
+        GloboNetworkNetworkVO napiNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
+        if (napiNetworkVO == null) {
+            InvalidParameterValueException ex = new InvalidParameterValueException("Only networks managed by GloboNetwork may be deleted by this method");
+            ex.addProxyObject(String.valueOf(networkId), "networkId");
+            throw ex;
+        }
+
+        Account caller = CallContext.current().getCallingAccount();
+        User userCaller = CallContext.current().getCallingUser();
+        String contextId = CallContext.current().getContextId();
+
+        // Perform permission check
+        _accountMgr.checkAccess(caller, null, true, network);
+
+        // ACS with allow exclusion of shared network by admin users, so after check
+        // permission, let's change to system account to perform destroy network
+
+        try {
+            CallContext.register(_accountMgr.getSystemUser(), _accountMgr.getSystemAccount(), contextId);
+            return _ntwSvc.deleteNetwork(networkId, forced);
+        } finally {
+            // restore context
+            CallContext.register(userCaller, caller, contextId);
         }
     }
 
@@ -1042,8 +1080,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboNetworkConnectionTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries, GloboNetworkVmEquipmentGroup,
-                GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm, GloboNetworkModelVmElasticIpVm,
+        return new ConfigKey<?>[] {GloboNetworkConnectionTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries, GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser,
+                GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm, GloboNetworkModelVmElasticIpVm,
                 GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal, GloboNetworkDomainSuffix,
                 GloboNetworkDomainPattern};
     }

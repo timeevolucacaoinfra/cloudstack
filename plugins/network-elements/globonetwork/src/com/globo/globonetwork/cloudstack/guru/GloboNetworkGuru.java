@@ -16,8 +16,6 @@
 */
 package com.globo.globonetwork.cloudstack.guru;
 
-import java.util.List;
-
 import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
@@ -28,11 +26,9 @@ import org.springframework.stereotype.Component;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.deploy.DeploymentPlan;
-import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
-import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkProfile;
@@ -41,12 +37,10 @@ import com.cloud.network.PhysicalNetwork.IsolationMethod;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.guru.GuestNetworkGuru;
 import com.cloud.network.guru.NetworkGuru;
-import com.cloud.network.router.VirtualRouter;
 import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
-import com.cloud.user.User;
 import com.cloud.utils.db.Transaction;
 import com.cloud.utils.db.TransactionCallbackWithException;
 import com.cloud.utils.db.TransactionStatus;
@@ -180,26 +174,13 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 
     @Override
     public void shutdown(NetworkProfile profile, NetworkOffering offering) {
+        s_logger.debug("Removing networks from GloboNetwork");
+        _globoNetworkService.removeNetworkFromGloboNetwork(profile);
 
-        try {
-            List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
-            for (VirtualRouter router : routers) {
-                _routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
-            }
-
-            s_logger.debug("Removing networks from GloboNetwork");
-            _globoNetworkService.removeNetworkFromGloboNetwork(profile);
-
-            s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
-            // never call super.shutdown because it clear broadcastUri, and sometimes this
-            // make same networks without vlan
-            //super.shutdown(profile, offering);
-
-        } catch (ResourceUnavailableException e) {
-            throw new CloudRuntimeException(e);
-        } catch (ConcurrentOperationException e) {
-            throw new CloudRuntimeException(e);
-        }
+        s_logger.debug("Asking GuestNetworkGuru to shutdown network " + profile.getName());
+        // never call super.shutdown because it clear broadcastUri, and sometimes this
+        // make same networks without vlan
+        //super.shutdown(profile, offering);
     }
 
     @Override

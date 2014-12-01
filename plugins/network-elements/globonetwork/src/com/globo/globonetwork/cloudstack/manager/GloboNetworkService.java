@@ -169,4 +169,6 @@ public interface GloboNetworkService {
     public boolean isSupportedCustomNetworkDomain();
 
     public List<DataCenter> getAllZonesThatProviderAreEnabled();
+
+    public boolean destroyGloboNetwork(long networkId, boolean forced);
 }
