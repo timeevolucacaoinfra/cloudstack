@@ -138,6 +138,8 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         public static final Provider BrocadeVcs = new Provider("BrocadeVcs", false);
         // add GloboDns provider
         public static final Provider GloboDns = new Provider("GloboDns", true);
+        // add GloboNetwork provider
+        public static final Provider GloboNetwork = new Provider("GloboNetwork", true);
 
         private final String name;
         private final boolean isExternal;

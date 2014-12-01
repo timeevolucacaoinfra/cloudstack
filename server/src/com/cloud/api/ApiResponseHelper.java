@@ -1872,6 +1872,7 @@ public class ApiResponseHelper implements ResponseGenerator {
         NetworkResponse response = new NetworkResponse();
         response.setId(network.getUuid());
         response.setName(network.getName());
+        response.setGuruName(network.getGuruName());
         response.setDisplaytext(network.getDisplayText());
         if (network.getBroadcastDomainType() != null) {
             response.setBroadcastDomainType(network.getBroadcastDomainType().toString());

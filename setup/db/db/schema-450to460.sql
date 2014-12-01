@@ -20,3 +20,30 @@
 --
 
 INSERT IGNORE INTO `cloud`.`configuration` VALUES ("Advanced", 'DEFAULT', 'management-server', "stats.output.uri", "", "URI to additionally send StatsCollector statistics to", "", NULL, NULL, 0);
+
+-- globonetwork_environment_ref
+CREATE TABLE `cloud`.`globonetwork_environment_ref` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `globonetwork_environment_id` bigint(20) unsigned DEFAULT NULL,
+  `physical_network_id` bigint(20) unsigned NOT NULL COMMENT 'physical network id',
+  `name` varchar(255) NOT NULL COMMENT 'name',
+  PRIMARY KEY (`id`),
+  KEY `fk_napi_network_ref__physical_network_id` (`physical_network_id`),
+  KEY `fk_napi_network_ref__napi_environment_id` (`globonetwork_environment_id`),
+  CONSTRAINT `fk_napi_environment_ref__physical_network_id` FOREIGN KEY (`physical_network_id`) REFERENCES `physical_network` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+
+-- globonetwork_network_ref
+CREATE TABLE `cloud`.`globonetwork_network_ref` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT COMMENT 'id',
+  `globonetwork_vlan_id` bigint(20) unsigned DEFAULT NULL,
+  `network_id` bigint(20) unsigned NOT NULL COMMENT 'network id',
+  `globonetwork_environment_id` bigint(20) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_napi_network_ref__network_id` (`network_id`),
+  KEY `fk_napi_network_ref__napi_vlan_id` (`globonetwork_vlan_id`),
+  KEY `napi_environment_index` (`globonetwork_environment_id`),
+  CONSTRAINT `fk_napi_network_ref__network_id` FOREIGN KEY (`network_id`) REFERENCES `networks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
