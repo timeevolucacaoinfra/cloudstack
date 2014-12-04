@@ -757,7 +757,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 return new Answer(cmd, false, "IP " + cmd.getIpv4() + " doesn't exist in VIP environment " + cmd.getVipEnvironmentId());
             }
             if (vip == null) {
-                s_logger.info("Applying rule " + cmd.getRuleState() + " on VIP " + (vip == null ? null : vip.getId()));
                 // Vip doesn't exist yet
                 // Actually add the VIP to GloboNetwork
                 vip = _globoNetworkApi.getVipAPI().add(ip.getId(), null, expectedHealthcheckId, finality, client, environment, DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence,

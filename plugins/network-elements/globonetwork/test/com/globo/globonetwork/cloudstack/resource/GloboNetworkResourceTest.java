@@ -190,7 +190,7 @@ public class GloboNetworkResourceTest {
         vip.setCache(vipCache);
         vip.setCreated(false);
 
-        
+        List<RealIP> realIpList = new ArrayList<RealIP>();
         for (String realAddr: reals) {
             Ip ip = new Ip();
             ip.setId(getNewIpID());
@@ -201,9 +201,10 @@ public class GloboNetworkResourceTest {
             realIp.setName("vm-" + ip.getId());
             realIp.setRealIp(realAddr);
             realIp.setRealPort(Integer.valueOf(realPort));
-            vip.setRealsIp(Arrays.asList(realIp));
+            realIpList.add(realIp);
         }
-        
+        vip.setRealsIp(realIpList);
+
         return vip;
     }
 
@@ -235,6 +236,7 @@ public class GloboNetworkResourceTest {
         cmd.setMethodBal("leastconn");
         cmd.setRuleState(FirewallRule.State.Add);
 
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (RealIP vipReal : vip.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
@@ -242,8 +244,9 @@ public class GloboNetworkResourceTest {
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(false);
             real.setEnvironmentId(realEnvironmentId);
-            cmd.setRealList(Arrays.asList(real));
+            realList.add(real);
         }
+        cmd.setRealList(realList);
 
         Answer answer = _resource.execute(cmd);
         
@@ -304,6 +307,7 @@ public class GloboNetworkResourceTest {
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
 
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (RealIP vipReal : vip2.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
@@ -311,8 +315,9 @@ public class GloboNetworkResourceTest {
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(false);
             real.setEnvironmentId(realEnvironmentId);
-            cmd.setRealList(Arrays.asList(real));
+            realList.add(real);
         }
+        cmd.setRealList(realList);
 
         Answer answer = _resource.execute(cmd);
 
@@ -436,6 +441,7 @@ public class GloboNetworkResourceTest {
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
 
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (RealIP vipReal : vip.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
@@ -443,8 +449,9 @@ public class GloboNetworkResourceTest {
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(true);
             real.setEnvironmentId(realEnvironmentId);
-            cmd.setRealList(Arrays.asList(real));
+            realList.add(real);
         }
+        cmd.setRealList(realList);
 
         Equipment realEquipment = new Equipment();
         realEquipment.setId(realEquipmentId);
@@ -509,6 +516,7 @@ public class GloboNetworkResourceTest {
         LbStickinessPolicy persistencePolicy = new LbStickinessPolicy("Cookie", null);
         cmd.setPersistencePolicy(persistencePolicy);
 
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (RealIP vipReal : vip.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
@@ -516,8 +524,9 @@ public class GloboNetworkResourceTest {
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(true);
             real.setEnvironmentId(realEnvironmentId);
-            cmd.setRealList(Arrays.asList(real));
+            realList.add(real);
         }
+        cmd.setRealList(realList);
 
         Equipment realEquipment = new Equipment();
         realEquipment.setId(realEquipmentId);
@@ -590,6 +599,7 @@ public class GloboNetworkResourceTest {
         LbHealthCheckPolicy healthcheckPolicy = new LbHealthCheckPolicy(healthcheck, "", 0, 0, 0, 0);
         cmd.setHealthcheckPolicy(healthcheckPolicy);
 
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (RealIP vipReal : vip.getRealsIp()) {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
@@ -597,8 +607,9 @@ public class GloboNetworkResourceTest {
             real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
             real.setRevoked(true);
             real.setEnvironmentId(realEnvironmentId);
-            cmd.setRealList(Arrays.asList(real));
+            realList.add(real);
         }
+        cmd.setRealList(realList);
 
         Equipment realEquipment = new Equipment();
         realEquipment.setId(realEquipmentId);
