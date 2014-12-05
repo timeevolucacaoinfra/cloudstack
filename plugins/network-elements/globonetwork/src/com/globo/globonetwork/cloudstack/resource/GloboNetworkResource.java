@@ -101,18 +101,18 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     private enum LbAlgorithm {
         RoundRobin("round-robin"),
         LeastConn("least-conn");
-        
+
         String globoNetworkBalMethod;
-        
+
         LbAlgorithm(String globoNetworkBalMethod) {
             this.globoNetworkBalMethod = globoNetworkBalMethod;
         }
-        
+
         public String getGloboNetworkBalMethod() {
             return globoNetworkBalMethod;
         }
     }
-        
+
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
 
@@ -269,7 +269,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             if (network == null) {
                 return new Answer(cmd, false, "Network with ID " + cmd.getNetworkId() + " not found in GloboNetwork");
             }
-            
+
             return this.createNetworkResponse(network, cmd);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
@@ -396,12 +396,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         }
-    }    
+    }
 
     private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
        return  this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), false);
     }
-    
+
     private Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
         try {
 
@@ -567,7 +567,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return handleGloboNetworkException(cmd, e);
         }
     }
-    
+
     public Answer execute(ReleaseIpFromGloboNetworkCommand cmd) {
         try {
             Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIp(), cmd.getVipEnvironmentId());
@@ -598,7 +598,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     }
                 }
             }
-            
+
             if (vip == null) {
                 return new Answer(cmd, false, null);
             }
@@ -683,7 +683,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             } else {
                 return new Answer(cmd, false, "Invalid balancing method provided.");
             }
-            
+
             String lbPersistence;
             if (cmd.getPersistencePolicy() == null || "None".equals(cmd.getPersistencePolicy().getMethodName())) {
                 lbPersistence = "(nenhum)";
@@ -696,10 +696,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             } else {
                 return new Answer(cmd, false, "Invalid persistence policy provided.");
             }
-            
+
             String healthcheckType;
             String healthcheck;
-            Long expectedHealthcheckId;            
+            Long expectedHealthcheckId;
             if (cmd.getHealthcheckPolicy() == null || cmd.getHealthcheckPolicy().isRevoked()) {
                 healthcheckType = DEFAULT_HEALTHCHECK_TYPE;
                 healthcheck = this.buildHealthcheckString(null, null);
@@ -709,7 +709,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 healthcheck = this.buildHealthcheckString(cmd.getHealthcheckPolicy().getpingpath(), cmd.getHost());
                 expectedHealthcheckId = DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK;
             }
-            
+
             // Values that come directly from command
             String businessArea = cmd.getBusinessArea();
             String host = cmd.getHost();
@@ -723,7 +723,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), real.getEnvironmentId());
                 if (ip == null) {
                     if (real.isRevoked()) {
-                        s_logger.warn("There's an inconsistency. Real with IP " + real.getIp() + " was not found in GloboNetwork.");                        
+                        s_logger.warn("There's an inconsistency. Real with IP " + real.getIp() + " was not found in GloboNetwork.");
                         continue;
                     } else {
                         return new Answer(cmd, false, "Could not get real IP information: " + real.getIp());
@@ -777,15 +777,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     if (real.isRevoked()) {
                         this.removeReal(vip, real.getVmName(), real.getIp());
                     } else {
-                        this.addAndEnableReal(vip, real.getVmName(), real.getIp()); 
+                        this.addAndEnableReal(vip, real.getVmName(), real.getIp());
                     }
                 }
-                
+
                 // Decide if we need to update persistence
                 if (!lbPersistence.equals(vip.getPersistence())) {
                     _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
                 }
-                
+
                 // Decide if we need to update healthcheck
                 if ((vip.getHealthcheckType() == null && healthcheckType != null) ||
                         (vip.getHealthcheckType() != null && !vip.getHealthcheckType().equals(healthcheckType)) ||
@@ -805,13 +805,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             }
             vip = _globoNetworkApi.getVipAPI().getById(vip.getId());
             vip.setIpv4Id(ip.getId());
-            
+
             return this.createVipResponse(vip, cmd);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         }
     }
-    
+
     protected String buildHealthcheckString(String path, String host) {
         if (path == null || host == null) {
             return "";
@@ -829,7 +829,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             // Equipment doesn't exist
             return false;
         }
-        
+
         List<Ip> ips = _globoNetworkApi.getIpAPI().findIpsByEquipment(equipment.getId());
         Ip ip = null;
         for (Ip equipIp : ips) {
@@ -842,7 +842,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         if (ip == null) {
             return false;
         }
-        
+
         String servicePorts = vip.getServicePorts().get(0);
         int vipPort = Integer.parseInt(servicePorts.split(":")[0]);
         int realPort = Integer.parseInt(servicePorts.split(":")[1]);
@@ -863,7 +863,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), vipPort, realPort);
         return true;
     }
-    
+
     private boolean removeReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
         Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
         if (equipment == null) {
@@ -908,7 +908,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             //    "real_ip": "10.20.30.40",
             //    "real_name": "MACHINE01"
             // },
-    
+
             Map<Long, Real> reals = new HashMap<Long, Real>();
             for (RealIP real : vip.getRealsIp()) {
                 Real realResponse = reals.get(real.getIpId());
@@ -921,13 +921,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 }
                 realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
             }
-            
+
             // Fill vip object with ip id and vip environment id
             VipEnvironment vipEnvironment = _globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment());
             if (vipEnvironment == null) {
                 throw new GloboNetworkException("Vip Environment not found for vip " + vip.getId());
             }
-            
+
             Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId());
             if (ip == null) {
                 throw new GloboNetworkException("Vip IP not found for vip " + vip.getId());
@@ -946,7 +946,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     vip.getHealthcheck(), // healthcheck
                     vip.getMaxConn(), // maxconn,
                     vip.getServicePorts(), reals.values(), vip.getCreated());
-    
+
             return vipResponse;
         } catch (GloboNetworkException e) {
             return new Answer(cmd, e);

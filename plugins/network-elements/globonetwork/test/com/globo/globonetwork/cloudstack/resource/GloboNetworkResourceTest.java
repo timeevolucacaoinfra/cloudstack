@@ -171,10 +171,12 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment)).thenReturn(vipIp);
 
         VipEnvironment environmentVip = new VipEnvironment();
+        environmentVip.setId(vipEnvironment);
         environmentVip.setFinality(vipFinality);
         environmentVip.setClient(vipClient);
         environmentVip.setEnvironmentName(vipEnvironmentName);
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
+        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vipFinality, vipClient, vipEnvironmentName)).thenReturn(environmentVip);
 
         Vip vip = new Vip();
         vip.setId(vipId);
@@ -282,8 +284,6 @@ public class GloboNetworkResourceTest {
         
         Vip vip = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
 
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
-
         // Vip after updating
         String vipHostNew = "vip.newdomain.com";
         String vipBusinessAreaNew = "vipbusinessnew";
@@ -298,6 +298,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip2);
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setVipId(vip.getId());
         cmd.setHost(vipHostNew);
         cmd.setIpv4(vip2.getIps().get(0));
         cmd.setVipEnvironmentId(vipEnvironmentId);
@@ -360,6 +361,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setVipId(vip.getId());
         cmd.setHost(vip.getHost());
         cmd.setIpv4(vip.getIps().get(0));
         cmd.setVipEnvironmentId(vipEnvironmentId);
@@ -396,7 +398,7 @@ public class GloboNetworkResourceTest {
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).addReal(vip.getId(), realEquipId, realEquipmentId, null, null);
+        verify(_resource._globoNetworkApi.getVipAPI()).addReal(vip.getId(), realEquipId, realEquipmentId, 80, 8080);
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
@@ -428,17 +430,16 @@ public class GloboNetworkResourceTest {
         Long realEquipmentId = 999L;
 
         Vip vip = buildFakeVipValidatedAndCreated(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
-
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
-
+        
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setVipId(vip.getId());
         cmd.setHost(vip.getHost());
         cmd.setIpv4(vip.getIps().get(0));
         cmd.setVipEnvironmentId(vipEnvironmentId);
         cmd.setPorts(vip.getServicePorts());
         cmd.setBusinessArea(vip.getBusinessArea());
         cmd.setServiceName(vip.getServiceName());
-        cmd.setMethodBal("roundrobin");
+        cmd.setMethodBal("leastconn");
         cmd.setRuleState(FirewallRule.State.Add);
 
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
@@ -468,7 +469,7 @@ public class GloboNetworkResourceTest {
         // Vip after updating
         Vip vip2 = buildFakeVipValidatedAndCreated(vipEnvironmentId, realEnvironmentId, vipIpId);
 
-        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip2);
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip).thenReturn(vip2);
 
         Answer answer = _resource.execute(cmd);
 
@@ -501,16 +502,15 @@ public class GloboNetworkResourceTest {
 
         Vip vip = buildFakeVipValidatedAndCreated(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
 
-        when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
-
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setVipId(vip.getId());
         cmd.setHost(vip.getHost());
         cmd.setIpv4(vip.getIps().get(0));
         cmd.setVipEnvironmentId(vipEnvironmentId);
         cmd.setPorts(vip.getServicePorts());
         cmd.setBusinessArea(vip.getBusinessArea());
         cmd.setServiceName(vip.getServiceName());
-        cmd.setMethodBal("roundrobin");
+        cmd.setMethodBal("leastconn");
         cmd.setRuleState(FirewallRule.State.Add);
         
         LbStickinessPolicy persistencePolicy = new LbStickinessPolicy("Cookie", null);
@@ -544,7 +544,7 @@ public class GloboNetworkResourceTest {
         Vip vip2 = buildFakeVipValidatedAndCreated(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
         vip2.setPersistence(persistenceMethod);
 
-        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip2);
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip2.getId())).thenReturn(vip).thenReturn(vip2);
 
         Answer answer = _resource.execute(cmd);
 
@@ -587,6 +587,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(Arrays.asList(vip));
 
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setVipId(vip.getId());
         cmd.setHost(vip.getHost());
         cmd.setIpv4(vip.getIps().get(0));
         cmd.setVipEnvironmentId(vipEnvironmentId);

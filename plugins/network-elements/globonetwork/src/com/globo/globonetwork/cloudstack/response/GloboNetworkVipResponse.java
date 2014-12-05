@@ -27,148 +27,146 @@ import com.cloud.agent.api.Command;
 
 public class GloboNetworkVipResponse extends Answer {
 
-	private Long id;
-	private String name;
-	private String ip;
-	private Long ipId;
-	private Long lbEnvironmentId;
-	private String cache;
-	private String method;
-	private String persistence;
-	private String healthcheckType;
-	private String healthcheck;
-	private List<String> networkIds;
-	private Integer maxConn;
-	private List<String> ports;
-	private List<Real> reals;
-	private Boolean created;
+    private Long id;
+    private String name;
+    private String ip;
+    private Long ipId;
+    private Long lbEnvironmentId;
+    private String cache;
+    private String method;
+    private String persistence;
+    private String healthcheckType;
+    private String healthcheck;
+    private List<String> networkIds;
+    private Integer maxConn;
+    private List<String> ports;
+    private List<Real> reals;
+    private Boolean created;
 
-	public GloboNetworkVipResponse(Command command, Long id, String name,
-			String ip, Long ipId, Long lbEnvironmentId, String network, String cache, String method,
-			String persistence, String healthcheckType, String healthcheck,
-			Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
-		super(command, true, null);
-		this.id = id;
-		this.name = name;
-		this.ip = ip;
-		this.ipId = ipId;
-		this.lbEnvironmentId = lbEnvironmentId;
-		this.cache = cache;
-		this.method = method;
-		this.persistence = persistence;
-		this.healthcheckType = healthcheckType;
-		this.healthcheck = healthcheck;
-		this.maxConn = maxConn;
-		this.ports = new ArrayList<String>(ports);
-		this.reals = new ArrayList<Real>(reals);
-		this.setCreated(created);
-	}
+    public GloboNetworkVipResponse(Command command, Long id, String name, String ip, Long ipId, Long lbEnvironmentId, String network, String cache, String method,
+            String persistence, String healthcheckType, String healthcheck, Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
+        super(command, true, null);
+        this.id = id;
+        this.name = name;
+        this.ip = ip;
+        this.ipId = ipId;
+        this.lbEnvironmentId = lbEnvironmentId;
+        this.cache = cache;
+        this.method = method;
+        this.persistence = persistence;
+        this.healthcheckType = healthcheckType;
+        this.healthcheck = healthcheck;
+        this.maxConn = maxConn;
+        this.ports = new ArrayList<String>(ports);
+        this.reals = new ArrayList<Real>(reals);
+        this.setCreated(created);
+    }
 
-	public Long getId() {
-		return id;
-	}
+    public Long getId() {
+        return id;
+    }
 
-	public void setId(Long id) {
-		this.id = id;
-	}
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public String getIp() {
-		return ip;
-	}
+    public String getIp() {
+        return ip;
+    }
 
-	public void setIp(String ip) {
-		this.ip = ip;
-	}
-	
-	public Long getIpId() {
-	    return this.ipId;
-	}
-	
-	public void setIpId(Long ipId) {
-	    this.ipId = ipId;
-	}
+    public void setIp(String ip) {
+        this.ip = ip;
+    }
 
-	public String getCache() {
-		return cache;
-	}
+    public Long getIpId() {
+        return this.ipId;
+    }
 
-	public void setCache(String cache) {
-		this.cache = cache;
-	}
+    public void setIpId(Long ipId) {
+        this.ipId = ipId;
+    }
 
-	public String getMethod() {
-		return method;
-	}
+    public String getCache() {
+        return cache;
+    }
 
-	public void setMethod(String method) {
-		this.method = method;
-	}
+    public void setCache(String cache) {
+        this.cache = cache;
+    }
 
-	public String getPersistence() {
-		return persistence;
-	}
+    public String getMethod() {
+        return method;
+    }
 
-	public void setPersistence(String persistence) {
-		this.persistence = persistence;
-	}
+    public void setMethod(String method) {
+        this.method = method;
+    }
 
-	public String getHealthcheckType() {
-		return healthcheckType;
-	}
+    public String getPersistence() {
+        return persistence;
+    }
 
-	public void setHealthcheckType(String healthcheckType) {
-		this.healthcheckType = healthcheckType;
-	}
+    public void setPersistence(String persistence) {
+        this.persistence = persistence;
+    }
 
-	public String getHealthcheck() {
-		return healthcheck;
-	}
+    public String getHealthcheckType() {
+        return healthcheckType;
+    }
 
-	public void setHealthcheck(String healthcheck) {
-		this.healthcheck = healthcheck;
-	}
+    public void setHealthcheckType(String healthcheckType) {
+        this.healthcheckType = healthcheckType;
+    }
 
-	public Integer getMaxConn() {
-		return maxConn;
-	}
+    public String getHealthcheck() {
+        return healthcheck;
+    }
 
-	public void setMaxConn(Integer maxConn) {
-		this.maxConn = maxConn;
-	}
+    public void setHealthcheck(String healthcheck) {
+        this.healthcheck = healthcheck;
+    }
 
-	public List<String> getPorts() {
-		return ports;
-	}
+    public Integer getMaxConn() {
+        return maxConn;
+    }
 
-	public void setPorts(List<String> ports) {
-		this.ports = ports;
-	}
+    public void setMaxConn(Integer maxConn) {
+        this.maxConn = maxConn;
+    }
 
-	public List<Real> getReals() {
-		return reals;
-	}
+    public List<String> getPorts() {
+        return ports;
+    }
 
-	public void setReals(List<Real> reals) {
-		this.reals = reals;
-	}
-	
-	public List<String> getNetworkIds() {
-		return networkIds;
-	}
-	
-	public void setNetworkIds(List<String> networkIds) {
-		this.networkIds = networkIds;
-	}
+    public void setPorts(List<String> ports) {
+        this.ports = ports;
+    }
 
-	public Boolean getCreated() {
+    public List<Real> getReals() {
+        return reals;
+    }
+
+    public void setReals(List<Real> reals) {
+        this.reals = reals;
+    }
+
+    public List<String> getNetworkIds() {
+        return networkIds;
+    }
+
+    public void setNetworkIds(List<String> networkIds) {
+        this.networkIds = networkIds;
+    }
+
+    public Boolean getCreated() {
         return created;
     }
 
@@ -185,72 +183,72 @@ public class GloboNetworkVipResponse extends Answer {
     }
 
     public static class Real extends BaseResponse {
-		private String vmName;
+        private String vmName;
 
-		private String ip;
-		
-		private String network;
-		
-		private Long environmentId;
+        private String ip;
 
-		private List<String> ports;
+        private String network;
 
-		private Boolean state;
-		
-		private String nic;
-		
-		private boolean isRevoked;
+        private Long environmentId;
 
-		public String getVmName() {
-			return vmName;
-		}
+        private List<String> ports;
 
-		public void setVmName(String vmName) {
-			this.vmName = vmName;
-		}
+        private Boolean state;
 
-		public String getIp() {
-			return ip;
-		}
+        private String nic;
 
-		public void setIp(String ip) {
-			this.ip = ip;
-		}
-		
-		public String getNetwork() {
-			return network;
-		}
+        private boolean isRevoked;
 
-		public void setNetwork(String network) {
-			this.network = network;
-		}
+        public String getVmName() {
+            return vmName;
+        }
 
-		public List<String> getPorts() {
-			if (ports == null) {
-				ports = new ArrayList<String>();
-			}
-			return ports;
-		}
+        public void setVmName(String vmName) {
+            this.vmName = vmName;
+        }
 
-		public void setPorts(List<String> ports) {
-			this.ports = ports;
-		}
+        public String getIp() {
+            return ip;
+        }
 
-		public Boolean getState() {
-			return state;
-		}
+        public void setIp(String ip) {
+            this.ip = ip;
+        }
 
-		public void setState(Boolean state) {
-			this.state = state;
-		}
-		
-		public String getNic() {
-			return nic;
-		}
-		
-		public void setNic(String nic) {
-			this.nic = nic;
-		}
+        public String getNetwork() {
+            return network;
+        }
+
+        public void setNetwork(String network) {
+            this.network = network;
+        }
+
+        public List<String> getPorts() {
+            if (ports == null) {
+                ports = new ArrayList<String>();
+            }
+            return ports;
+        }
+
+        public void setPorts(List<String> ports) {
+            this.ports = ports;
+        }
+
+        public Boolean getState() {
+            return state;
+        }
+
+        public void setState(Boolean state) {
+            this.state = state;
+        }
+
+        public String getNic() {
+            return nic;
+        }
+
+        public void setNic(String nic) {
+            this.nic = nic;
+        }
 
         public boolean isRevoked() {
             return isRevoked;
@@ -267,5 +265,5 @@ public class GloboNetworkVipResponse extends Answer {
         public void setEnvironmentId(Long environmentId) {
             this.environmentId = environmentId;
         }
-	}
+    }
 }
