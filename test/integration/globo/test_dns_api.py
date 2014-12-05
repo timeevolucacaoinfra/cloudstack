@@ -39,6 +39,8 @@ parser.read(endpoint_file)
 
 # get globodns endpoint
 globodns_host = parser.get('dns-api', 'host')
+globodns_user = parser.get('dns-api', 'user')
+globodns_pwd = parser.get('dns-api', 'pwd')
 globodns_export_path = parser.get('dns-api', 'export_location')
 globodns_payload = parser.get('dns-api', 'payload')
 globodns_headers = json.loads(parser.get('dns-api', 'header'))
@@ -91,8 +93,8 @@ class Data(object):
             },
             "globodns_provider": {
                 "url": globodns_host,
-                "username": "admin@example.com",
-                "password": "password"
+                "username": globodns_user,
+                "password": globodns_pwd
             },
             "ostype": 'CentOS 5.6 (64-bit)',
         }
