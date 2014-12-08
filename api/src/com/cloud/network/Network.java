@@ -131,6 +131,7 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         public static final Provider CiscoVnmc = new Provider("CiscoVnmc", true);
         // add new Ovs provider
         public static final Provider Ovs = new Provider("Ovs", false);
+        public static final Provider GloboDns = new Provider("GloboDns", true);
         public static final Provider Opendaylight = new Provider("Opendaylight", false);
 
         private final String name;
