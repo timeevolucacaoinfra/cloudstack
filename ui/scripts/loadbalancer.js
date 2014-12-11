@@ -115,7 +115,7 @@
         listView: {
             id: 'loadbalancers',
             fields: {
-                name: { label: 'label.name' },
+                name: { label: 'label.fqdn' },
                 publicip: { label: 'label.ip' },
                 ports: { label: 'label.port' },
                 algorithm: { label: 'label.algorithm' },
@@ -164,8 +164,8 @@
                             id: {
                                 label: 'label.id'
                             },
-                            name: {
-                                label: 'label.name'
+                            fqdn: {
+                                label: 'label.fqdn'
                             },
                             publicip: {
                                 label: 'label.ip'
@@ -294,7 +294,7 @@
                                     label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
-                                            return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
+                                            return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].fqdn + '?';
                                         },
                                         notification: function(args) {
                                             return 'Remove Network From Load Balancer';
@@ -440,7 +440,7 @@
                                     label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
-                                            return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
+                                            return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].fqdn + '?';
                                         },
                                         notification: function(args) {
                                             return 'label.remove.vm.from.lb';
@@ -672,7 +672,7 @@
                     label: 'label.delete',
                     messages: {
                         confirm: function(args) {
-                            return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].name + '?';
+                            return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].fqdn + '?';
                         },
                         notification: function(args) {
                             return 'Removing Ip Address';
@@ -759,8 +759,8 @@
                     },
                     createForm: {
                         fields: {
-                            name: {
-                                label: 'label.name',
+                            fqdn: {
+                                label: 'label.fqdn',
                                 validation: {
                                     required: true
                                 }
@@ -1018,7 +1018,7 @@
                             };
                         } else if (provider === 'GloboNetwork') {
                             // GloboNetwork should only work with portable IPs
-                            // FIXME Precisa testar isto
+                            // FIXME Test this
                             args.response.error("Network is provided by GloboNetwork and can only manage cross zone IPs (portable)");
                             return;
                         } else {
@@ -1042,7 +1042,7 @@
 
                                 var data = {
                                     algorithm: args.data.algorithm,
-                                    name: args.data.name,
+                                    name: args.data.fqdn,
                                     privateport: args.data.privateport,
                                     publicport: args.data.publicport,
                                     openfirewall: false,

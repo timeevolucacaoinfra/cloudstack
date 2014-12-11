@@ -132,6 +132,7 @@ import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
+import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
 import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
@@ -216,6 +217,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	private static final ConfigKey<Long> GloboNetworkModelVmInternalLoadBalancerVm = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.internal.load.balancer", "89", "GloboNetwork model id to be used for Internal Load Balancer VMs", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<Long> GloboNetworkModelVmUserBareMetal = new ConfigKey<Long>("Network", Long.class, "globonetwork.model.vm.user.bare.metal", "90", "GloboNetwork model id to be used for User Bare Metal", true, ConfigKey.Scope.Global);
 	private static final ConfigKey<String> GloboNetworkDomainSuffix = new ConfigKey<String>("Network", String.class, "globonetwork.domain.suffix", "", "Domain suffix for all networks created with GloboNetwork", true, ConfigKey.Scope.Global);
+	private static final ConfigKey<String> GloboNetworkLBAllowedSuffixes = new ConfigKey<String>("Network", String.class, "globonetwork.lb.allowed.suffixes", "", "Allowed domain suffixes for load balancers created with GloboNetwork. List of domain names separated by commas", true, ConfigKey.Scope.Global);
 
 	// DAOs
 	@Inject
@@ -286,6 +288,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 	LoadBalancingRulesManager _lbMgr;
 	@Inject
 	LoadBalancingRulesService _lbService;
+	@Inject
+	GloboDnsElementService _globoDnsService;
 	
 	@Override
 	public boolean canEnable(Long physicalNetworkId) {
@@ -1571,7 +1575,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 				GloboNetworkModelVmElasticLoadBalancerVm,
 				GloboNetworkModelVmInternalLoadBalancerVm,
 				GloboNetworkModelVmUserBareMetal,
-				GloboNetworkDomainSuffix};
+				GloboNetworkDomainSuffix,
+				GloboNetworkLBAllowedSuffixes};
 	}
 	
 	protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
@@ -1745,6 +1750,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         
         final Account account = _accountMgr.getAccount(network.getAccountId());
+        
+        // Information to be used by LB later on
+        boolean revokeAnyVM = false;
 
         // GloboNetwork doesn't allow concurrent call in same load balancer or ip address
         final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
@@ -1794,7 +1802,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
             List<String> ports = new ArrayList<String>();
             ports.add(port);
-    
+            
             // Reals
             List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
             for (LbDestination destVM : rule.getDestinations()) {
@@ -1812,6 +1820,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     }
                     real.setEnvironmentId(globoNetworkRealNetworkVO.getGloboNetworkEnvironmentId());
                     realList.add(real);
+                    
+                    if (destVM.isRevoked()) {
+                        revokeAnyVM = true;
+                    }
                 } else {
                     throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
                 }
@@ -1859,7 +1871,61 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 lock.unlock();
             }
         }
+        
+        if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId()) && _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName())) {
+            // If GloboDNS provider is enabled in this network, register/remove DNS name for this load balancer
+            
+            // First of all, find the correct LB domain and LB record
+            String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
+            List<String> allowedDomains = new ArrayList<String>();
+            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
+                allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
+            }
+            
+            String lbDomain = null;
+            for (String allowedDomain : allowedDomains) {
+                if (rule.getName().endsWith(allowedDomain)) {
+                    lbDomain = allowedDomain;
+                    break;
+                }
+            }
+            
+            if (rule.getState() == FirewallRule.State.Add && !revokeAnyVM) {
+                // If LB is Add and all VMs are Add, then it's first time creating LB, create DNS
+                if (lbDomain == null) {
+                    // That means there was no match
+                    // LB cannot be created
+                    throw new ResourceUnavailableException("Load balancer domain name " + rule.getName() + " is not in the allowed list", DataCenter.class, network.getDataCenterId());
+                }
+                
+                // Strip domain from rule name to get only record name
+                String lbRecord = getLbRecord(rule.getName(), lbDomain);
+                
+                return _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+                
+            } else if (rule.getState() == FirewallRule.State.Revoke) {
+                // If LB is Revoke, then remove DNS
+                
+                if (lbDomain == null) {
+                    // Let Cloudstack remove LB since it was wrongly named and we won't be able to find it in GloboDNS
+                    return true;                    
+                }
+                
+                String lbRecord = getLbRecord(rule.getName(), lbDomain);
+
+                return _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+            } else {
+                // Other cases included here are LB is Add and a VM is revoke (removing VM from LB)
+                // which should not affect DNS records for LB. Let it pass through
+            }
+        } else {
+            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
         return true;
+    }
+    
+    private String getLbRecord(String fullLbName, String lbDomain) {
+        return fullLbName.substring(0, fullLbName.indexOf(lbDomain) - 1); // -1 is to remove '.' between record and domain
     }
 
     @Override

@@ -96,6 +96,7 @@ import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.TransactionLegacy;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
+import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
@@ -407,6 +408,10 @@ public class GloboNetworkManagerTest {
         @Bean
         public LoadBalancingRulesService loadBalancingRulesService() {
             return mock(LoadBalancingRulesService.class);
+        }
+        @Bean
+        public GloboDnsElementService globoDnsElementService() {
+            return mock(GloboDnsElementService.class);
         }
     
         public static class Library implements TypeFilter {

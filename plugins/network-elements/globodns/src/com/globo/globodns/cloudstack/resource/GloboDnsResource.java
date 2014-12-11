@@ -42,6 +42,7 @@ import com.globo.globodns.client.model.Authentication;
 import com.globo.globodns.client.model.Domain;
 import com.globo.globodns.client.model.Export;
 import com.globo.globodns.client.model.Record;
+import com.globo.globodns.cloudstack.commands.CreateLbRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateDomainCommand;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
@@ -174,6 +175,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			return execute((CreateOrUpdateDomainCommand) cmd);
 		} else if (cmd instanceof CreateOrUpdateRecordAndReverseCommand) {
 			return execute((CreateOrUpdateRecordAndReverseCommand) cmd);
+		} else if (cmd instanceof CreateLbRecordAndReverseCommand) {
+		    return execute((CreateLbRecordAndReverseCommand) cmd);
 		}
 		return Answer.createUnsupportedCommandAnswer(cmd);
 	}
@@ -281,6 +284,48 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 			}
 		}
 	}
+	
+   public Answer execute(CreateLbRecordAndReverseCommand cmd) {
+        boolean needsExport = false;
+        try {
+            Domain domain = searchDomain(cmd.getLbDomain(), false);
+            if (domain == null) {
+                String msg = "Domain " + cmd.getLbDomain() + " doesn't exist.";
+                s_logger.debug(msg);
+                return new Answer(cmd, false, msg);
+            }
+            
+            boolean created = createOrUpdateRecord(domain.getId(), cmd.getLbRecordName(), cmd.getLbRecordIp(), IPV4_RECORD_TYPE, cmd.isOverride());
+            if (!created) {
+                String msg = "Unable to create LB record " + cmd.getLbRecordName() + " at " + cmd.getLbDomain();
+                if (!cmd.isOverride()) {
+                    msg += ". Override LB record option is false, maybe record already exists.";
+                }
+                return new Answer(cmd, false, msg);
+            } else {
+                needsExport = true;
+            }
+            
+            String reverseRecordContent = cmd.getLbRecordName() + '.' + cmd.getLbDomain() + '.';
+            if (createOrUpdateReverse(cmd.getLbRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride())) {
+                needsExport = true;
+            } else {
+                if (!cmd.isOverride()) {
+                    String msg = "Unable to create LB reverse record " + cmd.getLbRecordName() + " for ip " + cmd.getLbRecordIp();
+                    msg += ". Override record option is false, maybe record already exists.";
+                    return new Answer(cmd, false, msg);
+                }
+            }
+            
+            return new Answer(cmd);
+        } catch (GloboDnsException e) {
+            return new Answer(cmd, false, e.getMessage());
+        } finally {
+            if (needsExport) {
+                scheduleExportChangesToBind();
+            }
+        }
+    }
 	
 	protected boolean createOrUpdateReverse(String networkIp, String reverseRecordContent, Long templateId, boolean override) {
 		String reverseDomainName = generateReverseDomainNameFromNetworkIp(networkIp);
