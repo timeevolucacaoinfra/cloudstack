@@ -69,6 +69,7 @@
     <module>storage-allocators/random</module>
     <module>user-authenticators/ldap</module>
     <module>user-authenticators/md5</module>
+    <module>user-authenticators/oauth2</module>
     <module>user-authenticators/plain-text</module>
     <module>user-authenticators/sha256salted</module>
     <module>network-elements/dns-notifier</module>

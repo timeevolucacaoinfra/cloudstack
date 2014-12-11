@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,13 +30,13 @@ import java.util.Set;
 import java.util.TimeZone;
 
 import javax.inject.Inject;
-
-import org.apache.log4j.Logger;
+import javax.servlet.http.HttpSession;
 
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
+import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiConstants.HostDetails;
 import org.apache.cloudstack.api.ApiConstants.VMDetails;
 import org.apache.cloudstack.api.ResponseGenerator;
@@ -84,6 +85,7 @@ import org.apache.cloudstack.api.response.LBStickinessPolicyResponse;
 import org.apache.cloudstack.api.response.LBStickinessResponse;
 import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
+import org.apache.cloudstack.api.response.LoginCmdResponse;
 import org.apache.cloudstack.api.response.NetworkACLItemResponse;
 import org.apache.cloudstack.api.response.NetworkACLResponse;
 import org.apache.cloudstack.api.response.NetworkOfferingResponse;
@@ -149,6 +151,7 @@ import org.apache.cloudstack.region.Region;
 import org.apache.cloudstack.usage.Usage;
 import org.apache.cloudstack.usage.UsageService;
 import org.apache.cloudstack.usage.UsageTypes;
+import org.apache.log4j.Logger;
 
 import com.cloud.agent.api.VgpuTypesInfo;
 import com.cloud.api.query.ViewResponseHelper;
@@ -3834,5 +3837,55 @@ public class ApiResponseHelper implements ResponseGenerator {
         response.setResponses(responses);
         return response;
     }
+
+    public LoginCmdResponse createLoginResponse(HttpSession session) {
+        LoginCmdResponse response = new LoginCmdResponse();
+        response.setTimeout(session.getMaxInactiveInterval());
+
+        final String user_UUID = (String)session.getAttribute("user_UUID");
+        session.removeAttribute("user_UUID");
+        response.setUserId(user_UUID);
+
+        final String domain_UUID = (String)session.getAttribute("domain_UUID");
+        session.removeAttribute("domain_UUID");
+        response.setDomainId(domain_UUID);
+
+        final Enumeration attrNames = session.getAttributeNames();
+        if (attrNames != null) {
+            while (attrNames.hasMoreElements()) {
+                final String attrName = (String) attrNames.nextElement();
+                final Object attrObj = session.getAttribute(attrName);
+                if (ApiConstants.USERNAME.equalsIgnoreCase(attrName)) {
+                    response.setUsername(attrObj.toString());
+                }
+                if (ApiConstants.ACCOUNT.equalsIgnoreCase(attrName)) {
+                    response.setAccount(attrObj.toString());
+                }
+                if (ApiConstants.FIRSTNAME.equalsIgnoreCase(attrName)) {
+                    response.setFirstName(attrObj.toString());
+                }
+                if (ApiConstants.LASTNAME.equalsIgnoreCase(attrName)) {
+                    response.setLastName(attrObj.toString());
+                }
+                if (ApiConstants.TYPE.equalsIgnoreCase(attrName)) {
+                    response.setType((attrObj.toString()));
+                }
+                if (ApiConstants.TIMEZONE.equalsIgnoreCase(attrName)) {
+                    response.setTimeZone(attrObj.toString());
+                }
+                if (ApiConstants.REGISTERED.equalsIgnoreCase(attrName)) {
+                    response.setRegistered(attrObj.toString());
+                }
+                if (ApiConstants.SESSIONKEY.equalsIgnoreCase(attrName)) {
+                    response.setSessionKey(attrObj.toString());
+                }
+            }
+        }
+        response.setResponseName("loginresponse");
+//        response.setObjectName("loginresponse");
+        return response;
+    }
+
+
 
 }
