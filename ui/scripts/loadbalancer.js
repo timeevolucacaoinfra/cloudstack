@@ -164,7 +164,7 @@
                             id: {
                                 label: 'label.id'
                             },
-                            fqdn: {
+                            name: {
                                 label: 'label.fqdn'
                             },
                             publicip: {
@@ -294,7 +294,7 @@
                                     label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
-                                            return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].fqdn + '?';
+                                            return 'Are you sure you want to disassociate network ' + args.context.networks[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
                                         },
                                         notification: function(args) {
                                             return 'Remove Network From Load Balancer';
@@ -440,7 +440,7 @@
                                     label: 'label.delete',
                                     messages: {
                                         confirm: function(args) {
-                                            return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].fqdn + '?';
+                                            return 'Are you sure you want to remove VM ' + args.context.vms[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
                                         },
                                         notification: function(args) {
                                             return 'label.remove.vm.from.lb';
@@ -672,7 +672,7 @@
                     label: 'label.delete',
                     messages: {
                         confirm: function(args) {
-                            return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].fqdn + '?';
+                            return 'Are you sure you want to remove load balancer ' + args.context.loadbalancers[0].name + '?';
                         },
                         notification: function(args) {
                             return 'Removing Ip Address';
@@ -759,7 +759,7 @@
                     },
                     createForm: {
                         fields: {
-                            fqdn: {
+                            name: {
                                 label: 'label.fqdn',
                                 validation: {
                                     required: true
@@ -1042,7 +1042,7 @@
 
                                 var data = {
                                     algorithm: args.data.algorithm,
-                                    name: args.data.fqdn,
+                                    name: args.data.name,
                                     privateport: args.data.privateport,
                                     publicport: args.data.publicport,
                                     openfirewall: false,
