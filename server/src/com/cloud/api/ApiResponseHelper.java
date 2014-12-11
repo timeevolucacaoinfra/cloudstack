@@ -3882,7 +3882,6 @@ public class ApiResponseHelper implements ResponseGenerator {
             }
         }
         response.setResponseName("loginresponse");
-//        response.setObjectName("loginresponse");
         return response;
     }
 

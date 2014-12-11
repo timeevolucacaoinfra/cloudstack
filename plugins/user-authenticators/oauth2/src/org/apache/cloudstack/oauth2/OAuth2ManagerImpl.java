@@ -18,6 +18,7 @@ package org.apache.cloudstack.oauth2;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
@@ -47,9 +48,12 @@ import org.springframework.stereotype.Component;
 
 import com.cloud.domain.Domain;
 import com.cloud.exception.CloudAuthenticationException;
+import com.cloud.user.Account;
+import com.cloud.user.AccountManager;
 import com.cloud.user.DomainManager;
 import com.cloud.user.UserAccount;
 import com.cloud.user.dao.UserAccountDao;
+import com.cloud.utils.Pair;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -64,6 +68,8 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     UserAccountDao _userAccDao;
     @Inject
     DomainManager _domainMgr;
+    @Inject
+    AccountManager _accManager;
 
     /* Constants */
     private static final String defaultAccessScopeGitHub = "user";
@@ -155,6 +161,14 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         return UserDomain.value();
     }
 
+    /* Create new accounts to new users */
+    private static final ConfigKey<Boolean> NewAccountWhenNotFound = new ConfigKey<Boolean>("Authentication", Boolean.class, "oauth2.auto.create.new.account", "true",
+            "Automatic create new account when user is not found", true, ConfigKey.Scope.Global);
+
+    protected boolean createsNewAccountWhenNotFound() {
+        return NewAccountWhenNotFound.value();
+    }
+
     /* Implementation */
     public String generateAuthenticationUrl(String returnUrl) {
         if (!isProviderEnabled()) {
@@ -201,7 +215,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         }
     }
 
-    protected String requestUsernameFromUserInfoProviderAPI(String accessToken) {
+    protected Pair<String, String> requestUsernameFromUserInfoProviderAPI(String accessToken) {
         try {
             OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURLWithProvider()).setAccessToken(accessToken).buildHeaderMessage();
 
@@ -213,13 +227,15 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             }
             Map<String, Object> json = JSONUtils.parseJSON(resourceResponse.getBody());
             String username = (String)json.get(getUserAttributeWithProvider());
+            String email = null;
             if (StringUtils.isNotBlank(username)) {
                 if (username.contains("@")) {
                     // remove content after @
+                    email = username;
                     username = username.substring(0, username.indexOf('@'));
                 }
             }
-            return username;
+            return new Pair<String, String>(username, email);
         } catch (OAuthSystemException e) {
             throw new CloudRuntimeException(e.getLocalizedMessage(), e);
         } catch (OAuthProblemException e) {
@@ -235,7 +251,9 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     public UserAccount authenticate(String code, String redirectUri) throws CloudAuthenticationException {
 
         String accessToken = changeCodeToAccessToken(code, redirectUri);
-        String username = requestUsernameFromUserInfoProviderAPI(accessToken);
+        Pair<String, String> username_email = requestUsernameFromUserInfoProviderAPI(accessToken);
+        String username = username_email.first();
+        String email = username_email.second();
         if (username == null) {
             throw new CloudRuntimeException("Can't get username from OAuth Server.");
         }
@@ -243,7 +261,16 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         Domain domain = getUserDomainVO();
         UserAccount userAcc = _userAccDao.getUserAccount(username, domain.getId());
         if (userAcc == null) {
-            throw new CloudAuthenticationException("User " + username + " not found. Contact administrator.");
+            if (!createsNewAccountWhenNotFound()) {
+                s_logger.info("User " + username + " not found in domain " + domain.getId());
+                throw new CloudAuthenticationException("User " + username + " not found. Contact administrator.");
+            }
+            s_logger.info("Creating new user/account with username=" + username + ", email=" + email + " in domain " + domain.getId());
+            userAcc = _accManager.createUserAccount(username, UUID.randomUUID().toString(), username, username, email, null, username, Account.ACCOUNT_TYPE_NORMAL, domain.getId(), null, null, null, null);
+            // if there are any conflict of username/account name raises an error and administrator take care, to avoid security problems.
+            if (userAcc == null) {
+                throw new CloudAuthenticationException("Unable to create new account to " + username + ". Contact administrator to creates one.");
+            }
         }
         return userAcc;
     }
@@ -288,7 +315,8 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {AuthorizationProvider, AuthorizationURL, TokenURL, LogoutURL, ClientSecret, ClientID, AccessScope, UserInfoURL, UserAttribute, UserDomain};
+        return new ConfigKey<?>[] {AuthorizationProvider, AuthorizationURL, TokenURL, LogoutURL, ClientSecret, ClientID, AccessScope, UserInfoURL, UserAttribute, UserDomain,
+                NewAccountWhenNotFound};
     }
 
     protected OAuthProviderType getProviderType() {
