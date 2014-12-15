@@ -51,7 +51,12 @@ BuildRequires: gcc
 BuildRequires: glibc-devel
 BuildRequires: /usr/bin/mkisofs
 BuildRequires: MySQL-python
-#BuildRequires: maven => 3.0.0
+BuildRequires: maven => 3.0.5
+BuildRequires: genisoimage
+BuildRequires: mysql
+BuildRequires: mysql-server
+BuildRequires: createrepo
+
 
 %description
 CloudStack is a highly-scalable elastic, open source,
@@ -82,8 +87,8 @@ Requires: mkisofs
 Requires: MySQL-python
 Requires: python-paramiko
 Requires: ipmitool
-Requires: %{name}-common = %{_ver}
-Requires: %{name}-awsapi = %{_ver} 
+Requires: %{name}-common = %{_ver}-%{_rel}.el6
+Requires: %{name}-awsapi = %{_ver}-%{_rel}.el6
 Obsoletes: cloud-client < 4.1.0
 Obsoletes: cloud-client-ui < 4.1.0
 Obsoletes: cloud-server < 4.1.0
@@ -114,7 +119,7 @@ The Apache CloudStack files shared between agent and management server
 Summary: CloudStack Agent for KVM hypervisors
 Requires: openssh-clients
 Requires: java7
-Requires: %{name}-common = %{_ver}
+Requires: %{name}-common = %{_ver}-%{_rel}.el6
 Requires: libvirt
 Requires: bridge-utils
 Requires: ebtables
@@ -171,7 +176,7 @@ Apache CloudStack command line interface
 
 %package awsapi
 Summary: Apache CloudStack AWS API compatibility wrapper
-Requires: %{name}-management = %{_ver}
+Requires: %{name}-management = %{_ver}-%{_rel}.el6
 Obsoletes: cloud-aws-api < 4.1.0
 Provides: cloud-aws-api
 Group: System Environment/Libraries
@@ -204,10 +209,10 @@ echo $(git rev-parse HEAD) > build/gitrev.txt
 
 if [ "%{_ossnoss}" == "NOREDIST" -o "%{_ossnoss}" == "noredist" ] ; then
    echo "Executing mvn packaging with non-redistributable libraries ..."
-   mvn -Pawsapi,systemvm -Dnoredist clean package
+   mvn -Pawsapi,systemvm -Dnoredist clean package -DskipTests
 else
    echo "Executing mvn packaging ..."
-   mvn -Pawsapi,systemvm clean package
+   mvn -Pawsapi,systemvm clean package -DskipTests
 fi
 
 %install
@@ -249,6 +254,7 @@ mkdir -p ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/setup
 mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/log/%{name}/management
 mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/log/%{name}/awsapi
 mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}/%{name}/management
+mkdir -p ${RPM_BUILD_ROOT}%{_localstatedir}/log/%{name}-management
 
 # Specific for tomcat
 mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}/%{name}/management/Catalina/localhost/client
@@ -273,6 +279,17 @@ install -D client/target/utilities/bin/cloud-update-xenserver-licenses ${RPM_BUI
 
 cp -r client/target/utilities/scripts/db/* ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/setup
 cp -r client/target/cloud-client-ui-%{_maventag}/* ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client
+
+# Append a release number into version info
+if [ -f "${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar" ] ; then
+    unzip -q ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar META-INF/MANIFEST.MF
+    sed -i 's/Implementation-Version: %{_ver}/Implementation-Version: %{_ver}-%{_rel}/g' META-INF/MANIFEST.MF
+    zip -qrum ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/lib/cloud-server-%{_ver}.jar META-INF/MANIFEST.MF
+    rmdir META-INF
+else
+   echo "File ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/lib/cloud-server-%{_ver}.jar not found. I can't append the release number into version"
+fi
+
 
 # Don't package the scripts in the management webapp
 rm -rf ${RPM_BUILD_ROOT}%{_datadir}/%{name}-management/webapps/client/WEB-INF/classes/scripts
@@ -306,6 +323,7 @@ chmod 770 ${RPM_BUILD_ROOT}%{_localstatedir}/cache/%{name}/management/work
 chmod 770 ${RPM_BUILD_ROOT}%{_localstatedir}/cache/%{name}/management/temp
 chmod 770 ${RPM_BUILD_ROOT}%{_localstatedir}/log/%{name}/management
 chmod 770 ${RPM_BUILD_ROOT}%{_localstatedir}/log/%{name}/agent
+chmod 770 ${RPM_BUILD_ROOT}%{_localstatedir}/log/%{name}-management
 
 # KVM Agent
 mkdir -p ${RPM_BUILD_ROOT}%{_sysconfdir}/%{name}/agent
@@ -604,6 +622,7 @@ fi
 %attr(0755,root,root) %{_bindir}/%{name}-external-ipallocator.py
 %attr(0755,root,root) %{_initrddir}/%{name}-ipallocator
 %dir %attr(0770,root,root) %{_localstatedir}/log/%{name}/ipallocator
+%dir %attr(0770,root,root) %{_localstatedir}/log/%{name}-management
 %{_defaultdocdir}/%{name}-management-%{version}/LICENSE
 %{_defaultdocdir}/%{name}-management-%{version}/NOTICE
 %attr(0644,cloud,cloud) %{_localstatedir}/log/%{name}/management/catalina.out
