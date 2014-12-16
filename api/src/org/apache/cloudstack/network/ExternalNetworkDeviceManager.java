@@ -47,6 +47,7 @@ public interface ExternalNetworkDeviceManager extends Manager {
         public static final NetworkDevice CiscoVnmc = new NetworkDevice("CiscoVnmc", Network.Provider.CiscoVnmc.getName());
         public static final NetworkDevice GloboDns = new NetworkDevice("GloboDns", Network.Provider.GloboDns.getName());
         public static final NetworkDevice OpenDaylightController = new NetworkDevice("OpenDaylightController", Network.Provider.Opendaylight.getName());
+        public static final NetworkDevice GloboNetwork = new NetworkDevice("GloboNetwork", Network.Provider.GloboNetwork.getName());
 
         public NetworkDevice(String deviceName, String ntwkServiceprovider) {
             _name = deviceName;

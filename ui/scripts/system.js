@@ -221,9 +221,9 @@
                         $.ajax({
                             url: createURL('listZones'),
                             data: {
-                            	listAll: true,
-                                page: 1,
-                                pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
+                               listAll: true,
+                               page: 1,
+                               pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
                             success: function (json) {
                                 dataFns.podCount($.extend(data, {
@@ -238,9 +238,9 @@
                         $.ajax({
                             url: createURL('listPods'),
                             data: {
-                            	listAll: true,
-                                page: 1,
-                                pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
+                               listAll: true,
+                               page: 1,
+                               pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
                             success: function (json) {
                                 dataFns.clusterCount($.extend(data, {
@@ -254,7 +254,7 @@
                         $.ajax({
                             url: createURL('listClusters'),
                             data: {
-                            	listAll: true,
+                                listAll: true,
                                 page: 1,
                                 pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
@@ -332,7 +332,7 @@
                         $.ajax({
                             url: createURL('listSystemVms'),
                             data: {
-                            	listAll: true,
+                                listAll: true,
                                 page: 1,
                                 pagesize: 1 //specifying pagesize as 1 because we don't need any embedded objects to be returned here. The only thing we need from API response is "count" property.
                             },
@@ -1535,7 +1535,12 @@
                                         //scope: { label: 'label.scope' }
                                     },
                                     actions: {
-                                        add: addGuestNetworkDialog.def
+                                        rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
+                                            isHeader: true
+                                        }),
+                                        addGloboNetworkNetwork: $.extend({}, globoNetworkAPI.networkDialog.def, {
+                                            isHeader: true
+                                        })
                                     },
                                     
                                     dataProvider: function (args) {
@@ -6005,8 +6010,7 @@
                             }
                         }
                     },
-                    
-                    
+
                     // MidoNet provider detailView
                     midoNet: {
                         id: 'midoNet',
@@ -6982,6 +6986,7 @@
                             }
                         }
                     },
+
                     // GloboDns provider detail view
                     GloboDns: {
                         // isMaximized: true,
@@ -7184,8 +7189,27 @@
                                 }
                             }
                         },
+                    },
 
-                    }
+                    // GloboNetwork plugin
+                    // wrap functions to use clousure context
+                    GloboNetwork: globoNetworkAPI.provider({
+                        getNspMap: function() {
+                            return nspMap;
+                        },
+                        getNspHardcodingArray: function() {
+                            return nspHardcodingArray;
+                        },
+                        networkProviderActionFilter: function() {
+                            return networkProviderActionFilter.apply(null, arguments);
+                        },
+                        refreshNspData: function() {
+                            return refreshNspData.apply(null, arguments);
+                        },
+                        getSelectedPhysicalNetworkObj: function() {
+                            return selectedPhysicalNetworkObj;
+                        }
+                    })
                 }
             }
         },
@@ -10035,14 +10059,14 @@
                                                             var routerCountFromAllPages = json.listroutersresponse.count;
                                                             var routerCountFromFirstPageToCurrentPage = json.listroutersresponse.router.length;
                                                             var routerRequiresUpgrade = 0;
-                                                            
+
                                                             var items = json.listroutersresponse.router;
-                	                            			for (var k = 0; k < items.length; k++) {    	                                                    				
-                	                            				if (items[k].requiresupgrade) {
-                	                            					routerRequiresUpgrade++;
-                	                            				}
-                	                            			}  
-                                                            
+                                                            for (var k = 0; k < items.length; k++) {
+                                                                if (items[k].requiresupgrade) {
+                                                                    routerRequiresUpgrade++;
+                                                                }
+                                                            }
+
                                                             var callListApiWithPage = function () {
                                                                 $.ajax({
                                                                     url: createURL('listRouters'),
@@ -10172,14 +10196,14 @@
                                                         var routerCountFromAllPages = json.listroutersresponse.count;
                                                         var routerCountFromFirstPageToCurrentPage = json.listroutersresponse.router.length;
                                                         var routerRequiresUpgrade = 0;
-                                                        
+
                                                         var items = json.listroutersresponse.router;
-            	                            			for (var k = 0; k < items.length; k++) {    	                                                    				
-            	                            				if (items[k].requiresupgrade) {
-            	                            					routerRequiresUpgrade++;
-            	                            				}
-            	                            			}  
-                                                        
+                                                        for (var k = 0; k < items.length; k++) {
+                                                            if (items[k].requiresupgrade) {
+                                                                routerRequiresUpgrade++;
+                                                            }
+                                                        }
+
                                                         var callListApiWithPage = function () {
                                                             $.ajax({
                                                                 url: createURL('listRouters'),
@@ -19569,6 +19593,9 @@
                             case "Opendaylight":
                             nspMap[ "Opendaylight"] = items[i];
                             break;
+                            case "GloboNetwork":
+                            nspMap["GloboNetwork"] = items[i];
+                            break;
                         }
                     }
                 }
@@ -19614,6 +19641,11 @@
             id: 'Opendaylight',
             name: 'OpenDaylight (Experimental)',
             state: nspMap.Opendaylight ? nspMap.Opendaylight.state: 'Disabled'
+        },
+        {
+            id: 'GloboNetwork',
+            name: 'GloboNetwork',
+            state: nspMap.GloboNetwork ? nspMap.GloboNetwork.state : 'Disabled'
         }];
         
         $(window).trigger('cloudStack.system.serviceProviders.makeHarcodedArray', {

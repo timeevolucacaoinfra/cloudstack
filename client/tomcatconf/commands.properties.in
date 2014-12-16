@@ -745,3 +745,12 @@ addOpenDaylightController=1
 deleteOpenDaylightController=1
 listOpenDaylightControllers=1
 
+### GloboNetwork commands
+addNetworkViaGloboNetworkCmd=15
+addGloboNetworkEnvironment=1
+addGloboNetworkHost=1
+listGloboNetworkEnvironments=15
+deleteNetworkInGloboNetwork=15
+removeGloboNetworkEnvironment=1
+listAllEnvironmentsFromGloboNetwork=1
+listGloboNetworkCapabilities=15
