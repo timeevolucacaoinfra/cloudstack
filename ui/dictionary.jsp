@@ -1001,7 +1001,6 @@ dictionary = {
 'label.role': '<fmt:message key="label.role" />',
 'label.root.disk.controller': '<fmt:message key="label.root.disk.controller" />',
 'label.root.disk.offering': '<fmt:message key="label.root.disk.offering" />',
-'label.round.robin': '<fmt:message key="label.round.robin" />',
 'label.rules': '<fmt:message key="label.rules" />',
 'label.running.vms': '<fmt:message key="label.running.vms" />',
 'label.s3.access_key': '<fmt:message key="label.s3.access_key" />',
