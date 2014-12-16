@@ -589,9 +589,10 @@
   <bean id="ControlNetworkGuru" class="com.cloud.network.guru.ControlNetworkGuru">
     <property name="name" value="ControlNetworkGuru"/>
   </bean>
+  <!-- Disabled to use only GloboNetwork
   <bean id="DirectNetworkGuru" class="com.cloud.network.guru.DirectNetworkGuru">
     <property name="name" value="DirectNetworkGuru"/>
-  </bean>
+  </bean>-->
   <bean id="DirectPodBasedNetworkGuru" class="com.cloud.network.guru.DirectPodBasedNetworkGuru">
     <property name="name" value="DirectPodBasedNetworkGuru"/>
   </bean>
