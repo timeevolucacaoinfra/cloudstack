@@ -1890,28 +1890,21 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 }
             }
             
+            // lbDomain was already validated in validateLbRule. if it's null, there's something wrong
+            if (lbDomain == null) {
+                throw new ResourceUnavailableException("Load balancer name/domain is invalid", DataCenter.class, network.getDataCenterId());
+            }
+
+            // Strip domain from rule name to get only record name
+            String lbRecord = getLbRecord(rule.getName(), lbDomain);
+            
             if (rule.getState() == FirewallRule.State.Add && !revokeAnyVM) {
                 // If LB is Add and all VMs are Add, then it's first time creating LB, create DNS
-                if (lbDomain == null) {
-                    // That means there was no match
-                    // LB cannot be created
-                    throw new ResourceUnavailableException("Load balancer domain name " + rule.getName() + " is not in the allowed list", DataCenter.class, network.getDataCenterId());
-                }
-                
-                // Strip domain from rule name to get only record name
-                String lbRecord = getLbRecord(rule.getName(), lbDomain);
                 
                 return _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
                 
             } else if (rule.getState() == FirewallRule.State.Revoke) {
                 // If LB is Revoke, then remove DNS
-                
-                if (lbDomain == null) {
-                    // Let Cloudstack remove LB since it was wrongly named and we won't be able to find it in GloboDNS
-                    return true;                    
-                }
-                
-                String lbRecord = getLbRecord(rule.getName(), lbDomain);
 
                 return _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
             } else {
@@ -1993,8 +1986,40 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 if (globoNetworkVip.getCreated() && !rule.getAlgorithm().equals(method)) {
                     throw new InvalidParameterValueException("It is not allowed to change balancing method in GloboNetwork.");
                 }
+                
+                if (!globoNetworkVip.getName().equals(rule.getName())) {
+                    throw new InvalidParameterValueException("It is not allowed to change load balancer name");
+                }
             }
         }
+        
+        if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId()) && _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName())) {
+            // If GloboDNS provider is enabled in this network, validate LB name
+            
+            // First of all, find the correct LB domain and LB record
+            String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
+            List<String> allowedDomains = new ArrayList<String>();
+            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
+                allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
+            }
+            
+            String lbDomain = null;
+            for (String allowedDomain : allowedDomains) {
+                if (rule.getName().endsWith(allowedDomain)) {
+                    lbDomain = allowedDomain;
+                    break;
+                }
+            }
+            
+            if (lbDomain == null) {
+                // That means there was no match
+                // LB cannot be created
+                throw new CloudRuntimeException("Load balancer name " + rule.getName() + " is not in the allowed list for domains.");
+            }
+        } else {
+            s_logger.warn("Allowing creation of Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
+        
         return true;
     }
 
