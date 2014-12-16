@@ -1988,7 +1988,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 }
                 
                 if (!globoNetworkVip.getName().equals(rule.getName())) {
-                    throw new InvalidParameterValueException("It is not allowed to change load balancer name");
+                    throw new InvalidParameterValueException("It is not allowed to change load balancer name in GloboNetwork");
                 }
             }
         }
@@ -2014,7 +2014,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (lbDomain == null) {
                 // That means there was no match
                 // LB cannot be created
-                throw new CloudRuntimeException("Load balancer name " + rule.getName() + " is not in the allowed list for domains.");
+                throw new InvalidParameterValueException("Load balancer name " + rule.getName() + " is not in the allowed list for domains.");
             }
         } else {
             s_logger.warn("Allowing creation of Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
