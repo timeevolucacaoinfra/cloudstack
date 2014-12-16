@@ -132,6 +132,8 @@ public interface Network extends ControlledEntity, StateObject<Network.State>, I
         // add new Ovs provider
         public static final Provider Ovs = new Provider("Ovs", false);
         public static final Provider Opendaylight = new Provider("Opendaylight", false);
+        // add GloboNetwork provider
+        public static final Provider GloboNetwork = new Provider("GloboNetwork", true);
 
         private final String name;
         private final boolean isExternal;

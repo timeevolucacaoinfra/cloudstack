@@ -759,8 +759,10 @@
 
                         rootAdminAddGuestNetwork: $.extend({}, addGuestNetworkDialog.def, {
                             isHeader: true
-                        })
-
+                        }),
+                        addGloboNetworkNetwork: $.extend({}, globoNetworkAPI.networkDialog.def, {
+                            isHeader: true
+                        }),
                     },
                     id: 'networks',
                     fields: {
@@ -1089,8 +1091,9 @@
                                     }
                                 },
                                 action: function(args) {
+                                    var command = args.context.networks[0].guruname == "GloboNetworkGuru" ? "deleteNetworkInGloboNetwork" : "deleteNetwork";
                                     $.ajax({
-                                        url: createURL("deleteNetwork&id=" + args.context.networks[0].id),
+                                        url: createURL(command + "&id=" + args.context.networks[0].id),
                                         dataType: "json",
                                         async: true,
                                         success: function(json) {

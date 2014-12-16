@@ -225,6 +225,10 @@ public class NetworkResponse extends BaseResponse implements ControlledEntityRes
     @Param(description = "If a network is enabled for 'streched l2 subnet' then represents zones on which network currently spans", since = "4.4")
     private Set<String> networkSpannedZones;
 
+    @SerializedName(ApiConstants.GURU_NAME)
+    @Param(description = "The name of the network guru that implements this network", since = "4.6")
+    private String guruName;
+
     public Boolean getDisplayNetwork() {
         return displayNetwork;
     }
@@ -428,5 +432,9 @@ public class NetworkResponse extends BaseResponse implements ControlledEntityRes
 
     public void setNetworkSpannedZones(Set<String> networkSpannedZones) {
         this.networkSpannedZones = networkSpannedZones;
+    }
+
+    public void setGuruName(String guruName) {
+        this.guruName = guruName;
     }
 }

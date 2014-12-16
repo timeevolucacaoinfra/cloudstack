@@ -1706,6 +1706,7 @@
         <script type="text/javascript" src="scripts/ui/widgets/toolTip.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/cloud.core.callbacks.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/sharedFunctions.js?t=<%=now%>"></script>
+        <script type="text/javascript" src="scripts/globonetwork.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/ui-custom/login.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/ui-custom/projects.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/cloudStack.js?t=<%=now%>"></script>
