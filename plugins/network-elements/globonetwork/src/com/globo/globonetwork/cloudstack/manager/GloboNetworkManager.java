@@ -300,10 +300,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         // if the network offering has persistent set to true, implement the
         // network
-        // FIXME While we have same issues with ACL API with net not in equipment, all
-        // networks are considered persistent.
-        // NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
-        if (true /*ntwkOff.getIsPersistent()*/) {
+        NetworkOfferingVO ntwkOff = _networkOfferingDao.findById(networkOfferingId);
+        if (ntwkOff.getIsPersistent()) {
             try {
                 if (network.getState() == Network.State.Setup) {
                     s_logger.debug("Network id=" + network.getId() + " is already provisioned");
