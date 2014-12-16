@@ -19,7 +19,6 @@ package com.cloud.api;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,18 +30,18 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.apache.cloudstack.api.ApiConstants;
+import org.apache.cloudstack.api.BaseCmd;
+import org.apache.cloudstack.api.ServerApiException;
+import org.apache.cloudstack.api.auth.APIAuthenticationManager;
+import org.apache.cloudstack.api.auth.APIAuthenticationType;
+import org.apache.cloudstack.api.auth.APIAuthenticator;
+import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.managed.context.ManagedContext;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.support.SpringBeanAutowiringSupport;
 
-import org.apache.cloudstack.api.ApiConstants;
-import org.apache.cloudstack.api.ApiErrorCode;
-import org.apache.cloudstack.api.BaseCmd;
-import org.apache.cloudstack.api.ServerApiException;
-import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.managed.context.ManagedContext;
-
-import com.cloud.exception.CloudAuthenticationException;
 import com.cloud.user.Account;
 import com.cloud.user.AccountService;
 import com.cloud.user.User;
@@ -63,6 +62,8 @@ public class ApiServlet extends HttpServlet {
     EntityManager _entityMgr;
     @Inject
     ManagedContext _managedContext;
+    @Inject
+    APIAuthenticationManager _authManager;
 
     public ApiServlet() {
     }
@@ -121,6 +122,7 @@ public class ApiServlet extends HttpServlet {
     }
 
     private void processRequestInContext(final HttpServletRequest req, final HttpServletResponse resp) {
+        final String remoteAddress = req.getRemoteAddr();
         final StringBuffer auditTrailSb = new StringBuffer();
         auditTrailSb.append(" " + req.getRemoteAddr());
         auditTrailSb.append(" -- " + req.getMethod() + " ");
@@ -151,107 +153,56 @@ public class ApiServlet extends HttpServlet {
 
             final Object[] commandObj = params.get(ApiConstants.COMMAND);
             if (commandObj != null) {
-                final String command = (String)commandObj[0];
-                if ("logout".equalsIgnoreCase(command)) {
-                    // if this is just a logout, invalidate the session and return
-                    if (session != null) {
-                        final Long userId = (Long)session.getAttribute("userid");
-                        final Account account = (Account)session.getAttribute("accountobj");
-                        Long accountId = null;
-                        if (account != null) {
-                            accountId = account.getId();
-                        }
-                        auditTrailSb.insert(0, "(userId=" + userId + " accountId=" + accountId + " sessionId=" + session.getId() + ")");
-                        if (userId != null) {
-                            _apiServer.logoutUser(userId);
-                        }
-                        try {
-                            session.invalidate();
-                        } catch (final IllegalStateException ise) {
-                        }
-                    }
-                    auditTrailSb.append("command=logout");
-                    auditTrailSb.append(" " + HttpServletResponse.SC_OK);
-                    writeResponse(resp, getLogoutSuccessResponse(responseType), HttpServletResponse.SC_OK, responseType);
-                    return;
-                } else if ("login".equalsIgnoreCase(command)) {
-                    auditTrailSb.append("command=login");
-                    // if this is a login, authenticate the user and return
-                    if (session != null) {
-                        try {
-                            session.invalidate();
-                        } catch (final IllegalStateException ise) {
-                        }
-                    }
-                    session = req.getSession(true);
-                    final String[] username = (String[])params.get(ApiConstants.USERNAME);
-                    final String[] password = (String[])params.get(ApiConstants.PASSWORD);
-                    String[] domainIdArr = (String[])params.get(ApiConstants.DOMAIN_ID);
+                final String command = (String) commandObj[0];
 
-                    if (domainIdArr == null) {
-                        domainIdArr = (String[])params.get(ApiConstants.DOMAIN__ID);
-                    }
-                    final String[] domainName = (String[])params.get(ApiConstants.DOMAIN);
-                    Long domainId = null;
-                    if ((domainIdArr != null) && (domainIdArr.length > 0)) {
-                        try {
-                            //check if UUID is passed in for domain
-                            domainId = _apiServer.fetchDomainId(domainIdArr[0]);
-                            if (domainId == null) {
-                                domainId = new Long(Long.parseLong(domainIdArr[0]));
-                            }
-                            auditTrailSb.append(" domainid=" + domainId);// building the params for POST call
-                        } catch (final NumberFormatException e) {
-                            s_logger.warn("Invalid domain id entered by user");
-                            auditTrailSb.append(" " + HttpServletResponse.SC_UNAUTHORIZED + " " + "Invalid domain id entered, please enter a valid one");
-                            final String serializedResponse =
-                                _apiServer.getSerializedApiError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid domain id entered, please enter a valid one", params,
-                                    responseType);
-                            writeResponse(resp, serializedResponse, HttpServletResponse.SC_UNAUTHORIZED, responseType);
-                        }
-                    }
-                    String domain = null;
-                    if (domainName != null) {
-                        domain = domainName[0];
-                        auditTrailSb.append(" domain=" + domain);
-                        if (domain != null) {
-                            // ensure domain starts with '/' and ends with '/'
-                            if (!domain.endsWith("/")) {
-                                domain += '/';
-                            }
-                            if (!domain.startsWith("/")) {
-                                domain = "/" + domain;
-                            }
-                        }
-                    }
+                APIAuthenticator apiAuthenticator = _authManager.getAPIAuthenticator(command);
+                if (apiAuthenticator != null) {
+                    auditTrailSb.append("command=");
+                    auditTrailSb.append(command);
 
-                    if (username != null) {
-                        final String pwd = ((password == null) ? null : password[0]);
-                        try {
-                            _apiServer.loginUser(session, username[0], pwd, domainId, domain, req.getRemoteAddr(), params);
-                            auditTrailSb.insert(0, "(userId=" + session.getAttribute("userid") + " accountId=" + ((Account)session.getAttribute("accountobj")).getId() +
-                                " sessionId=" + session.getId() + ")");
-                            final String loginResponse = getLoginSuccessResponse(session, responseType);
-                            writeResponse(resp, loginResponse, HttpServletResponse.SC_OK, responseType);
-                            return;
-                        } catch (final CloudAuthenticationException ex) {
-                            // TODO: fall through to API key, or just fail here w/ auth error? (HTTP 401)
+                    int httpResponseCode = HttpServletResponse.SC_OK;
+                    String responseString = null;
+
+                    if (apiAuthenticator.getAPIType() == APIAuthenticationType.LOGIN_API) {
+                        if (session != null) {
                             try {
                                 session.invalidate();
                             } catch (final IllegalStateException ise) {
                             }
+                        }
+                        session = req.getSession(true);
+                    }
 
-                            auditTrailSb.append(" " + ApiErrorCode.ACCOUNT_ERROR + " " + ex.getMessage() != null ? ex.getMessage()
-                                : "failed to authenticate user, check if username/password are correct");
-                            final String serializedResponse =
-                                _apiServer.getSerializedApiError(ApiErrorCode.ACCOUNT_ERROR.getHttpCode(), ex.getMessage() != null ? ex.getMessage()
-                                    : "failed to authenticate user, check if username/password are correct", params, responseType);
-                            writeResponse(resp, serializedResponse, ApiErrorCode.ACCOUNT_ERROR.getHttpCode(), responseType);
-                            return;
+                    try {
+                        responseString = apiAuthenticator.authenticate(command, params, session, remoteAddress, responseType, auditTrailSb, resp);
+                    } catch (ServerApiException e) {
+                        httpResponseCode = e.getErrorCode().getHttpCode();
+                        responseString = e.getMessage();
+                        s_logger.debug("Authentication failure: " + e.getMessage());
+                    }
+                    if (apiAuthenticator.getAPIType() == APIAuthenticationType.LOGOUT_API) {
+                        if (session != null) {
+                            final Long userId = (Long) session.getAttribute("userid");
+                            final Account account = (Account) session.getAttribute("accountobj");
+                            Long accountId = null;
+                            if (account != null) {
+                                accountId = account.getId();
+                            }
+                            auditTrailSb.insert(0, "(userId=" + userId + " accountId=" + accountId + " sessionId=" + session.getId() + ")");
+                            if (userId != null) {
+                                _apiServer.logoutUser(userId);
+                            }
+                            try {
+                                session.invalidate();
+                            } catch (final IllegalStateException ignored) {
+                            }
                         }
                     }
+                    writeResponse(resp, responseString, httpResponseCode, responseType);
+                    return;
                 }
             }
+
             auditTrailSb.append(req.getQueryString());
             final boolean isNew = ((session == null) ? true : session.isNew());
 
@@ -393,75 +344,4 @@ public class ApiServlet extends HttpServlet {
             }
         }
     }
-
-    @SuppressWarnings("rawtypes")
-    private String getLoginSuccessResponse(final HttpSession session, final String responseType) {
-        final StringBuffer sb = new StringBuffer();
-        final int inactiveInterval = session.getMaxInactiveInterval();
-
-        final String user_UUID = (String)session.getAttribute("user_UUID");
-        session.removeAttribute("user_UUID");
-
-        final String domain_UUID = (String)session.getAttribute("domain_UUID");
-        session.removeAttribute("domain_UUID");
-
-        if (BaseCmd.RESPONSE_TYPE_JSON.equalsIgnoreCase(responseType)) {
-            sb.append("{ \"loginresponse\" : { ");
-            final Enumeration attrNames = session.getAttributeNames();
-            if (attrNames != null) {
-                sb.append("\"timeout\" : \"" + inactiveInterval + "\"");
-                while (attrNames.hasMoreElements()) {
-                    final String attrName = (String)attrNames.nextElement();
-                    if ("userid".equalsIgnoreCase(attrName)) {
-                        sb.append(", \"" + attrName + "\" : \"" + user_UUID + "\"");
-                    } else if ("domainid".equalsIgnoreCase(attrName)) {
-                        sb.append(", \"" + attrName + "\" : \"" + domain_UUID + "\"");
-                    } else {
-                        final Object attrObj = session.getAttribute(attrName);
-                        if ((attrObj instanceof String) || (attrObj instanceof Long)) {
-                            sb.append(", \"" + attrName + "\" : \"" + attrObj.toString() + "\"");
-                        }
-                    }
-                }
-            }
-            sb.append(" } }");
-        } else {
-            sb.append("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>");
-            sb.append("<loginresponse cloud-stack-version=\"" + ApiDBUtils.getVersion() + "\">");
-            sb.append("<timeout>" + inactiveInterval + "</timeout>");
-            final Enumeration attrNames = session.getAttributeNames();
-            if (attrNames != null) {
-                while (attrNames.hasMoreElements()) {
-                    final String attrName = (String)attrNames.nextElement();
-                    if (ApiConstants.USER_ID.equalsIgnoreCase(attrName)) {
-                        sb.append("<" + attrName + ">" + user_UUID + "</" + attrName + ">");
-                    } else if ("domainid".equalsIgnoreCase(attrName)) {
-                        sb.append("<" + attrName + ">" + domain_UUID + "</" + attrName + ">");
-                    } else {
-                        final Object attrObj = session.getAttribute(attrName);
-                        if (attrObj instanceof String || attrObj instanceof Long || attrObj instanceof Short) {
-                            sb.append("<" + attrName + ">" + attrObj.toString() + "</" + attrName + ">");
-                        }
-                    }
-                }
-            }
-
-            sb.append("</loginresponse>");
-        }
-        return sb.toString();
-    }
-
-    private String getLogoutSuccessResponse(final String responseType) {
-        final StringBuffer sb = new StringBuffer();
-        if (BaseCmd.RESPONSE_TYPE_JSON.equalsIgnoreCase(responseType)) {
-            sb.append("{ \"logoutresponse\" : { \"description\" : \"success\" } }");
-        } else {
-            sb.append("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>");
-            sb.append("<logoutresponse cloud-stack-version=\"" + ApiDBUtils.getVersion() + "\">");
-            sb.append("<description>success</description>");
-            sb.append("</logoutresponse>");
-        }
-        return sb.toString();
-    }
-
 }
