@@ -16,9 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.55.x86_64
-export PATH=/usr/local/apache-maven-3.0.4/bin:$PATH
-
 function usage() {
  echo ""
  echo "usage: ./package.sh [-t|--tag] [-h|--help] [ARGS]"
