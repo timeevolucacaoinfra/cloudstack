@@ -51,7 +51,7 @@ BuildRequires: gcc
 BuildRequires: glibc-devel
 BuildRequires: /usr/bin/mkisofs
 BuildRequires: MySQL-python
-BuildRequires: maven >= 3.0.5
+#BuildRequires: maven >= 3.0.5
 BuildRequires: genisoimage
 BuildRequires: mysql
 BuildRequires: mysql-server
