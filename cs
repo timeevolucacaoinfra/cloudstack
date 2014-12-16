@@ -43,18 +43,21 @@ case "$1" in
   package)
     [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
     [[ $# -ne 3 ]] && echo "You need to provide the tag from git and yum repo path. eg: $0 package 4.2.0-201402262000 /path/to/your/yum/repo" && exit 1
+    # export some shell environments variables
+    export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
     export M2_HOME=/opt/apache-maven-3.0.5
     export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
     export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.3.x86_64/jre
     export CATALINA_HOME=/usr/share/tomcat6/
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
     source /usr/local/bin/virtualenvwrapper.sh
+
     REPOPATH=$3
     git checkout $2
     (cd packaging/centos63; ./package.sh -t $2)
     if [[ $? -eq 0 ]]; then
       if [[ -d $REPOPATH ]];then
-          BUILDDIR=$(pwd)/../../dist/rpmbuild
+          BUILDDIR='dist/rpmbuild'
           echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm to $REPOPATH..."
           mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm $REPOPATH
           echo "done"
