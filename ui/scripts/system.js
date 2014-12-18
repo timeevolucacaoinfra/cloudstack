@@ -6988,7 +6988,7 @@
                     },
 
                     // GloboNetwork plugin
-                    // wrap functions to use clousure context
+                    // wrap functions to use closure context
                     GloboNetwork: globoNetworkAPI.provider({
                         getNspMap: function() {
                             return nspMap;
@@ -7005,7 +7005,7 @@
                         getSelectedPhysicalNetworkObj: function() {
                             return selectedPhysicalNetworkObj;
                         }
-                    })
+                    }),
 
                     // GloboDns provider detail view
                     GloboDns: {
