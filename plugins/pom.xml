@@ -86,6 +86,7 @@
     <module>network-elements/internal-loadbalancer</module>
     <module>network-elements/vxlan</module>
     <module>network-elements/globonetwork</module>
+    <module>network-elements/globodns</module>
   </modules>
 
   <dependencies>
