@@ -16,8 +16,7 @@
 */
 package com.globo.globonetwork.cloudstack.guru;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 
@@ -63,6 +62,7 @@ import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.dao.NicDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -164,6 +164,11 @@ public class GloboNetworkGuruTest {
         @Bean
         public PhysicalNetworkDao physicalNetworkDao() {
             return mock(PhysicalNetworkDao.class);
+        }
+        
+        @Bean
+        public GloboNetworkVipAccDao globoNetworkVipAccDao() {
+           return mock(GloboNetworkVipAccDao.class);
         }
 
         @Bean

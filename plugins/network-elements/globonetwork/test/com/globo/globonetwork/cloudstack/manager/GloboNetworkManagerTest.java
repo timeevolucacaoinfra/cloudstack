@@ -39,6 +39,8 @@ import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.region.PortableIpDao;
+import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -68,6 +70,7 @@ import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
+import com.cloud.dc.dao.VlanDao;
 import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
 import com.cloud.exception.InvalidParameterValueException;
@@ -76,13 +79,17 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.host.Host;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
+import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
+import com.cloud.network.lb.LoadBalancingRulesManager;
+import com.cloud.network.lb.LoadBalancingRulesService;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
@@ -97,11 +104,15 @@ import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.TransactionLegacy;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
+import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkIpDetailDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkLoadBalancerEnvironmentDAO;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -295,6 +306,11 @@ public class GloboNetworkManagerTest {
         }
 
         @Bean
+        public VlanDao vlanDao() {
+            return mock(VlanDao.class);
+        }
+
+        @Bean
         public PhysicalNetworkDao physicalNetworkDao() {
             return mock(PhysicalNetworkDao.class);
         }
@@ -387,6 +403,56 @@ public class GloboNetworkManagerTest {
         @Bean
         public NetworkService networkService() {
             return mock(NetworkService.class);
+        }
+
+        @Bean
+        public IpAddressManager ipAddressManager() {
+            return mock(IpAddressManager.class);
+        }
+
+        @Bean
+        public PortableIpRangeDao portableDao() {
+            return mock(PortableIpRangeDao.class);
+        }
+
+        @Bean
+        public LoadBalancingRulesManager loadBalancingRulesManager() {
+            return mock(LoadBalancingRulesManager.class);
+        }
+
+        @Bean
+        public GloboNetworkIpDetailDao globoNetworkIpDetailDao() {
+            return mock(GloboNetworkIpDetailDao.class);
+        }
+
+        @Bean
+        public PortableIpDao portableIpDao() {
+            return mock(PortableIpDao.class);
+        }
+
+        @Bean
+        public LoadBalancingRulesService loadBalancingRulesService() {
+            return mock(LoadBalancingRulesService.class);
+        }
+
+        @Bean
+        public GloboDnsElementService globoDnsElementService() {
+            return mock(GloboDnsElementService.class);
+        }
+
+        @Bean
+        public GloboNetworkVipAccDao globoNetworkVipAccDao() {
+            return mock(GloboNetworkVipAccDao.class);
+        }
+
+        @Bean
+        public GloboNetworkLoadBalancerEnvironmentDAO globoNetworkLBEnvironmentDao() {
+            return mock(GloboNetworkLoadBalancerEnvironmentDAO.class);
+        }
+
+        @Bean
+        public IPAddressDao ipAddressDao() {
+            return mock(IPAddressDao.class);
         }
 
         public static class Library implements TypeFilter {

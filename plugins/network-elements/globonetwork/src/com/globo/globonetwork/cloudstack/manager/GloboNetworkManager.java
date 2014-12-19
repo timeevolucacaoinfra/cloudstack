@@ -19,6 +19,7 @@ package com.globo.globonetwork.cloudstack.manager;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +35,12 @@ import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationSe
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.region.PortableIp;
+import org.apache.cloudstack.region.PortableIpDao;
+import org.apache.cloudstack.region.PortableIpRange;
+import org.apache.cloudstack.region.PortableIpRangeDao;
+import org.apache.cloudstack.region.PortableIpRangeVO;
+import org.apache.cloudstack.region.PortableIpVO;
 import org.apache.log4j.Logger;
 import org.springframework.context.expression.MapAccessor;
 import org.springframework.expression.Expression;
@@ -50,8 +57,11 @@ import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.Resource.ResourceType;
 import com.cloud.dc.DataCenter;
+import com.cloud.dc.DataCenterVO;
+import com.cloud.dc.VlanVO;
 import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.HostPodDao;
+import com.cloud.dc.dao.VlanDao;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.domain.DomainVO;
 import com.cloud.domain.dao.DomainDao;
@@ -68,21 +78,34 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
+import com.cloud.network.Networks.BroadcastDomainType;
 import com.cloud.network.PhysicalNetwork;
+import com.cloud.network.addr.PublicIp;
+import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.NetworkGuru;
+import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRule.LbDestination;
+import com.cloud.network.lb.LoadBalancingRule.LbHealthCheckPolicy;
+import com.cloud.network.lb.LoadBalancingRulesManager;
+import com.cloud.network.lb.LoadBalancingRulesService;
+import com.cloud.network.rules.FirewallRule;
+import com.cloud.network.rules.LoadBalancer;
 import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.org.Grouping;
+import com.cloud.projects.Project;
 import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.user.Account;
@@ -96,9 +119,12 @@ import com.cloud.utils.Pair;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.DB;
+import com.cloud.utils.db.GlobalLock;
 import com.cloud.utils.db.Transaction;
 import com.cloud.utils.db.TransactionCallback;
+import com.cloud.utils.db.TransactionCallbackNoReturn;
 import com.cloud.utils.db.TransactionCallbackWithException;
+import com.cloud.utils.db.TransactionCallbackWithExceptionNoReturn;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.net.NetUtils;
@@ -106,36 +132,69 @@ import com.cloud.vm.Nic;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
+import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
+import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.GloboNetworkNetworkVO;
+import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
+import com.globo.globonetwork.cloudstack.api.AcquireNewIpForLbInGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkLBEnvironmentCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
+import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
+import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.DeleteNetworkInGloboNetworkCmd;
+import com.globo.globonetwork.cloudstack.api.DisassociateIpAddrFromGloboNetworkCmd;
+import com.globo.globonetwork.cloudstack.api.GenerateUrlForEditingVipCmd;
+import com.globo.globonetwork.cloudstack.api.ImportGloboNetworkLoadBalancerCmd;
 import com.globo.globonetwork.cloudstack.api.ListAllEnvironmentsFromGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkCapabilitiesCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkEnvironmentsCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBEnvironmentsCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkRealsCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkVipsCmd;
 import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkEnvironmentCmd;
+import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkLBEnvironmentCmd;
+import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
+import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.GenerateUrlForEditingVipCommand;
+import com.globo.globonetwork.cloudstack.commands.GetVipInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetVlanInfoFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
 import com.globo.globonetwork.cloudstack.commands.ListAllEnvironmentsFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RegisterEquipmentAndIpInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.ReleaseIpFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkIpDetailDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkLoadBalancerEnvironmentDAO;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
+import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.exception.CloudstackGloboNetworkException;
 import com.globo.globonetwork.cloudstack.resource.GloboNetworkResource;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 @Component
@@ -146,6 +205,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     static final int NUMBER_OF_RESERVED_IPS_FROM_START = 5;
     static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 5;
+    static final int NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START = 1;
+    static final int NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END = 2;
 
     private static final ConfigKey<String> GloboNetworkConnectionTimeout = new ConfigKey<String>("Network", String.class, "globonetwork.connectiontimeout", "120000",
             "GloboNetwork connection timeout (in milliseconds)", true, ConfigKey.Scope.Global);
@@ -175,6 +236,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             "Domain pattern to ensure in all networks created with GloboNetwork", true, ConfigKey.Scope.Global);
     private static final ConfigKey<String> GloboNetworkDomainSuffix = new ConfigKey<String>("Network", String.class, "globonetwork.domain.suffix", "",
             "Domain suffix to ensure in all networks created with GloboNetwork (empty you are free to create in any domain)", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<String> GloboNetworkVIPServerUrl = new ConfigKey<String>("Network", String.class, "globonetwork.vip.server.url", "",
+            "Server URL to generate a new VIP request", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GloboNetworkLBLockTimeout = new ConfigKey<Integer>("Network", Integer.class, "globonetwork.loadbalancer.lock.timeout", "60",
+            "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<String> GloboNetworkLBAllowedSuffixes = new ConfigKey<String>("Network", String.class, "globonetwork.lb.allowed.suffixes", "",
+            "Allowed domain suffixes for load balancers created with GloboNetwork. List of domain names separated by commas", true, ConfigKey.Scope.Global);
 
     // DAOs
     @Inject
@@ -185,6 +252,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     DataCenterDao _dcDao;
     @Inject
     HostPodDao _hostPodDao;
+    @Inject
+    VlanDao _vlanDao;
     @Inject
     PhysicalNetworkDao _physicalNetworkDao;
     @Inject
@@ -204,7 +273,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     @Inject
     GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
     @Inject
+    GloboNetworkVipAccDao _globoNetworkVipAccDao;
+    @Inject
+    GloboNetworkLoadBalancerEnvironmentDAO _globoNetworkLBEnvironmentDao;
+    @Inject
     VMInstanceDao _vmDao;
+    @Inject
+    IPAddressDao _ipAddrDao;
+    @Inject
+    PortableIpRangeDao _portableIpRangeDao;
+    @Inject
+    GloboNetworkIpDetailDao _globoNetworkIpDetailDao;
+    @Inject
+    PortableIpDao _portableIpDao;
 
     // Managers
     @Inject
@@ -225,6 +306,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     ProjectManager _projectMgr;
     @Inject
     NetworkService _ntwSvc;
+    @Inject
+    IpAddressManager _ipAddrMgr;
+    @Inject
+    LoadBalancingRulesManager _lbMgr;
+    @Inject
+    LoadBalancingRulesService _lbService;
+    @Inject
+    GloboDnsElementService _globoDnsService;
 
     @Override
     public boolean canEnable(Long physicalNetworkId) {
@@ -514,7 +603,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     private Answer callCommand(Command cmd, Long zoneId) {
+        return callCommand(cmd, zoneId, true);
+    }
 
+    private Answer callCommand(Command cmd, Long zoneId, boolean raisesExceptionWhenNoAnswer) {
         HostVO napiHost = getGloboNetworkHost(zoneId);
         if (napiHost == null) {
             throw new CloudstackGloboNetworkException("Could not find the GloboNetwork resource");
@@ -527,9 +619,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 GloboNetworkErrorAnswer napiAnswer = (GloboNetworkErrorAnswer)answer;
                 throw new CloudstackGloboNetworkException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription());
             } else {
-                String msg = "Error executing command " + cmd + ". Maybe GloboNetwork Host is down";
-                msg = answer == null ? msg : answer.getDetails();
-                throw new CloudRuntimeException(msg);
+                if (raisesExceptionWhenNoAnswer) {
+                    String msg = "Error executing command " + cmd + ". Maybe GloboNetwork Host is down";
+                    msg = answer == null ? msg : answer.getDetails();
+                    throw new CloudRuntimeException(msg);
+                }
             }
         }
 
@@ -676,6 +770,67 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     @Override
     @DB
+    public GloboNetworkLoadBalancerEnvironment addGloboNetworkLBEnvironment(final String name, Long physicalNetworkId, Long globoNetworkEnvironmentId,
+            final Long globoNetworkLBEnvironmentId) throws ResourceAllocationException {
+
+        if (name == null || name.trim().isEmpty()) {
+            throw new InvalidParameterValueException("Invalid name: " + name);
+        }
+
+        // validate physical network and zone
+        // Check if physical network exists
+        PhysicalNetwork pNtwk = null;
+        if (physicalNetworkId != null) {
+            pNtwk = _physicalNetworkDao.findById(physicalNetworkId);
+            if (pNtwk == null) {
+                throw new InvalidParameterValueException("Unable to find a physical network having the specified physical network id");
+            }
+        } else {
+            throw new InvalidParameterValueException("Invalid physicalNetworkId: " + physicalNetworkId);
+        }
+
+        // Check if there is a environment with same id or name in this zone.
+        final GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(pNtwk.getId(), globoNetworkEnvironmentId);
+        if (globoNetworkEnvironment == null) {
+            throw new InvalidParameterValueException("Could not find a relationship between GloboNetwork Environment " + globoNetworkEnvironmentId + " and physical network "
+                    + physicalNetworkId);
+        }
+
+        // Check if there is a LB environment with same id or name in this zone.
+        List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBEnvironments = listGloboNetworkLBEnvironmentsFromDB(pNtwk.getId(), null, globoNetworkEnvironmentId);
+        for (GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironment : globoNetworkLBEnvironments) {
+            if (globoNetworkLBEnvironment.getName().equalsIgnoreCase(name)) {
+                throw new InvalidParameterValueException("LB environment with name " + name + " already exists.");
+            }
+            if (globoNetworkLBEnvironment.getGloboNetworkLoadBalancerEnvironmentId() == globoNetworkLBEnvironmentId) {
+                throw new InvalidParameterValueException("Relationship between Environment " + globoNetworkEnvironmentId + " and LB Network " + globoNetworkLBEnvironmentId
+                        + " already exists.");
+            }
+        }
+
+        try {
+            GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironmentVO = Transaction
+                    .execute(new TransactionCallbackWithException<GloboNetworkLoadBalancerEnvironment, CloudException>() {
+
+                        @Override
+                        public GloboNetworkLoadBalancerEnvironment doInTransaction(TransactionStatus status) throws CloudException {
+                            GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironmentVO = new GloboNetworkLoadBalancerEnvironment(name, globoNetworkEnvironment.getId(),
+                                    globoNetworkLBEnvironmentId);
+                            _globoNetworkLBEnvironmentDao.persist(globoNetworkLBEnvironmentVO);
+                            return globoNetworkLBEnvironmentVO;
+                        }
+                    });
+
+            return globoNetworkLBEnvironmentVO;
+
+        } catch (CloudException e) {
+            // Exception when defining IP ranges in Cloudstack
+            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
+        }
+    }
+
+    @Override
+    @DB
     public Host addGloboNetworkHost(Long physicalNetworkId, String username, String password, String url) {
 
         if (username == null || username.trim().isEmpty()) {
@@ -745,14 +900,28 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     @Override
     public List<Class<?>> getCommands() {
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
-        cmdList.add(AddNetworkViaGloboNetworkCmd.class);
+        cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
         cmdList.add(AddGloboNetworkEnvironmentCmd.class);
-        cmdList.add(ListGloboNetworkEnvironmentsCmd.class);
-        cmdList.add(ListAllEnvironmentsFromGloboNetworkCmd.class);
-        cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
         cmdList.add(AddGloboNetworkHostCmd.class);
-        cmdList.add(ListGloboNetworkCapabilitiesCmd.class);
+        cmdList.add(AddGloboNetworkLBEnvironmentCmd.class);
+        cmdList.add(AddGloboNetworkRealToVipCmd.class);
+        cmdList.add(AddGloboNetworkVipToAccountCmd.class);
+        cmdList.add(AddGloboNetworkVlanCmd.class);
+        cmdList.add(AddNetworkViaGloboNetworkCmd.class);
         cmdList.add(DeleteNetworkInGloboNetworkCmd.class);
+        cmdList.add(DelGloboNetworkRealFromVipCmd.class);
+        cmdList.add(DisassociateIpAddrFromGloboNetworkCmd.class);
+        cmdList.add(GenerateUrlForEditingVipCmd.class);
+        cmdList.add(ImportGloboNetworkLoadBalancerCmd.class);
+        cmdList.add(ListAllEnvironmentsFromGloboNetworkCmd.class);
+        cmdList.add(ListGloboNetworkCapabilitiesCmd.class);
+        cmdList.add(ListGloboNetworkEnvironmentsCmd.class);
+        cmdList.add(ListGloboNetworkLBEnvironmentsCmd.class);
+        cmdList.add(ListGloboNetworkRealsCmd.class);
+        cmdList.add(ListGloboNetworkVipsCmd.class);
+        cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
+        cmdList.add(RemoveGloboNetworkLBEnvironmentCmd.class);
+        cmdList.add(RemoveGloboNetworkVipCmd.class);
         return cmdList;
     }
 
@@ -924,6 +1093,44 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
+    public List<GloboNetworkLoadBalancerEnvironment> listGloboNetworkLBEnvironmentsFromDB(Long physicalNetworkId, Long networkId, Long globoNetworkEnvironmentId) {
+
+        Long glbEnvId = null;
+        if (networkId != null) {
+            // Retrieve glbEnvId from network
+            GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+            if (globoNetworkNetworkVO == null) {
+                throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
+            }
+            glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
+        } else if (globoNetworkEnvironmentId != null) {
+            glbEnvId = globoNetworkEnvironmentId;
+        } else {
+            throw new InvalidParameterValueException("NetworkId or GloboNetworkEnvironmentId is required");
+        }
+
+        // Retrieve napiEnvironment from DB
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, glbEnvId);
+
+        if (globoNetworkEnvironment == null) {
+            // No physical network/environment pair registered in the database.
+            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and GloboNetwork environment="
+                    + globoNetworkEnvironmentId);
+        }
+
+        List<GloboNetworkLoadBalancerEnvironment> globoNetworkLBEnvironmentVOList;
+
+        if (glbEnvId != null) {
+            globoNetworkLBEnvironmentVOList = _globoNetworkLBEnvironmentDao.listByEnvironmentRefId(globoNetworkEnvironment.getId());
+
+        } else {
+            globoNetworkLBEnvironmentVOList = _globoNetworkLBEnvironmentDao.listAll();
+        }
+
+        return globoNetworkLBEnvironmentVOList;
+    }
+
+    @Override
     @DB
     public boolean removeGloboNetworkEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId) {
 
@@ -947,6 +1154,47 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         boolean result = _globoNetworkEnvironmentDao.remove(globoNetworkEnvironment.getId());
 
         return result;
+    }
+
+    @Override
+    @DB
+    public boolean removeGloboNetworkLBEnvironment(Long physicalNetworkId, Long globoNetworkEnvironmentId, Long globoNetworkLBEnvironmentId) {
+
+        // Retrieve napiEnvironment from DB
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(physicalNetworkId, globoNetworkEnvironmentId);
+
+        if (globoNetworkEnvironment == null) {
+            // No physical network/environment pair registered in the database.
+            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + physicalNetworkId + " and GloboNetwork environment="
+                    + globoNetworkEnvironmentId);
+        }
+
+        // Retrieve LB Environment from DB
+        final GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironmentVO = _globoNetworkLBEnvironmentDao.findByEnvironmentRefAndLBNetwork(globoNetworkEnvironment.getId(),
+                globoNetworkLBEnvironmentId);
+        if (globoNetworkLBEnvironmentVO == null) {
+            throw new InvalidParameterValueException("Unable to find a relationship between environment " + globoNetworkEnvironmentId + " and LB network "
+                    + globoNetworkLBEnvironmentId);
+        }
+
+        List<GloboNetworkIpDetailVO> ipDetailVOList = _globoNetworkIpDetailDao.listByLBEnvironmentRef(globoNetworkLBEnvironmentVO.getId());
+        if (!ipDetailVOList.isEmpty()) {
+            throw new InvalidParameterValueException("There are Load Balancers in environment '" + globoNetworkLBEnvironmentVO.getName() + "'");
+        }
+
+        Transaction.execute(new TransactionCallbackNoReturn() {
+            @Override
+            public void doInTransactionWithoutResult(TransactionStatus status) {
+                _globoNetworkLBEnvironmentDao.remove(globoNetworkLBEnvironmentVO.getId());
+
+                // never remove portable ip range because can be used in others zones.
+//               if (_portableIpRangeDao.findById(globoNetworkLBNetworkVO.getPortableIpRangeId()) != null) {
+//                    if portable ip range was removed, is ok.
+//                   _configMgr.deletePortableIpRange(globoNetworkLBNetworkVO.getPortableIpRangeId());
+//               }
+            }
+        });
+        return true;
     }
 
     @Override
@@ -1072,16 +1320,873 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
+    public GloboNetworkVipAccVO addGloboNetworkVipToAcc(Long globoNetworkVipId, Long networkId) {
+
+        Account caller = CallContext.current().getCallingAccount();
+        Network network = null;
+        if (networkId != null) {
+            network = _ntwkDao.findById(networkId);
+            if (network == null) {
+                throw new InvalidParameterValueException("Unable to find a network having the specified network id");
+            }
+        } else {
+            throw new InvalidParameterValueException("Invalid networkId: " + networkId);
+        }
+        // Perform account permission check on network
+        _accountMgr.checkAccess(caller, null, true, network);
+
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipId);
+        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+        String msg = "Could not validate VIP id with GloboNetwork";
+        if (answer == null || !answer.getResult()) {
+            msg = answer == null ? msg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+
+        // TODO Remove accountId
+        Long accountId = network.getAccountId();
+        GloboNetworkVipAccVO globoNetworkVipAcc = _globoNetworkVipAccDao.findGloboNetworkVipAcc(globoNetworkVipId, accountId, networkId);
+        if (globoNetworkVipAcc != null) {
+            // Already exists, continue
+            s_logger.info("Association between VIP " + globoNetworkVipId + " and network " + networkId + " already exists");
+        } else {
+            globoNetworkVipAcc = new GloboNetworkVipAccVO(globoNetworkVipId, accountId, networkId);
+            _globoNetworkVipAccDao.persist(globoNetworkVipAcc);
+        }
+
+        return globoNetworkVipAcc;
+    }
+
+    @Override
+    public void associateNicToVip(Long vipId, Nic nic) {
+        VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
+        if (vm == null) {
+            throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
+        }
+
+        GloboNetworkVipAccVO globoNetworkVipVO = _globoNetworkVipAccDao.findGloboNetworkVip(vipId, nic.getNetworkId());
+        if (globoNetworkVipVO == null) {
+            throw new InvalidParameterValueException("Vip " + vipId + " is not associated with Cloudstack");
+        }
+
+        Network network = _ntwkDao.findById(nic.getNetworkId());
+        if (network == null) {
+            throw new InvalidParameterValueException("Network " + nic.getNetworkId() + " doesn't exist in Cloudstack");
+        }
+
+        AddAndEnableRealInGloboNetworkCommand cmd = new AddAndEnableRealInGloboNetworkCommand();
+        cmd.setEquipName(getEquipNameFromUuid(vm.getUuid()));
+        cmd.setIp(nic.getIp4Address());
+        cmd.setVipId(vipId);
+        Answer answer = callCommand(cmd, network.getDataCenterId());
+        if (answer == null || !answer.getResult()) {
+            throw new CloudRuntimeException("Error associating nic " + nic + " to vip " + vipId + ": " + (answer == null ? null : answer.getDetails()));
+        }
+    }
+
+    @Override
+    public void disassociateNicFromVip(Long vipId, Nic nic) {
+        DisableAndRemoveRealInGloboNetworkCommand cmd = new DisableAndRemoveRealInGloboNetworkCommand();
+        VMInstanceVO vm = _vmDao.findById(nic.getInstanceId());
+        if (vm == null) {
+            throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
+        }
+        cmd.setEquipName(getEquipNameFromUuid(vm.getUuid()));
+        cmd.setIp(nic.getIp4Address());
+        cmd.setVipId(vipId);
+        Network network = _ntwkDao.findById(nic.getNetworkId());
+        Answer answer = callCommand(cmd, network.getDataCenterId());
+        if (answer == null || !answer.getResult()) {
+            throw new CloudRuntimeException("Error removing nic " + nic + " from vip " + vipId + ": " + (answer == null ? null : answer.getDetails()));
+        }
+    }
+
+    @Override
+    public List<GloboNetworkVipResponse> listGloboNetworkVips(Long projectId) {
+
+        Account caller = CallContext.current().getCallingAccount();
+        List<Long> permittedAccounts = new ArrayList<Long>();
+
+        permittedAccounts.add(caller.getId());
+
+        if (projectId != null) {
+            Project project = _projectMgr.getProject(projectId);
+            if (project == null) {
+                throw new InvalidParameterValueException("Unable to find project by specified id");
+            }
+            if (!_projectMgr.canAccessProjectAccount(caller, project.getProjectAccountId())) {
+                // getProject() returns type ProjectVO.
+                InvalidParameterValueException ex = new InvalidParameterValueException("Account " + caller + " cannot access specified project id");
+                ex.addProxyObject(project.getUuid(), "projectId");
+                throw ex;
+            }
+
+            permittedAccounts.add(project.getProjectAccountId());
+        }
+
+        // FIXME Improve this search by creating a custom criteria
+        List<DataCenterVO> zones = _dcDao.listAllZones();
+        List<NetworkVO> allowedNetworks = new ArrayList<NetworkVO>();
+        for (DataCenterVO zone : zones) {
+            for (Long accountId : permittedAccounts) {
+                allowedNetworks.addAll(_ntwkDao.listNetworksByAccount(accountId, zone.getId(), Network.GuestType.Shared, false));
+            }
+        }
+
+        List<Long> networkIds = new ArrayList<Long>();
+        for (NetworkVO networkVO : allowedNetworks) {
+            networkIds.add(networkVO.getId());
+        }
+
+        if (networkIds.isEmpty()) {
+            return new ArrayList<GloboNetworkVipResponse>();
+        }
+
+        // Get all vip Ids related to networks
+        List<GloboNetworkVipAccVO> globoNetworkVipAccList = _globoNetworkVipAccDao.listByNetworks(networkIds);
+
+        Map<Long, GloboNetworkVipResponse> vips = new HashMap<Long, GloboNetworkVipResponse>();
+        for (GloboNetworkVipAccVO globoNetworkVipAcc : globoNetworkVipAccList) {
+
+            Network network = _ntwkDao.findById(globoNetworkVipAcc.getNetworkId());
+
+            GloboNetworkVipResponse vip;
+
+            if (vips.get(globoNetworkVipAcc.getGloboNetworkVipId()) == null) {
+
+                // Vip is not in the returning map yet, get all info from GloboNetwork
+                GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipAcc.getGloboNetworkVipId());
+                Answer answer = this.callCommand(cmd, network.getDataCenterId());
+                String msg = "Could not list VIPs from GloboNetwork";
+                if (answer == null || !answer.getResult()) {
+                    msg = answer == null ? msg : answer.getDetails();
+                    throw new CloudRuntimeException(msg);
+                }
+                vip = ((GloboNetworkVipResponse)answer);
+
+                vips.put(globoNetworkVipAcc.getGloboNetworkVipId(), vip);
+
+            } else {
+                // Vip is already in the returning map
+                vip = vips.get(globoNetworkVipAcc.getGloboNetworkVipId());
+            }
+
+            if (vip.getNetworkIds() == null) {
+                vip.setNetworkIds(new ArrayList<String>());
+            }
+            vip.getNetworkIds().add(network.getUuid());
+
+        }
+        return new ArrayList<GloboNetworkVipResponse>(vips.values());
+    }
+
+    @Override
+    public String generateUrlForEditingVip(Long vipId, Network network) {
+
+        GenerateUrlForEditingVipCommand cmd = new GenerateUrlForEditingVipCommand(vipId, GloboNetworkVIPServerUrl.value());
+        Answer answer = callCommand(cmd, network.getDataCenterId());
+        String msg = "Could not list VIPs from GloboNetwork";
+        if (answer == null || !answer.getResult()) {
+            msg = answer == null ? msg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+        return answer.getDetails();
+    }
+
+    @Override
+    public void removeGloboNetworkVip(Long napiVipId) {
+
+        Account caller = CallContext.current().getCallingAccount();
+
+        List<GloboNetworkVipAccVO> globoNetworkVipList = _globoNetworkVipAccDao.findByVipId(napiVipId);
+
+        if (globoNetworkVipList == null || globoNetworkVipList.isEmpty()) {
+            throw new InvalidParameterValueException("Unable to find an association for VIP " + napiVipId);
+        }
+
+        Network network = null;
+        for (GloboNetworkVipAccVO globoNetworkVipAccVO : globoNetworkVipList) {
+            network = _ntwkDao.findById(globoNetworkVipAccVO.getNetworkId());
+            if (network == null) {
+                throw new InvalidParameterValueException("Unable to find a network having the specified network id");
+            }
+            // Perform account permission check on network
+            _accountMgr.checkAccess(caller, null, true, network);
+
+            _globoNetworkVipAccDao.remove(globoNetworkVipAccVO.getId());
+
+        }
+
+        RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
+        cmd.setVipId(napiVipId);
+
+        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+
+        String msg = "Could not remove VIP " + napiVipId + " from GloboNetwork";
+        if (answer == null || !answer.getResult()) {
+            msg = answer == null ? msg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+    }
+
+    @Override
+    public List<GloboNetworkVipResponse.Real> listGloboNetworkReals(Long vipId) {
+        if (vipId == null) {
+            throw new InvalidParameterValueException("Invalid VIP id");
+        }
+
+        List<GloboNetworkVipAccVO> globoNetworkVips = _globoNetworkVipAccDao.findByVipId(vipId);
+
+        if (globoNetworkVips == null) {
+            throw new CloudRuntimeException("Could not find VIP " + vipId);
+        }
+
+        List<GloboNetworkVipResponse.Real> reals = new ArrayList<GloboNetworkVipResponse.Real>();
+
+        if (globoNetworkVips.isEmpty()) {
+            return reals;
+        }
+
+        // We need a network to call commands, any network associated to this VIP will do
+        Network network = _ntwkDao.findById(globoNetworkVips.get(0).getNetworkId());
+
+        if (network == null) {
+            throw new CloudRuntimeException("Could not find network with networkId " + globoNetworkVips.get(0).getNetworkId());
+        }
+
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(vipId);
+        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+        String msg = "Could not find VIP from GloboNetwork";
+        if (answer == null || !answer.getResult()) {
+            msg = answer == null ? msg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+        GloboNetworkVipResponse vip = ((GloboNetworkVipResponse)answer);
+
+        for (Real real : vip.getReals()) {
+            for (GloboNetworkVipAccVO globoNetworkVipVO : globoNetworkVips) {
+                network = _ntwkDao.findById(globoNetworkVipVO.getNetworkId());
+
+                if (!NetUtils.isIpWithtInCidrRange(real.getIp(), network.getCidr())) {
+                    // If real's IP is not within network range, skip it
+                    continue;
+                }
+
+                Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), network.getId());
+                if (nic != null) {
+                    real.setNic(String.valueOf(nic.getId()));
+                    real.setNetwork(network.getName());
+
+                    // User VM name rather than UUID
+                    VMInstanceVO userVM = _vmDao.findByUuid(real.getVmName());
+                    if (userVM != null) {
+                        real.setVmName(userVM.getHostName());
+                    }
+                }
+            }
+
+            reals.add(real);
+        }
+
+        return reals;
+    }
+
+    @Override
     public String getConfigComponentName() {
         return GloboNetworkManager.class.getSimpleName();
     }
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboNetworkConnectionTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries, GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser,
-                GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm, GloboNetworkModelVmElasticIpVm,
-                GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal, GloboNetworkDomainSuffix,
-                GloboNetworkDomainPattern};
+        return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, GloboNetworkConnectionTimeout, GloboNetworkLBLockTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries,
+                GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm,
+                GloboNetworkModelVmElasticIpVm, GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal,
+                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes};
+    }
+
+    protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,
+            ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+
+        // There is no relationship between zone and regin yet
+        Integer regionId = 1;
+        for (PortableIpRange portableIpRange : _portableIpRangeDao.listByRegionId(regionId)) {
+            // compare only gateway because vlan doesn't matters for public ip range
+            if (portableIpRange.getGateway().equals(networkGateway)) {
+                return portableIpRange;
+            }
+        }
+        return null;
+    }
+
+    protected PortableIpRangeVO createPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,
+            ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+
+        // There is not relationship between zoneId and region yet.
+        //DataCenter dc = _dcDao.findById(zoneId);
+        Integer regionId = 1;
+
+        String vlan = BroadcastDomainType.Vlan.toUri(vlanNumber).toString();
+        String networkMask = NetUtils.getCidrNetmask(networkCidr);
+        String networkAddress = NetUtils.getCidr(networkCidr).first();
+        long size = NetUtils.getCidrSize(networkMask);
+        String startIP = NetUtils.getIpRangeStartIpFromCidr(networkAddress, size);
+        String endIP = NetUtils.getIpRangeEndIpFromCidr(networkAddress, size);
+
+        // shift start ips by NUMBER_OF_RESERVED_IPS_FROM_START and NUMBER_OF_RESERVED_IPS_BEFORE_END
+        startIP = NetUtils.long2Ip(NetUtils.ip2Long(startIP) + NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START);
+        endIP = NetUtils.long2Ip(NetUtils.ip2Long(endIP) - NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END);
+
+        PortableIpRangeVO portableIpRange = _configMgr.createPortableIpRange(regionId, startIP, endIP, networkGateway, networkMask, vlan);
+        return portableIpRange;
+    }
+
+    @Override
+    public PublicIp acquireLbIp(final Long networkId, Long projectId, Long lbEnvironmentId) throws ResourceAllocationException, ResourceUnavailableException,
+            ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+
+        // First of all, check user permission
+        final Account caller = CallContext.current().getCallingAccount();
+
+        final Network network;
+        if (networkId != null) {
+            network = _ntwkDao.findById(networkId);
+            if (network == null) {
+                throw new InvalidParameterValueException("Unable to find a network having the specified network id");
+            }
+        } else {
+            throw new InvalidParameterValueException("Invalid networkId: " + networkId);
+        }
+        // Perform account permission check on network
+        _accountMgr.checkAccess(caller, null, true, network);
+
+        // If project was set, this IP belongs to that project
+        // Otherwise, the caller is the owner
+        final Account owner;
+        if (projectId != null) {
+            Project project = _projectMgr.getProject(projectId);
+            if (project != null) {
+                owner = _accountMgr.getAccount(project.getProjectAccountId());
+            } else {
+                throw new InvalidParameterValueException("Could not find project with id " + projectId);
+            }
+        } else {
+            owner = caller;
+        }
+
+        // Retrieve glbEnvId from network
+        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+        if (globoNetworkNetworkVO == null) {
+            throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
+        }
+        Long glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
+
+        // Retrieve napiEnvironment from DB
+        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(), glbEnvId);
+
+        if (globoNetworkEnvironment == null) {
+            // No physical network/environment pair registered in the database.
+            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId() + " and GloboNetwork environment="
+                    + glbEnvId);
+        }
+
+        final GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironment = _globoNetworkLBEnvironmentDao.findById(lbEnvironmentId);
+        if (globoNetworkLBEnvironment == null) {
+            throw new InvalidParameterValueException("Could not find LB network " + lbEnvironmentId);
+        }
+
+        Long gnLoadBalancerEnvironment = globoNetworkLBEnvironment.getGloboNetworkLoadBalancerEnvironmentId();
+        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(gnLoadBalancerEnvironment);
+
+        final GloboNetworkAndIPResponse globoNetwork = (GloboNetworkAndIPResponse)this.callCommand(cmd, network.getDataCenterId());
+
+        try {
+            PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
+
+                @Override
+                public PublicIp doInTransaction(TransactionStatus status) throws CloudException {
+                    Long zoneId = network.getDataCenterId();
+
+                    // ensure portable ip range exists
+                    PortableIpRange portableIpRange = getPortableIpRange(zoneId, globoNetwork.getVlanNum(), globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    if (portableIpRange == null) {
+                        portableIpRange = createPortableIpRange(zoneId, globoNetwork.getVlanNum(), globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    }
+
+                    IPAddressVO ip = (IPAddressVO)_ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetwork.getIp().addr());
+
+                    GloboNetworkIpDetailVO gnIpDetail = new GloboNetworkIpDetailVO(ip.getId(), globoNetwork.getIpId());
+                    gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBEnvironment.getId());
+                    _globoNetworkIpDetailDao.persist(gnIpDetail);
+
+                    VlanVO vlan = _vlanDao.findById(ip.getVlanId());
+                    return PublicIp.createFromAddrAndVlan(ip, vlan);
+                }
+            });
+            return publicIp;
+
+        } catch (CloudException e) {
+            // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
+            s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
+            ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(globoNetwork.getIp().addr(), gnLoadBalancerEnvironment);
+            this.callCommand(cmdRelease, network.getDataCenterId());
+            throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
+        }
+    }
+
+    @Override
+    public boolean disassociateIpAddrFromGloboNetwork(final long ipId) {
+        final IPAddressVO ipVO = _ipAddrDao.findById(ipId);
+        if (ipVO == null) {
+            throw new InvalidParameterValueException("Unable to find ip address with id=" + ipId);
+        }
+
+        try {
+            boolean result = Transaction.execute(new TransactionCallbackWithExceptionNoReturn<CloudException>() {
+
+                @Override
+                public void doInTransactionWithoutResult(TransactionStatus status) throws CloudException {
+                    GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipId);
+
+                    _ipAddrMgr.releasePortableIpAddress(ipId);
+
+                    if (gnIpDetail != null && gnIpDetail.getGloboNetworkEnvironmentRefId() != null) {
+                        GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBEnvironmentDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
+                        if (gnLbNetworkVO == null) {
+                            throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnIpDetail.getGloboNetworkEnvironmentRefId());
+                        }
+
+                        ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(ipVO.getAddress().addr(), gnLbNetworkVO
+                                .getGloboNetworkLoadBalancerEnvironmentId());
+                        GloboNetworkManager.this.callCommand(cmdRelease, ipVO.getDataCenterId());
+                        _globoNetworkIpDetailDao.remove(gnIpDetail.getId());
+                    } else {
+                        s_logger.warn("Ip " + ipVO.getAddress().addr() + " is not associate with GloboNetwork");
+                    }
+                }
+            });
+
+            return result;
+        } catch (CloudException e) {
+            throw new CloudRuntimeException("Could not disassociate IP address", e);
+        }
+    }
+
+    @Override
+    public boolean applyLbRuleInGloboNetwork(final Network network, final LoadBalancingRule rule) throws ResourceUnavailableException {
+        // Validate params
+        if (network == null || rule == null) {
+            return false;
+        }
+
+        final Account account = _accountMgr.getAccount(network.getAccountId());
+
+        // Information to be used by LB later on
+        boolean revokeAnyVM = false;
+
+        // GloboNetwork doesn't allow concurrent call in same load balancer or ip address
+        final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
+        try {
+
+            if (!lock.lock(GloboNetworkLBLockTimeout.value())) {
+                throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s" + rule.getUuid()), DataCenter.class, network.getDataCenterId());
+            }
+
+            IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
+            if (ipVO == null) {
+                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
+            }
+
+            GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipVO.getId());
+            if (gnIpDetail == null) {
+                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") is not associate with globo network");
+            } else if (gnIpDetail.getGloboNetworkEnvironmentRefId() == null) {
+                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") can't be used to load balancing");
+            }
+
+            GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBEnvironmentDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
+            if (gnLbNetworkVO == null) {
+                throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnIpDetail.getGloboNetworkEnvironmentRefId());
+            }
+
+            // Stickness/Persistence
+            if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
+                throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
+            }
+
+            // Healthcheck
+            if (rule.getHealthCheckPolicies() != null) {
+                int numberOfpolicies = 0;
+                for (LbHealthCheckPolicy healthcheckpolicy : rule.getHealthCheckPolicies()) {
+                    if (!healthcheckpolicy.isRevoked()) {
+                        numberOfpolicies++;
+                    }
+                }
+                if (numberOfpolicies > 1) {
+                    throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain at maximum one");
+                }
+            }
+
+            // Port mapping
+            String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
+            List<String> ports = new ArrayList<String>();
+            ports.add(port);
+
+            // Reals
+            List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
+            for (LbDestination destVM : rule.getDestinations()) {
+                VMInstanceVO vm = _vmDao.findById(destVM.getInstanceId());
+                if (vm != null) {
+                    GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+                    real.setIp(destVM.getIpAddress());
+                    real.setVmName(getEquipNameFromUuid(vm.getUuid()));
+                    real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
+                    real.setRevoked(destVM.isRevoked());
+
+                    GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
+                    if (globoNetworkRealNetworkVO == null) {
+                        throw new InvalidParameterValueException("Could not obtain mapping for network " + destVM.getNetworkId() + " and VM " + destVM.getInstanceId()
+                                + " in GloboNetwork.");
+                    }
+                    real.setEnvironmentId(globoNetworkRealNetworkVO.getGloboNetworkEnvironmentId());
+                    realList.add(real);
+
+                    if (destVM.isRevoked()) {
+                        revokeAnyVM = true;
+                    }
+                } else {
+                    throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
+                }
+            }
+
+            final AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+            // Vip Id null means new vip, otherwise vip will be updated.
+            cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
+            // VIP infos
+            cmd.setHost(rule.getName());
+            cmd.setIpv4(rule.getSourceIp().addr());
+            cmd.setVipEnvironmentId(gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
+            cmd.setPorts(ports);
+            cmd.setBusinessArea(account.getAccountName());
+            cmd.setServiceName(rule.getName());
+
+            // Options and parameters
+            cmd.setMethodBal(rule.getAlgorithm());
+            cmd.setPersistencePolicy(rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
+            cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
+            cmd.setRuleState(rule.getState());
+
+            // Reals infos
+            cmd.setRealList(realList);
+
+            Answer answer = GloboNetworkManager.this.callCommand(cmd, network.getDataCenterId());
+
+            if (gnIpDetail.getGloboNetworkVipId() == null && !FirewallRule.State.Revoke.equals(rule.getState())) {
+                // persist vip id information if not set
+                GloboNetworkVipResponse vipResponse = (GloboNetworkVipResponse)answer;
+
+                gnIpDetail.setGloboNetworkVipId(vipResponse.getId());
+                _globoNetworkIpDetailDao.persist(gnIpDetail);
+            } else if (gnIpDetail.getGloboNetworkVipId() != null && FirewallRule.State.Revoke.equals(rule.getState())) {
+                gnIpDetail.setGloboNetworkVipId(null);
+                _globoNetworkIpDetailDao.persist(gnIpDetail);
+            }
+
+        } catch (Exception e) {
+            // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions
+            // only show 'error'
+            throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId(), e);
+        } finally {
+            if (lock != null) {
+                lock.unlock();
+            }
+        }
+
+        if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId())
+                && _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName())) {
+            // If GloboDNS provider is enabled in this network, register/remove DNS name for this load balancer
+
+            // First of all, find the correct LB domain and LB record
+            String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
+            List<String> allowedDomains = new ArrayList<String>();
+            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
+                allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
+            }
+
+            String lbDomain = null;
+            for (String allowedDomain : allowedDomains) {
+                if (rule.getName().endsWith(allowedDomain)) {
+                    lbDomain = allowedDomain;
+                    break;
+                }
+            }
+
+            // lbDomain was already validated in validateLbRule. if it's null, there's something wrong
+            if (lbDomain == null) {
+                throw new ResourceUnavailableException("Load balancer name/domain is invalid", DataCenter.class, network.getDataCenterId());
+            }
+
+            // Strip domain from rule name to get only record name
+            String lbRecord = getLbRecord(rule.getName(), lbDomain);
+
+            if (rule.getState() == FirewallRule.State.Add && !revokeAnyVM) {
+                // If LB is Add and all VMs are Add, then it's first time creating LB, create DNS
+
+                return _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+
+            } else if (rule.getState() == FirewallRule.State.Revoke) {
+                // If LB is Revoke, then remove DNS
+
+                return _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+            } else {
+                // Other cases included here are LB is Add and a VM is revoke (removing VM from LB)
+                // which should not affect DNS records for LB. Let it pass through
+            }
+        } else {
+            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
+        return true;
+    }
+
+    private String getLbRecord(String fullLbName, String lbDomain) {
+        return fullLbName.substring(0, fullLbName.indexOf(lbDomain) - 1); // -1 is to remove '.' between record and domain
+    }
+
+    @Override
+    public boolean validateLBRule(Network network, LoadBalancingRule rule) {
+        // Validate params
+        if (network == null || rule == null) {
+            return false;
+        }
+
+        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(network.getId());
+        if (globoNetworkNetworkVO == null) {
+            throw new InvalidParameterValueException("GloboNetwork Load Balancer work only with networks managed by GloboNetwork. NetworkId=" + network.getId());
+        }
+
+        // check additional networks
+        if (rule.getAdditionalNetworks() != null) {
+            for (Long networkId : rule.getAdditionalNetworks()) {
+                GloboNetworkNetworkVO additionalGNNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+                if (additionalGNNetworkVO == null) {
+                    throw new InvalidParameterValueException("GloboNetwork Load Balancer work only with networks managed by GloboNetwork. NetworkId=" + network.getId());
+                }
+            }
+        }
+
+        IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
+        if (ipVO == null) {
+            throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
+        }
+
+        GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipVO.getId());
+        if (gnIpDetail == null) {
+            throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") is not associate with globo network");
+        } else if (gnIpDetail.getGloboNetworkEnvironmentRefId() == null) {
+            throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") can't be used to load balancing");
+        }
+
+        // Stickness/Persistence
+        if (rule.getStickinessPolicies() != null && rule.getStickinessPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
+        }
+
+        // Healthcheck
+        if (rule.getHealthCheckPolicies() != null && rule.getHealthCheckPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain only one");
+        }
+
+        // Get VIP info
+        if (gnIpDetail.getGloboNetworkVipId() != null) {
+            GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(gnIpDetail.getGloboNetworkVipId());
+            Answer answer = this.callCommand(cmd, network.getDataCenterId(), false);
+            if (answer != null && answer.getResult()) {
+                GloboNetworkVipResponse globoNetworkVip = (GloboNetworkVipResponse)answer;
+                // TODO Store ref between lb id and globonetwork vip id to solve this situation.
+                String port = String.format("%d:%d", rule.getSourcePortStart(), rule.getDefaultPortStart());
+                if (!port.equals(globoNetworkVip.getPorts().get(0))) {
+                    throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
+                }
+                String method = globoNetworkVip.getMethod();
+                // Translating to GloboNetwork balancing methods
+                if ("least-conn".equals(method)) {
+                    method = "leastconn";
+                } else if ("round-robin".equals(method)) {
+                    method = "roundrobin";
+                }
+                if (globoNetworkVip.getCreated() && !rule.getAlgorithm().equals(method)) {
+                    throw new InvalidParameterValueException("It is not allowed to change balancing method in GloboNetwork.");
+                }
+
+                if (!globoNetworkVip.getName().equals(rule.getName())) {
+                    throw new InvalidParameterValueException("It is not allowed to change load balancer name in GloboNetwork");
+                }
+            }
+        }
+
+        if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId())
+                && _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName())) {
+            // If GloboDNS provider is enabled in this network, validate LB name
+
+            // First of all, find the correct LB domain and LB record
+            String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
+            List<String> allowedDomains = new ArrayList<String>();
+            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
+                allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
+            }
+
+            String lbDomain = null;
+            for (String allowedDomain : allowedDomains) {
+                if (rule.getName().endsWith(allowedDomain)) {
+                    lbDomain = allowedDomain;
+                    break;
+                }
+            }
+
+            if (lbDomain == null) {
+                // That means there was no match
+                // LB cannot be created
+                throw new InvalidParameterValueException("Load balancer name " + rule.getName() + " is not in the allowed list for domains.");
+            }
+        } else {
+            s_logger.warn("Allowing creation of Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
+
+        return true;
+    }
+
+    @Override
+    public LoadBalancer importGloboNetworkLoadBalancer(Long lbId, final Long networkId, Long projectId) {
+        // Validate params
+        if (lbId == null) {
+            throw new InvalidParameterValueException("Invalid load balancer ID");
+        }
+        if (networkId == null) {
+            throw new InvalidParameterValueException("Invalid network ID");
+        }
+        final Network network = _ntwkDao.findById(networkId);
+        if (network == null) {
+            throw new InvalidParameterValueException("Could not find a network with id " + networkId);
+        }
+
+        // First of all, check user permission
+        final Account caller = CallContext.current().getCallingAccount();
+        // Perform account permission check on network
+        _accountMgr.checkAccess(caller, null, true, network);
+
+        // If project was set, this LB belongs to that project
+        // Otherwise, the caller is the owner
+        final Account owner;
+        if (projectId != null) {
+            Project project = _projectMgr.getProject(projectId);
+            if (project != null) {
+                owner = _accountMgr.getAccount(project.getProjectAccountId());
+            } else {
+                throw new InvalidParameterValueException("Could not find project with id " + projectId);
+            }
+        } else {
+            owner = caller;
+        }
+
+        // Get VIP info from GloboNetwork
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(lbId);
+        Answer answer = this.callCommand(cmd, network.getDataCenterId());
+
+        if (answer != null && answer.getResult()) {
+            final GloboNetworkVipResponse globoNetworkLB = (GloboNetworkVipResponse)answer;
+
+            // Check LB IP address
+            PortableIpVO portableVO = _portableIpDao.findByIpAddress(globoNetworkLB.getIp());
+            if (portableVO == null) {
+                throw new CloudRuntimeException("Portable IP " + globoNetworkLB.getIp() + " is not registered within Cloudstack");
+            } else if (portableVO.getState() != PortableIp.State.Free) {
+                throw new CloudRuntimeException("IP " + globoNetworkLB.getIp() + " is not free to be used in Cloudstack");
+            }
+
+            if (globoNetworkLB.getPorts() == null || globoNetworkLB.getPorts().size() == 0 || globoNetworkLB.getPorts().size() > 1) {
+                throw new CloudRuntimeException("Invalid port mapping for LB. Cloudstack supports 1 and only 1 port mapping in a load balancer");
+            }
+            final String[] globoNetworkPorts = globoNetworkLB.getPorts().get(0).split(":");
+            if (globoNetworkPorts[0] == "" || globoNetworkPorts[1] == "") {
+                throw new CloudRuntimeException("Invalid port mapping for LB: " + globoNetworkLB.getPorts().get(0));
+            }
+
+            final String algorithm;
+            if ("least-conn".equals(globoNetworkLB.getMethod())) {
+                algorithm = "leastconn";
+            } else if ("round-robin".equals(globoNetworkLB.getMethod())) {
+                algorithm = "roundrobin";
+            } else {
+                throw new CloudRuntimeException("Invalid balancing method: " + globoNetworkLB.getMethod());
+            }
+
+            try {
+                LoadBalancer lb = Transaction.execute(new TransactionCallbackWithException<LoadBalancer, CloudException>() {
+
+                    public LoadBalancer doInTransaction(TransactionStatus status) throws CloudException {
+                        // Allocate IP in Cloudstack
+                        Long zoneId = network.getDataCenterId();
+                        IPAddressVO ip = (IPAddressVO)_ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetworkLB.getIp());
+                        VlanVO vlan = _vlanDao.findById(ip.getVlanId());
+                        PublicIp publicIp = PublicIp.createFromAddrAndVlan(ip, vlan);
+
+                        // register ip
+                        // Retrieve glbEnvId from network
+                        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+                        if (globoNetworkNetworkVO == null) {
+                            throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
+                        }
+                        Long glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
+
+                        // Retrieve napiEnvironment from DB
+                        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(),
+                                glbEnvId);
+
+                        if (globoNetworkEnvironment == null) {
+                            // No physical network/environment pair registered in the database.
+                            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId()
+                                    + " and GloboNetwork environment=" + glbEnvId);
+                        }
+
+                        GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironment = _globoNetworkLBEnvironmentDao.findByEnvironmentRefAndLBNetwork(
+                                globoNetworkEnvironment.getId(), globoNetworkLB.getLbEnvironmentId());
+                        if (globoNetworkLBEnvironment == null) {
+                            throw new InvalidParameterValueException("Could not find LB environment " + globoNetworkLB.getLbEnvironmentId());
+                        }
+
+                        GloboNetworkIpDetailVO gnIpDetail = new GloboNetworkIpDetailVO(ip.getId(), globoNetworkLB.getIpId());
+                        gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBEnvironment.getId());
+                        gnIpDetail.setGloboNetworkVipId(globoNetworkLB.getId());
+                        _globoNetworkIpDetailDao.persist(gnIpDetail);
+
+                        // Create LB
+                        LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
+                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null);
+
+                        // Assign VMs that are managed in Cloudstack
+                        List<Long> instancesToAdd = new ArrayList<Long>();
+                        for (GloboNetworkVipResponse.Real real : globoNetworkLB.getReals()) {
+                            // For each real, find it in Cloudstack and add it to LB
+                            // If it's not found, ignore it (VM not managed by Cloudstack)
+                            Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), networkId);
+                            if (nic == null) {
+                                continue;
+                            }
+                            instancesToAdd.add(nic.getInstanceId());
+                        }
+
+                        _lbService.assignToLoadBalancer(lb.getId(), instancesToAdd);
+
+                        return lb;
+                    }
+                });
+
+                return lb;
+
+            } catch (CloudException e) {
+                throw new CloudRuntimeException("There was an error when allocating ip " + globoNetworkLB.getIp() + " in Cloudstack");
+            }
+        }
+        return null;
     }
 
     @Override
