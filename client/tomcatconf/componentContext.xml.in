@@ -261,7 +261,7 @@
           <ref bean="PodBasedNetworkGuru"/>
           <ref bean="DirectPodBasedNetworkGuru"/>
           <ref bean="ControlNetworkGuru"/>
-          <ref bean="DirectNetworkGuru"/>
+          <!-- <ref bean="DirectNetworkGuru"/> -->
           <ref bean="OvsGuestNetworkGuru"/>
           <ref bean="PrivateNetworkGuru"/>
           <ref bean="NiciraNvpGuestNetworkGuru"/>
