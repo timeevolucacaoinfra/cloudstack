@@ -1219,5 +1219,10 @@ cloudStack.docs = {
     helpVpcOfferingDescription: {
         desc: 'A short description of the offering that can be displayed to users',
         externalLink: ''
+    },
+    // Add Load Balancer
+    helpHealthcheck: {
+        desc: 'The path for a GET HTTP healthcheck. Optionally, provide full HTTP request (GET or POST). Leave it blank for TCP',
+        externalLink: ''
     }
 };

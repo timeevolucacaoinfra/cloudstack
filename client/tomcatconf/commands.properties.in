@@ -748,11 +748,26 @@ deleteOpenDaylightController=1
 listOpenDaylightControllers=1
 
 ### GloboNetwork commands
-addNetworkViaGloboNetworkCmd=15
+acquireNewLBIp=15
 addGloboNetworkEnvironment=1
 addGloboNetworkHost=1
+addGloboNetworkLBEnvironment=1
+addGloboNetworkVipToAccount=15
+addGloboNetworkVlan=15
+addNetworkViaGloboNetwork=15
+associateGloboNetworkRealToVip=15
+disassociateGloboNetworkRealFromVip=15
+disassociateIpAddressFromGloboNetwork=15
+generateUrlForEditingVip=15
+importGloboNetworkLoadBalancer=15
+listAllEnvironmentsFromGloboNetwork=15
 listGloboNetworkEnvironments=15
 deleteNetworkInGloboNetwork=15
+listGloboNetworkReals=15
+listGloboNetworkLBEnvironments=15
+listGloboNetworkVips=15
 removeGloboNetworkEnvironment=1
 listAllEnvironmentsFromGloboNetwork=1
 listGloboNetworkCapabilities=15
+removeGloboNetworkLBEnvironment=1
+removeGloboNetworkVip=15
