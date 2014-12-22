@@ -25,6 +25,7 @@ import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.BaseAsyncCreateCmd;
 import org.apache.cloudstack.api.Parameter;
+import org.apache.cloudstack.api.ResponseObject.ResponseView;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.response.IPAddressResponse;
 import org.apache.cloudstack.api.response.NetworkResponse;
@@ -141,7 +142,7 @@ public class AcquireNewIpForLbInGloboNetworkCmd extends BaseAsyncCreateCmd {
         IpAddress result = _networkService.associateIPToNetwork(getEntityId(), getNetworkId());
 
         if (result != null) {
-            IPAddressResponse ipResponse = _responseGenerator.createIPAddressResponse(result);
+            IPAddressResponse ipResponse = _responseGenerator.createIPAddressResponse(ResponseView.Full, result);
             ipResponse.setResponseName(getCommandName());
             setResponseObject(ipResponse);
         } else {

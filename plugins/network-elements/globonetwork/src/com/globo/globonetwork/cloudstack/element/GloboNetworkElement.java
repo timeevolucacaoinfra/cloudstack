@@ -16,6 +16,7 @@ package com.globo.globonetwork.cloudstack.element;
 //KIND, either express or implied.  See the License for the
 //specific language governing permissions and limitations
 //under the License.
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.cloud.agent.api.StartupCommand;
+import com.cloud.agent.api.to.LoadBalancerTO;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.dc.dao.DataCenterDao;
@@ -50,9 +52,17 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
+import com.cloud.network.PublicIpAddress;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.element.IpDeployer;
+import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
+import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRulesManager;
+import com.cloud.network.rules.LbStickinessMethod;
+import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
+import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
@@ -62,6 +72,7 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.resource.GloboNetworkResource;
+import com.google.gson.Gson;
 
 @Component
 @Local(value = {NetworkElement.class, LoadBalancingServiceProvider.class})
@@ -135,10 +146,8 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
     }
 
     @Override
-    public boolean configure(String name, Map<String, Object> params)
-            throws ConfigurationException {
+    public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
         super.configure(name, params);
-        _resourceMgr.registerResourceStateAdapter(name, this);
         return true;
     }
 

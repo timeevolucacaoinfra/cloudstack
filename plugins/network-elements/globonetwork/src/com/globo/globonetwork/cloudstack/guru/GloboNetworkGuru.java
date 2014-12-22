@@ -180,7 +180,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 
         long networkId = nic.getNetworkId();
         List<GloboNetworkVipAccVO> vips = _globoNetworkVipDao.findByNetwork(networkId);
-        for (GloboNetworkVipAccVO vip: vips) {
+        for (GloboNetworkVipAccVO vip : vips) {
             NicVO nicVO = _nicDao.findById(nic.getId());
             _globoNetworkService.disassociateNicFromVip(vip.getGloboNetworkVipId(), nicVO);
         }
@@ -198,7 +198,7 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 
         try {
             List<VirtualRouter> routers = _routerMgr.getRoutersForNetwork(profile.getId());
-            for (VirtualRouter router: routers) {
+            for (VirtualRouter router : routers) {
                 _routerMgr.destroyRouter(router.getId(), _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM), User.UID_SYSTEM);
             }
 

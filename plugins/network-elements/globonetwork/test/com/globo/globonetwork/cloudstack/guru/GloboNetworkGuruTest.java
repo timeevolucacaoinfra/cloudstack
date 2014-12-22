@@ -16,7 +16,8 @@
 */
 package com.globo.globonetwork.cloudstack.guru;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
@@ -165,10 +166,10 @@ public class GloboNetworkGuruTest {
         public PhysicalNetworkDao physicalNetworkDao() {
             return mock(PhysicalNetworkDao.class);
         }
-        
+
         @Bean
         public GloboNetworkVipAccDao globoNetworkVipAccDao() {
-           return mock(GloboNetworkVipAccDao.class);
+            return mock(GloboNetworkVipAccDao.class);
         }
 
         @Bean

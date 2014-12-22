@@ -38,6 +38,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipExternalResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 @APICommand(name = "listGloboNetworkVips", responseObject = GloboNetworkVipExternalResponse.class, description = "Lists GloboNetwork Vips")

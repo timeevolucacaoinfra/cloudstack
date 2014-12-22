@@ -149,7 +149,6 @@ import com.globo.globonetwork.cloudstack.api.AddGloboNetworkHostCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkLBEnvironmentCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkRealToVipCmd;
 import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVipToAccountCmd;
-import com.globo.globonetwork.cloudstack.api.AddGloboNetworkVlanCmd;
 import com.globo.globonetwork.cloudstack.api.AddNetworkViaGloboNetworkCmd;
 import com.globo.globonetwork.cloudstack.api.DelGloboNetworkRealFromVipCmd;
 import com.globo.globonetwork.cloudstack.api.DeleteNetworkInGloboNetworkCmd;
@@ -906,7 +905,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(AddGloboNetworkLBEnvironmentCmd.class);
         cmdList.add(AddGloboNetworkRealToVipCmd.class);
         cmdList.add(AddGloboNetworkVipToAccountCmd.class);
-        cmdList.add(AddGloboNetworkVlanCmd.class);
         cmdList.add(AddNetworkViaGloboNetworkCmd.class);
         cmdList.add(DeleteNetworkInGloboNetworkCmd.class);
         cmdList.add(DelGloboNetworkRealFromVipCmd.class);
@@ -2160,10 +2158,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
                         // Create LB
                         LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
-                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null);
+                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE);
 
                         // Assign VMs that are managed in Cloudstack
                         List<Long> instancesToAdd = new ArrayList<Long>();
+                        Map<Long, List<String>> vmIdIpMap = new HashMap<Long, List<String>>();
                         for (GloboNetworkVipResponse.Real real : globoNetworkLB.getReals()) {
                             // For each real, find it in Cloudstack and add it to LB
                             // If it's not found, ignore it (VM not managed by Cloudstack)
@@ -2172,10 +2171,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                                 continue;
                             }
                             instancesToAdd.add(nic.getInstanceId());
+                            vmIdIpMap.put(nic.getInstanceId(), Arrays.asList(nic.getIp4Address()));
                         }
-
-                        _lbService.assignToLoadBalancer(lb.getId(), instancesToAdd);
-
+                        _lbService.assignToLoadBalancer(lb.getId(), instancesToAdd, vmIdIpMap);
                         return lb;
                     }
                 });

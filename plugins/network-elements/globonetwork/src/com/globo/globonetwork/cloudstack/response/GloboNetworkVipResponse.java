@@ -43,8 +43,8 @@ public class GloboNetworkVipResponse extends Answer {
     private List<Real> reals;
     private Boolean created;
 
-    public GloboNetworkVipResponse(Command command, Long id, String name, String ip, Long ipId, Long lbEnvironmentId, String network, String cache, String method, String persistence, String healthcheckType,
-            String healthcheck, Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
+    public GloboNetworkVipResponse(Command command, Long id, String name, String ip, Long ipId, Long lbEnvironmentId, String network, String cache, String method,
+            String persistence, String healthcheckType, String healthcheck, Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
         super(command, true, null);
         this.id = id;
         this.name = name;

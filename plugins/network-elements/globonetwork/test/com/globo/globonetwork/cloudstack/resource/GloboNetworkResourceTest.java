@@ -21,8 +21,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -139,10 +139,11 @@ public class GloboNetworkResourceTest {
         Answer answer = _resource.execute(cmd);
         assertFalse(answer.getResult());
     }
-    
-    static long IP_SEQUENCE = 100;
+
+    static long s_ipSequence = 100;
+
     private long getNewIpID() {
-        return ++IP_SEQUENCE;
+        return ++s_ipSequence;
     }
 
     private Vip buildFakeVipValidatedAndCreated(Long vipEnvironment, Long realEnvironment, Long vipIpId, String... reals) throws GloboNetworkException {
@@ -198,7 +199,7 @@ public class GloboNetworkResourceTest {
         vip.setCreated(false);
 
         List<RealIP> realIpList = new ArrayList<RealIP>();
-        for (String realAddr: reals) {
+        for (String realAddr : reals) {
             Ip ip = new Ip();
             ip.setId(getNewIpID());
             when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realAddr, realEnvironment)).thenReturn(ip);
@@ -228,8 +229,10 @@ public class GloboNetworkResourceTest {
         // Make sure VIP doesn't exist yet by returning empty list
         when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(new ArrayList<Vip>());
 
-        when(_resource._globoNetworkApi.getVipAPI().add(vipIpId, null, null, vip.getFinality(), vip.getClient(), vip.getEnvironment(), vip.getCache(), vip.getMethod(), "(nenhum)", "TCP", "", 5,
-                        vip.getHost(), 0, vip.getBusinessArea(), vip.getServiceName(), null, vip.getRealsIp(), Arrays.asList(10), null, vip.getServicePorts(), null)).thenReturn(vip);
+        when(
+                _resource._globoNetworkApi.getVipAPI().add(vipIpId, null, null, vip.getFinality(), vip.getClient(), vip.getEnvironment(), vip.getCache(), vip.getMethod(),
+                        "(nenhum)", "TCP", "", 5, vip.getHost(), 0, vip.getBusinessArea(), vip.getServiceName(), null, vip.getRealsIp(), Arrays.asList(10), null,
+                        vip.getServicePorts(), null)).thenReturn(vip);
 
         when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(vip);
 
@@ -327,8 +330,9 @@ public class GloboNetworkResourceTest {
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).alter(vip.getId(), vipIpId, null, null, false, false, vip2.getFinality(), vip2.getClient(), vip2.getEnvironment(), vip2.getCache(), vipMethodBalNew,
-                "(nenhum)", "TCP", "", 5, vipHostNew, 0, vipBusinessAreaNew, vipServiceNameNew, null, vip2.getRealsIp(), Arrays.asList(10), null, vip2.getServicePorts(), null);
+        verify(_resource._globoNetworkApi.getVipAPI()).alter(vip.getId(), vipIpId, null, null, false, false, vip2.getFinality(), vip2.getClient(), vip2.getEnvironment(),
+                vip2.getCache(), vipMethodBalNew, "(nenhum)", "TCP", "", 5, vipHostNew, 0, vipBusinessAreaNew, vipServiceNameNew, null, vip2.getRealsIp(), Arrays.asList(10), null,
+                vip2.getServicePorts(), null);
         verify(_resource._globoNetworkApi.getVipAPI()).validate(vip.getId());
 
         assertNotNull(answer);
@@ -638,7 +642,8 @@ public class GloboNetworkResourceTest {
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).alterHealthcheck(vip.getId(), healthcheckType, _resource.buildHealthcheckString(healthcheck, vip.getHost()), expectedHealthcheckId);
+        verify(_resource._globoNetworkApi.getVipAPI()).alterHealthcheck(vip.getId(), healthcheckType, _resource.buildHealthcheckString(healthcheck, vip.getHost()),
+                expectedHealthcheckId);
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
