@@ -826,6 +826,16 @@ cloudStack.validate = {
             cloudStack.dialog.notice({
                 message: 'message.validate.instance.name'
             });
+
+        // Only lower case letters for GloboDNS (DNSAPI)
+        // FIXME Convert this code to use only regexp set as global option.
+        if (args.toLowerCase() !== args) {
+            cloudStack.dialog.notice({
+                message: 'Only lower case letters!'
+            });
+            return false;
+        }
+
         return b;
     }
 }
