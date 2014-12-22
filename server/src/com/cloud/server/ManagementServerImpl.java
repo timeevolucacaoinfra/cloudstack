@@ -37,10 +37,6 @@ import javax.crypto.spec.SecretKeySpec;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import org.apache.cloudstack.api.command.user.snapshot.UpdateSnapshotPolicyCmd;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.log4j.Logger;
-
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.affinity.AffinityGroupProcessor;
 import org.apache.cloudstack.affinity.dao.AffinityGroupVMMapDao;
@@ -327,6 +323,7 @@ import org.apache.cloudstack.api.command.user.iso.UpdateIsoPermissionsCmd;
 import org.apache.cloudstack.api.command.user.job.ListAsyncJobsCmd;
 import org.apache.cloudstack.api.command.user.job.QueryAsyncJobResultCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.AssignCertToLoadBalancerCmd;
+import org.apache.cloudstack.api.command.user.loadbalancer.AssignNetworksToLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.AssignToLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateApplicationLoadBalancerCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
@@ -345,6 +342,7 @@ import org.apache.cloudstack.api.command.user.loadbalancer.ListLoadBalancerRules
 import org.apache.cloudstack.api.command.user.loadbalancer.ListSslCertsCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.RemoveCertFromLoadBalancerCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.RemoveFromLoadBalancerRuleCmd;
+import org.apache.cloudstack.api.command.user.loadbalancer.RemoveNetworksFromLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateApplicationLoadBalancerCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateLBHealthCheckPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateLBStickinessPolicyCmd;
@@ -407,6 +405,7 @@ import org.apache.cloudstack.api.command.user.snapshot.DeleteSnapshotPoliciesCmd
 import org.apache.cloudstack.api.command.user.snapshot.ListSnapshotPoliciesCmd;
 import org.apache.cloudstack.api.command.user.snapshot.ListSnapshotsCmd;
 import org.apache.cloudstack.api.command.user.snapshot.RevertSnapshotCmd;
+import org.apache.cloudstack.api.command.user.snapshot.UpdateSnapshotPolicyCmd;
 import org.apache.cloudstack.api.command.user.ssh.CreateSSHKeyPairCmd;
 import org.apache.cloudstack.api.command.user.ssh.DeleteSSHKeyPairCmd;
 import org.apache.cloudstack.api.command.user.ssh.ListSSHKeyPairsCmd;
@@ -510,6 +509,8 @@ import org.apache.cloudstack.storage.datastore.db.ImageStoreVO;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.StoragePoolVO;
 import org.apache.cloudstack.utils.identity.ManagementServerNode;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.log4j.Logger;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.GetVncPortAnswer;
@@ -2726,6 +2727,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(ListAsyncJobsCmd.class);
         cmdList.add(QueryAsyncJobResultCmd.class);
         cmdList.add(AssignToLoadBalancerRuleCmd.class);
+        cmdList.add(AssignNetworksToLoadBalancerRuleCmd.class);
         cmdList.add(CreateLBStickinessPolicyCmd.class);
         cmdList.add(CreateLBHealthCheckPolicyCmd.class);
         cmdList.add(CreateLoadBalancerRuleCmd.class);
@@ -2737,6 +2739,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(ListLoadBalancerRuleInstancesCmd.class);
         cmdList.add(ListLoadBalancerRulesCmd.class);
         cmdList.add(RemoveFromLoadBalancerRuleCmd.class);
+        cmdList.add(RemoveNetworksFromLoadBalancerRuleCmd.class);
         cmdList.add(UpdateLoadBalancerRuleCmd.class);
         cmdList.add(CreateIpForwardingRuleCmd.class);
         cmdList.add(DeleteIpForwardingRuleCmd.class);

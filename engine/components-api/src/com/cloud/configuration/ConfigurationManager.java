@@ -19,6 +19,8 @@ package com.cloud.configuration;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.cloudstack.region.PortableIpRangeVO;
+
 import com.cloud.dc.ClusterVO;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
@@ -216,6 +218,8 @@ public interface ConfigurationManager {
         String vlanGateway, String vlanNetmask, String vlanId, Account vlanOwner, String startIPv6, String endIPv6, String vlanIp6Gateway, String vlanIp6Cidr)
         throws InsufficientCapacityException, ConcurrentOperationException, InvalidParameterValueException;
 
+    PortableIpRangeVO createPortableIpRange(Integer regionId, String startIP, String endIP, String gateway, String netmask, String vlanId);
+
     void createDefaultSystemNetworks(long zoneId) throws ConcurrentOperationException;
 
     boolean releaseAccountSpecificVirtualRanges(long accountId);
@@ -241,4 +245,6 @@ public interface ConfigurationManager {
     AllocationState findPodAllocationState(HostPodVO pod);
 
     AllocationState findClusterAllocationState(ClusterVO cluster);
+
+    boolean deletePortableIpRange(Long portableIp);
 }

@@ -176,6 +176,8 @@ import com.cloud.network.dao.FirewallRulesDao;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.LoadBalancerDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkDomainDao;
@@ -329,6 +331,7 @@ public class ApiDBUtils {
     static AccountGuestVlanMapDao s_accountGuestVlanMapDao;
     static IPAddressDao s_ipAddressDao;
     static LoadBalancerDao s_loadBalancerDao;
+    static LoadBalancerNetworkMapDao s_lbNetMapDao;
     static SecurityGroupDao s_securityGroupDao;
     static SecurityGroupJoinDao s_securityGroupJoinDao;
     static ServiceOfferingJoinDao s_serviceOfferingJoinDao;
@@ -467,6 +470,8 @@ public class ApiDBUtils {
     private IPAddressDao ipAddressDao;
     @Inject
     private LoadBalancerDao loadBalancerDao;
+    @Inject
+    private LoadBalancerNetworkMapDao lbNetMapDao;
     @Inject
     private SecurityGroupDao securityGroupDao;
     @Inject
@@ -665,6 +670,7 @@ public class ApiDBUtils {
         s_hostDao = hostDao;
         s_ipAddressDao = ipAddressDao;
         s_loadBalancerDao = loadBalancerDao;
+        s_lbNetMapDao = lbNetMapDao;
         s_networkRuleConfigDao = networkRuleConfigDao;
         s_podDao = podDao;
         s_serviceOfferingDao = serviceOfferingDao;
@@ -1876,5 +1882,9 @@ public class ApiDBUtils {
 
     public static List<ResourceTagJoinVO> listResourceTagViewByResourceUUID(String resourceUUID, ResourceObjectType resourceType) {
         return s_tagJoinDao.listBy(resourceUUID, resourceType);
+    }
+
+    public static List<LoadBalancerNetworkMapVO> listLoadBalancerAdditionalNetworks(long loadBalancerId) {
+        return s_lbNetMapDao.listByLoadBalancerId(loadBalancerId);
     }
 }

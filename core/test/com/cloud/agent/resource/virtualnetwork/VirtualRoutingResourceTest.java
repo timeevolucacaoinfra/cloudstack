@@ -853,8 +853,8 @@ public class VirtualRoutingResourceTest implements VirtualRouterDeployer {
     protected LoadBalancerConfigCommand generateLoadBalancerConfigCommand1() {
         List<LoadBalancerTO> lbs = new ArrayList<>();
         List<LbDestination> dests = new ArrayList<>();
-        dests.add(new LbDestination(80, 8080, "10.1.10.2", false));
-        dests.add(new LbDestination(80, 8080, "10.1.10.2", true));
+        dests.add(new LbDestination(80, 8080, "10.1.10.2", 10l, 20l, false));
+        dests.add(new LbDestination(80, 8080, "10.1.10.2", 10l, 20l, true));
         lbs.add(new LoadBalancerTO(UUID.randomUUID().toString(), "64.10.1.10", 80, "tcp", "algo", false, false, false, dests));
         LoadBalancerTO[] arrayLbs = new LoadBalancerTO[lbs.size()];
         lbs.toArray(arrayLbs);
@@ -868,8 +868,8 @@ public class VirtualRoutingResourceTest implements VirtualRouterDeployer {
     protected LoadBalancerConfigCommand generateLoadBalancerConfigCommand2() {
         List<LoadBalancerTO> lbs = new ArrayList<>();
         List<LbDestination> dests = new ArrayList<>();
-        dests.add(new LbDestination(80, 8080, "10.1.10.2", false));
-        dests.add(new LbDestination(80, 8080, "10.1.10.2", true));
+        dests.add(new LbDestination(80, 8080, "10.1.10.2", 10l, 20l, false));
+        dests.add(new LbDestination(80, 8080, "10.1.10.2", 10l, 20l, true));
         lbs.add(new LoadBalancerTO(UUID.randomUUID().toString(), "64.10.1.10", 80, "tcp", "algo", false, false, false, dests));
         LoadBalancerTO[] arrayLbs = new LoadBalancerTO[lbs.size()];
         lbs.toArray(arrayLbs);
