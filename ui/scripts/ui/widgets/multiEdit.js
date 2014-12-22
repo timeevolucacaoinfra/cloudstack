@@ -441,6 +441,7 @@
                                     desc: '',
                                     fields: editableFields
                                 },
+                                context: $.extend({}, {data: data}, options.context),
                                 after: function(args) {
                                     var $loading = $('<div>').addClass('loading-overlay').prependTo($dataItem);
                                     performAction({

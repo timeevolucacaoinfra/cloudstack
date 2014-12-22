@@ -71,6 +71,7 @@ import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globodns.cloudstack.api.AddGloboDnsHostCmd;
+import com.globo.globodns.cloudstack.commands.CreateLbRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateDomainCommand;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
@@ -90,6 +91,8 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             "Template id to be used when creating domains in GloboDNS", true, ConfigKey.Scope.Global);
     private static final ConfigKey<Boolean> GloboDNSOverride = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.override.entries", "true",
             "Allow GloboDns to override entries that already exist", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Boolean> GloboDNSLbOverride = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.override.lb.entries", "false",
+            "Allow GloboDns to override entries for load balancer names that already exist", true, ConfigKey.Scope.Global);
 
     // DAOs
     @Inject
@@ -268,7 +271,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride};
+        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride};
     }
 
     ////////// Resource/Host methods ////////////
@@ -384,5 +387,32 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         });
 
         return host;
+    }
+
+    // Load Balancing methods
+    @Override
+    public boolean createDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId) {
+        s_logger.debug("Creating LB DNS record " + lbRecord + " in domain " + lbDomain);
+        DataCenter zone = _dcDao.findById(zoneId);
+        if (zone == null) {
+            throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
+        }
+
+        CreateLbRecordAndReverseCommand cmd = new CreateLbRecordAndReverseCommand(lbRecord, lbIpAddress, lbDomain, GloboDNSTemplateId.value(), GloboDNSLbOverride.value());
+        callCommand(cmd, zoneId);
+        return true;
+    }
+
+    @Override
+    public boolean removeDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId) {
+        s_logger.debug("Removing LB DNS record " + lbRecord + " from domain " + lbDomain);
+        DataCenter zone = _dcDao.findById(zoneId);
+        if (zone == null) {
+            throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
+        }
+
+        RemoveRecordCommand cmd = new RemoveRecordCommand(lbRecord, lbIpAddress, lbDomain, true); // Remove record no matter what
+        callCommand(cmd, zoneId);
+        return true;
     }
 }

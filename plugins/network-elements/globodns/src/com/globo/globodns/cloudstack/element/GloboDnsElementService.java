@@ -22,4 +22,8 @@ import com.cloud.utils.component.PluggableService;
 public interface GloboDnsElementService extends PluggableService {
 
     public Host addGloboDnsHost(Long pNtwkId, String username, String password, String url);
+
+    public boolean createDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId);
+
+    public boolean removeDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId);
 }

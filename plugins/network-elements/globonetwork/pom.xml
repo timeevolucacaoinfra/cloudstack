@@ -31,11 +31,16 @@
     <dependency>
       <groupId>com.globo.globonetwork</groupId>
       <artifactId>globonetwork-client</artifactId>
-      <version>0.0.14</version>
+      <version>0.0.19</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cloudstack</groupId>
+      <artifactId>cloud-plugin-network-globodns</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
 </project>

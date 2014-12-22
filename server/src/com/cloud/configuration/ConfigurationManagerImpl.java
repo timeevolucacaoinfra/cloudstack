@@ -4824,6 +4824,17 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
         final String netmask = cmd.getNetmask();
         String vlanId = cmd.getVlan();
 
+        return createPortableIpRange(regionId, startIP, endIP, gateway, netmask, vlanId);
+    }
+
+    @Override
+    @DB
+    @ActionEvent(eventType = EventTypes.EVENT_PORTABLE_IP_RANGE_CREATE,
+    eventDescription = "creating portable ip range", async = false)
+    public PortableIpRangeVO createPortableIpRange(final Integer regionId,
+            final String startIP, final String endIP, final String gateway,
+            final String netmask, String vlanId) {
+
         final RegionVO region = _regionDao.findById(regionId);
         if (region == null) {
             throw new InvalidParameterValueException("Invalid region ID: " + regionId);
@@ -4898,10 +4909,14 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
     }
 
     @Override
+    public boolean deletePortableIpRange(DeletePortableIpRangeCmd cmd) {
+        return deletePortableIpRange(cmd.getId());
+    }
+
+    @Override
     @DB
     @ActionEvent(eventType = EventTypes.EVENT_PORTABLE_IP_RANGE_DELETE, eventDescription = "deleting portable ip range", async = false)
-    public boolean deletePortableIpRange(DeletePortableIpRangeCmd cmd) {
-        long rangeId = cmd.getId();
+    public boolean deletePortableIpRange(Long rangeId) {
 
         PortableIpRangeVO portableIpRange = _portableIpRangeDao.findById(rangeId);
         if (portableIpRange == null) {

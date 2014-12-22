@@ -129,6 +129,10 @@ public interface IpAddressManager {
     IpAddress allocatePortableIp(Account ipOwner, Account caller, long dcId, Long networkId, Long vpcID) throws ConcurrentOperationException,
         ResourceAllocationException, InsufficientAddressCapacityException;
 
+    IpAddress allocatePortableIp(Account ipOwner, Account caller, long dcId, Long networkId, Long vpcID, String requestedIp) throws ConcurrentOperationException,
+    ResourceAllocationException,
+    InsufficientAddressCapacityException;
+
     boolean releasePortableIpAddress(long addrId);
 
     IPAddressVO associatePortableIPToGuestNetwork(long ipAddrId, long networkId, boolean releaseOnFailure) throws ResourceAllocationException,

@@ -16,6 +16,7 @@ package com.globo.globonetwork.cloudstack.element;
 //KIND, either express or implied.  See the License for the
 //specific language governing permissions and limitations
 //under the License.
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
 import com.cloud.agent.api.StartupCommand;
+import com.cloud.agent.api.to.LoadBalancerTO;
 import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.dc.dao.DataCenterDao;
@@ -40,6 +42,8 @@ import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.network.ExternalLoadBalancerDeviceManager;
+import com.cloud.network.ExternalLoadBalancerDeviceManagerImpl;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Capability;
 import com.cloud.network.Network.Provider;
@@ -48,24 +52,31 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
+import com.cloud.network.PublicIpAddress;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.element.IpDeployer;
+import com.cloud.network.element.LoadBalancingServiceProvider;
 import com.cloud.network.element.NetworkElement;
+import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.network.lb.LoadBalancingRulesManager;
+import com.cloud.network.rules.LbStickinessMethod;
+import com.cloud.network.rules.LbStickinessMethod.StickinessMethodType;
+import com.cloud.network.rules.LoadBalancerContainer;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.resource.ResourceManager;
-import com.cloud.resource.ResourceStateAdapter;
 import com.cloud.resource.ServerResource;
 import com.cloud.resource.UnableDeleteHostException;
-import com.cloud.utils.component.AdapterBase;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import com.globo.globonetwork.cloudstack.resource.GloboNetworkResource;
+import com.google.gson.Gson;
 
 @Component
-@Local(value = {NetworkElement.class})
-public class GloboNetworkElement extends AdapterBase implements NetworkElement, ResourceStateAdapter {
+@Local(value = {NetworkElement.class, LoadBalancingServiceProvider.class})
+public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl implements LoadBalancingServiceProvider, IpDeployer, ExternalLoadBalancerDeviceManager {
     private static final Logger s_logger = Logger.getLogger(GloboNetworkElement.class);
 
     private static final Map<Service, Map<Capability, String>> capabilities = setCapabilities();
@@ -74,6 +85,8 @@ public class GloboNetworkElement extends AdapterBase implements NetworkElement, 
     DataCenterDao _dcDao;
     @Inject
     NetworkModel _networkManager;
+    @Inject
+    LoadBalancingRulesManager _lbManager;
     @Inject
     NetworkServiceMapDao _ntwkSrvcDao;
     @Inject
@@ -91,7 +104,39 @@ public class GloboNetworkElement extends AdapterBase implements NetworkElement, 
     }
 
     private static Map<Service, Map<Capability, String>> setCapabilities() {
+        // Set capabilities for LB service
+        Map<Capability, String> lbCapabilities = new HashMap<Capability, String>();
+        lbCapabilities.put(Capability.SupportedLBAlgorithms, "leastconn, roundrobin");
+        lbCapabilities.put(Capability.SupportedLBIsolation, "dedicated, shared");
+        lbCapabilities.put(Capability.SupportedProtocols, "tcp,udp,http");
+
+        // Specifies that load balancing rules can only be made with public IPs that aren't source NAT IPs
+        lbCapabilities.put(Capability.LoadBalancingSupportedIps, "additional");
+
+        // Support inline mode with firewall
+        lbCapabilities.put(Capability.InlineMode, "true");
+
+        //support only for public lb
+        lbCapabilities.put(Capability.LbSchemes, LoadBalancerContainer.Scheme.Public.toString());
+
+        LbStickinessMethod method;
+        List<LbStickinessMethod> methodList = new ArrayList<LbStickinessMethod>();
+        method = new LbStickinessMethod(new StickinessMethodType("Cookie"), "This is cookie based sticky method");
+        methodList.add(method);
+        method = new LbStickinessMethod(new StickinessMethodType("Source-ip"), "This is source based sticky method");
+        methodList.add(method);
+        method = new LbStickinessMethod(new StickinessMethodType("Source-ip with persistence between ports"), "This is source based sticky method with stickiness between ports");
+        methodList.add(method);
+
+        Gson gson = new Gson();
+        String stickyMethodList = gson.toJson(methodList);
+        lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
+
+        // Healthcheck
+        lbCapabilities.put(Capability.HealthCheckPolicy, "true");
+
         Map<Service, Map<Capability, String>> capabilities = new HashMap<Service, Map<Capability, String>>();
+        capabilities.put(Service.Lb, lbCapabilities);
         return capabilities;
     }
 
@@ -101,10 +146,8 @@ public class GloboNetworkElement extends AdapterBase implements NetworkElement, 
     }
 
     @Override
-    public boolean configure(String name, Map<String, Object> params)
-            throws ConfigurationException {
+    public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
         super.configure(name, params);
-        _resourceMgr.registerResourceStateAdapter(name, this);
         return true;
     }
 
@@ -138,7 +181,10 @@ public class GloboNetworkElement extends AdapterBase implements NetworkElement, 
 
     @Override
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
-        return true;
+        // Even though removing a VM will clean up load balancing resources later on,
+        // we have to make sure VM is removed from the load balancer in GloboNetwork
+        // before attempting to remove its NIC
+        return _lbManager.removeVmFromLoadBalancers(vm.getId());
     }
 
     @Override
@@ -168,6 +214,38 @@ public class GloboNetworkElement extends AdapterBase implements NetworkElement, 
             _resourceMgr.deleteHost(host.getId(), true, false);
         }
         return true;
+    }
+
+    @Override
+    public IpDeployer getIpDeployer(Network network) {
+        return this;
+    }
+
+    @Override
+    public boolean applyLBRules(Network config, List<LoadBalancingRule> rules) throws ResourceUnavailableException {
+        boolean returnValue = true;
+        boolean result = false;
+        for (LoadBalancingRule loadBalancingRule : rules) {
+            result = _globoNetworkService.applyLbRuleInGloboNetwork(config, loadBalancingRule);
+            // Make sure the method returns false if there is at least one false return
+            returnValue = returnValue && result;
+        }
+        return returnValue;
+    }
+
+    @Override
+    public boolean validateLBRule(Network network, LoadBalancingRule rule) {
+        return _globoNetworkService.validateLBRule(network, rule);
+    }
+
+    @Override
+    public boolean applyIps(Network network, List<? extends PublicIpAddress> ipAddress, Set<Service> services) throws ResourceUnavailableException {
+        return true;
+    }
+
+    @Override
+    public List<LoadBalancerTO> updateHealthChecks(Network network, List<LoadBalancingRule> lbrules) {
+        return null;
     }
 
     @Override

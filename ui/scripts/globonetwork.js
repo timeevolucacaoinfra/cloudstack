@@ -135,89 +135,6 @@ globoNetworkAPI = globoNetworkAPI || {};
                         }
                     },
 
-                    scope: {
-                        label: 'label.scope',
-                        select: function(args) {
-                            var selectedZoneId = args.zoneId;
-                            var selectedZoneObj = {};
-                            if (globoNetworkAPI.networkDialog.zoneObjs && selectedZoneId) {
-                                for (var index in globoNetworkAPI.networkDialog.zoneObjs) {
-                                    if (globoNetworkAPI.networkDialog.zoneObjs[index].id == selectedZoneId) {
-                                        selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[index];
-                                        break;
-                                    }
-                                }
-                            }
-
-                            var array1 = [];
-                            if (selectedZoneObj.networktype === "Advanced" && selectedZoneObj.securitygroupsenabled) {
-                                array1.push({
-                                    id: 'zone-wide',
-                                    description: 'All'
-                                });
-                            } else {
-                                if (isAdmin()) {
-                                    array1.push({
-                                        id: 'zone-wide',
-                                        description: 'All'
-                                    });
-                                }
-                                if (isAdmin() || isDomainAdmin()) {
-                                    array1.push({
-                                        id: 'domain-specific',
-                                        description: 'Domain'
-                                    });
-                                    array1.push({
-                                        id: 'account-specific',
-                                        description: 'Account'
-                                    });
-                                    array1.push({
-                                        id: 'project-specific',
-                                        description: 'Project'
-                                    });
-                                } else if (isUser()) {
-                                    array1.push({
-                                        id: 'my-account',
-                                        description: 'My Account'
-                                    });
-                                    array1.push({
-                                        id: 'project-specific',
-                                        description: 'Project'
-                                    });
-                                }
-                            }
-                            args.response.success({
-                                data: array1
-                            });
-
-                            args.$select.change(function() {
-                                var $form = $(this).closest('form');
-                                if ($(this).val() == "zone-wide" || $(this).val() == "my-account") {
-                                    $form.find('.form-item[rel=domainId]').hide();
-                                    $form.find('.form-item[rel=subdomainaccess]').hide();
-                                    $form.find('.form-item[rel=account]').hide();
-                                    $form.find('.form-item[rel=projectId]').hide();
-                                } else if ($(this).val() == "domain-specific") {
-                                    $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
-                                    $form.find('.form-item[rel=subdomainaccess]').css('display', 'inline-block');
-                                    $form.find('.form-item[rel=account]').hide();
-                                    $form.find('.form-item[rel=projectId]').hide();
-                                } else if ($(this).val() == "account-specific") {
-                                    $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
-                                    $form.find('.form-item[rel=subdomainaccess]').hide();
-                                    $form.find('.form-item[rel=account]').css('display', 'inline-block');
-                                    $form.find('.form-item[rel=projectId]').hide();
-                                } else if ($(this).val() == "project-specific") {
-                                    if (isAdmin() || isDomainAdmin()) {
-                                        $form.find('.form-item[rel=domainId]').css('display', 'inline-block');
-                                        $form.find('.form-item[rel=subdomainaccess]').hide();
-                                        $form.find('.form-item[rel=account]').hide();
-                                    }
-                                    $form.find('.form-item[rel=projectId]').css('display', 'inline-block');
-                                }
-                            });
-                        }
-                    },
                     domainId: {
                         label: 'label.domain',
                         validation: {
@@ -294,36 +211,6 @@ globoNetworkAPI = globoNetworkAPI || {};
                         label: 'label.subdomain.access',
                         isBoolean: true,
                         isHidden: true,
-                    },
-                    account: {
-                        label: 'label.account'
-                    },
-
-                    projectId: {
-                        label: 'label.project',
-                        validation: {
-                            required: true
-                        },
-                        select: function(args) {
-                            var items = [];
-                            $.ajax({
-                                url: createURL("listProjects&listAll=true"),
-                                dataType: "json",
-                                async: false,
-                                success: function(json) {
-                                    projectObjs = json.listprojectsresponse.project;
-                                    $(projectObjs).each(function() {
-                                        items.push({
-                                            id: this.id,
-                                            description: this.name
-                                        });
-                                    });
-                                }
-                            });
-                            args.response.success({
-                                data: items
-                            });
-                        }
                     },
 
                     networkOfferingId: {
@@ -424,40 +311,19 @@ globoNetworkAPI = globoNetworkAPI || {};
                     array1.push("&networkdomain=" + todb(args.data.networkdomain));
                 }
 
-                if ($form.find('.form-item[rel=domainId]').css("display") != "none") {
+                if (args.context.projects && args.context.projects[0].id) {
+                    // Network is created in project, if it's in the context
+                    // Otherwise, create in user's account
+                    array1.push("&projectid=" + args.context.projects[0].id);
+                } else {
                     array1.push("&domainId=" + args.data.domainId);
-
-                    if ($form.find('.form-item[rel=account]').css("display") != "none") { //account-specific
-                        array1.push("&account=" + args.data.account);
-                        array1.push("&acltype=account");
-                    } else if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific
-                        array1.push("&projectid=" + args.data.projectId);
-                        array1.push("&acltype=account");
-                    } else { //domain-specific
-                        array1.push("&acltype=domain");
-
-                        if ($form.find('.form-item[rel=subdomainaccess]:visible input:checked').size())
-                            array1.push("&subdomainaccess=true");
-                        else
-                            array1.push("&subdomainaccess=false");
-                    }
-                } else { //zone-wide
-                    if (isAdmin() || isDomainAdmin()) {
-                        array1.push("&acltype=domain"); //server-side will make it Root domain (i.e. domainid=1)
-                    } else if (isUser()) {
-                        array1.push("&acltype=account");
-
-                        if ($form.find('.form-item[rel=projectId]').css("display") != "none") { //project-specific for user
-                            array1.push("&projectid=" + args.data.projectId);
-                        } else { // account-specific for user
-                            array1.push("&domainId=" + args.data.domainId); // user's domain
-                            array1.push("&account=" + args.context.users[0].account); // current user's account
-                        }
-                    }
+                    array1.push("&account=" + args.context.users[0].account);
                 }
 
+                array1.push("&acltype=account");
+
                 $.ajax({
-                    url: createURL("addNetworkViaGloboNetworkCmd" + array1.join(""), {
+                    url: createURL("addNetworkViaGloboNetwork" + array1.join(""), {
                         ignoreProject: true
                     }),
                     dataType: "json",

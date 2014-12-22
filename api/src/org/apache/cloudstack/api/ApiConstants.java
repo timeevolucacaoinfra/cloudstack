@@ -266,6 +266,7 @@ public class ApiConstants {
     public static final String VIRTUAL_MACHINE_ID = "virtualmachineid";
     public static final String VIRTUAL_MACHINE_IDS = "virtualmachineids";
     public static final String VIRTUAL_MACHINE_ID_IP = "vmidipmap";
+    public static final String VIP_ID = "vipid";
 
     public static final String VLAN = "vlan";
     public static final String VLAN_RANGE = "vlanrange";

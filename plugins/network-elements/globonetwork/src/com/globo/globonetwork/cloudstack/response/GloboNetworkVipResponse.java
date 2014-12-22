@@ -30,6 +30,8 @@ public class GloboNetworkVipResponse extends Answer {
     private Long id;
     private String name;
     private String ip;
+    private Long ipId;
+    private Long lbEnvironmentId;
     private String cache;
     private String method;
     private String persistence;
@@ -39,13 +41,16 @@ public class GloboNetworkVipResponse extends Answer {
     private Integer maxConn;
     private List<String> ports;
     private List<Real> reals;
+    private Boolean created;
 
-    public GloboNetworkVipResponse(Command command, Long id, String name, String ip, String network, String cache, String method, String persistence, String healthcheckType,
-            String healthcheck, Integer maxConn, Collection<String> ports, Collection<Real> reals) {
+    public GloboNetworkVipResponse(Command command, Long id, String name, String ip, Long ipId, Long lbEnvironmentId, String network, String cache, String method,
+            String persistence, String healthcheckType, String healthcheck, Integer maxConn, Collection<String> ports, Collection<Real> reals, Boolean created) {
         super(command, true, null);
         this.id = id;
         this.name = name;
         this.ip = ip;
+        this.ipId = ipId;
+        this.lbEnvironmentId = lbEnvironmentId;
         this.cache = cache;
         this.method = method;
         this.persistence = persistence;
@@ -54,6 +59,7 @@ public class GloboNetworkVipResponse extends Answer {
         this.maxConn = maxConn;
         this.ports = new ArrayList<String>(ports);
         this.reals = new ArrayList<Real>(reals);
+        this.setCreated(created);
     }
 
     public Long getId() {
@@ -74,6 +80,14 @@ public class GloboNetworkVipResponse extends Answer {
 
     public String getIp() {
         return ip;
+    }
+
+    public Long getIpId() {
+        return this.ipId;
+    }
+
+    public void setIpId(Long ipId) {
+        this.ipId = ipId;
     }
 
     public void setIp(String ip) {
@@ -152,6 +166,22 @@ public class GloboNetworkVipResponse extends Answer {
         this.networkIds = networkIds;
     }
 
+    public Boolean getCreated() {
+        return created;
+    }
+
+    public void setCreated(Boolean created) {
+        this.created = created;
+    }
+
+    public Long getLbEnvironmentId() {
+        return lbEnvironmentId;
+    }
+
+    public void setLbEnvironmentId(Long lbEnvironmentId) {
+        this.lbEnvironmentId = lbEnvironmentId;
+    }
+
     public static class Real extends BaseResponse {
         private String vmName;
 
@@ -159,11 +189,15 @@ public class GloboNetworkVipResponse extends Answer {
 
         private String network;
 
+        private Long environmentId;
+
         private List<String> ports;
 
         private Boolean state;
 
         private String nic;
+
+        private boolean isRevoked;
 
         public String getVmName() {
             return vmName;
@@ -214,6 +248,22 @@ public class GloboNetworkVipResponse extends Answer {
 
         public void setNic(String nic) {
             this.nic = nic;
+        }
+
+        public boolean isRevoked() {
+            return isRevoked;
+        }
+
+        public void setRevoked(boolean isRevoked) {
+            this.isRevoked = isRevoked;
+        }
+
+        public Long getEnvironmentId() {
+            return environmentId;
+        }
+
+        public void setEnvironmentId(Long environmentId) {
+            this.environmentId = environmentId;
         }
     }
 }
