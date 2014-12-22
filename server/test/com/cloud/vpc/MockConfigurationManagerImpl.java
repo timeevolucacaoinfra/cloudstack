@@ -52,6 +52,7 @@ import org.apache.cloudstack.api.command.user.network.ListNetworkOfferingsCmd;
 import org.apache.cloudstack.config.Configuration;
 import org.apache.cloudstack.region.PortableIp;
 import org.apache.cloudstack.region.PortableIpRange;
+import org.apache.cloudstack.region.PortableIpRangeVO;
 
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.ConfigurationService;
@@ -328,7 +329,17 @@ public class MockConfigurationManagerImpl extends ManagerBase implements Configu
     }
 
     @Override
+    public PortableIpRangeVO createPortableIpRange(Integer regionId, String startIP, String endIP, String gateway, String netmask, String vlanId) {
+        return null;// TODO Auto-generated method stub
+    }
+
+    @Override
     public boolean deletePortableIpRange(DeletePortableIpRangeCmd cmd) {
+        return false;// TODO Auto-generated method stub
+    }
+
+    @Override
+    public boolean deletePortableIpRange(Long rangeId) {
         return false;// TODO Auto-generated method stub
     }
 
