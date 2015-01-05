@@ -1912,8 +1912,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             String lbDomain = null;
             for (String allowedDomain : allowedDomains) {
+                // Remove any whitespaces
+                allowedDomain = allowedDomain.trim();
+                // Insert the '.' before the domain, if it's not there yet
+                allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
                 if (rule.getName().endsWith(allowedDomain)) {
-                    lbDomain = allowedDomain;
+                    lbDomain = allowedDomain.substring(1); // Remove '.' again for later use in GloboDNS provider
                     break;
                 }
             }
@@ -2034,6 +2038,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             String lbDomain = null;
             for (String allowedDomain : allowedDomains) {
+                // Remove any whitespaces
+                allowedDomain = allowedDomain.trim();
+                // Insert the '.' before the domain, if it's not there yet
+                allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
                 if (rule.getName().endsWith(allowedDomain)) {
                     lbDomain = allowedDomain;
                     break;
