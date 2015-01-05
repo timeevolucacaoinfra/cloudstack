@@ -135,84 +135,6 @@ globoNetworkAPI = globoNetworkAPI || {};
                         }
                     },
 
-                    domainId: {
-                        label: 'label.domain',
-                        validation: {
-                            required: true
-                        },
-                        select: function(args) {
-                            var items = [];
-                            var selectedZoneId = args.zoneId;
-                            var selectedZoneObj = {};
-                            if (globoNetworkAPI.networkDialog.zoneObjs && selectedZoneId) {
-                                for (var index in globoNetworkAPI.networkDialog.zoneObjs) {
-                                    if (globoNetworkAPI.networkDialog.zoneObjs[index].id == selectedZoneId) {
-                                        selectedZoneObj = globoNetworkAPI.networkDialog.zoneObjs[index];
-                                        break;
-                                    }
-                                }
-                            }
-                            if (isUser()) {
-                                // If it is a regular user, send his own domainID
-                                items.push({
-                                    id: args.context.users[0].domainid,
-                                });
-                            } else if (selectedZoneObj.domainid) { //list only domains under selectedZoneObj.domainid
-                                $.ajax({
-                                    url: createURL("listDomainChildren&id=" + selectedZoneObj.domainid + "&isrecursive=true"),
-                                    dataType: "json",
-                                    async: false,
-                                    success: function(json) {
-                                        var domainObjs = json.listdomainchildrenresponse.domain;
-                                        $(domainObjs).each(function() {
-                                            items.push({
-                                                id: this.id,
-                                                description: this.path
-                                            });
-                                        });
-                                    }
-                                });
-                                $.ajax({
-                                    url: createURL("listDomains&id=" + selectedZoneObj.domainid),
-                                    dataType: "json",
-                                    async: false,
-                                    success: function(json) {
-                                        var domainObjs = json.listdomainsresponse.domain;
-                                        $(domainObjs).each(function() {
-                                            items.push({
-                                                id: this.id,
-                                                description: this.path
-                                            });
-                                        });
-                                    }
-                                });
-                            } else { //list all domains
-                                $.ajax({
-                                    url: createURL("listDomains&listAll=true"),
-                                    dataType: "json",
-                                    async: false,
-                                    success: function(json) {
-                                        var domainObjs = json.listdomainsresponse.domain;
-                                        $(domainObjs).each(function() {
-                                            items.push({
-                                                id: this.id,
-                                                description: this.path
-                                            });
-                                        });
-                                    }
-                                });
-                            }
-                            args.response.success({
-                                data: items
-                            });
-                        }
-                    },
-                    subdomainaccess: {
-                        label: 'label.subdomain.access',
-                        isBoolean: true,
-                        isHidden: true,
-                    },
-
                     networkOfferingId: {
                         label: 'label.network.offering',
                         dependsOn: ['zoneId', 'scope'],
@@ -316,7 +238,7 @@ globoNetworkAPI = globoNetworkAPI || {};
                     // Otherwise, create in user's account
                     array1.push("&projectid=" + args.context.projects[0].id);
                 } else {
-                    array1.push("&domainId=" + args.data.domainId);
+                    array1.push("&domainId=" + args.context.users[0].domainid);
                     array1.push("&account=" + args.context.users[0].account);
                 }
 
@@ -553,6 +475,144 @@ globoNetworkAPI = globoNetworkAPI || {};
                                     }
                                 }
                             },
+                        },
+                        detailView: {
+                            tabs: {
+                                lbenvironments: {
+                                    title: 'LB Environments',
+                                    listView: {
+                                        label: 'LB Environments',
+                                        id: 'globolbenvironments',
+                                        fields: {
+                                            name: {
+                                                label: 'Local Name'
+                                            },
+                                            globonetworklbenvironmentid: {
+                                                label: 'Load Balancer Environment ID'
+                                            }
+                                        },
+                                        dataProvider: function(args) {
+                                            var filter;
+                                            if (args.filterBy.search.value) {
+                                                filter = args.filterBy.search.value;
+                                            }
+
+                                            var items = [];
+                                            $.ajax({
+                                                url: createURL("listGloboNetworkLBEnvironments&physicalnetworkid=" + getSelectedPhysicalNetworkObj().id + "&environmentid=" + args.context.napienvironments[0].environmentid),
+                                                success: function(json) {
+                                                    $(json.listglobonetworklbenvironmentsresponse.globonetworklbenvironments).each(function() {
+                                                        if (this.name.match(new RegExp(filter, "i"))) {
+                                                            items.push({
+                                                                name: this.name,
+                                                                globonetworklbenvironmentid: this.globonetworklbenvironmentid,
+                                                            });
+                                                        }
+                                                    });
+                                                    args.response.success({
+                                                        data: items
+                                                    });
+                                                }
+                                            });
+                                        },
+                                        actions: {
+                                            add: {
+                                                label: 'Add LB Environment',
+                                                createForm: {
+                                                    title: 'Add LB Environment',
+                                                    fields: {
+                                                        name: {
+                                                            label: 'Name',
+                                                            validation: {
+                                                                required: true
+                                                            }
+                                                        },
+                                                        globolbenvironmentid: {
+                                                            label: 'LB Environment ID',
+                                                            validation: {
+                                                                required: true
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                action: function(args) {
+                                                    var physicalnetworkid = getSelectedPhysicalNetworkObj().id;
+                                                    var environmentid = args.context.napienvironments[0].environmentid;
+                                                    var globolbenvironmentid = args.data.globolbenvironmentid;
+                                                    var name = args.data.name;
+                                                    $.ajax({
+                                                        url: createURL("addGloboNetworkLBEnvironment"),
+                                                        data: {
+                                                            physicalnetworkid: physicalnetworkid,
+                                                            napienvironmentid: environmentid,
+                                                            globolbenvironmentid: globolbenvironmentid,
+                                                            name: name
+                                                        },
+                                                        dataType: "json",
+                                                        async: true,
+                                                        success: function(json) {
+                                                            args.response.success();
+                                                            setTimeout(function() {
+                                                                $(window).trigger('cloudStack.fullRefresh');
+                                                            }, 500);
+                                                        },
+                                                        error: function(errorMessage) {
+                                                            args.response.error(parseXMLHttpResponse(errorMessage));
+                                                        }
+                                                    });
+                                                },
+                                                messages: {
+                                                    notification: function(args) {
+                                                        return 'Add LB Environment';
+                                                    }
+                                                },
+                                                notification: {
+                                                    poll: function(args) {
+                                                        args.complete();
+                                                    }
+                                                }
+                                            },
+                                            remove: {
+                                                label: 'label.remove',
+                                                messages: {
+                                                    confirm: function(args) {
+                                                        return 'Are you sure you want to remove LB Environment ' + args.context.globolbenvironments[0].name + '(' + args.context.globolbenvironments[0].globonetworklbenvironmentid + ')?';
+                                                    },
+                                                    notification: function(args) {
+                                                        return 'Remove Load Balancer Environment';
+                                                    }
+                                                },
+                                                action: function(args) {
+                                                    var physicalnetworkid = getSelectedPhysicalNetworkObj().id;
+                                                    var environmentid = args.context.napienvironments[0].environmentid;
+                                                    var globolbenvironmentid = args.context.globolbenvironments[0].globonetworklbenvironmentid;
+                                                    $.ajax({
+                                                        url: createURL("removeGloboNetworkLBEnvironment"),
+                                                        data: {
+                                                            physicalnetworkid: physicalnetworkid,
+                                                            napienvironmentid: environmentid,
+                                                            globolbenvironmentid: globolbenvironmentid
+                                                        },
+                                                        dataType: "json",
+                                                        success: function(json) {
+                                                            args.response.success();
+                                                        },
+                                                        error: function(XMLHttpResponse) {
+                                                            var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                                            args.response.error(errorMsg);
+                                                        }
+                                                    });
+                                                },
+                                                notification: {
+                                                    poll: function(args) {
+                                                        args.complete();
+                                                    }
+                                                }
+                                            },
+                                        },
+                                    }
+                                }
+                            }
                         },
                     }
                 }

@@ -607,6 +607,7 @@ dictionary = {
 'label.firewall': '<fmt:message key="label.firewall" />',
 'label.first.name': '<fmt:message key="label.first.name" />',
 'label.format': '<fmt:message key="label.format" />',
+'label.fqdn': '<fmt:message key="label.fqdn" />',
 'label.friday': '<fmt:message key="label.friday" />',
 'label.full': '<fmt:message key="label.full" />',
 'label.full.path': '<fmt:message key="label.full.path" />',
