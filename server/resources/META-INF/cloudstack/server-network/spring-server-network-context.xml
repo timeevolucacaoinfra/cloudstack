@@ -42,9 +42,11 @@
     <bean id="ControlNetworkGuru" class="com.cloud.network.guru.ControlNetworkGuru">
         <property name="name" value="ControlNetworkGuru" />
     </bean>
+    <!--
     <bean id="DirectNetworkGuru" class="com.cloud.network.guru.DirectNetworkGuru">
         <property name="name" value="DirectNetworkGuru" />
     </bean>
+    -->
     <bean id="DirectPodBasedNetworkGuru" class="com.cloud.network.guru.DirectPodBasedNetworkGuru">
         <property name="name" value="DirectPodBasedNetworkGuru" />
     </bean>
