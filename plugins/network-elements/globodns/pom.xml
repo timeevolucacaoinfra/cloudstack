@@ -33,5 +33,15 @@
       <artifactId>globodns-client</artifactId>
       <version>0.0.15</version>
     </dependency>
+    <dependency>
+      <groupId>net.kencochrane.raven</groupId>
+      <artifactId>raven</artifactId>
+      <version>4.2</version>
+    </dependency>
+    <dependency>
+      <groupId>net.kencochrane.raven</groupId>
+      <artifactId>raven-log4j</artifactId>
+      <version>4.2</version>
+    </dependency>
   </dependencies>
 </project>

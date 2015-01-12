@@ -42,5 +42,15 @@
       <artifactId>cloud-plugin-network-globodns</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>net.kencochrane.raven</groupId>
+      <artifactId>raven</artifactId>
+      <version>4.2</version>
+    </dependency>
+    <dependency>
+      <groupId>net.kencochrane.raven</groupId>
+      <artifactId>raven-log4j</artifactId>
+      <version>4.2</version>
+    </dependency>
   </dependencies>
 </project>

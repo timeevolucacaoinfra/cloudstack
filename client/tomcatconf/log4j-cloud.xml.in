@@ -115,6 +115,11 @@ under the License.
       </layout>
    </appender>
 
+   <appender name="SENTRY" class="net.kencochrane.raven.log4j.SentryAppender">
+      <param name="Threshold" value="ERROR"/>
+      <param name="dsn" value="http://7e23ed87173f4f46a8fdab7bb44f6462:e66438423ba84c8496fdb4a5119e643a@ce.be.dev.globoi.com/38"/>
+   </appender>
+
    <!-- ================ -->
    <!-- Limit categories -->
    <!-- ================ -->
@@ -212,6 +217,7 @@ under the License.
       <appender-ref ref="SYSLOG"/>
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
+      <appender-ref ref="SENTRY"/>
    </root>
 
 </log4j:configuration>
