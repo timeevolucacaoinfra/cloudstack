@@ -503,9 +503,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         final GloboNetworkVlanResponse vlanResponse = (GloboNetworkVlanResponse)callCommand(cmd, zoneId);
 
-        long networkAddresLong = vlanResponse.getNetworkAddress().toLong();
-        String networkAddress = NetUtils.long2Ip(networkAddresLong);
-        final String netmask = vlanResponse.getMask().ip4();
+        String networkAddress = vlanResponse.getNetworkAddress();
+        final String netmask = vlanResponse.getMask();
+        // FIXME This does not work with IPv6!
         final String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, netmask);
 
         String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
@@ -666,13 +666,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         Answer answer = callCommand(cmd, network.getDataCenterId());
 
         GloboNetworkVlanResponse vlanResponse = (GloboNetworkVlanResponse)answer;
-        vlanResponse.getNetworkAddress();
         Long networkId = vlanResponse.getNetworkId();
         if (!vlanResponse.isActive()) {
             // Create network in equipment
-            ActivateNetworkCommand cmd_creation = new ActivateNetworkCommand(vlanId, networkId);
-            Answer creation_answer = callCommand(cmd_creation, network.getDataCenterId());
-            if (creation_answer == null || !creation_answer.getResult()) {
+            ActivateNetworkCommand activateCmd = new ActivateNetworkCommand(vlanId, networkId, vlanResponse.isv6());
+            Answer cmdAnswer = callCommand(activateCmd, network.getDataCenterId());
+            if (cmdAnswer == null || !cmdAnswer.getResult()) {
                 throw new CloudRuntimeException("Unable to create network in GloboNetwork: VlanId " + vlanId + " networkId " + networkId);
             }
             s_logger.info("Network ready to use: VlanId " + vlanId + " networkId " + networkId);

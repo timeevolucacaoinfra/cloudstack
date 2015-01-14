@@ -24,9 +24,12 @@ public class ActivateNetworkCommand extends Command {
 
     private long vlanId;
 
-    public ActivateNetworkCommand(long vlanId, long networkId) {
+    private boolean isv6;
+
+    public ActivateNetworkCommand(long vlanId, long networkId, boolean isv6) {
         this.vlanId = vlanId;
         this.networkId = networkId;
+        this.isv6 = isv6;
     }
 
     @Override
@@ -42,4 +45,7 @@ public class ActivateNetworkCommand extends Command {
         return vlanId;
     }
 
+    public boolean isv6() {
+        return isv6;
+    }
 }

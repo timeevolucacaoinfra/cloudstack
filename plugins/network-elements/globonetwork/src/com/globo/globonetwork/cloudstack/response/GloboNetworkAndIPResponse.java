@@ -38,8 +38,6 @@ public class GloboNetworkAndIPResponse extends Answer {
 
     private String networkMask;
 
-    private String networkBroadcast;
-
     private String networkGateway;
 
     private String networkCidr;
@@ -59,7 +57,7 @@ public class GloboNetworkAndIPResponse extends Answer {
     }
 
     public GloboNetworkAndIPResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Integer vlanNum, boolean isActive, Long networkId,
-            String networkAddress, String networkMask, String networkBroadcast, String networkGateway, String networkCidr, Long ipId, Ip ip, Long vipEnvironmentId) {
+            String networkAddress, String networkMask, String networkGateway, String networkCidr, Long ipId, Ip ip, Long vipEnvironmentId) {
         this(command);
         this.vlanId = vlanId;
         this.vlanName = vlanName;
@@ -67,7 +65,6 @@ public class GloboNetworkAndIPResponse extends Answer {
         this.vlanNum = vlanNum;
         this.networkAddress = networkAddress;
         this.networkMask = networkMask;
-        this.networkBroadcast = networkBroadcast;
         this.networkGateway = networkGateway;
         this.networkCidr = networkCidr;
         this.networkId = networkId;
@@ -131,14 +128,6 @@ public class GloboNetworkAndIPResponse extends Answer {
 
     public void setNetworkAddress(String networkAddress) {
         this.networkAddress = networkAddress;
-    }
-
-    public String getNetworkBroadcast() {
-        return networkBroadcast;
-    }
-
-    public void setNetworkBroadcast(String networkBroadcast) {
-        this.networkBroadcast = networkBroadcast;
     }
 
     public Long getIpId() {
