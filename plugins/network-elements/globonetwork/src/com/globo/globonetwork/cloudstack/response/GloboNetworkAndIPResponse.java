@@ -18,7 +18,6 @@ package com.globo.globonetwork.cloudstack.response;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.cloud.utils.net.Ip;
 
 public class GloboNetworkAndIPResponse extends Answer {
 
@@ -38,11 +37,11 @@ public class GloboNetworkAndIPResponse extends Answer {
 
     private String networkMask;
 
-    private String networkGateway;
-
     private String networkCidr;
 
     private boolean isActive;
+
+    private boolean isv6;
 
     // Vip information (optional)
     private Long vipEnvironmentId;
@@ -50,14 +49,14 @@ public class GloboNetworkAndIPResponse extends Answer {
     // Ip information (optional)
     private Long ipId;
 
-    private Ip ip;
+    private String ip;
 
     public GloboNetworkAndIPResponse(Command command) {
         super(command, true, null);
     }
 
     public GloboNetworkAndIPResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Integer vlanNum, boolean isActive, Long networkId,
-            String networkAddress, String networkMask, String networkGateway, String networkCidr, Long ipId, Ip ip, Long vipEnvironmentId) {
+            String networkAddress, String networkMask, String networkCidr, Long ipId, String ip, Long vipEnvironmentId, boolean isv6) {
         this(command);
         this.vlanId = vlanId;
         this.vlanName = vlanName;
@@ -65,13 +64,13 @@ public class GloboNetworkAndIPResponse extends Answer {
         this.vlanNum = vlanNum;
         this.networkAddress = networkAddress;
         this.networkMask = networkMask;
-        this.networkGateway = networkGateway;
         this.networkCidr = networkCidr;
         this.networkId = networkId;
         this.isActive = isActive;
         this.ipId = ipId;
         this.ip = ip;
         this.vipEnvironmentId = vipEnvironmentId;
+        this.setIsv6(isv6);
     }
 
     public Long getVlanId() {
@@ -138,20 +137,12 @@ public class GloboNetworkAndIPResponse extends Answer {
         this.ipId = ipId;
     }
 
-    public Ip getIp() {
+    public String getIp() {
         return ip;
     }
 
-    public void setIp(Ip ip) {
+    public void setIp(String ip) {
         this.ip = ip;
-    }
-
-    public String getNetworkGateway() {
-        return networkGateway;
-    }
-
-    public void setNetworkGateway(String networkGateway) {
-        this.networkGateway = networkGateway;
     }
 
     public String getNetworkMask() {
@@ -176,6 +167,14 @@ public class GloboNetworkAndIPResponse extends Answer {
 
     public void setVipEnvironmentId(Long vipEnvironmentId) {
         this.vipEnvironmentId = vipEnvironmentId;
+    }
+
+    public boolean isv6() {
+        return isv6;
+    }
+
+    public void setIsv6(boolean isv6) {
+        this.isv6 = isv6;
     }
 
 }

@@ -17,7 +17,9 @@
 
 package com.globo.globonetwork.cloudstack.manager;
 
+import java.math.BigInteger;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -86,6 +88,7 @@ import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.Networks.BroadcastDomainType;
 import com.cloud.network.PhysicalNetwork;
+import com.cloud.network.UserIpv6AddressVO;
 import com.cloud.network.addr.PublicIp;
 import com.cloud.network.dao.IPAddressDao;
 import com.cloud.network.dao.IPAddressVO;
@@ -94,6 +97,7 @@ import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
+import com.cloud.network.dao.UserIpv6AddressDao;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.lb.LoadBalancingRule.LbDestination;
@@ -181,7 +185,6 @@ import com.globo.globonetwork.cloudstack.commands.ReleaseIpFromGloboNetworkComma
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UnregisterEquipmentAndIpInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkIpDetailDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkLoadBalancerEnvironmentDAO;
@@ -285,6 +288,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     GloboNetworkIpDetailDao _globoNetworkIpDetailDao;
     @Inject
     PortableIpDao _portableIpDao;
+    @Inject
+    UserIpv6AddressDao _ipv6AddrDao;
 
     // Managers
     @Inject
@@ -506,21 +511,45 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         String networkAddress = vlanResponse.getNetworkAddress();
         final String netmask = vlanResponse.getMask();
         // FIXME This does not work with IPv6!
-        final String cidr = NetUtils.ipAndNetMaskToCidr(networkAddress, netmask);
+        final String cidr = networkAddress + "/" + vlanResponse.getBlock();
 
-        String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
-        final String gateway = ranges[0];
-        final String startIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[0]) + NUMBER_OF_RESERVED_IPS_FROM_START);
-        final String endIP = NetUtils.long2Ip(NetUtils.ip2Long(ranges[1]) - NUMBER_OF_RESERVED_IPS_BEFORE_END);
+        String gatewayStr = null;
+        String startIPStr = null;
+        String endIPStr = null;
         final Long vlanNum = vlanResponse.getVlanNum();
-        // NO IPv6 support yet
-        final String startIPv6 = null;
-        final String endIPv6 = null;
-        final String ip6Gateway = null;
-        final String ip6Cidr = null;
+
+        String startIPv6Str = null;
+        String endIPv6Str = null;
+        String ip6GatewayStr = null;
+
+        if (vlanResponse.isv6()) {
+            com.googlecode.ipv6.IPv6Network ipv6Network = com.googlecode.ipv6.IPv6Network.fromString(cidr);
+            com.googlecode.ipv6.IPv6Address ipv6Start = ipv6Network.getFirst();
+            ip6GatewayStr = ipv6Start.toString();
+            ipv6Start.add(NUMBER_OF_RESERVED_IPS_FROM_START);
+            startIPv6Str = ipv6Start.toString();
+
+            com.googlecode.ipv6.IPv6Address ipv6End = ipv6Network.getLast();
+            ipv6End.subtract(NUMBER_OF_RESERVED_IPS_BEFORE_END);
+            endIPv6Str = ipv6End.toString();
+        } else {
+            String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
+            gatewayStr = ranges[0];
+            startIPStr = NetUtils.long2Ip(NetUtils.ip2Long(ranges[0]) + NUMBER_OF_RESERVED_IPS_FROM_START);
+            endIPStr = NetUtils.long2Ip(NetUtils.ip2Long(ranges[1]) - NUMBER_OF_RESERVED_IPS_BEFORE_END);
+        }
+
+        final String startIP = startIPStr;
+        final String endIP = endIPStr;
+        final String gateway = gatewayStr;
+
+        final String startIPv6 = startIPv6Str;
+        final String endIPv6 = endIPv6Str;
+        final String ip6Gateway = ip6GatewayStr;
+        final String ip6Cidr = cidr;
 
         s_logger.info("Creating network with name " + vlanResponse.getVlanName() + " (" + vlanResponse.getVlanId() + "), network " + networkAddress + " gateway " + gateway
-                + " startIp " + startIP + " endIp " + endIP + " cidr " + cidr);
+                + " startIp " + startIP + " endIp " + endIP + " cidr " + cidr + " startIPv6 " + startIPv6 + " end IPv6 " + endIPv6 + " IPv6 gateway " + ip6Gateway);
         /////// End of GloboNetwork specific code ///////
 
         Network network = Transaction.execute(new TransactionCallbackWithException<Network, CloudException>() {
@@ -637,16 +666,51 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapcityException,
             InsufficientAddressCapacityException {
 
-        ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
-        cmd.setNicIp(nicProfile.getIp4Address());
+        GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
         cmd.setVlanId(getGloboNetworkVlanId(network.getId()));
-        cmd.setVlanNum(Long.valueOf(getVlanNum(nicProfile.getBroadCastUri())));
 
-        String msg = "Unable to validate nic " + nicProfile + " from VM " + vm;
+        String msg = "Unable to get VLAN " + getGloboNetworkVlanId(network.getId()) + " info from GloboNetwork";
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         if (answer == null || !answer.getResult()) {
             msg = answer == null ? msg : answer.getDetails();
             throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
+        }
+
+        GloboNetworkVlanResponse vlanResponse = (GloboNetworkVlanResponse) answer;
+
+        String networkAddress = vlanResponse.getNetworkAddress();
+        String netmask = vlanResponse.getMask();
+
+        BigInteger ip;
+        BigInteger ipRangeStart;
+        BigInteger ipRangeEnd;
+
+        if (vlanResponse.isv6()) {
+            com.googlecode.ipv6.IPv6Address ipv6 = com.googlecode.ipv6.IPv6Address.fromString(nicProfile.getIp6Address());
+            try {
+                ip = new BigInteger(ipv6.toInetAddress().getAddress());
+
+                com.googlecode.ipv6.IPv6Network ipv6Network = com.googlecode.ipv6.IPv6Network.fromAddressAndMask(
+                        com.googlecode.ipv6.IPv6Address.fromString(networkAddress),
+                        com.googlecode.ipv6.IPv6NetworkMask.fromAddress(com.googlecode.ipv6.IPv6Address.fromString(netmask)));
+
+                com.googlecode.ipv6.IPv6Address ipv6Start = ipv6Network.getFirst();
+                ipRangeStart = new BigInteger(ipv6Start.toInetAddress().getAddress());
+
+                com.googlecode.ipv6.IPv6Address ipv6End = ipv6Network.getLast();
+                ipRangeEnd = new BigInteger(ipv6End.toInetAddress().getAddress());
+            } catch (UnknownHostException ex) {
+                throw new InvalidParameterValueException("Nic IP " + nicProfile.getIp6Address() + " is invalid");
+            }
+        } else {
+            ip = BigInteger.valueOf(NetUtils.ip2Long(nicProfile.getIp4Address()));
+            String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
+            ipRangeStart = BigInteger.valueOf(NetUtils.ip2Long(ranges[0]));
+            ipRangeEnd = BigInteger.valueOf(NetUtils.ip2Long(ranges[1]));
+        }
+
+        if (!(ip.compareTo(ipRangeStart) >= 0  && ip.compareTo(ipRangeEnd) <= 0)) {
+            throw new InvalidParameterValueException("Nic IP " + nicProfile.getIp4Address() + " does not belong to network " + networkAddress + " in vlanId " + cmd.getVlanId());
         }
 
         // everything is ok
@@ -967,7 +1031,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return resultEnvironment;
     }
 
-    private void handleNetworkUnavaiableError(CloudstackGloboNetworkException e) {
+    private void handleNetworkUnavailableError(CloudstackGloboNetworkException e) {
         if (e.getNapiCode() == 116) {
             // If this is the return code, it means that the vlan/network no longer exists in GloboNetwork
             // and we should continue to remove it from CloudStack
@@ -1027,7 +1091,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             this.callCommand(cmd, network.getDataCenterId());
         } catch (CloudstackGloboNetworkException e) {
-            handleNetworkUnavaiableError(e);
+            handleNetworkUnavailableError(e);
         }
     }
 
@@ -1043,7 +1107,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
 
         } catch (CloudstackGloboNetworkException e) {
-            handleNetworkUnavaiableError(e);
+            handleNetworkUnavailableError(e);
         }
     }
 
@@ -1261,7 +1325,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         RegisterEquipmentAndIpInGloboNetworkCommand cmd = new RegisterEquipmentAndIpInGloboNetworkCommand();
-        cmd.setNicIp(nic.getIp4Address());
+        if (nic.getIp4Address() != null) {
+            cmd.setNicIp(nic.getIp4Address());
+        } else {
+            cmd.setNicIp(nic.getIp6Address());
+        }
         cmd.setNicDescription("");
         cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
         cmd.setVlanId(globoNetworkNetworkVO.getGloboNetworkVlanId());
@@ -1301,7 +1369,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         UnregisterEquipmentAndIpInGloboNetworkCommand cmd = new UnregisterEquipmentAndIpInGloboNetworkCommand();
-        cmd.setNicIp(nic.getIp4Address());
+        if (nic.getIp4Address() != null) {
+            cmd.setNicIp(nic.getIp4Address());
+            cmd.setIsv6(false);
+        } else {
+            cmd.setNicIp(nic.getIp6Address());
+            cmd.setIsv6(true);
+        }
         cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
 
         GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(nic.getNetworkId());
@@ -1332,7 +1406,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // Perform account permission check on network
         _accountMgr.checkAccess(caller, null, true, network);
 
-        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipId);
+        boolean isv6 = this.isNetworkv6(network);
+
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipId, isv6);
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         String msg = "Could not validate VIP id with GloboNetwork";
         if (answer == null || !answer.getResult()) {
@@ -1373,7 +1449,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         AddAndEnableRealInGloboNetworkCommand cmd = new AddAndEnableRealInGloboNetworkCommand();
         cmd.setEquipName(getEquipNameFromUuid(vm.getUuid()));
-        cmd.setIp(nic.getIp4Address());
+        cmd.setIp((nic.getIp4Address() != null ? nic.getIp4Address() : nic.getIp6Address()));
         cmd.setVipId(vipId);
         Answer answer = callCommand(cmd, network.getDataCenterId());
         if (answer == null || !answer.getResult()) {
@@ -1389,7 +1465,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException("There is no VM that belongs to nic " + nic);
         }
         cmd.setEquipName(getEquipNameFromUuid(vm.getUuid()));
-        cmd.setIp(nic.getIp4Address());
+        cmd.setIp((nic.getIp4Address() != null ? nic.getIp4Address() : nic.getIp6Address()));
         cmd.setVipId(vipId);
         Network network = _ntwkDao.findById(nic.getNetworkId());
         Answer answer = callCommand(cmd, network.getDataCenterId());
@@ -1452,7 +1528,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (vips.get(globoNetworkVipAcc.getGloboNetworkVipId()) == null) {
 
                 // Vip is not in the returning map yet, get all info from GloboNetwork
-                GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipAcc.getGloboNetworkVipId());
+                boolean isv6 = this.isNetworkv6(network);
+
+                GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(globoNetworkVipAcc.getGloboNetworkVipId(), isv6);
                 Answer answer = this.callCommand(cmd, network.getDataCenterId());
                 String msg = "Could not list VIPs from GloboNetwork";
                 if (answer == null || !answer.getResult()) {
@@ -1551,7 +1629,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException("Could not find network with networkId " + globoNetworkVips.get(0).getNetworkId());
         }
 
-        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(vipId);
+        boolean isv6 = this.isNetworkv6(network);
+
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(vipId, isv6);
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         String msg = "Could not find VIP from GloboNetwork";
         if (answer == null || !answer.getResult()) {
@@ -1564,20 +1644,26 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             for (GloboNetworkVipAccVO globoNetworkVipVO : globoNetworkVips) {
                 network = _ntwkDao.findById(globoNetworkVipVO.getNetworkId());
 
-                if (!NetUtils.isIpWithtInCidrRange(real.getIp(), network.getCidr())) {
-                    // If real's IP is not within network range, skip it
-                    continue;
+                // If real's IP is not within network range, skip it
+                if (isv6) {
+                    if (!NetUtils.isIp6InNetwork(real.getIp(), network.getCidr())); {
+                        continue;
+                    }
+                } else {
+                    if (!NetUtils.isIpWithtInCidrRange(real.getIp(), network.getCidr())) {
+                        continue;
+                    }
                 }
 
-                Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), network.getId());
-                if (nic != null) {
-                    real.setNic(String.valueOf(nic.getId()));
-                    real.setNetwork(network.getName());
+                VMInstanceVO realVM = _vmDao.findByUuid(real.getVmName());
+                if (realVM != null) {
+                    Nic nic = _nicDao.findByNtwkIdAndInstanceId(globoNetworkVipVO.getNetworkId(), realVM.getId());
+                    if (nic != null) {
+                        real.setNic(String.valueOf(nic.getId()));
+                        real.setNetwork(network.getName());
 
-                    // User VM name rather than UUID
-                    VMInstanceVO userVM = _vmDao.findByUuid(real.getVmName());
-                    if (userVM != null) {
-                        real.setVmName(userVM.getHostName());
+                        // User VM name rather than UUID
+                        real.setVmName(realVM.getHostName());
                     }
                 }
             }
@@ -1617,6 +1703,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     protected PortableIpRangeVO createPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,
             ResourceUnavailableException, ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException {
+        // FIXME! Portable IP and Portable IP Range are not IPv6 ready
 
         // There is not relationship between zoneId and region yet.
         //DataCenter dc = _dcDao.findById(zoneId);
@@ -1691,12 +1778,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Could not find LB network " + lbEnvironmentId);
         }
 
+        boolean isv6 = this.isNetworkv6(network);
+
         Long gnLoadBalancerEnvironment = globoNetworkLBEnvironment.getGloboNetworkLoadBalancerEnvironmentId();
-        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(gnLoadBalancerEnvironment);
+        AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(gnLoadBalancerEnvironment, isv6);
 
         final GloboNetworkAndIPResponse globoNetwork = (GloboNetworkAndIPResponse)this.callCommand(cmd, network.getDataCenterId());
 
         try {
+            // FIXME! PublicIp class is not IPv6 ready
             PublicIp publicIp = Transaction.execute(new TransactionCallbackWithException<PublicIp, CloudException>() {
 
                 @Override
@@ -1704,12 +1794,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     Long zoneId = network.getDataCenterId();
 
                     // ensure portable ip range exists
-                    PortableIpRange portableIpRange = getPortableIpRange(zoneId, globoNetwork.getVlanNum(), globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                    String networkGateway = GloboNetworkManager.this.getNetworkGateway(globoNetwork.getNetworkAddress(), globoNetwork.getNetworkMask(), globoNetwork.isv6());
+                    PortableIpRange portableIpRange = getPortableIpRange(zoneId, globoNetwork.getVlanNum(), globoNetwork.getNetworkCidr(), networkGateway);
                     if (portableIpRange == null) {
-                        portableIpRange = createPortableIpRange(zoneId, globoNetwork.getVlanNum(), globoNetwork.getNetworkCidr(), globoNetwork.getNetworkGateway());
+                        portableIpRange = createPortableIpRange(zoneId, globoNetwork.getVlanNum(), globoNetwork.getNetworkCidr(), networkGateway);
                     }
 
-                    IPAddressVO ip = (IPAddressVO)_ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetwork.getIp().addr());
+                    IPAddressVO ip = (IPAddressVO)_ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetwork.getIp());
 
                     GloboNetworkIpDetailVO gnIpDetail = new GloboNetworkIpDetailVO(ip.getId(), globoNetwork.getIpId());
                     gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBEnvironment.getId());
@@ -1724,18 +1815,36 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } catch (CloudException e) {
             // Exception when allocating new IP in Cloudstack. Roll back transaction in GloboNetwork
             s_logger.error("Reverting IP allocation in GloboNetwork due to error allocating IP", e);
-            ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(globoNetwork.getIp().addr(), gnLoadBalancerEnvironment);
+            ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(globoNetwork.getIp(), gnLoadBalancerEnvironment, globoNetwork.isv6());
             this.callCommand(cmdRelease, network.getDataCenterId());
             throw new ResourceAllocationException(e.getLocalizedMessage(), ResourceType.public_ip);
+        }
+    }
+
+    private String getNetworkGateway(String network, String mask, boolean isv6) {
+        if (network == null || mask == null) {
+            return null;
+        }
+
+        if (isv6) {
+            com.googlecode.ipv6.IPv6Network ipv6Network = com.googlecode.ipv6.IPv6Network.fromAddressAndMask(
+                    com.googlecode.ipv6.IPv6Address.fromString(network),
+                    com.googlecode.ipv6.IPv6NetworkMask.fromAddress(com.googlecode.ipv6.IPv6Address.fromString(mask)));
+            return ipv6Network.getFirst().toString();
+        } else {
+            return NetUtils.getIpRangeStartIpFromCidr(network, NetUtils.getCidrSize(mask));
         }
     }
 
     @Override
     public boolean disassociateIpAddrFromGloboNetwork(final long ipId) {
         final IPAddressVO ipVO = _ipAddrDao.findById(ipId);
-        if (ipVO == null) {
+        final UserIpv6AddressVO ipv6VO = _ipv6AddrDao.findById(ipId);
+        if (ipVO == null && ipv6VO == null) {
             throw new InvalidParameterValueException("Unable to find ip address with id=" + ipId);
         }
+
+        final boolean isv6 = ipv6VO != null;
 
         try {
             boolean result = Transaction.execute(new TransactionCallbackWithExceptionNoReturn<CloudException>() {
@@ -1744,7 +1853,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 public void doInTransactionWithoutResult(TransactionStatus status) throws CloudException {
                     GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipId);
 
-                    _ipAddrMgr.releasePortableIpAddress(ipId);
+                    _ipAddrMgr.releasePortableIpAddress(ipId); // FIXME This will not deallocate portable IPv6 ips. PortableIp is not IPv6 ready
+
+                    String ipAddress = isv6 ? ipv6VO.getAddress() : ipVO.getAddress().addr();
+                    long dataCenterId = isv6 ? ipv6VO.getDataCenterId() : ipVO.getDataCenterId();
 
                     if (gnIpDetail != null && gnIpDetail.getGloboNetworkEnvironmentRefId() != null) {
                         GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBEnvironmentDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
@@ -1752,12 +1864,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                             throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnIpDetail.getGloboNetworkEnvironmentRefId());
                         }
 
-                        ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(ipVO.getAddress().addr(), gnLbNetworkVO
-                                .getGloboNetworkLoadBalancerEnvironmentId());
-                        GloboNetworkManager.this.callCommand(cmdRelease, ipVO.getDataCenterId());
+                        ReleaseIpFromGloboNetworkCommand cmdRelease = new ReleaseIpFromGloboNetworkCommand(ipAddress, gnLbNetworkVO
+                                .getGloboNetworkLoadBalancerEnvironmentId(), isv6);
+                        GloboNetworkManager.this.callCommand(cmdRelease, dataCenterId);
                         _globoNetworkIpDetailDao.remove(gnIpDetail.getId());
                     } else {
-                        s_logger.warn("Ip " + ipVO.getAddress().addr() + " is not associate with GloboNetwork");
+                        s_logger.warn("Ip " + ipAddress + " is not associate with GloboNetwork");
                     }
                 }
             });
@@ -1998,7 +2110,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         // Get VIP info
         if (gnIpDetail.getGloboNetworkVipId() != null) {
-            GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(gnIpDetail.getGloboNetworkVipId());
+            boolean isv6 = this.isNetworkv6(network);
+
+            GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(gnIpDetail.getGloboNetworkVipId(), isv6);
             Answer answer = this.callCommand(cmd, network.getDataCenterId(), false);
             if (answer != null && answer.getResult()) {
                 GloboNetworkVipResponse globoNetworkVip = (GloboNetworkVipResponse)answer;
@@ -2093,7 +2207,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         // Get VIP info from GloboNetwork
-        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(lbId);
+        boolean isv6 = this.isNetworkv6(network);
+
+        GetVipInfoFromGloboNetworkCommand cmd = new GetVipInfoFromGloboNetworkCommand(lbId, isv6);
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
 
         if (answer != null && answer.getResult()) {
@@ -2213,5 +2329,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
         return zonesEnabled;
+    }
+
+    private boolean isNetworkv6(Network network) {
+        return network.getIp6Gateway() != null;
     }
 }

@@ -84,6 +84,7 @@ import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
 import com.cloud.network.NetworkService;
 import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.UserIpv6AddressDao;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
@@ -200,7 +201,7 @@ public class GloboNetworkManagerTest {
                 null, null, null, 0L, null);
         when(_hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
 
-        Answer answer = new GloboNetworkVlanResponse(new CreateNewVlanInGloboNetworkCommand(), null, null, null, null, null, null, null, false);
+        Answer answer = new GloboNetworkVlanResponse(new CreateNewVlanInGloboNetworkCommand(), null, null, null, null, null, null, null, false, null, false);
         when(_agentMgr.easySend(eq(globoNetworkHostId), any(CreateNewVlanInGloboNetworkCommand.class))).thenReturn(answer);
 
         when(_physicalNetworkDao.findById(physicalNetworkId)).thenReturn(null);
@@ -453,6 +454,11 @@ public class GloboNetworkManagerTest {
         @Bean
         public IPAddressDao ipAddressDao() {
             return mock(IPAddressDao.class);
+        }
+
+        @Bean
+        public UserIpv6AddressDao userIpv6AddressDao() {
+            return mock(UserIpv6AddressDao.class);
         }
 
         public static class Library implements TypeFilter {

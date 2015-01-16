@@ -37,10 +37,12 @@ public class GloboNetworkVlanResponse extends Answer {
 
     private boolean isActive;
 
+    private Integer block;
+
     private boolean isv6;
 
     public GloboNetworkVlanResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, String networkAddress, String mask,
-            Long networkId, Boolean isActive, boolean isv6) {
+            Long networkId, Boolean isActive, Integer block, boolean isv6) {
         super(command, true, null);
         this.vlanId = vlanId;
         this.vlanName = vlanName;
@@ -50,6 +52,7 @@ public class GloboNetworkVlanResponse extends Answer {
         this.networkAddress = networkAddress;
         this.setNetworkId(networkId);
         this.setIsActive(isActive == null ? false : isActive);
+        this.setBlock(block);
         this.isv6 = isv6;
     }
 
@@ -123,6 +126,14 @@ public class GloboNetworkVlanResponse extends Answer {
 
     public void setIsv6(boolean isv6) {
         this.isv6 = isv6;
+    }
+
+    public Integer getBlock() {
+        return block;
+    }
+
+    public void setBlock(Integer block) {
+        this.block = block;
     }
 
 }

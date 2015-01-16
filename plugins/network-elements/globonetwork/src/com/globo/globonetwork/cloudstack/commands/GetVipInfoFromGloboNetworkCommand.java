@@ -26,6 +26,8 @@ public class GetVipInfoFromGloboNetworkCommand extends Command {
 
     private Long vipEnvironmentId;
 
+    private boolean isv6;
+
     // FIXME Remover
     @Deprecated
     public GetVipInfoFromGloboNetworkCommand(String ip, Long vipEnvironmentId) {
@@ -33,8 +35,9 @@ public class GetVipInfoFromGloboNetworkCommand extends Command {
         this.vipEnvironmentId = vipEnvironmentId;
     }
 
-    public GetVipInfoFromGloboNetworkCommand(long vipId) {
+    public GetVipInfoFromGloboNetworkCommand(long vipId, boolean isv6) {
         this.vipId = vipId;
+        this.isv6 = isv6;
     }
 
     @Override
@@ -52,5 +55,13 @@ public class GetVipInfoFromGloboNetworkCommand extends Command {
 
     public Long getVipEnvironmentId() {
         return this.vipEnvironmentId;
+    }
+
+    public boolean isv6() {
+        return isv6;
+    }
+
+    public void setIsv6(boolean isv6) {
+        this.isv6 = isv6;
     }
 }
