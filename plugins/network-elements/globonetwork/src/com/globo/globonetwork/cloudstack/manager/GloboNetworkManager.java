@@ -570,7 +570,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         context.put("vlan", vlan);
 
         String newNetworkDomain = formatter(GloboNetworkDomainPattern.value(), context);
-        newNetworkDomain += GloboNetworkDomainSuffix.value();
+        newNetworkDomain += GloboNetworkDomainSuffix.value().startsWith(".") ? GloboNetworkDomainSuffix.value() : "." + GloboNetworkDomainSuffix.value();
         return newNetworkDomain;
     }
 
