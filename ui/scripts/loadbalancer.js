@@ -760,9 +760,35 @@
                     createForm: {
                         fields: {
                             name: {
-                                label: 'label.fqdn',
+                                label: 'label.name',
                                 validation: {
                                     required: true
+                                }
+                            },
+                            lbdomain: {
+                                label: 'LB Domain',
+                                validation: {
+                                    required: true
+                                },
+                                select: function(args) {
+                                    var lbdomains = [];
+                                    $.ajax({
+                                        url: createURL("listGloboNetworkCapabilities"),
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            var response = json.listglobonetworkcapabilitiesresponse;
+                                            $(json.listglobonetworkcapabilitiesresponse.globoNetworkCapability.allowedLbSuffixes).each(function() {
+                                                lbdomains.push({id: this.valueOf(), description: this.valueOf()});
+                                            });
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
+                                        }
+                                    });
+                                    args.response.success({
+                                        data: lbdomains
+                                    });
                                 }
                             },
                             publicport: {
@@ -1042,7 +1068,7 @@
 
                                 var data = {
                                     algorithm: args.data.algorithm,
-                                    name: args.data.name,
+                                    name: args.data.name + args.data.lbdomain,
                                     privateport: args.data.privateport,
                                     publicport: args.data.publicport,
                                     openfirewall: false,

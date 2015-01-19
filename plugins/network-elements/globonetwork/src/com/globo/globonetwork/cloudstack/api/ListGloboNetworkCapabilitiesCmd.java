@@ -45,6 +45,7 @@ public class ListGloboNetworkCapabilitiesCmd extends BaseCmd {
         response.setDomainSuffix(_globoNetworkService.getDomainSuffix());
         response.setSupportCustomNetworkDomain(_globoNetworkService.isSupportedCustomNetworkDomain());
         response.setEnabled(enabledInZones != null && !enabledInZones.isEmpty());
+        response.setAllowedLbSuffixes(_globoNetworkService.listAllowedLbSuffixes());
         response.setObjectName("globoNetworkCapability");
         response.setResponseName(getCommandName());
         this.setResponseObject(response);
