@@ -407,7 +407,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         try {
             Vlan vlan = _globoNetworkApi.getVlanAPI().allocateWithoutNetwork(cmd.getGloboNetworkEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
 
-            /*Network network = */_globoNetworkApi.getNetworkAPI().addNetwork(vlan.getId(), Long.valueOf(NETWORK_TYPE), null, false);
+            /*Network network = */_globoNetworkApi.getNetworkAPI().addNetwork(vlan.getId(), Long.valueOf(NETWORK_TYPE), null, cmd.isIpv6());
 
             // Bug in GloboNetworkApi: I need to have a second call to get networkid
             vlan = _globoNetworkApi.getVlanAPI().getById(vlan.getId());

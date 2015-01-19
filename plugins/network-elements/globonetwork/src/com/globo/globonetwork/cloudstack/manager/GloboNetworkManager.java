@@ -334,7 +334,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     @Override
     @DB
     public Network createNetwork(String name, String displayText, Long zoneId, Long networkOfferingId, Long napiEnvironmentId, String networkDomain, ACLType aclType,
-            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId) throws ResourceAllocationException,
+            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId, Boolean isIpv6) throws ResourceAllocationException,
             ResourceUnavailableException, ConcurrentOperationException, InsufficientCapacityException {
 
         Account caller = CallContext.current().getCallingAccount();
@@ -373,7 +373,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
 
-        Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId);
+        Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId, isIpv6);
 
         GloboNetworkVlanResponse response = (GloboNetworkVlanResponse)answer;
         Long napiVlanId = response.getVlanId();
@@ -620,12 +620,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return formatted;
     }
 
-    protected GloboNetworkVlanResponse createNewVlan(Long zoneId, String name, String description, Long globoNetworkEnvironmentId) {
+    protected GloboNetworkVlanResponse createNewVlan(Long zoneId, String name, String description, Long globoNetworkEnvironmentId, Boolean isIpv6) {
 
         CreateNewVlanInGloboNetworkCommand cmd = new CreateNewVlanInGloboNetworkCommand();
         cmd.setVlanName(name);
         cmd.setVlanDescription(description);
         cmd.setGloboNetworkEnvironmentId(globoNetworkEnvironmentId);
+        cmd.setIsIpv6(isIpv6);
 
         return (GloboNetworkVlanResponse)callCommand(cmd, zoneId);
     }

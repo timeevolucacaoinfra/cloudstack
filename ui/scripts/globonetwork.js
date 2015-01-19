@@ -60,6 +60,13 @@ globoNetworkAPI = globoNetworkAPI || {};
                             required: true
                         }
                     },
+
+                    ipv6: {
+                        label: 'IPv6',
+                        isBoolean: true,
+                        isChecked: false,
+                    },
+
                     networkdomain: {
                         label: 'label.network.domain',
                         docID: 'helpGuestNetworkZoneNetworkDomain'
@@ -228,6 +235,8 @@ globoNetworkAPI = globoNetworkAPI || {};
 
                 array1.push("&name=" + todb(args.data.name));
                 array1.push("&displayText=" + todb(args.data.description));
+                var useIpv6 = (args.data.ipv6 == "on");
+                array1.push("&isipv6=" + useIpv6);
 
                 if (globoNetworkAPI.getCapability('supportCustomNetworkDomain')) {
                     array1.push("&networkdomain=" + todb(args.data.networkdomain));
