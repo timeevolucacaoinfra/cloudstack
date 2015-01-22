@@ -44,6 +44,7 @@ import com.cloud.network.dao.LBHealthCheckPolicyDao;
 import com.cloud.network.dao.LBStickinessPolicyDao;
 import com.cloud.network.dao.LoadBalancerCertMapDao;
 import com.cloud.network.dao.LoadBalancerDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapDao;
 import com.cloud.network.dao.LoadBalancerVMMapDao;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkDao;
@@ -76,6 +77,7 @@ public class UpdateLoadBalancerTest {
         _lbMgr._lb2healthcheckDao = Mockito.mock(LBHealthCheckPolicyDao.class);
         _lbMgr._lb2stickinesspoliciesDao = Mockito.mock(LBStickinessPolicyDao.class);
         _lbMgr._lb2VmMapDao = Mockito.mock(LoadBalancerVMMapDao.class);
+        _lbMgr._lbNetMapDao = Mockito.mock(LoadBalancerNetworkMapDao.class);
         _lbMgr._lbCertMapDao = Mockito.mock(LoadBalancerCertMapDao.class);
         _lbMgr._lbDao = lbDao;
         _lbMgr._lbProviders = new ArrayList<LoadBalancingServiceProvider>();

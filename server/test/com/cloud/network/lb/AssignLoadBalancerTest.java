@@ -25,6 +25,7 @@ import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.NetworkModelImpl;
 import com.cloud.network.dao.LoadBalancerDao;
 import com.cloud.network.dao.LoadBalancerVMMapDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapDao;
 import com.cloud.network.dao.LoadBalancerVMMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.rules.FirewallRule;
@@ -170,11 +171,13 @@ public class AssignLoadBalancerTest {
 
         LoadBalancerDao lbDao = Mockito.mock(LoadBalancerDao.class);
         LoadBalancerVMMapDao lb2VmMapDao = Mockito.mock(LoadBalancerVMMapDao.class);
+        LoadBalancerNetworkMapDao lbNetMapDao = Mockito.mock(LoadBalancerNetworkMapDao.class);
         UserVmDao userVmDao = Mockito.mock(UserVmDao.class);
 
         _lbMgr._lbDao = lbDao;
         _lbMgr._lb2VmMapDao = lb2VmMapDao;
         _lbMgr._vmDao = userVmDao;
+        _lbMgr._lbNetMapDao = lbNetMapDao;
         _lbvmMapList = new ArrayList<>();
         _lbMgr._rulesMgr = _rulesMgr;
         _lbMgr._networkModel = _networkModel;
@@ -204,12 +207,14 @@ public class AssignLoadBalancerTest {
 
         LoadBalancerDao lbDao = Mockito.mock(LoadBalancerDao.class);
         LoadBalancerVMMapDao lb2VmMapDao = Mockito.mock(LoadBalancerVMMapDao.class);
+        LoadBalancerNetworkMapDao lbNetMapDao = Mockito.mock(LoadBalancerNetworkMapDao.class);
         UserVmDao userVmDao = Mockito.mock(UserVmDao.class);
         NicSecondaryIpDao nicSecIpDao =  Mockito.mock(NicSecondaryIpDao.class);
 
         _lbMgr._lbDao = lbDao;
         _lbMgr._lb2VmMapDao = lb2VmMapDao;
         _lbMgr._vmDao = userVmDao;
+        _lbMgr._lbNetMapDao = lbNetMapDao;
         _lbMgr._nicSecondaryIpDao = nicSecIpDao;
         _lbvmMapList = new ArrayList<>();
         _lbMgr._rulesMgr = _rulesMgr;
@@ -242,6 +247,7 @@ public class AssignLoadBalancerTest {
 
         LoadBalancerDao lbDao = Mockito.mock(LoadBalancerDao.class);
         LoadBalancerVMMapDao lb2VmMapDao = Mockito.mock(LoadBalancerVMMapDao.class);
+        LoadBalancerNetworkMapDao lbNetMapDao = Mockito.mock(LoadBalancerNetworkMapDao.class);
         UserVmDao userVmDao = Mockito.mock(UserVmDao.class);
         NicSecondaryIpDao nicSecIpDao =  Mockito.mock(NicSecondaryIpDao.class);
         LoadBalancerVMMapVO lbVmMapVO = new LoadBalancerVMMapVO(1L, 1L, "10.1.1.175", false);
@@ -252,6 +258,7 @@ public class AssignLoadBalancerTest {
         _lbMgr._nicSecondaryIpDao = nicSecIpDao;
         _lbvmMapList = new ArrayList<>();
         _lbvmMapList.add(lbVmMapVO);
+        _lbMgr._lbNetMapDao = lbNetMapDao;
         _lbMgr._rulesMgr = _rulesMgr;
         _lbMgr._networkModel = _networkModel;
 
