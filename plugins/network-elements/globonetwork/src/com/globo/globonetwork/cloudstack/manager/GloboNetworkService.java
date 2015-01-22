@@ -213,6 +213,8 @@ public interface GloboNetworkService {
 
     public List<DataCenter> getAllZonesThatProviderAreEnabled();
 
+    public List<String> listAllowedLbSuffixes();
+
     public boolean destroyGloboNetwork(long networkId, boolean forced);
 
     /**

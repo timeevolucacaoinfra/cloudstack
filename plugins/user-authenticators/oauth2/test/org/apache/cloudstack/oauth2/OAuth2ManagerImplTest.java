@@ -31,6 +31,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.domain.DomainVO;
+import com.cloud.user.AccountManager;
 import com.cloud.user.DomainManager;
 import com.cloud.user.dao.UserAccountDao;
 import com.cloud.utils.component.ComponentContext;
@@ -86,6 +87,11 @@ public class OAuth2ManagerImplTest {
         @Bean
         public DomainManager domainManager() {
             return mock(DomainManager.class);
+        }
+
+        @Bean
+        public AccountManager accountManager() {
+            return mock(AccountManager.class);
         }
 
         public static class Library implements TypeFilter {

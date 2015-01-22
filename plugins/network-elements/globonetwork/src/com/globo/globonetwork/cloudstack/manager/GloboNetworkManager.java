@@ -599,7 +599,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         context.put("vlan", vlan);
 
         String newNetworkDomain = formatter(GloboNetworkDomainPattern.value(), context);
-        newNetworkDomain += GloboNetworkDomainSuffix.value();
+        newNetworkDomain += GloboNetworkDomainSuffix.value().startsWith(".") ? GloboNetworkDomainSuffix.value() : "." + GloboNetworkDomainSuffix.value();
         return newNetworkDomain;
     }
 
@@ -2333,5 +2333,22 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     private boolean isNetworkv6(Network network) {
         return network.getIp6Gateway() != null;
+    }
+
+    @Override
+    public List<String> listAllowedLbSuffixes() {
+        String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
+        List<String> allowedDomains = new ArrayList<String>();
+
+        for (String allowedDomain : allowedDomainsOpt.split(",")) {
+            // Remove any whitespaces
+            allowedDomain = allowedDomain.trim();
+            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
+                // Insert the '.' before the domain, if it's not there yet
+                allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
+                allowedDomains.add(allowedDomain);
+            }
+        }
+        return allowedDomains;
     }
 }

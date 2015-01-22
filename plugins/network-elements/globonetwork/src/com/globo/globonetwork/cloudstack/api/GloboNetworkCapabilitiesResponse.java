@@ -18,6 +18,8 @@ package com.globo.globonetwork.cloudstack.api;
 
 import org.apache.cloudstack.api.BaseResponse;
 
+import java.util.List;
+
 import com.cloud.serializer.Param;
 import com.google.gson.annotations.SerializedName;
 
@@ -34,6 +36,10 @@ public class GloboNetworkCapabilitiesResponse extends BaseResponse {
     @SerializedName("enabled")
     @Param(description = "is GloboNetwork provider enabled in any zone")
     private Boolean enabled;
+
+    @SerializedName("allowedLbSuffixes")
+    @Param(description = "allowed domain suffixes for load balancers in GloboNetwork")
+    private List<String> allowedLbSuffixes;
 
     public String getDomainSuffix() {
         return domainSuffix;
@@ -53,6 +59,14 @@ public class GloboNetworkCapabilitiesResponse extends BaseResponse {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public List<String> getAllowedLbSuffixes() {
+        return allowedLbSuffixes;
+    }
+
+    public void setAllowedLbSuffixes(List<String> allowedLbSuffixes) {
+        this.allowedLbSuffixes = allowedLbSuffixes;
     }
 
 }
