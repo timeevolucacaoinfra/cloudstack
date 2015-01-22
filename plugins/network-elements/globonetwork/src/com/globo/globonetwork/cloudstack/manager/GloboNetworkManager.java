@@ -524,14 +524,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         if (vlanResponse.isv6()) {
             com.googlecode.ipv6.IPv6Network ipv6Network = com.googlecode.ipv6.IPv6Network.fromString(cidr);
-            com.googlecode.ipv6.IPv6Address ipv6Start = ipv6Network.getFirst();
+            com.googlecode.ipv6.IPv6Address ipv6Start = ipv6Network.getFirst().add(1);
             ip6GatewayStr = ipv6Start.toString();
-            ipv6Start.add(NUMBER_OF_RESERVED_IPS_FROM_START);
-            startIPv6Str = ipv6Start.toString();
+            startIPv6Str = ipv6Start.add(NUMBER_OF_RESERVED_IPS_FROM_START).toString();
 
             com.googlecode.ipv6.IPv6Address ipv6End = ipv6Network.getLast();
-            ipv6End.subtract(NUMBER_OF_RESERVED_IPS_BEFORE_END);
-            endIPv6Str = ipv6End.toString();
+            endIPv6Str = ipv6End.subtract(NUMBER_OF_RESERVED_IPS_BEFORE_END).toString();
         } else {
             String ranges[] = NetUtils.ipAndNetMaskToRange(networkAddress, netmask);
             gatewayStr = ranges[0];
