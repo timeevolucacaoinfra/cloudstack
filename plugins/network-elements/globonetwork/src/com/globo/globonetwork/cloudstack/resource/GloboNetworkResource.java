@@ -519,7 +519,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     // Doesn't exist, ignore
                     s_logger.warn("IP was removed from GloboNetwork before being destroyed in Cloudstack. This is not critical, logging inconsistency: IP " + cmd.getNicIp());
                 } else {
-                    _globoNetworkApi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId());
+                    _globoNetworkApi.getEquipmentAPI().removeIP(equipment.getId(), ip.getId(), cmd.isv6());
                 }
             }
 
@@ -921,7 +921,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private Answer createResponse(Vlan vlan, Command cmd) {
 
-        if (vlan.getIpv4Networks().isEmpty() || vlan.getIpv6Networks().isEmpty()) {
+        if (vlan.getIpv4Networks().isEmpty() && vlan.getIpv6Networks().isEmpty()) {
             // Error code 116 from GloboNetwork: 116 : VlanNaoExisteError,
             return new GloboNetworkErrorAnswer(cmd, 116, "No networks in this VLAN");
         }
