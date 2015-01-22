@@ -29,6 +29,7 @@ dist/
 *.bak
 cloud-*.tar.bz2
 *.log
+*.log*
 *.pyc
 *.egginfo/
 *.egg-info/
