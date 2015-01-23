@@ -28,11 +28,14 @@ public class RemoveRecordCommand extends Command {
 
     private boolean override;
 
-    public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean override) {
+    private boolean isIpv6;
+
+    public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean override, boolean isIpv6) {
         this.recordName = recordName;
         this.recordIp = recordIp;
         this.networkDomain = networkDomain;
         this.override = override;
+        this.isIpv6 = isIpv6;
     }
 
     @Override
@@ -56,4 +59,11 @@ public class RemoveRecordCommand extends Command {
         return override;
     }
 
+    public boolean isIpv6() {
+        return isIpv6;
+    }
+
+    public void setIpv6(boolean isIpv6) {
+        this.isIpv6 = isIpv6;
+    }
 }

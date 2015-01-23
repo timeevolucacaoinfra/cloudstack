@@ -155,8 +155,10 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
         }
 
-        CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(vmHostname, nic.getIp4Address(), network.getNetworkDomain(),
-                GloboDNSTemplateId.value(), GloboDNSOverride.value());
+        boolean isIpv6 = nic.getIp6Address() != null;
+        String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
+        CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(vmHostname, ipAddress, network.getNetworkDomain(),
+                GloboDNSTemplateId.value(), GloboDNSOverride.value(), isIpv6);
         callCommand(cmd, zoneId);
         return true;
     }
@@ -177,7 +179,9 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new CloudRuntimeException("Could not find zone associated to this network");
         }
 
-        RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), nic.getIp4Address(), network.getNetworkDomain(), GloboDNSOverride.value());
+        boolean isIpv6 = nic.getIp6Address() != null;
+        String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
+        RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), ipAddress, network.getNetworkDomain(), GloboDNSOverride.value(), isIpv6);
         callCommand(cmd, zoneId);
         return true;
     }
@@ -411,7 +415,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
         }
 
-        RemoveRecordCommand cmd = new RemoveRecordCommand(lbRecord, lbIpAddress, lbDomain, true); // Remove record no matter what
+        RemoveRecordCommand cmd = new RemoveRecordCommand(lbRecord, lbIpAddress, lbDomain, true, false); // Remove record no matter what
         callCommand(cmd, zoneId);
         return true;
     }
