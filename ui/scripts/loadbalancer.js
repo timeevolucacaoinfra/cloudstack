@@ -280,7 +280,11 @@
                                         },
                                         async: false,
                                         success: function(json) {
-                                            networks.push(json.listnetworksresponse.network[0]);
+                                            var network = json.listnetworksresponse.network[0];
+                                            if(!network.cidr){
+                                                network.cidr = network.ip6cidr
+                                            }
+                                            networks.push(network);
                                         },
                                         error: function(errorMessage) {
                                             args.response.error(errorMessage);
