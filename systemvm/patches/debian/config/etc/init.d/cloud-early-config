@@ -394,6 +394,8 @@ setup_interface_ipv6() {
   local ipv6="$2"
   local prelen="$3"
   local intf=eth${intfnum}
+
+  ip=$(ifconfig $intf | awk '/inet6 addr.*Scope:Global/ {print $3}' | cut -d\/ -f1)
   
   echo "iface $intf inet6 static" >> /etc/network/interfaces
   echo "  address $ipv6 " >> /etc/network/interfaces
