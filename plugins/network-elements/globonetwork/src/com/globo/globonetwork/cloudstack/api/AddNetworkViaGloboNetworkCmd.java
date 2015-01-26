@@ -94,8 +94,8 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
     @Parameter(name = "napienvironmentid", type = CommandType.LONG, required = true, description = "GloboNetwork environment ID.")
     private Long globoNetworkEnvironmentId;
 
-    @Parameter(name = "isipv6", type = CommandType.BOOLEAN, required = true, description = "If true defines de network IP type as IPV6")
-    private Boolean isIpv6;
+    @Parameter(name = "isipv6", type = CommandType.BOOLEAN, description = "If true defines de network IP type as IPV6")
+    private boolean isIpv6 = false;
 
     public Long getZoneId() {
         return zoneId;
