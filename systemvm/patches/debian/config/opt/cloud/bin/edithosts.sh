@@ -96,13 +96,15 @@ wait_for_dnsmasq () {
 if [ $dnsmasq_managed_lease ]; then
   if [ $ipv4 ]; then 
       $ipversion = $ipv4
+      $subnetmask = '32'
   elif [ $ipv6 ]; then
       $ipversion = $ipv6
+      $subnetmask = '64'
   fi
   #release previous dhcp lease if present
-  logger -t cloud "edithosts: releasing $ipv4"
-  dhcp_release $(ip route get "$ipversion/32" | grep " dev " | sed -e "s/^.* dev \([^ ]*\) .*$/\1/g") $ipversion $(grep "$ipversion " $DHCP_LEASES | awk '{print $2}') > /dev/null 2>&1
-  logger -t cloud "edithosts: released $ipv4"
+  logger -t cloud "edithosts: releasing $ipversion"
+  dhcp_release $(ip route get "$ipversion/$subnetmask" | grep " dev " | sed -e "s/^.* dev \([^ ]*\) .*$/\1/g") $ipversion $(grep "$ipversion " $DHCP_LEASES | awk '{print $2}') > /dev/null 2>&1
+  logger -t cloud "edithosts: released $ipversion"
 fi
 
 logger -t cloud "edithosts: update $mac $ipv4 $ipv6 $host to hosts"
