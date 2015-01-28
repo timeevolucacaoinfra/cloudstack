@@ -177,7 +177,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new CloudRuntimeException("Could not find zone associated to this network");
         }
 
-        RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), nic.getIp4Address(), network.getNetworkDomain(), GloboDNSOverride.value());
+        RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), nic.getIp4Address(), network.getNetworkDomain());
         callCommand(cmd, zoneId);
         return true;
     }
@@ -411,7 +411,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
         }
 
-        RemoveRecordCommand cmd = new RemoveRecordCommand(lbRecord, lbIpAddress, lbDomain, true); // Remove record no matter what
+        RemoveRecordCommand cmd = new RemoveRecordCommand(lbRecord, lbIpAddress, lbDomain); // Remove record no matter what
         callCommand(cmd, zoneId);
         return true;
     }

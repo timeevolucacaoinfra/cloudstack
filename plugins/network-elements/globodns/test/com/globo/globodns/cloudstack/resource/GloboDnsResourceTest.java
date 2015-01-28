@@ -330,7 +330,7 @@ public class GloboDnsResourceTest {
         Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
         Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
 
-        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, true));
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName));
 
         assertNotNull(answer);
         assertEquals(true, answer.getResult());
@@ -352,7 +352,7 @@ public class GloboDnsResourceTest {
         Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
         Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, "X", true);
 
-        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName));
 
         assertEquals(true, answer.getResult());
         verify(_recordApi, times(1)).removeRecord(eq(record.getId()));
@@ -374,7 +374,7 @@ public class GloboDnsResourceTest {
         Domain reverseDomain = generateFakeDomain(reverseDomainName, true);
         Record reverseRecord = generateFakeRecord(reverseDomain, reverseRecordName, reverseRecordContent, true);
 
-        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName));
 
         assertEquals(true, answer.getResult());
         verify(_recordApi, never()).removeRecord(eq(record.getId()));
@@ -396,7 +396,7 @@ public class GloboDnsResourceTest {
         Record record = generateFakeRecord(domain, recordName, "X", false);
         when(_recordApi.listAll(domain.getId())).thenReturn(Arrays.asList(record));
 
-        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName, false));
+        Answer answer = _globoDnsResource.execute(new RemoveRecordCommand(recordName, recordIp, domainName));
 
         assertEquals(true, answer.getResult());
         verify(_domainApi, never()).removeDomain(any(Long.class));

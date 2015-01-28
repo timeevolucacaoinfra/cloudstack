@@ -220,7 +220,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
     public Answer execute(RemoveRecordCommand cmd) {
         boolean needsExport = false;
         try {
-            if (removeRecord(cmd.getRecordName(), cmd.getRecordIp(), cmd.getNetworkDomain(), false, cmd.isOverride())) {
+            if (removeRecord(cmd.getRecordName(), cmd.getRecordIp(), cmd.getNetworkDomain(), false)) {
                 needsExport = true;
             }
 
@@ -229,7 +229,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             String reverseRecordName = generateReverseRecordNameFromNetworkIp(cmd.getRecordIp());
             String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain() + '.';
 
-            if (removeRecord(reverseRecordName, reverseRecordContent, reverseGloboDnsName, true, cmd.isOverride())) {
+            if (removeRecord(reverseRecordName, reverseRecordContent, reverseGloboDnsName, true)) {
                 needsExport = true;
             }
 
@@ -373,7 +373,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
      * @param bindZoneName
      * @return true if record exists and was removed.
      */
-    protected boolean removeRecord(String recordName, String recordValue, String bindZoneName, boolean reverse, boolean override) {
+    protected boolean removeRecord(String recordName, String recordValue, String bindZoneName, boolean reverse) {
         Domain domain = searchDomain(bindZoneName, reverse);
         if (domain == null) {
             s_logger.warn("Domain " + bindZoneName + " doesn't exists in GloboDNS. Record " + recordName + " has already been removed.");
@@ -384,9 +384,9 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " has already been removed.");
             return false;
         } else {
-            if (!override && !record.getContent().equals(recordValue)) {
-                s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " have different value from " + recordValue
-                        + " and override is not enable. I will not delete it.");
+            if (!record.getContent().equals(recordValue)) {
+                s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " has different value from " + recordValue
+                        + ". Will not delete it.");
                 return false;
             }
             _globoDns.getRecordAPI().removeRecord(record.getId());
