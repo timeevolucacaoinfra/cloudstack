@@ -48,6 +48,7 @@ import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseComm
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 import com.globo.globodns.cloudstack.commands.SignInCommand;
+import com.globo.globodns.cloudstack.commands.ValidateLbRecordCommand;
 
 public class GloboDnsResource extends ManagerBase implements ServerResource {
     private String _zoneId;
@@ -174,6 +175,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             return execute((CreateOrUpdateDomainCommand)cmd);
         } else if (cmd instanceof CreateOrUpdateRecordAndReverseCommand) {
             return execute((CreateOrUpdateRecordAndReverseCommand)cmd);
+        } else if (cmd instanceof ValidateLbRecordCommand) {
+            return execute((ValidateLbRecordCommand) cmd);
         } else if (cmd instanceof CreateLbRecordAndReverseCommand) {
             return execute((CreateLbRecordAndReverseCommand) cmd);
         }
@@ -285,7 +288,35 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
         }
     }
 
-    public Answer execute(CreateLbRecordAndReverseCommand cmd) {
+    public Answer execute(ValidateLbRecordCommand cmd) {
+        try {
+            Domain domain = searchDomain(cmd.getLbDomain(), false);
+            if (domain == null) {
+                String msg = "Domain " + cmd.getLbDomain() + " doesn't exist.";
+                s_logger.debug(msg);
+                return new Answer(cmd, false, msg);
+            }
+
+            Record record = this.searchRecord(cmd.getLbRecordName(), domain.getId());
+            if (record == null) {
+                // Record does not exist, return that it is valid
+                return new Answer(cmd);
+            }
+
+            if (cmd.isOverride()) {
+                // If record exists and override is true, then also returns true
+                return new Answer(cmd);
+            }
+
+            // Otherwise, return that name is invalid
+            String msg = "Record " + cmd.getLbRecordName() + " is invalid or override option is false";
+            return new Answer(cmd, false, msg);
+       } catch (GloboDnsException e) {
+           return new Answer(cmd, false, e.getMessage());
+       }
+   }
+
+   public Answer execute(CreateLbRecordAndReverseCommand cmd) {
         boolean needsExport = false;
         try {
             Domain domain = searchDomain(cmd.getLbDomain(), false);

@@ -77,6 +77,7 @@ import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseComm
 import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 import com.globo.globodns.cloudstack.commands.SignInCommand;
+import com.globo.globodns.cloudstack.commands.ValidateLbRecordCommand;
 import com.globo.globodns.cloudstack.resource.GloboDnsResource;
 
 @Component
@@ -390,6 +391,23 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     }
 
     // Load Balancing methods
+    @Override
+    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, Long zoneId) {
+        s_logger.debug("Validating LB DNS record " + lbRecord + " in domain " + lbDomain);
+        DataCenter zone = _dcDao.findById(zoneId);
+        if (zone == null) {
+            throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
+        }
+
+        ValidateLbRecordCommand cmd = new ValidateLbRecordCommand(lbRecord, lbDomain, GloboDNSLbOverride.value());
+        Answer answer = callCommand(cmd, zoneId);
+        if (answer == null || !answer.getResult()) {
+            // Could not sign in on GloboDNS
+            throw new InvalidParameterValueException("Could not validate LB record " + lbRecord + ". " + (answer == null ? "" : answer.getDetails()));
+        }
+        return answer.getResult();
+    }
+
     @Override
     public boolean createDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId) {
         s_logger.debug("Creating LB DNS record " + lbRecord + " in domain " + lbDomain);
