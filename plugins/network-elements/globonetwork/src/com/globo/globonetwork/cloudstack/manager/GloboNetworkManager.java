@@ -2155,7 +2155,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 // Insert the '.' before the domain, if it's not there yet
                 allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
                 if (rule.getName().endsWith(allowedDomain)) {
-                    lbDomain = allowedDomain;
+                    lbDomain = allowedDomain.substring(1);
                     break;
                 }
             }
@@ -2165,6 +2165,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 // LB cannot be created
                 throw new InvalidParameterValueException("Load balancer name " + rule.getName() + " is not in the allowed list for domains.");
             }
+
+            // Finally, validate LB record in GloboDNS
+            String lbRecord = getLbRecord(rule.getName(), lbDomain);
+            return _globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, network.getDataCenterId());
         } else {
             s_logger.warn("Allowing creation of Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
         }

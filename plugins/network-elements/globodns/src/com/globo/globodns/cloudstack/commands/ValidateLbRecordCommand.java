@@ -18,21 +18,18 @@ package com.globo.globodns.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
 
-public class RemoveRecordCommand extends Command {
+public class ValidateLbRecordCommand extends Command {
 
-    private String recordName;
+    private String lbRecordName;
 
-    private String recordIp;
+    private String lbDomain;
 
-    private String networkDomain;
+    private boolean override;
 
-    private boolean isIpv6;
-
-    public RemoveRecordCommand(String recordName, String recordIp, String networkDomain, boolean isIpv6) {
-        this.recordName = recordName;
-        this.recordIp = recordIp;
-        this.networkDomain = networkDomain;
-        this.isIpv6 = isIpv6;
+    public ValidateLbRecordCommand(String lbRecordName, String lbDomain, boolean override) {
+        this.lbRecordName = lbRecordName;
+        this.lbDomain = lbDomain;
+        this.override = override;
     }
 
     @Override
@@ -40,23 +37,16 @@ public class RemoveRecordCommand extends Command {
         return false;
     }
 
-    public String getRecordName() {
-        return recordName;
+    public String getLbRecordName() {
+        return this.lbRecordName;
     }
 
-    public String getRecordIp() {
-        return recordIp;
+    public String getLbDomain() {
+        return this.lbDomain;
     }
 
-    public String getNetworkDomain() {
-        return networkDomain;
+    public boolean isOverride() {
+        return override;
     }
 
-    public boolean isIpv6() {
-        return isIpv6;
-    }
-
-    public void setIpv6(boolean isIpv6) {
-        this.isIpv6 = isIpv6;
-    }
 }
