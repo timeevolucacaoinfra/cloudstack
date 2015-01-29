@@ -297,7 +297,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
                 return new Answer(cmd, false, msg);
             }
 
-            Record record = this.searchRecord(cmd.getLbRecordName(), domain.getId());
+            Record record = this.searchRecordByName(cmd.getLbRecordName(), domain.getId());
             if (record == null) {
                 // Record does not exist, return that it is valid
                 return new Answer(cmd);
@@ -410,7 +410,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             s_logger.warn("Domain " + bindZoneName + " doesn't exists in GloboDNS. Record " + recordName + " has already been removed.");
             return false;
         }
-        Record record = searchRecord(recordName, domain.getId());
+        Record record = searchRecordByNameAndContent(recordName, recordValue, domain.getId());
         if (record == null) {
             s_logger.warn("Record " + recordName + " in domain " + bindZoneName + " has already been removed.");
             return false;
@@ -435,7 +435,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
      * @return if record was created or updated.
      */
     private boolean createOrUpdateRecord(Long domainId, String name, String ip, String type, boolean override) {
-        Record record = this.searchRecord(name, domainId);
+        Record record = this.searchRecordByName(name, domainId);
         if (record == null) {
             // Create new record
             record = _globoDns.getRecordAPI().createRecord(domainId, name, ip, type);
@@ -496,11 +496,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
      * @param domainId Id of BindZoneName. Maybe you need use searchDomain before to use BindZoneName.
      * @return Record or null if not exists.
      */
-    private Record searchRecord(String recordName, Long domainId) {
-        if (recordName == null || domainId == null) {
-            return null;
-        }
-        List<Record> candidates = _globoDns.getRecordAPI().listByQuery(domainId, recordName);
+    private Record searchRecordByName(String recordName, Long domainId) {
+        List<Record> candidates = this.listRecords(recordName, domainId);
         // GloboDns search name in name and content. We need to iterate to check if recordName exists only in name
         for (Record candidate : candidates) {
             if (recordName.equalsIgnoreCase(candidate.getName())) {
@@ -510,6 +507,27 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
         }
         s_logger.debug("Record " + recordName + " in domain id " + domainId + " not found in GloboDNS");
         return null;
+    }
+
+    private Record searchRecordByNameAndContent(String recordName, String recordContent, Long domainId) {
+        List<Record> candidates = this.listRecords(recordName, domainId);
+        // GloboDns search name in name and content. We need to iterate to check if recordName exists only in name
+        for (Record candidate : candidates) {
+            if (recordName.equalsIgnoreCase(candidate.getName()) && recordContent.equalsIgnoreCase(candidate.getContent())) {
+                s_logger.debug("Record " + recordName + ":" + recordContent + " in domain id " + domainId + " found in GloboDNS");
+                return candidate;
+            }
+        }
+        s_logger.debug("Record " + recordName + ":" + recordContent + " in domain id " + domainId + " not found in GloboDNS");
+        return null;
+    }
+
+    private List<Record> listRecords(String recordName, Long domainId) {
+        if (recordName == null || domainId == null) {
+            return null;
+        }
+        List<Record> candidates = _globoDns.getRecordAPI().listByQuery(domainId, recordName);
+        return candidates;
     }
 
     /**
