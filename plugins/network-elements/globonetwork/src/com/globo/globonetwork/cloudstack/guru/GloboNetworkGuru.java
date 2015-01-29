@@ -170,6 +170,17 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
     }
 
     @Override
+    public void updateNicProfile(NicProfile profile, Network network) {
+        DataCenter dc = _dcDao.findById(network.getDataCenterId());
+        if (profile != null) {
+            profile.setDns1(dc.getDns1());
+            profile.setDns2(dc.getDns2());
+            profile.setIp6Dns1(dc.getIp6Dns1());
+            profile.setIp6Dns2(dc.getIp6Dns2());
+        }
+    }
+
+    @Override
     public NicProfile allocate(final Network network, final NicProfile nic, final VirtualMachineProfile vm) throws InsufficientVirtualNetworkCapcityException,
             InsufficientAddressCapacityException {
 
