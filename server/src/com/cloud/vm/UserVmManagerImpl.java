@@ -2948,7 +2948,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                 }
                 Long rootDiskSize = null;
                 // custom root disk size, resizes base template to larger size
-                if (customParameters.containsKey("rootdisksize")) {
+                if (customParameters != null && customParameters.containsKey("rootdisksize")) {
                     if (NumbersUtil.parseLong(customParameters.get("rootdisksize"), -1) <= 0) {
                         throw new InvalidParameterValueException("rootdisk size should be a non zero number.");
                     }
