@@ -529,10 +529,10 @@ public class ApiServer extends ManagerBase implements HttpRequestHandler, ApiSer
                 }
             }
         } catch (final InvalidParameterValueException ex) {
-            s_logger.info(ex.getMessage());
+            s_logger.info(ex.getMessage(), ex);
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, ex.getMessage(), ex);
         } catch (final IllegalArgumentException ex) {
-            s_logger.info(ex.getMessage());
+            s_logger.info(ex.getMessage(), ex);
             throw new ServerApiException(ApiErrorCode.PARAM_ERROR, ex.getMessage(), ex);
         } catch (final PermissionDeniedException ex) {
             final ArrayList<ExceptionProxyObject> idList = ex.getIdProxyList();
@@ -544,16 +544,16 @@ public class ApiServer extends ManagerBase implements HttpRequestHandler, ApiSer
                     buf.append(obj.getUuid());
                     buf.append(" ");
                 }
-                s_logger.info("PermissionDenied: " + ex.getMessage() + " on objs: [" + buf.toString() + "]");
+                s_logger.info("PermissionDenied: " + ex.getMessage() + " on objs: [" + buf.toString() + "]", ex);
             } else {
-                s_logger.info("PermissionDenied: " + ex.getMessage());
+                s_logger.info("PermissionDenied: " + ex.getMessage(), ex);
             }
             throw new ServerApiException(ApiErrorCode.ACCOUNT_ERROR, ex.getMessage(), ex);
         } catch (final AccountLimitException ex) {
-            s_logger.info(ex.getMessage());
+            s_logger.info(ex.getMessage(), ex);
             throw new ServerApiException(ApiErrorCode.ACCOUNT_RESOURCE_LIMIT_ERROR, ex.getMessage(), ex);
         } catch (final InsufficientCapacityException ex) {
-            s_logger.info(ex.getMessage());
+            s_logger.info(ex.getMessage(), ex);
             String errorMsg = ex.getMessage();
             if (!_accountMgr.isRootAdmin(CallContext.current().getCallingAccount().getId())) {
                 // hide internal details to non-admin user for security reason
@@ -561,7 +561,7 @@ public class ApiServer extends ManagerBase implements HttpRequestHandler, ApiSer
             }
             throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, errorMsg, ex);
         } catch (final ResourceAllocationException ex) {
-            s_logger.info(ex.getMessage());
+            s_logger.info(ex.getMessage(), ex);
             throw new ServerApiException(ApiErrorCode.RESOURCE_ALLOCATION_ERROR, ex.getMessage(), ex);
         } catch (final ResourceUnavailableException ex) {
             s_logger.info(ex.getMessage());
@@ -572,7 +572,7 @@ public class ApiServer extends ManagerBase implements HttpRequestHandler, ApiSer
             }
             throw new ServerApiException(ApiErrorCode.RESOURCE_UNAVAILABLE_ERROR, errorMsg, ex);
         } catch (final ServerApiException ex) {
-            s_logger.info(ex.getDescription());
+            s_logger.info(ex.getDescription(), ex);
             throw ex;
         } catch (final Exception ex) {
             s_logger.error("unhandled exception executing api command: " + ((command == null) ? "null" : command), ex);
