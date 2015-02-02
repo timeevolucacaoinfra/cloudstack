@@ -3,30 +3,30 @@
 case "$1" in
   run)
     rm -f *.log
-    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Djava.awt.headless=true -pl :cloud-client-ui jetty:run
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Dnonoss -Djava.awt.headless=true -pl :cloud-client-ui jetty:run
     ;;
   run-simulator)
     rm -f *.log
-    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Djava.awt.headless=true -Dsimulator -pl :cloud-client-ui jetty:run
+    MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Dnonoss -Djava.awt.headless=true -Dsimulator -pl :cloud-client-ui jetty:run
     ;;
   compile)
-    mvn -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator clean install -DskipTests
+    mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator clean install -DskipTests
     ;;
   compile-changes)
-    mvn -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator install -DskipTests
+    mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator install -DskipTests
     ;;
   compile-quick)
-    mvn -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
+    mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
   update-js)
     cp -R ui/scripts client/target/generated-webapp/
     ;;
   deploydb)
-    mvn -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
+    mvn -Dnonoss -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
     ;;
   deploydb-simulator)
-    mvn -Pdeveloper -pl developer -Ddeploydb
-    mvn -Pdeveloper -pl developer -Ddeploydb-simulator
+    mvn -Dnonoss -Pdeveloper -pl developer -Ddeploydb
+    mvn -Dnonoss -Pdeveloper -pl developer -Ddeploydb-simulator
     ;;
   db-migrate)
     [[ -z $WORKON_HOME ]] && WORKON_HOME=$HOME/.virtualenvs
