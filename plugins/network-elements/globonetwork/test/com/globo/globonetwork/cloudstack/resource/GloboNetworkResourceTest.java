@@ -16,13 +16,12 @@
 */
 package com.globo.globonetwork.cloudstack.resource;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,14 +44,12 @@ import com.globo.globonetwork.client.api.VlanAPI;
 import com.globo.globonetwork.client.exception.GloboNetworkException;
 import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Equipment;
-import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Ip;
+import com.globo.globonetwork.client.model.Ipv4;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.VipEnvironment;
-import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.ValidateNicInVlanCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 public class GloboNetworkResourceTest {
@@ -67,77 +64,6 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipAPI()).thenReturn(mock(VipAPI.class));
         when(_resource._globoNetworkApi.getVipEnvironmentAPI()).thenReturn(mock(VipEnvironmentAPI.class));
         when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
-    }
-
-    @Test
-    public void testValidateNicReturnsAnswerResultTrue() throws Exception {
-
-        long vlanId = 100l;
-
-        // Returning objects
-        Vlan vlan = new Vlan();
-        vlan.setId(vlanId);
-
-        // Setting network to 10.2.3.0/24
-        IPv4Network ipv4Network = new IPv4Network();
-        ipv4Network.setOct1(10);
-        ipv4Network.setOct2(2);
-        ipv4Network.setOct3(3);
-        ipv4Network.setOct4(0);
-        ipv4Network.setMaskOct1(255);
-        ipv4Network.setMaskOct2(255);
-        ipv4Network.setMaskOct3(255);
-        ipv4Network.setMaskOct4(0);
-        ipv4Network.setActive(true);
-
-        List<IPv4Network> ipv4Networks = new ArrayList<IPv4Network>();
-        ipv4Networks.add(ipv4Network);
-        vlan.setIpv4Networks(ipv4Networks);
-
-        // Mocking return statement
-        when(_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
-
-        ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
-        cmd.setVlanId(vlanId);
-        cmd.setNicIp("10.2.3.34");
-        cmd.setVlanNum(3929l);
-        Answer answer = _resource.execute(cmd);
-        assertTrue(answer.getResult());
-    }
-
-    @Test
-    public void testValidateNicReturnsAnswerResultFalse() throws Exception {
-
-        long vlanId = 100L;
-
-        // Returning objects
-        Vlan vlan = new Vlan();
-        vlan.setId(vlanId);
-
-        // Setting network to 10.1.3.0/24
-        IPv4Network ipv4Network = new IPv4Network();
-        ipv4Network.setOct1(10);
-        ipv4Network.setOct2(1);
-        ipv4Network.setOct3(3);
-        ipv4Network.setOct4(0);
-        ipv4Network.setMaskOct1(255);
-        ipv4Network.setMaskOct2(255);
-        ipv4Network.setMaskOct3(255);
-        ipv4Network.setMaskOct4(0);
-        ipv4Network.setActive(true);
-
-        List<IPv4Network> ipv4Networks = new ArrayList<IPv4Network>();
-        ipv4Networks.add(ipv4Network);
-        vlan.setIpv4Networks(ipv4Networks);
-
-        // Mocking return statement
-        when(_resource._globoNetworkApi.getVlanAPI().getById(vlanId)).thenReturn(vlan);
-
-        ValidateNicInVlanCommand cmd = new ValidateNicInVlanCommand();
-        cmd.setVlanId(vlanId);
-        cmd.setNicIp("10.2.3.34");
-        Answer answer = _resource.execute(cmd);
-        assertFalse(answer.getResult());
     }
 
     static long s_ipSequence = 100;
@@ -168,13 +94,13 @@ public class GloboNetworkResourceTest {
         // real
         String realPort = "8080";
 
-        Ip vipIp = new Ip();
+        Ipv4 vipIp = new Ipv4();
         vipIp.setId(vipIpId);
         vipIp.setOct1(Integer.valueOf(vipIpStr.split("\\.")[0]));
         vipIp.setOct2(Integer.valueOf(vipIpStr.split("\\.")[1]));
         vipIp.setOct3(Integer.valueOf(vipIpStr.split("\\.")[2]));
         vipIp.setOct4(Integer.valueOf(vipIpStr.split("\\.")[3]));
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment)).thenReturn(vipIp);
+        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIpStr, vipEnvironment, false)).thenReturn(vipIp);
 
         VipEnvironment environmentVip = new VipEnvironment();
         environmentVip.setId(vipEnvironment);
@@ -200,9 +126,9 @@ public class GloboNetworkResourceTest {
 
         List<RealIP> realIpList = new ArrayList<RealIP>();
         for (String realAddr : reals) {
-            Ip ip = new Ip();
+            Ip ip = new Ipv4();
             ip.setId(getNewIpID());
-            when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realAddr, realEnvironment)).thenReturn(ip);
+            when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(realAddr, realEnvironment, false)).thenReturn(ip);
 
             RealIP realIp = new RealIP();
             realIp.setIpId(ip.getId());
@@ -392,12 +318,13 @@ public class GloboNetworkResourceTest {
         realEquipment.setId(realEquipmentId);
         when(_resource._globoNetworkApi.getEquipmentAPI().listByName(realName)).thenReturn(realEquipment);
 
-        Ip equipIp = new Ip();
-        equipIp.setId(realEquipId);
-        equipIp.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
-        equipIp.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
-        equipIp.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
-        equipIp.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ipv4 equipIpv4 = new Ipv4();
+        equipIpv4.setId(realEquipId);
+        equipIpv4.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
+        equipIpv4.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
+        equipIpv4.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
+        equipIpv4.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ip equipIp = (Ip) equipIpv4;
         when(_resource._globoNetworkApi.getIpAPI().findIpsByEquipment(realEquipmentId)).thenReturn(Arrays.asList(equipIp));
 
         // Vip after updating
@@ -467,12 +394,13 @@ public class GloboNetworkResourceTest {
         realEquipment.setId(realEquipmentId);
         when(_resource._globoNetworkApi.getEquipmentAPI().listByName(vip.getRealsIp().get(0).getName())).thenReturn(realEquipment);
 
-        Ip equipIp = new Ip();
-        equipIp.setId(realEquipId);
-        equipIp.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
-        equipIp.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
-        equipIp.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
-        equipIp.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ipv4 equipIpv4 = new Ipv4();
+        equipIpv4.setId(realEquipId);
+        equipIpv4.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
+        equipIpv4.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
+        equipIpv4.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
+        equipIpv4.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ip equipIp = (Ip) equipIpv4;
         when(_resource._globoNetworkApi.getIpAPI().findIpsByEquipment(realEquipmentId)).thenReturn(Arrays.asList(equipIp));
 
         // Vip after updating
@@ -541,12 +469,13 @@ public class GloboNetworkResourceTest {
         realEquipment.setId(realEquipmentId);
         when(_resource._globoNetworkApi.getEquipmentAPI().listByName(vip.getRealsIp().get(0).getName())).thenReturn(realEquipment);
 
-        Ip equipIp = new Ip();
-        equipIp.setId(realEquipId);
-        equipIp.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
-        equipIp.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
-        equipIp.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
-        equipIp.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ipv4 equipIpv4 = new Ipv4();
+        equipIpv4.setId(realEquipId);
+        equipIpv4.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
+        equipIpv4.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
+        equipIpv4.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
+        equipIpv4.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ip equipIp = (Ip) equipIpv4;
         when(_resource._globoNetworkApi.getIpAPI().findIpsByEquipment(realEquipmentId)).thenReturn(Arrays.asList(equipIp));
 
         // Vip after updating
@@ -625,12 +554,13 @@ public class GloboNetworkResourceTest {
         realEquipment.setId(realEquipmentId);
         when(_resource._globoNetworkApi.getEquipmentAPI().listByName(vip.getRealsIp().get(0).getName())).thenReturn(realEquipment);
 
-        Ip equipIp = new Ip();
-        equipIp.setId(realEquipId);
-        equipIp.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
-        equipIp.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
-        equipIp.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
-        equipIp.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ipv4 equipIpv4 = new Ipv4();
+        equipIpv4.setId(realEquipId);
+        equipIpv4.setOct1(Integer.valueOf(realIp.split("\\.")[0]));
+        equipIpv4.setOct2(Integer.valueOf(realIp.split("\\.")[1]));
+        equipIpv4.setOct3(Integer.valueOf(realIp.split("\\.")[2]));
+        equipIpv4.setOct4(Integer.valueOf(realIp.split("\\.")[3]));
+        Ip equipIp = (Ip) equipIpv4;
         when(_resource._globoNetworkApi.getIpAPI().findIpsByEquipment(realEquipmentId)).thenReturn(Arrays.asList(equipIp));
 
         // Vip after updating

@@ -22,8 +22,11 @@ public class AcquireNewIpForLbCommand extends Command {
 
     private long globoNetworkLBEnvironmentId;
 
-    public AcquireNewIpForLbCommand(long globoNetworkLBEnvironmentId) {
+    private boolean isv6;
+
+    public AcquireNewIpForLbCommand(long globoNetworkLBEnvironmentId, boolean isv6) {
         this.globoNetworkLBEnvironmentId = globoNetworkLBEnvironmentId;
+        this.setIsv6(isv6);
     }
 
     @Override
@@ -33,5 +36,13 @@ public class AcquireNewIpForLbCommand extends Command {
 
     public long getGloboNetworkLBEnvironmentId() {
         return globoNetworkLBEnvironmentId;
+    }
+
+    public boolean isv6() {
+        return isv6;
+    }
+
+    public void setIsv6(boolean isv6) {
+        this.isv6 = isv6;
     }
 }

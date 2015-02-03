@@ -23,6 +23,7 @@ public class UnregisterEquipmentAndIpInGloboNetworkCommand extends Command {
     private String nicIp;
     private String vmName;
     private Long environmentId;
+    private boolean isv6;
 
     @Override
     public boolean executeInSequence() {
@@ -51,5 +52,13 @@ public class UnregisterEquipmentAndIpInGloboNetworkCommand extends Command {
 
     public void setEnvironmentId(Long environmentId) {
         this.environmentId = environmentId;
+    }
+
+    public boolean isv6() {
+        return isv6;
+    }
+
+    public void setIsv6(boolean isv6) {
+        this.isv6 = isv6;
     }
 }

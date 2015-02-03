@@ -22,8 +22,11 @@ public class GetNetworkFromGloboNetworkCommand extends Command {
 
     private Long networkId;
 
-    public GetNetworkFromGloboNetworkCommand(Long networkId) {
+    private boolean isv6;
+
+    public GetNetworkFromGloboNetworkCommand(Long networkId, boolean isv6) {
         this.networkId = networkId;
+        this.isv6 = isv6;
     }
 
     @Override
@@ -33,5 +36,9 @@ public class GetNetworkFromGloboNetworkCommand extends Command {
 
     public Long getNetworkId() {
         return networkId;
+    }
+
+    public boolean isv6() {
+        return isv6;
     }
 }

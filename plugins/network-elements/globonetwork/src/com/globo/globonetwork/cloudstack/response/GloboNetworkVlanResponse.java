@@ -18,7 +18,6 @@ package com.globo.globonetwork.cloudstack.response;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.cloud.utils.net.Ip4Address;
 
 public class GloboNetworkVlanResponse extends Answer {
 
@@ -30,16 +29,20 @@ public class GloboNetworkVlanResponse extends Answer {
 
     private Long vlanNum;
 
-    private Ip4Address mask;
+    private String mask;
 
-    private Ip4Address networkAddress;
+    private String networkAddress;
 
     private Long networkId;
 
     private boolean isActive;
 
-    public GloboNetworkVlanResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, Ip4Address networkAddress, Ip4Address mask,
-            Long networkId, Boolean isActive) {
+    private Integer block;
+
+    private boolean isv6;
+
+    public GloboNetworkVlanResponse(Command command, Long vlanId, String vlanName, String vlanDescription, Long vlanNum, String networkAddress, String mask,
+            Long networkId, Boolean isActive, Integer block, boolean isv6) {
         super(command, true, null);
         this.vlanId = vlanId;
         this.vlanName = vlanName;
@@ -49,6 +52,8 @@ public class GloboNetworkVlanResponse extends Answer {
         this.networkAddress = networkAddress;
         this.setNetworkId(networkId);
         this.setIsActive(isActive == null ? false : isActive);
+        this.setBlock(block);
+        this.isv6 = isv6;
     }
 
     public Long getVlanNum() {
@@ -67,11 +72,11 @@ public class GloboNetworkVlanResponse extends Answer {
         this.vlanId = vlanId;
     }
 
-    public Ip4Address getMask() {
+    public String getMask() {
         return mask;
     }
 
-    public void setMask(Ip4Address mask) {
+    public void setMask(String mask) {
         this.mask = mask;
     }
 
@@ -91,11 +96,11 @@ public class GloboNetworkVlanResponse extends Answer {
         this.vlanDescription = vlanDescription;
     }
 
-    public Ip4Address getNetworkAddress() {
+    public String getNetworkAddress() {
         return networkAddress;
     }
 
-    public void setNetworkAddress(Ip4Address networkAddress) {
+    public void setNetworkAddress(String networkAddress) {
         this.networkAddress = networkAddress;
     }
 
@@ -113,6 +118,22 @@ public class GloboNetworkVlanResponse extends Answer {
 
     public void setNetworkId(Long networkId) {
         this.networkId = networkId;
+    }
+
+    public boolean isv6() {
+        return isv6;
+    }
+
+    public void setIsv6(boolean isv6) {
+        this.isv6 = isv6;
+    }
+
+    public Integer getBlock() {
+        return block;
+    }
+
+    public void setBlock(Integer block) {
+        this.block = block;
     }
 
 }

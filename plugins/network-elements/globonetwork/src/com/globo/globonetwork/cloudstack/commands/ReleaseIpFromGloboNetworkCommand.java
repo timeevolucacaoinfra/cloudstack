@@ -22,11 +22,14 @@ public class ReleaseIpFromGloboNetworkCommand extends Command {
 
     private String ip;
 
+    private boolean isv6;
+
     private long vipEnvironmentId;
 
-    public ReleaseIpFromGloboNetworkCommand(String ip, long vipEnvironmentId) {
+    public ReleaseIpFromGloboNetworkCommand(String ip, long vipEnvironmentId, boolean isv6) {
         this.ip = ip;
         this.vipEnvironmentId = vipEnvironmentId;
+        this.isv6 = isv6;
     }
 
     @Override
@@ -40,5 +43,13 @@ public class ReleaseIpFromGloboNetworkCommand extends Command {
 
     public long getVipEnvironmentId() {
         return vipEnvironmentId;
+    }
+
+    public boolean isv6() {
+        return isv6;
+    }
+
+    public void setIsv6(boolean isv6) {
+        this.isv6 = isv6;
     }
 }

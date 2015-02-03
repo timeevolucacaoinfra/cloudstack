@@ -16,6 +16,8 @@
 */
 package com.globo.globodns.cloudstack.resource;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +37,7 @@ import com.cloud.agent.api.StartupCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
 import com.cloud.resource.ServerResource;
+import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.globodns.client.GloboDns;
 import com.globo.globodns.client.GloboDnsException;
@@ -49,6 +52,7 @@ import com.globo.globodns.cloudstack.commands.RemoveDomainCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 import com.globo.globodns.cloudstack.commands.SignInCommand;
 import com.globo.globodns.cloudstack.commands.ValidateLbRecordCommand;
+import com.googlecode.ipv6.IPv6Address;
 
 public class GloboDnsResource extends ManagerBase implements ServerResource {
     private String _zoneId;
@@ -66,8 +70,10 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
     protected GloboDns _globoDns;
 
     private static final String IPV4_RECORD_TYPE = "A";
+    private static final String IPV6_RECORD_TYPE = "AAAA";
     private static final String REVERSE_RECORD_TYPE = "PTR";
-    private static final String REVERSE_DOMAIN_SUFFIX = "in-addr.arpa";
+    private static final String REVERSE_IPV4_DOMAIN_SUFFIX = "in-addr.arpa";
+    private static final String REVERSE_IPV6_DOMAIN_SUFFIX = "ip6.arpa";
     private static final String DEFAULT_AUTHORITY_TYPE = "M";
 
     private static final Logger s_logger = Logger.getLogger(GloboDnsResource.class);
@@ -228,8 +234,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             }
 
             // remove reverse
-            String reverseGloboDnsName = generateReverseDomainNameFromNetworkIp(cmd.getRecordIp());
-            String reverseRecordName = generateReverseRecordNameFromNetworkIp(cmd.getRecordIp());
+            String reverseGloboDnsName = generateReverseDomainNameFromNetworkIp(cmd.getRecordIp(), cmd.isIpv6());
+            String reverseRecordName = generateReverseRecordNameFromNetworkIp(cmd.getRecordIp(), cmd.isIpv6());
             String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain() + '.';
 
             if (removeRecord(reverseRecordName, reverseRecordContent, reverseGloboDnsName, true)) {
@@ -256,7 +262,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
                         + cmd.getReverseTemplateId());
             }
 
-            boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), IPV4_RECORD_TYPE, cmd.isOverride());
+            String recordType = cmd.isIpv6() ? IPV6_RECORD_TYPE : IPV4_RECORD_TYPE;
+            boolean created = createOrUpdateRecord(domain.getId(), cmd.getRecordName(), cmd.getRecordIp(), recordType, cmd.isOverride());
             if (!created) {
                 String msg = "Unable to create record " + cmd.getRecordName() + " at " + cmd.getNetworkDomain();
                 if (!cmd.isOverride()) {
@@ -268,7 +275,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             }
 
             String reverseRecordContent = cmd.getRecordName() + '.' + cmd.getNetworkDomain() + '.';
-            if (createOrUpdateReverse(cmd.getRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride())) {
+            if (createOrUpdateReverse(cmd.getRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride(), cmd.isIpv6())) {
                 needsExport = true;
             } else {
                 if (!cmd.isOverride()) {
@@ -338,7 +345,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             }
 
             String reverseRecordContent = cmd.getLbRecordName() + '.' + cmd.getLbDomain() + '.';
-            if (createOrUpdateReverse(cmd.getLbRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride())) {
+            if (createOrUpdateReverse(cmd.getLbRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride(), false)) { //IPv6 LB not implemented yet
                 needsExport = true;
             } else {
                 if (!cmd.isOverride()) {
@@ -358,8 +365,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
        }
    }
 
-    protected boolean createOrUpdateReverse(String networkIp, String reverseRecordContent, Long templateId, boolean override) {
-        String reverseDomainName = generateReverseDomainNameFromNetworkIp(networkIp);
+    protected boolean createOrUpdateReverse(String networkIp, String reverseRecordContent, Long templateId, boolean override, boolean isIpv6) {
+        String reverseDomainName = generateReverseDomainNameFromNetworkIp(networkIp, isIpv6);
         Domain reverseDomain = searchDomain(reverseDomainName, true);
         if (reverseDomain == null) {
             reverseDomain = _globoDns.getDomainAPI().createReverseDomain(reverseDomainName, templateId, DEFAULT_AUTHORITY_TYPE);
@@ -367,7 +374,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
         }
 
         // create reverse
-        String reverseRecordName = generateReverseRecordNameFromNetworkIp(networkIp);
+        String reverseRecordName = generateReverseRecordNameFromNetworkIp(networkIp, isIpv6);
         return createOrUpdateRecord(reverseDomain.getId(), reverseRecordName, reverseRecordContent, REVERSE_RECORD_TYPE, override);
     }
 
@@ -535,16 +542,39 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
      * @param networkIp
      * @return Bind Zone Name reverse of network specified by networkIp
      */
-    private String generateReverseDomainNameFromNetworkIp(String networkIp) {
-        String[] octets = networkIp.split("\\.");
-        String reverseDomainName = octets[2] + '.' + octets[1] + '.' + octets[0] + '.' + REVERSE_DOMAIN_SUFFIX;
-        return reverseDomainName;
+    private String generateReverseDomainNameFromNetworkIp(String networkIp, boolean isIpv6) {
+        if(isIpv6){
+            String ipv6 = IPv6Address.fromString(networkIp).toLongString(); // returns the long representation of ipv6 address
+            ArrayList<String> blocks = new ArrayList<String>(Arrays.asList(Arrays.copyOfRange(ipv6.split(":"), 0, 4)));
+            String joinedIpv6Blocks = StringUtils.join(blocks, "");
+
+            StringBuilder reverseDomainName = new StringBuilder();
+            for(char character : joinedIpv6Blocks.toCharArray()){
+                reverseDomainName.append(character + ".");
+            }
+            return reverseDomainName.reverse().substring(1).toString() + '.' + REVERSE_IPV6_DOMAIN_SUFFIX;
+        }else{
+            String[] octets = networkIp.split("\\."); //Considering only /24 networks
+            String reverseDomainName = octets[2] + '.' + octets[1] + '.' + octets[0] + '.' + REVERSE_IPV4_DOMAIN_SUFFIX;
+            return reverseDomainName;
+        }
     }
 
-    private String generateReverseRecordNameFromNetworkIp(String networkIp) {
-        String[] octets = networkIp.split("\\.");
-        String reverseRecordName = octets[3];
-        return reverseRecordName;
-    }
+    private String generateReverseRecordNameFromNetworkIp(String networkIp, boolean isIpv6) {
+        if(isIpv6){
+            String ipv6 = IPv6Address.fromString(networkIp).toLongString(); // returns the long representation of ipv6 address
+            ArrayList<String> blocks = new ArrayList<String>(Arrays.asList(Arrays.copyOfRange(ipv6.split(":"), 4, 8)));
+            String joinedIpv6Blocks = StringUtils.join(blocks, "");
 
+            StringBuilder reverseDomainName = new StringBuilder();
+            for(char character : joinedIpv6Blocks.toCharArray()){
+                reverseDomainName.append(character + ".");
+            }
+            return reverseDomainName.reverse().substring(1).toString();
+        }else{
+            String[] octets = networkIp.split("\\.");
+            String reverseRecordName = octets[3];
+            return reverseRecordName;
+        }
+    }
 }

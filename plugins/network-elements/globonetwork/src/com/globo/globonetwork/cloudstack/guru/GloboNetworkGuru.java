@@ -25,6 +25,7 @@ import javax.naming.ConfigurationException;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
+import com.cloud.dc.DataCenter;
 import com.cloud.dc.DataCenter.NetworkType;
 import com.cloud.deploy.DeployDestination;
 import com.cloud.deploy.DeploymentPlan;
@@ -32,12 +33,17 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientNetworkCapacityException;
 import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Provider;
+import com.cloud.network.Network.State;
+import com.cloud.network.Networks.BroadcastDomainType;
+import com.cloud.network.Networks.Mode;
 import com.cloud.network.NetworkProfile;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetwork.IsolationMethod;
 import com.cloud.network.dao.NetworkVO;
+import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.guru.GuestNetworkGuru;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.router.VpcVirtualNetworkApplianceManager;
@@ -110,16 +116,45 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
 
     @Override
     public Network design(NetworkOffering offering, DeploymentPlan plan, Network userSpecified, Account owner) {
+        DataCenter dc = _dcDao.findById(plan.getDataCenterId());
+        PhysicalNetworkVO physnet = _physicalNetworkDao.findById(plan.getPhysicalNetworkId());
 
-        s_logger.debug("Asking GuestNetworkGuru to design network " + userSpecified.getName());
-        NetworkVO network = (NetworkVO)super.design(offering, plan, userSpecified, owner);
-        if (network == null) {
+        if (!canHandle(offering, dc.getNetworkType(), physnet)) {
             return null;
         }
 
-        // we want implement method be called.
-        network.setState(Network.State.Allocated);
-        return network;
+        NetworkVO config = new NetworkVO(offering.getTrafficType(), Mode.Dhcp, BroadcastDomainType.Vlan, offering.getId(), State.Allocated, plan.getDataCenterId(), plan.getPhysicalNetworkId());
+
+        if (userSpecified != null) {
+            if ((userSpecified.getCidr() == null && userSpecified.getGateway() != null) || (userSpecified.getCidr() != null && userSpecified.getGateway() == null)) {
+                throw new InvalidParameterValueException("cidr and gateway must be specified together.");
+            }
+
+            if ((userSpecified.getIp6Cidr() == null && userSpecified.getIp6Gateway() != null) ||
+                (userSpecified.getIp6Cidr() != null && userSpecified.getIp6Gateway() == null)) {
+                throw new InvalidParameterValueException("cidrv6 and gatewayv6 must be specified together.");
+            }
+
+            if (userSpecified.getCidr() != null) {
+                config.setCidr(userSpecified.getCidr());
+                config.setGateway(userSpecified.getGateway());
+            }
+
+            if (userSpecified.getIp6Cidr() != null) {
+                config.setIp6Cidr(userSpecified.getIp6Cidr());
+                config.setIp6Gateway(userSpecified.getIp6Gateway());
+            }
+
+            if (userSpecified.getBroadcastUri() != null) {
+                config.setBroadcastUri(userSpecified.getBroadcastUri());
+            }
+
+            if (userSpecified.getBroadcastDomainType() != null) {
+                config.setBroadcastDomainType(userSpecified.getBroadcastDomainType());
+            }
+        }
+
+        return config;
     }
 
     @Override
@@ -132,6 +167,17 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
             throw new CloudRuntimeException("Unable to activate network " + network, e);
         }
         return super.implement(network, offering, dest, context);
+    }
+
+    @Override
+    public void updateNicProfile(NicProfile profile, Network network) {
+        DataCenter dc = _dcDao.findById(network.getDataCenterId());
+        if (profile != null) {
+            profile.setDns1(dc.getDns1());
+            profile.setDns2(dc.getDns2());
+            profile.setIp6Dns1(dc.getIp6Dns1());
+            profile.setIp6Dns2(dc.getIp6Dns2());
+        }
     }
 
     @Override
