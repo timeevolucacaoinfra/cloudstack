@@ -681,6 +681,12 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                             continue;
                         }
 
+                        // check maximum vm of group
+                        if (currentVM > asGroup.getMaxMembers()) {
+                            _asManager.doScaleDown(asGroup.getId());
+                            continue;
+                        }
+
                         //check interval
                         long now = (new Date()).getTime();
                         if (asGroup.getLastInterval() != null)
