@@ -26,6 +26,7 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.network.as.AutoScaleCounter;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -131,6 +132,16 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
         Gson gson = new Gson();
         String stickyMethodList = gson.toJson(methodList);
         lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
+
+        // Add auto scale capability to load balancer
+        AutoScaleCounter.AutoScaleCounterType AutoScaleCounterCpu = new AutoScaleCounter.AutoScaleCounterType("cpu");
+        AutoScaleCounter.AutoScaleCounterType AutoScaleCounterMemory = new AutoScaleCounter.AutoScaleCounterType("memory");
+
+        List<AutoScaleCounter> counterList = new ArrayList<AutoScaleCounter>();
+        counterList.add(new AutoScaleCounter(AutoScaleCounterCpu));
+        counterList.add(new AutoScaleCounter(AutoScaleCounterMemory));
+        String autoScaleCounterList = gson.toJson(counterList);
+        lbCapabilities.put(Capability.AutoScaleCounters, autoScaleCounterList);
 
         // Healthcheck
         lbCapabilities.put(Capability.HealthCheckPolicy, "true");
