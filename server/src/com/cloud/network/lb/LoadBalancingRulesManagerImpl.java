@@ -1208,12 +1208,6 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         });
 
-        if (_autoScaleVmGroupDao.isAutoScaleLoadBalancer(loadBalancerId)) {
-            // For autoscaled loadbalancer, the rules need not be applied,
-            // meaning the call need not reach the resource layer.
-            // We can consider the job done.
-            return true;
-        }
         boolean success = false;
         FirewallRule.State backupState = loadBalancer.getState();
         try {
@@ -1464,15 +1458,6 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                     }
 
                 }
-            }
-
-            if (_autoScaleVmGroupDao.isAutoScaleLoadBalancer(loadBalancerId)) {
-                // For autoscaled loadbalancer, the rules need not be applied,
-                // meaning the call need not reach the resource layer.
-                // We can consider the job done and only need to remove the
-                // rules in DB
-                _lb2VmMapDao.remove(loadBalancer.getId(), instanceIds, null);
-                return true;
             }
 
             if (!applyLoadBalancerConfig(loadBalancerId)) {
