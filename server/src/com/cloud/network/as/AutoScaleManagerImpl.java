@@ -31,6 +31,8 @@ import java.util.concurrent.TimeUnit;
 import javax.ejb.Local;
 import javax.inject.Inject;
 
+import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -128,7 +130,7 @@ import com.cloud.vm.UserVmManager;
 import com.cloud.vm.UserVmService;
 
 @Local(value = {AutoScaleService.class, AutoScaleManager.class})
-public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScaleManager, AutoScaleService {
+public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScaleManager, AutoScaleService, Configurable {
     private static final Logger s_logger = Logger.getLogger(AutoScaleManagerImpl.class);
     private ScheduledExecutorService _executor = Executors.newScheduledThreadPool(1);
 
@@ -186,6 +188,9 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     LoadBalancerVMMapDao _lbVmMapDao;
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
+
+    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autosacaled.vm.prefix", "as-vm-",
+            "Auto scaled virtual machine name prefix", true, ConfigKey.Scope.Global);
 
     public List<AutoScaleCounter> getSupportedAutoScaleCounters(long networkid) {
         String capability = _lbRulesMgr.getLBCapability(networkid, Capability.AutoScaleCounters.getName());
@@ -1325,22 +1330,22 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             UserVm vm = null;
             IpAddresses addrs = new IpAddresses(null, null);
             if (zone.getNetworkType() == NetworkType.Basic) {
-                vm = _userVmService.createBasicSecurityGroupVirtualMachine(zone, serviceOffering, template, null, owner, "autoScaleVm-" + asGroup.getId() + "-" +
+                vm = _userVmService.createBasicSecurityGroupVirtualMachine(zone, serviceOffering, template, null, owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
                     getCurrentTimeStampString(),
-                    "autoScaleVm-" + asGroup.getId() + "-" + getCurrentTimeStampString(), null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null,
+                    AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(), null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null,
                     null, true, null, null, null, null);
             } else {
                 if (zone.isSecurityGroupEnabled()) {
                     vm = _userVmService.createAdvancedSecurityGroupVirtualMachine(zone, serviceOffering, template, null, null,
-                        owner, "autoScaleVm-" + asGroup.getId() + "-" + getCurrentTimeStampString(),
-                        "autoScaleVm-" + asGroup.getId() + "-" + getCurrentTimeStampString(), null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null,
+                        owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(),
+                        AutoScaledVmPrefix .value()+ asGroup.getId() + "-" + getCurrentTimeStampString(), null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null,
                         null, null, true, null, null, null, null);
 
                 } else {
                     LoadBalancer lb = _loadBalancingRulesService.findById(asGroup.getLoadBalancerId());
                     List<Long> networkIds = Arrays.asList(lb.getNetworkId());
-                    vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, "autoScaleVm-" + asGroup.getId() + "-" +
-                        getCurrentTimeStampString(), "autoScaleVm-" + asGroup.getId() + "-" + getCurrentTimeStampString(),
+                    vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
+                        getCurrentTimeStampString(), AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(),
                         null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null, addrs, true, null, null, null, null);
 
                 }
@@ -1534,4 +1539,13 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
     }
 
+    @Override
+    public ConfigKey<?>[] getConfigKeys() {
+        return new ConfigKey<?>[] { AutoScaledVmPrefix };
+    }
+
+    @Override
+    public String getConfigComponentName() {
+        return AutoScaleManagerImpl.class.getSimpleName();
+    }
 }
