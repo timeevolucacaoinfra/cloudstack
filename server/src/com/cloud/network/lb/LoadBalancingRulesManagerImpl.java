@@ -359,8 +359,9 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
          * autoscale config as of today.
          */
         List<LbStickinessPolicy> policyList = getStickinessPolicies(lb.getId());
+        List<LbHealthCheckPolicy> healthCheckPolicyList = getHealthCheckPolicies(lb.getId());
         Ip sourceIp = getSourceIp(lb);
-        LoadBalancingRule rule = new LoadBalancingRule(lb, null, policyList, null, sourceIp, null, lb.getLbProtocol());
+        LoadBalancingRule rule = new LoadBalancingRule(lb, null, policyList, healthCheckPolicyList, sourceIp, null, lb.getLbProtocol());
         rule.setAutoScaleVmGroup(lbAutoScaleVmGroup);
 
         if (!isRollBackAllowedForProvider(lb)) {
@@ -1940,16 +1941,17 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
         loadBalancing.setAdditionalNetworks(additionalNetworks);
 
+        List<LbHealthCheckPolicy> hcPolicyList = getHealthCheckPolicies(lb.getId());
+        loadBalancing.setHealthCheckPolicies(hcPolicyList);
+
+        List<LbDestination> dstList = getExistingDestinations(lb.getId());
+        loadBalancing.setDestinations(dstList);
+
         if (_autoScaleVmGroupDao.isAutoScaleLoadBalancer(lb.getId())) {
             // Get the associated VmGroup
             AutoScaleVmGroupVO vmGroup = _autoScaleVmGroupDao.listByAll(lb.getId(), null).get(0);
             LbAutoScaleVmGroup lbAutoScaleVmGroup = getLbAutoScaleVmGroup(vmGroup, vmGroup.getState(), lb);
             loadBalancing.setAutoScaleVmGroup(lbAutoScaleVmGroup);
-        } else {
-            List<LbDestination> dstList = getExistingDestinations(lb.getId());
-            loadBalancing.setDestinations(dstList);
-            List<LbHealthCheckPolicy> hcPolicyList = getHealthCheckPolicies(lb.getId());
-            loadBalancing.setHealthCheckPolicies(hcPolicyList);
         }
 
         return loadBalancing;
