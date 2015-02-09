@@ -1941,28 +1941,30 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             // Reals
             List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
-            for (LbDestination destVM : rule.getDestinations()) {
-                VMInstanceVO vm = _vmDao.findById(destVM.getInstanceId());
-                if (vm != null) {
-                    GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-                    real.setIp(destVM.getIpAddress());
-                    real.setVmName(getEquipNameFromUuid(vm.getUuid()));
-                    real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
-                    real.setRevoked(destVM.isRevoked());
+            if(rule.getDestinations() != null) {
+                for (LbDestination destVM : rule.getDestinations()) {
+                    VMInstanceVO vm = _vmDao.findById(destVM.getInstanceId());
+                    if (vm != null) {
+                        GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+                        real.setIp(destVM.getIpAddress());
+                        real.setVmName(getEquipNameFromUuid(vm.getUuid()));
+                        real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
+                        real.setRevoked(destVM.isRevoked());
 
-                    GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
-                    if (globoNetworkRealNetworkVO == null) {
-                        throw new InvalidParameterValueException("Could not obtain mapping for network " + destVM.getNetworkId() + " and VM " + destVM.getInstanceId()
-                                + " in GloboNetwork.");
-                    }
-                    real.setEnvironmentId(globoNetworkRealNetworkVO.getGloboNetworkEnvironmentId());
-                    realList.add(real);
+                        GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
+                        if (globoNetworkRealNetworkVO == null) {
+                            throw new InvalidParameterValueException("Could not obtain mapping for network " + destVM.getNetworkId() + " and VM " + destVM.getInstanceId()
+                                    + " in GloboNetwork.");
+                        }
+                        real.setEnvironmentId(globoNetworkRealNetworkVO.getGloboNetworkEnvironmentId());
+                        realList.add(real);
 
-                    if (destVM.isRevoked()) {
-                        revokeAnyVM = true;
+                        if (destVM.isRevoked()) {
+                            revokeAnyVM = true;
+                        }
+                    } else {
+                        throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
                     }
-                } else {
-                    throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
                 }
             }
 
@@ -1979,8 +1981,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             // Options and parameters
             cmd.setMethodBal(rule.getAlgorithm());
-            cmd.setPersistencePolicy(rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
-            cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
+            cmd.setPersistencePolicy(rule.getStickinessPolicies() == null || rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
+            cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
             cmd.setRuleState(rule.getState());
 
             // Reals infos
