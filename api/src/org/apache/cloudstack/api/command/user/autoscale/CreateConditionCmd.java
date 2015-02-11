@@ -17,6 +17,7 @@
 
 package org.apache.cloudstack.api.command.user.autoscale;
 
+import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.api.APICommand;
@@ -59,6 +60,9 @@ public class CreateConditionCmd extends BaseAsyncCreateCmd {
 
     @Parameter(name = ApiConstants.DOMAIN_ID, type = CommandType.UUID, entityType = DomainResponse.class, description = "the domain ID of the account.")
     private Long domainId;
+
+    @Parameter(name = ApiConstants.PROJECT_ID, type = CommandType.UUID, entityType = ProjectResponse.class, description = "The project on which the condition will be created")
+    private Long projectId;
 
     // ///////////////////////////////////////////////////
     // ///////////// API Implementation///////////////////
@@ -138,7 +142,12 @@ public class CreateConditionCmd extends BaseAsyncCreateCmd {
 
     @Override
     public long getEntityOwnerId() {
-        Long accountId = _accountService.finalyzeAccountId(accountName, domainId, null, true);
+        Long accountId = null;
+        if(projectId != null ){
+            accountId = _accountService.finalyzeAccountId(null, null, projectId, true);
+        }else{
+            accountId = _accountService.finalyzeAccountId(accountName, domainId, null, true);
+        }
         if (accountId == null) {
             return CallContext.current().getCallingAccount().getId();
         }
@@ -146,4 +155,7 @@ public class CreateConditionCmd extends BaseAsyncCreateCmd {
         return accountId;
     }
 
+    public Long getProjectId() {
+        return projectId;
+    }
 }

@@ -34,6 +34,7 @@ import org.apache.cloudstack.api.response.ServiceOfferingResponse;
 import org.apache.cloudstack.api.response.TemplateResponse;
 import org.apache.cloudstack.api.response.UserResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
+import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.cloudstack.context.CallContext;
 
 import com.cloud.event.EventTypes;
@@ -103,6 +104,9 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
     @Parameter(name = ApiConstants.FOR_DISPLAY, type = CommandType.BOOLEAN, description = "an optional field, whether to the display the profile to the end user or not", since = "4.4", authorized = {RoleType.Admin})
     private Boolean display;
 
+    @Parameter(name = ApiConstants.PROJECT_ID, type = CommandType.UUID, entityType = ProjectResponse.class, description = "The project on which the profile will be created")
+    private Long projectId;
+
     private Map<String, String> otherDeployParamMap;
 
     // ///////////////////////////////////////////////////
@@ -113,6 +117,10 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
     private Long accountId;
 
     public Long getDomainId() {
+        if(projectId != null){
+            Long accountId = _accountService.finalyzeAccountId(null, null, projectId, true);
+            return _accountService.getAccount(accountId).getDomainId();
+        }
         if (domainId == null) {
             getAccountId();
         }
@@ -165,6 +173,9 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
     }
 
     public long getAccountId() {
+        if(projectId != null){
+            return _accountService.finalyzeAccountId(null, null, projectId, true);
+        }
         if (accountId != null) {
             return accountId;
         }
@@ -247,6 +258,10 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
     @Override
     public ApiCommandJobType getInstanceType() {
         return ApiCommandJobType.AutoScaleVmProfile;
+    }
+
+    public Long getProjectId() {
+        return projectId;
     }
 
     @Override

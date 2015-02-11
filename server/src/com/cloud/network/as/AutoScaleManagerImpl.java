@@ -319,9 +319,11 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
 
         User user = _userDao.findById(autoscaleUserId);
-        if (user.getAccountId() != vmProfile.getAccountId()) {
+        //Validate auto scale user against the vmprofile account is not needed anymore,
+        //because the profile may be associated with the project account not an user account.
+        /*if (user.getAccountId() != vmProfile.getAccountId()) {
             throw new InvalidParameterValueException("AutoScale User id does not belong to the same account");
-        }
+        }*/
 
         String apiKey = user.getApiKey();
         String secretKey = user.getSecretKey();
