@@ -315,6 +315,11 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
                 return new Answer(cmd);
             }
 
+            if (record.getContent().equals(cmd.getLbRecordContent())) {
+                // If record exists and override is false, then content must be equal, i.e. no changes will be made, only validating it
+                return new Answer(cmd);
+            }
+
             // Otherwise, return that name is invalid
             String msg = "Record " + cmd.getLbRecordName() + " is invalid or override option is false";
             return new Answer(cmd, false, msg);

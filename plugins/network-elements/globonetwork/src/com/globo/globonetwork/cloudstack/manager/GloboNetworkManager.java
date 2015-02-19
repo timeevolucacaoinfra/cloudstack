@@ -2170,7 +2170,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             // Finally, validate LB record in GloboDNS
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
-            return _globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, network.getDataCenterId());
+            return _globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
         } else {
             s_logger.warn("Allowing creation of Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
         }

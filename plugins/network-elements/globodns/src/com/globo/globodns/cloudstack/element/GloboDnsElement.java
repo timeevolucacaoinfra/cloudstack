@@ -396,14 +396,14 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
     // Load Balancing methods
     @Override
-    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, Long zoneId) {
+    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbRecordContent, Long zoneId) {
         s_logger.debug("Validating LB DNS record " + lbRecord + " in domain " + lbDomain);
         DataCenter zone = _dcDao.findById(zoneId);
         if (zone == null) {
             throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
         }
 
-        ValidateLbRecordCommand cmd = new ValidateLbRecordCommand(lbRecord, lbDomain, GloboDNSLbOverride.value());
+        ValidateLbRecordCommand cmd = new ValidateLbRecordCommand(lbRecord, lbRecordContent, lbDomain, GloboDNSLbOverride.value());
         Answer answer = callCommand(cmd, zoneId);
         if (answer == null || !answer.getResult()) {
             // Could not sign in on GloboDNS

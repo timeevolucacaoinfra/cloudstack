@@ -22,12 +22,15 @@ public class ValidateLbRecordCommand extends Command {
 
     private String lbRecordName;
 
+    private String lbRecordContent;
+
     private String lbDomain;
 
     private boolean override;
 
-    public ValidateLbRecordCommand(String lbRecordName, String lbDomain, boolean override) {
+    public ValidateLbRecordCommand(String lbRecordName, String lbRecordContent, String lbDomain, boolean override) {
         this.lbRecordName = lbRecordName;
+        this.lbRecordContent = lbRecordContent;
         this.lbDomain = lbDomain;
         this.override = override;
     }
@@ -39,6 +42,10 @@ public class ValidateLbRecordCommand extends Command {
 
     public String getLbRecordName() {
         return this.lbRecordName;
+    }
+
+    public String getLbRecordContent() {
+        return this.lbRecordContent;
     }
 
     public String getLbDomain() {
