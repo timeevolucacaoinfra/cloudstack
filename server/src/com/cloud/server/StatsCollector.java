@@ -776,9 +776,6 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
 
                                                 // get current RAM percent
                                                 coVal = coVal / maxRAM;
-                                            } else {
-                                                // cpu
-                                                coVal = coVal * 100;
                                             }
 
                                             // update data entry
