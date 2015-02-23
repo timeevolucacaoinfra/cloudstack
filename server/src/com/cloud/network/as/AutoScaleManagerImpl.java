@@ -95,7 +95,11 @@ import com.cloud.network.dao.LoadBalancerDao;
 import com.cloud.network.dao.LoadBalancerVMMapDao;
 import com.cloud.network.dao.LoadBalancerVMMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
+import com.cloud.network.dao.LoadBalancerNetworkMapVO;
 import com.cloud.network.dao.NetworkDao;
+import com.cloud.network.dao.LoadBalancerNetworkMapDao;
+import com.cloud.vm.dao.NicDao;
+import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.network.lb.LoadBalancingRulesService;
 import com.cloud.network.rules.LoadBalancer;
@@ -128,6 +132,7 @@ import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.net.NetUtils;
 import com.cloud.vm.UserVmManager;
 import com.cloud.vm.UserVmService;
+import com.cloud.vm.Nic;
 
 @Local(value = {AutoScaleService.class, AutoScaleManager.class})
 public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScaleManager, AutoScaleService, Configurable {
@@ -186,6 +191,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     UserVmManager _userVmManager;
     @Inject
     LoadBalancerVMMapDao _lbVmMapDao;
+    @Inject
+    NicDao _nicDao;
+    @Inject
+    LoadBalancerNetworkMapDao _lbNetMapDao;
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
 
@@ -1344,8 +1353,8 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                         null, null, true, null, null, null, null);
 
                 } else {
-                    LoadBalancer lb = _loadBalancingRulesService.findById(asGroup.getLoadBalancerId());
-                    List<Long> networkIds = Arrays.asList(lb.getNetworkId());
+                    Long networkId = getDestinationNetworkId(asGroup);
+                    List<Long> networkIds = Arrays.asList(networkId);
                     vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
                         getCurrentTimeStampString(), AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(),
                         null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null, addrs, true, null, null, null, null);
@@ -1372,6 +1381,61 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             s_logger.warn("Exception: ", ex);
             throw new ServerApiException(ApiErrorCode.RESOURCE_ALLOCATION_ERROR, ex.getMessage());
         }
+    }
+
+    private Long getDestinationNetworkId(AutoScaleVmGroup asGroup){
+        LoadBalancer lb = _loadBalancingRulesService.findById(asGroup.getLoadBalancerId());
+        List<LoadBalancerNetworkMapVO> lbNetMapList = _lbNetMapDao.listByLoadBalancerId(lb.getId());
+
+        Map<Long, Integer> networkInstanceCount = new HashMap<>();
+        networkInstanceCount.put(lb.getNetworkId(), 0);
+        for (LoadBalancerNetworkMapVO lbNetMap : lbNetMapList) {
+            networkInstanceCount.put(lbNetMap.getNetworkId(), 0);
+        }
+
+        for(LoadBalancingRule.LbDestination destination : getExistingDestinations(lb, lbNetMapList)){
+            Integer currentCount = networkInstanceCount.get(destination.getNetworkId());
+            networkInstanceCount.put(destination.getNetworkId(), currentCount + 1);
+        }
+
+        Map.Entry<Long, Integer> chosenNetworkId = null;
+        for (Map.Entry<Long, Integer> entry : networkInstanceCount.entrySet()) {
+            if (chosenNetworkId == null || chosenNetworkId.getValue() > entry.getValue()) {
+                chosenNetworkId = entry;
+            }
+        }
+        if(chosenNetworkId == null){
+            return lb.getNetworkId();
+        }else{
+            return chosenNetworkId.getKey();
+        }
+    }
+
+    private List<LoadBalancingRule.LbDestination> getExistingDestinations(LoadBalancer lb, List<LoadBalancerNetworkMapVO> lbNetMapList) {
+        List<LoadBalancingRule.LbDestination> dstList = new ArrayList<>();
+        List<LoadBalancerVMMapVO> lbVmMaps = _lb2VmMapDao.listByLoadBalancerId(lb.getId());
+
+        for (LoadBalancerVMMapVO lbVmMap : lbVmMaps) {
+            Nic nic = this.getLbInstanceNic(lb, lbVmMap.getInstanceId(), lbNetMapList);
+            LoadBalancingRule.LbDestination lbDst = new LoadBalancingRule.LbDestination(lb.getDefaultPortStart(), lb.getDefaultPortEnd(), null, nic.getNetworkId(), lbVmMap.getInstanceId(), lbVmMap.isRevoke());
+            dstList.add(lbDst);
+        }
+
+        return dstList;
+    }
+
+    private Nic getLbInstanceNic(LoadBalancer lb, long vmId, List<LoadBalancerNetworkMapVO> lbNetMapList) {
+        Nic nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(lb.getNetworkId(), vmId);
+        if (nic != null) {
+            return nic;
+        }
+        for (LoadBalancerNetworkMapVO lbNetMap : lbNetMapList) {
+            nic = _nicDao.findByInstanceIdAndNetworkIdIncludingRemoved(lbNetMap.getNetworkId(), vmId);
+            if (nic != null) {
+                return nic;
+            }
+        }
+        return null;
     }
 
     private String getCurrentTimeStampString() {
@@ -1471,7 +1535,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                         .listByVmGroupId(groupId);
                     for (AutoScaleVmGroupPolicyMapVO GroupPolicyVO : GroupPolicyVOs) {
                         AutoScalePolicyVO vo = _autoScalePolicyDao
-                            .findById(GroupPolicyVO.getPolicyId());
+                                .findById(GroupPolicyVO.getPolicyId());
                         if (vo.getAction().equals("scaleup")) {
                             vo.setLastQuiteTime(new Date());
                             _autoScalePolicyDao.persist(vo);
