@@ -3550,7 +3550,7 @@
 		                                                    				var providers = services[i].provider;
 		                                                    				if (providers != null) {
 			                                                    				for (var k = 0; k < providers.length; k++) {
-			                                                    					if (providers[k].name == 'Netscaler') {
+			                                                    					if (providers[k].name == 'Netscaler' || providers[k].name == 'GloboNetwork') {
 			                                                    						lbProviderIsNetscaler = true;
 			                                                    						break;
 			                                                    					}
