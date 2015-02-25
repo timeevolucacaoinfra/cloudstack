@@ -919,7 +919,9 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 List<AutoScalePolicyConditionMapVO> lstPCmap = _asConditionMapDao.findByPolicyId(policyVo.getId());
                 for (AutoScalePolicyConditionMapVO pcMap : lstPCmap) {
                     String counterName = getCounternamebyCondition(pcMap.getConditionId());
-
+                    if(counterNames != ""){
+                        counterNames += ",";
+                    }
                     counterNames += counterName + "," + pcMap.getConditionId();
                 }
                 // add to result
