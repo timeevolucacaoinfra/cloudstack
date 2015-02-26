@@ -386,9 +386,15 @@ setup_interface() {
 }
 
 setup_interface_ipv6() {
-  sysctl net.ipv6.conf.all.disable_ipv6=0
-  sysctl net.ipv6.conf.all.forwarding=1
-  sysctl net.ipv6.conf.all.accept_ra=1
+  #sysctl -w net.ipv6.conf.all.disable_ipv6=0
+  #sysctl -w net.ipv6.conf.all.forwarding=1
+  #sysctl -w net.ipv6.conf.all.accept_ra=1
+  # write the changes in /etc/sysctl.conf to prevent the values from being overriden
+  sed -i 's/ipv6 = 1/ipv6 = 0/g' /etc/sysctl.conf
+  sed -i 's/forwarding = 0/forwarding = 1/g' /etc/sysctl.conf
+  sed -i 's/accept_ra = 0/accept_ra = 2/g' /etc/sysctl.conf
+
+  sysctl -w
   
   local intfnum=$1
   local ipv6="$2"
