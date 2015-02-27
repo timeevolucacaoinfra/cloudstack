@@ -65,15 +65,6 @@ class RRDUpdates:
     def get_nrows(self):
         return self.rows
 
-    def get_vm_list(self):
-        return self.vm_reports.keys()
-
-    def get_vm_param_list(self, uuid):
-        report = self.vm_reports[uuid]
-        if not report:
-            return []
-        return report.keys()
-
     def get_total_cpu_core(self, uuid):
 	report = self.vm_reports[uuid]
         if not report:
@@ -89,43 +80,19 @@ class RRDUpdates:
     def get_vm_data(self, uuid, param, row):
         #pp = pprint.PrettyPrinter(indent=4) 
         #pp.pprint(self.vm_reports)
-        report = self.vm_reports[uuid]
-        col = report[param]
-        return self.__lookup_data(col, row)
-
-    def get_host_uuid(self):
-        report = self.host_report
-        if not report:
-            return None
-        return report.uuid
-
-    def get_host_param_list(self):
-        report = self.host_report
-        if not report:
-            return []
-        return report.keys()
-
-    def get_host_data(self, param, row):
-        report = self.host_report
-        col = report[param]
-        return self.__lookup_data(col, row)
-
-    def get_row_time(self, row):
-        return self.__lookup_timestamp(row)
+        for hostIndex in xrange(0, self.hostCount):
+            if uuid not in self.vm_reports[hostIndex]:
+                continue
+            report = self.vm_reports[hostIndex][uuid]
+            col = report[param]
+            return self.__lookup_data(col, row, hostIndex)
 
     # extract float from value (<v>) node by col,row
-    def __lookup_data(self, col, row):
+    def __lookup_data(self, col, row, hostIndex):
         # Note: the <rows> nodes are in reverse chronological order, and comprise
         # a timestamp <t> node, followed by self.columns data <v> nodes
-        node = self.data_node.childNodes[self.rows - 1 - row].childNodes[col + 1]
+        node = self.data_node[hostIndex].childNodes[self.rows - 1 - row].childNodes[col + 1]
         return float(node.firstChild.toxml())  # node.firstChild should have nodeType TEXT_NODE
-
-    # extract int from value (<t>) node by row
-    def __lookup_timestamp(self, row):
-        # Note: the <rows> nodes are in reverse chronological order, and comprise
-        # a timestamp <t> node, followed by self.columns data <v> nodes
-        node = self.data_node.childNodes[self.rows - 1 - row].childNodes[0]
-        return int(node.firstChild.toxml())  # node.firstChild should have nodeType TEXT_NODE
 
     def refresh(self, login, starttime, session, override_params):
         self.params['start'] = starttime
@@ -135,54 +102,61 @@ class RRDUpdates:
         paramstr = "&".join(["%s=%s" % (k, params[k]) for k in params])
         # this is better than urllib.urlopen() as it raises an Exception on http 401 'Unauthorised' error
         # rather than drop into interactive mode
+        self.hostCount = 0
         for host in login.host.get_all():
             #print "http://" + str(login.host.get_address(host)) + "/rrd_updates?%s" % paramstr
             sock = urllib.URLopener().open("http://" + str(login.host.get_address(host)) + "/rrd_updates?%s" % paramstr)
             xmlsource = sock.read()
             sock.close()
             xmldoc = minidom.parseString(xmlsource)
-            self.__parse_xmldoc(xmldoc)
+            self.__parse_xmldoc(xmldoc, self.hostCount)
             # Update the time used on the next run
             self.params['start'] = self.end_time + 1  # avoid retrieving same data twice
+            self.hostCount += 1
 
-    def __parse_xmldoc(self, xmldoc):
+    def __parse_xmldoc(self, xmldoc, hostIndex):
         # The 1st node contains meta data (description of the data)
         # The 2nd node contains the data
-        self.meta_node = xmldoc.firstChild.childNodes[0]
-        self.data_node = xmldoc.firstChild.childNodes[1]
+        if not hasattr(self,'meta_node'):
+            self.meta_node = {}
+        self.meta_node[hostIndex] = xmldoc.firstChild.childNodes[0]
+        if not hasattr(self,'data_node'):
+            self.data_node = {}
+        self.data_node[hostIndex] = xmldoc.firstChild.childNodes[1]
 
-        def lookup_metadata_bytag(name):
-            return int(self.meta_node.getElementsByTagName(name)[0].firstChild.toxml())
+        def lookup_metadata_bytag(name, hostIndex):
+            return int(self.meta_node[hostIndex].getElementsByTagName(name)[0].firstChild.toxml())
             # rows = number of samples per variable
         # columns = number of variables
-        self.rows = lookup_metadata_bytag('rows')
-        self.columns = lookup_metadata_bytag('columns')
+        self.rows = lookup_metadata_bytag('rows', hostIndex)
+        self.columns = lookup_metadata_bytag('columns', hostIndex)
         # These indicate the period covered by the data
-        self.start_time = lookup_metadata_bytag('start')
-        self.step_time = lookup_metadata_bytag('step')
-        self.end_time = lookup_metadata_bytag('end')
+        self.start_time = lookup_metadata_bytag('start', hostIndex)
+        self.step_time = lookup_metadata_bytag('step', hostIndex)
+        self.end_time = lookup_metadata_bytag('end', hostIndex)
         # the <legend> Node describes the variables
-        self.legend = self.meta_node.getElementsByTagName('legend')[0]
+        self.legend = self.meta_node[hostIndex].getElementsByTagName('legend')[0]
         # vm_reports matches uuid to per VM report
         if not hasattr(self,'vm_reports'):
             self.vm_reports = {}
+        self.vm_reports[hostIndex] = {}
         # There is just one host_report and its uuid should not change!
         self.host_report = None
         # Handle each column.  (I.e. each variable)
         for col in range(self.columns):
-            self.__handle_col(col)
+            self.__handle_col(col, hostIndex)
 
-    def __handle_col(self, col):
+    def __handle_col(self, col, hostIndex):
         # work out how to interpret col from the legend
         col_meta_data = self.legend.childNodes[col].firstChild.toxml()
         # vm_or_host will be 'vm' or 'host'.  Note that the Control domain counts as a VM!
         (cf, vm_or_host, uuid, param) = col_meta_data.split(':')
         if vm_or_host == 'vm':
             # Create a report for this VM if it doesn't exist
-            if not uuid in self.vm_reports:
-                self.vm_reports[uuid] = VMReport(uuid)
+            if not uuid in self.vm_reports[hostIndex]:
+                self.vm_reports[hostIndex][uuid] = VMReport(uuid)
                 # Update the VMReport with the col data and meta data
-            vm_report = self.vm_reports[uuid]
+            vm_report = self.vm_reports[hostIndex][uuid]
             vm_report[param] = col
         elif vm_or_host == 'host':
             # Create a report for the host if it doesn't exist
