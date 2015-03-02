@@ -683,7 +683,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
 
                         // check maximum vm of group
                         if (currentVM > asGroup.getMaxMembers()) {
-                            _asManager.doScaleDown(asGroup.getId());
+                            _asManager.doScaleDown(asGroup.getId(), currentVM - asGroup.getMaxMembers());
                             continue;
                         }
 
@@ -792,7 +792,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                                         if (scaleAction.equals("scaleup")) {
                                             _asManager.doScaleUp(asGroup.getId(), 1);
                                         } else {
-                                            _asManager.doScaleDown(asGroup.getId());
+                                            _asManager.doScaleDown(asGroup.getId(), 1);
                                         }
                                     }
                                 }

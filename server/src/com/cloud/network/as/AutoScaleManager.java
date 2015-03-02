@@ -22,5 +22,5 @@ public interface AutoScaleManager extends AutoScaleService {
 
     void doScaleUp(long groupId, Integer numVm);
 
-    void doScaleDown(long groupId);
+    void doScaleDown(long groupId, Integer numVm);
 }
