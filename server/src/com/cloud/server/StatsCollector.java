@@ -31,8 +31,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
-import com.cloud.control.ExecutionControlVO;
-import com.cloud.control.dao.ExecutionControlDao;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -181,8 +179,6 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     private ServiceOfferingDao _serviceOfferingDao;
     @Inject
     private HostGpuGroupsDao _hostGpuGroupsDao;
-    @Inject
-    private ExecutionControlDao _executionControlDao;
 
     private ConcurrentHashMap<Long, HostStats> _hostStats = new ConcurrentHashMap<Long, HostStats>();
     private final ConcurrentHashMap<Long, VmStats> _VmStats = new ConcurrentHashMap<Long, VmStats>();
@@ -670,10 +666,6 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         @Override
         protected void runInContext() {
             try {
-                if(!canAutoScaleBeExecuted()){
-                    return;
-                }
-
                 if (s_logger.isDebugEnabled()) {
                     s_logger.debug("AutoScaling Monitor is running...");
                 }
@@ -952,21 +944,6 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                 return "";
 
             return counter.getSource().toString();
-        }
-
-        private boolean canAutoScaleBeExecuted(){
-            ExecutionControlVO executionControl = _executionControlDao.findByProcessAlias("auto_scale");
-            if(executionControl == null){
-                executionControl = new ExecutionControlVO("auto_scale");
-            }else if(new Date().getTime() - executionControl.getLastExecution().getTime() < autoScaleStatsInterval){
-                return false;
-            }
-
-            executionControl.setLastExecution(new Date());
-            executionControl.setManagementServerId(MacAddress.getMacAddress().toLong());
-            _executionControlDao.persist(executionControl);
-
-            return true;
         }
     }
 
