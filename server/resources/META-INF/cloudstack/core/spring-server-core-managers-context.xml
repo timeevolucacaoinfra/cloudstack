@@ -191,6 +191,12 @@
 
     <bean id="statsCollector" class="com.cloud.server.StatsCollector" />
 
+    <bean id="autoScaleStatsCollectorStrategy" class="com.cloud.network.as.RRDAutoScaleStatsCollector" />
+
+    <bean id="graphiteStatsCollectorStrategy" class="com.cloud.network.as.GraphiteAutoScaleStatsCollector" />
+
+    <bean id="autoScaleStatsCollectorFactory" class="com.cloud.network.as.AutoScaleStatsCollectorFactoryImpl" />
+
     <bean id="storagePoolAutomationImpl" class="com.cloud.storage.StoragePoolAutomationImpl" />
 
     <bean id="domainManagerImpl" class="com.cloud.user.DomainManagerImpl" />
