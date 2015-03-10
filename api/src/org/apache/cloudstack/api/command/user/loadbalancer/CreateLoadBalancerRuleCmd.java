@@ -120,6 +120,9 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.FOR_DISPLAY, type = CommandType.BOOLEAN, description = "an optional field, whether to the display the rule to the end user or not", since = "4.4", authorized = {RoleType.Admin})
     private Boolean display;
 
+    @Parameter(name = ApiConstants.ADDITIONAL_PORT_MAP, type = CommandType.LIST, collectionType = CommandType.STRING, description = "additional port mappings for load balancing rule", since = "4.4")
+    private List<String> additionalPortMap;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -231,6 +234,8 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         return loadBalancerRuleName;
     }
 
+    public List<String> getAdditionalPortMap() { return additionalPortMap; }
+
     public Boolean getOpenFirewall() {
         boolean isVpc = getVpcId() == null ? false : true;
         if (openFirewall != null) {
@@ -314,7 +319,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         try {
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
-                    getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay());
+                    getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(), getAdditionalPortMap());
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {

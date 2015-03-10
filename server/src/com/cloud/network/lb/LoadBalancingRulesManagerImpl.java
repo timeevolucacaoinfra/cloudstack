@@ -101,6 +101,8 @@ import com.cloud.network.dao.LoadBalancerCertMapVO;
 import com.cloud.network.dao.LoadBalancerDao;
 import com.cloud.network.dao.LoadBalancerNetworkMapDao;
 import com.cloud.network.dao.LoadBalancerNetworkMapVO;
+import com.cloud.network.dao.LoadBalancerPortMapDao;
+import com.cloud.network.dao.LoadBalancerPortMapVO;
 import com.cloud.network.dao.LoadBalancerVMMapDao;
 import com.cloud.network.dao.LoadBalancerVMMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
@@ -264,6 +266,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     LoadBalancerCertMapDao _lbCertMapDao;
     @Inject
     LoadBalancerNetworkMapDao _lbNetMapDao;
+    @Inject
+    LoadBalancerPortMapDao _lbPortMapDao;
     @Inject
     NetworkOfferingDao _netOffDao;
 
@@ -1654,6 +1658,13 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
+        List<LoadBalancerPortMapVO> lbPortMaps = _lbPortMapDao.listByLoadBalancerId(loadBalancerId);
+        if (lbPortMaps != null) {
+            for (LoadBalancerPortMapVO lbPortMap : lbPortMaps) {
+                _lbPortMapDao.remove(lbPortMap.getId());
+            }
+        }
+
         FirewallRuleVO relatedRule = _firewallDao.findByRelatedId(lb.getId());
         if (relatedRule != null) {
             s_logger.warn("Unable to remove firewall rule id=" + lb.getId() + " as it has related firewall rule id=" + relatedRule.getId() + "; leaving it in Revoke state");
@@ -1675,7 +1686,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_LOAD_BALANCER_CREATE, eventDescription = "creating load balancer")
     public LoadBalancer createPublicLoadBalancerRule(String xId, String name, String description, int srcPortStart, int srcPortEnd, int defPortStart, int defPortEnd,
-            Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay)
+            Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap)
             throws NetworkRuleConflictException, InsufficientAddressCapacityException {
         Account lbOwner = _accountMgr.getAccount(lbOwnerId);
 
@@ -1732,7 +1743,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 }
 
                 result = createPublicLoadBalancer(xId, name, description, srcPortStart, defPortStart, ipVO.getId(), protocol, algorithm, openFirewall, CallContext.current(),
-                        lbProtocol, forDisplay);
+                        lbProtocol, forDisplay, additionalPortMap);
             } catch (Exception ex) {
                 s_logger.warn("Failed to create load balancer due to ", ex);
                 if (ex instanceof NetworkRuleConflictException) {
@@ -1761,7 +1772,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @DB
     @Override
     public LoadBalancer createPublicLoadBalancer(final String xId, final String name, final String description, final int srcPort, final int destPort, final long sourceIpId,
-            final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay)
+            final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap)
             throws NetworkRuleConflictException {
 
         if (!NetUtils.isValidPort(destPort)) {
@@ -1813,7 +1824,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterValueException("LB service provider cannot support this rule");
         }
 
-        return Transaction.execute(new TransactionCallbackWithException<LoadBalancerVO, NetworkRuleConflictException>() {
+        LoadBalancerVO lb = Transaction.execute(new TransactionCallbackWithException<LoadBalancerVO, NetworkRuleConflictException>() {
             @Override
             public LoadBalancerVO doInTransaction(TransactionStatus status) throws NetworkRuleConflictException {
                 LoadBalancerVO newRule = new LoadBalancerVO(xId, name, description, sourceIpId, srcPort, destPort, algorithm, networkId, ipAddr.getAllocatedToAccountId(), ipAddr
@@ -1867,6 +1878,21 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         });
 
+        // If load balancer rule was created successfully, add any extra port mappings
+        if (lb != null && additionalPortMap != null && !additionalPortMap.isEmpty()) {
+            for (String portMap : additionalPortMap) {
+                portMap = portMap.trim(); // Remove any white spaces on either side
+                String[] publicPrivatePorts = portMap.split(":"); // Mapping is of form '80:8080' or '443:8443'
+                if (publicPrivatePorts == null || publicPrivatePorts.length != 2 || !NetUtils.isValidPort(publicPrivatePorts[0]) || !NetUtils.isValidPort(publicPrivatePorts[1])) {
+                    throw new CloudRuntimeException("Invalid additional port mappings for load balancer rule: " + name);
+                }
+
+                LoadBalancerPortMapVO lbPortMapVO = new LoadBalancerPortMapVO(lb.getId(), Integer.parseInt(publicPrivatePorts[0]), Integer.parseInt(publicPrivatePorts[1]));
+                _lbPortMapDao.persist(lbPortMapVO);
+            }
+        }
+
+        return lb;
     }
 
     @Override
