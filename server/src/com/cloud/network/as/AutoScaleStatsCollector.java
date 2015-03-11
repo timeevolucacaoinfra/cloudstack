@@ -69,6 +69,7 @@ public abstract class AutoScaleStatsCollector {
         if (groupPolicyMap == null)
             return null;
 
+        List<String> countersAdded = new ArrayList<>();
         for (AutoScaleVmGroupPolicyMapVO gpMap : groupPolicyMap) {
             //get duration
             AutoScalePolicyVO policyVo = _asPolicyDao.findById(gpMap.getPolicyId());
@@ -81,10 +82,16 @@ public abstract class AutoScaleStatsCollector {
                 if(!counterNames.equals("")){
                     counterNames += ",";
                 }
-                counterNames += counterName + "," + pcMap.getConditionId();
+                //avoid the same counter being added more than once
+                if(!countersAdded.contains(counterName)){
+                    counterNames += counterName + "," + pcMap.getConditionId();
+                    countersAdded.add(counterName);
+                }
             }
             // add to result
-            result.add(new Pair<>(counterNames, duration));
+            if(!counterNames.equals("")) {
+                result.add(new Pair<>(counterNames, duration));
+            }
         }
 
         return result;
