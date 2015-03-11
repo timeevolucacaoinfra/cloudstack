@@ -9564,6 +9564,15 @@
                                             ipaddress: {
                                                 label: 'label.ip.address'
                                             },
+                                            ip6address: {
+                                                label: 'label.ipv6.address'
+                                            },
+                                            ip6gateway: {
+                                                label: 'label.ipv6.gateway'
+                                            },
+                                            ip6cidr: {
+                                                label: 'label.ipv6.CIDR'
+                                            },
                                             id: {
                                                 label: 'label.id'
                                             },
