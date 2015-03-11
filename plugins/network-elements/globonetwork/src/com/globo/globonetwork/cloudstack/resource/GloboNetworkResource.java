@@ -615,7 +615,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
         try {
             // FIXME Change default values to be class attributes rather than method variables
-            Integer DEFAULT_REALS_PRIORITY = 10;
+            Integer DEFAULT_REALS_PRIORITY = 0;
             Integer DEFAULT_MAX_CONN = 0;
             String DEFAULT_HEALTHCHECK_TYPE = "TCP";
             String HEALTHCHECK_HTTP_STRING = "HTTP";
