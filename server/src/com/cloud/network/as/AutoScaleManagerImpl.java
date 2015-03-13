@@ -198,7 +198,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
 
-    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autosacaled.vm.prefix", "as-vm-",
+    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autoscale.vm.prefix", "as-vm-",
             "Auto scaled virtual machine name prefix", true, ConfigKey.Scope.Global);
 
     public List<AutoScaleCounter> getSupportedAutoScaleCounters(long networkid) {

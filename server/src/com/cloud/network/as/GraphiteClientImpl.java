@@ -39,9 +39,9 @@ public class GraphiteClientImpl implements GraphiteClient, Configurable {
 
     public static final Logger s_logger = Logger.getLogger(GraphiteClientImpl.class.getName());
 
-    private static final ConfigKey<String> GraphiteEndpoint = new ConfigKey<>("Advanced", String.class, "autosacale.graphite.endpoint", "", "Graphite's endpoint to be used on auto scale metrics gathering", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<Integer> GraphiteTimeout = new ConfigKey<>("Advanced", Integer.class, "autosacale.graphite.timeout", "2000", "Graphite's connection timeout", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<Integer> GraphiteSoTimeout = new ConfigKey<>("Advanced", Integer.class, "autosacale.graphite.sotimeout", "2000", "Graphite's socket timeout", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<String> GraphiteEndpoint = new ConfigKey<>("Advanced", String.class, "autoscale.graphite.endpoint", "", "Graphite's endpoint to be used on auto scale metrics gathering", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GraphiteTimeout = new ConfigKey<>("Advanced", Integer.class, "autoscale.graphite.timeout", "2000", "Graphite's connection timeout", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GraphiteSoTimeout = new ConfigKey<>("Advanced", Integer.class, "autoscale.graphite.sotimeout", "2000", "Graphite's socket timeout", true, ConfigKey.Scope.Global);
 
     public GraphiteClientImpl(){}
 

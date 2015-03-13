@@ -15,7 +15,7 @@ public class AutoScaleStatsCollectorFactoryImpl implements AutoScaleStatsCollect
     private static final String RRD = "rrd";
     private static final String GRAPHITE = "graphite";
 
-    private static final ConfigKey<String> StatsDataSource = new ConfigKey<String>("Advanced", String.class, "autosacale.stats.datasource", "rrd",
+    private static final ConfigKey<String> StatsDataSource = new ConfigKey<String>("Advanced", String.class, "autoscale.stats.datasource", "rrd",
             "Auto scale VM stats data source (rrd/graphite)", true, ConfigKey.Scope.Global);
 
     @Override

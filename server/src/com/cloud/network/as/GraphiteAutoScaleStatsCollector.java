@@ -41,7 +41,7 @@ public class GraphiteAutoScaleStatsCollector extends AutoScaleStatsCollector imp
     @Inject
     protected GraphiteClient graphiteClient;
 
-    public static final ConfigKey<String> GraphiteTargetPattern = new ConfigKey<>("Advanced", String.class, "autosacale.graphite.targetpattern", "", "Graphite's target pattern.", true, ConfigKey.Scope.Global);
+    public static final ConfigKey<String> GraphiteTargetPattern = new ConfigKey<>("Advanced", String.class, "autoscale.graphite.targetpattern", "", "Graphite's target pattern.", true, ConfigKey.Scope.Global);
 
     public static final Logger s_logger = Logger.getLogger(GraphiteAutoScaleStatsCollector.class.getName());
 
