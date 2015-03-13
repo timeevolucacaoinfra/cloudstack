@@ -21,6 +21,5 @@ import com.cloud.utils.db.GenericDao;
 import java.util.List;
 
 public interface LoadBalancerPortMapDao extends GenericDao<LoadBalancerPortMapVO, Long> {
-    void removeByLoadBalancer(long loadBalancerId);
     List<LoadBalancerPortMapVO> listByLoadBalancerId(long loadBalancerId);
 }

@@ -476,6 +476,8 @@ public class ApiDBUtils {
     @Inject
     private LoadBalancerNetworkMapDao lbNetMapDao;
     @Inject
+    private LoadBalancerPortMapDao lbPortMapDao;
+    @Inject
     private SecurityGroupDao securityGroupDao;
     @Inject
     private SecurityGroupJoinDao securityGroupJoinDao;
@@ -674,6 +676,7 @@ public class ApiDBUtils {
         s_ipAddressDao = ipAddressDao;
         s_loadBalancerDao = loadBalancerDao;
         s_lbNetMapDao = lbNetMapDao;
+        s_lbPortMapDao = lbPortMapDao;
         s_networkRuleConfigDao = networkRuleConfigDao;
         s_podDao = podDao;
         s_serviceOfferingDao = serviceOfferingDao;

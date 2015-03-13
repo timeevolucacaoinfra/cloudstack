@@ -792,8 +792,10 @@ public class ApiResponseHelper implements ResponseGenerator {
 
         List<String> additionalPorts = new ArrayList<String>();
         List<LoadBalancerPortMapVO> lbPortMaps = ApiDBUtils.listLoadBalancerAdditionalPorts(loadBalancer.getId());
-        for (LoadBalancerPortMapVO lbNetPortVO : lbPortMaps) {
-            additionalPorts.add(lbNetPortVO.getPublicPort() + ":" + lbNetPortVO.getPrivatePort());
+        for (LoadBalancerPortMapVO lbPortMapVO : lbPortMaps) {
+            if (lbPortMapVO.getLoadBalancerId() == loadBalancer.getId()) { // FIXME Double-check lbID because query doesn't seem to be working
+                additionalPorts.add(lbPortMapVO.getPublicPort() + ":" + lbPortMapVO.getPrivatePort());
+            }
         }
         lbResponse.setAdditionalPortMap(additionalPorts);
 

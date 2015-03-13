@@ -1935,9 +1935,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
 
             // Port mapping
-            String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
             List<String> ports = new ArrayList<String>();
-            ports.add(port);
+            List<String> realPorts = new ArrayList<String>();
+            ports.add(rule.getSourcePortStart() + ":" + rule.getDefaultPortStart());
+            realPorts.add(String.valueOf(rule.getDefaultPortStart()));
+            if (rule.getAdditionalPortMap() != null) {
+                for (String portMap : rule.getAdditionalPortMap()) {
+                    // Right format of ports has already been validated in validateLBRule()
+                    ports.add(portMap);
+                    realPorts.add(portMap.split(":")[1]);
+                }
+            }
 
             // Reals
             List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
@@ -1948,7 +1956,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
                         real.setIp(destVM.getIpAddress());
                         real.setVmName(getEquipNameFromUuid(vm.getUuid()));
-                        real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
+                        real.setPorts(realPorts);
                         real.setRevoked(destVM.isRevoked());
 
                         GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
@@ -2087,6 +2095,23 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
 
+        List<Integer> portsAlreadyMapped = new ArrayList<Integer>();
+        portsAlreadyMapped.add(rule.getSourcePortStart());
+        if (rule.getAdditionalPortMap() != null) {
+            for (String portMap : rule.getAdditionalPortMap()) {
+                String[] portMapArray = portMap.split(":");
+                if (portMapArray.length != 2) {
+                    throw new InvalidParameterValueException("Additional port mapping is invalid, should be in the form '80:8080,443:8443'");
+                }
+                Integer lbPort = Integer.valueOf(portMapArray[0]);
+                Integer realPort = Integer.valueOf(portMapArray[1]);
+                if (portsAlreadyMapped.contains(lbPort)) {
+                    throw new InvalidParameterValueException("Additional port mapping is invalid. Duplicated Load Balancer port");
+                }
+                portsAlreadyMapped.add(lbPort);
+            }
+        }
+
         IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
         if (ipVO == null) {
             throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
@@ -2118,8 +2143,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (answer != null && answer.getResult()) {
                 GloboNetworkVipResponse globoNetworkVip = (GloboNetworkVipResponse)answer;
                 // TODO Store ref between lb id and globonetwork vip id to solve this situation.
-                String port = String.format("%d:%d", rule.getSourcePortStart(), rule.getDefaultPortStart());
-                if (!port.equals(globoNetworkVip.getPorts().get(0))) {
+                // String port = String.format("%d:%d", rule.getSourcePortStart(), rule.getDefaultPortStart());
+                // if (!port.equals(globoNetworkVip.getPorts().get(0))) {
+                if (!rule.getSourceIp().equals(globoNetworkVip.getIp())) {
                     throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
                 }
                 String method = globoNetworkVip.getMethod();

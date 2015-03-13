@@ -144,7 +144,12 @@
                     success: function(data) {
                         var loadBalancerData = data.listloadbalancerrulesresponse.loadbalancerrule;
                         $(loadBalancerData).each(function() {
-                            this.ports = this.publicport + ':' + this.privateport;
+                            var that = this;
+                            this.ports = this.publicport + ':' + this.privateport + ', ';
+                            $(this.additionalportmap).each(function() {
+                                that.ports += this + ', ';
+                            });
+                            this.ports = this.ports.substring(0, this.ports.length - 2); // remove last ', '
                         });
                         args.response.success({ data: loadBalancerData });
                     },
@@ -282,7 +287,7 @@
                                         success: function(json) {
                                             var network = json.listnetworksresponse.network[0];
                                             if(!network.cidr){
-                                                network.cidr = network.ip6cidr
+                                                network.cidr = network.ip6cidr;
                                             }
                                             networks.push(network);
                                         },
@@ -795,14 +800,8 @@
                                     });
                                 }
                             },
-                            publicport: {
-                                label: 'label.public.port',
-                                validation: {
-                                    required: true
-                                }
-                            },
-                            privateport: {
-                                label: 'label.private.port',
+                            ports: {
+                                label: 'label.port',
                                 validation: {
                                     required: true
                                 }
@@ -1070,14 +1069,34 @@
                             success: function(json) {
                                 var ipId = json.associateipaddressresponse.id;
 
+                                if (args.data.ports.startsWith("[")) {
+                                    args.data.ports = args.data.ports.substring(1, args.data.ports.length);
+                                }
+                                if (args.data.ports.endsWith("]")) {
+                                    args.data.ports = args.data.ports.substring(0, args.data.ports.length - 1);
+                                }
+                                var portlist = args.data.ports.split(",");
+                                if (portlist[0].split(":").length !== 2) {
+                                    args.response.error("Invalid ports. It should in the form \"80:8080,443:8443\"");
+                                    return;
+                                }
+                                var publicport = portlist[0].split(":")[0];
+                                var privateport = portlist[0].split(":")[1];
+
+                                var additionalportmap = [];
+                                if (portlist.length > 1) {
+                                    additionalportmap = portlist.slice(1, portlist.length);
+                                }
+
                                 var data = {
                                     algorithm: args.data.algorithm,
                                     name: args.data.name + args.data.lbdomain,
-                                    privateport: args.data.privateport,
-                                    publicport: args.data.publicport,
+                                    privateport: privateport,
+                                    publicport: publicport,
                                     openfirewall: false,
                                     networkid: args.data.network,
-                                    publicipid: ipId
+                                    publicipid: ipId,
+                                    additionalportmap: additionalportmap.join(),
                                 };
 
                                 var stickyData = {methodname: args.data.sticky.valueOf(), stickyName: args.data.sticky.valueOf()};

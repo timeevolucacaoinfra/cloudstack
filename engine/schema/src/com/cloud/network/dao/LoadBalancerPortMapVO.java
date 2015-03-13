@@ -51,6 +51,7 @@ public class LoadBalancerPortMapVO implements InternalIdentity {
         this.privatePort = privatePort;
     }
 
+    @Override
     public long getId() {
         return id;
     }

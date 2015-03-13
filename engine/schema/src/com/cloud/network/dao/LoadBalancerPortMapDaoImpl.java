@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.network.dao;
 
+import com.cloud.utils.db.DB;
 import com.cloud.utils.db.GenericDaoBase;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
@@ -26,28 +27,24 @@ import javax.ejb.Local;
 import java.util.List;
 
 @Component
-@Local(value = {LoadBalancerPortMapDao.class})
+@Local(value = LoadBalancerPortMapDao.class)
+@DB
 public class LoadBalancerPortMapDaoImpl extends GenericDaoBase<LoadBalancerPortMapVO, Long> implements LoadBalancerPortMapDao {
 
-    final SearchBuilder<LoadBalancerPortMapVO> allFieldsSearch;
+    final SearchBuilder<LoadBalancerPortMapVO> LoadBalancerSearch;
 
-    public LoadBalancerPortMapDaoImpl() {
-        allFieldsSearch = createSearchBuilder();
-        allFieldsSearch.and("loadbalancerId", allFieldsSearch.entity().getLoadBalancerId(), Op.EQ);
-        allFieldsSearch.done();
-    }
+    protected LoadBalancerPortMapDaoImpl() {
+        super();
 
-    @Override
-    public void removeByLoadBalancer(long loadBalancerId) {
-        SearchCriteria<LoadBalancerPortMapVO> sc = allFieldsSearch.create();
-        sc.setParameters("loadbalancerId", loadBalancerId);
-        expunge(sc);
+        LoadBalancerSearch = createSearchBuilder();
+        LoadBalancerSearch.and("lbId", LoadBalancerSearch.entity().getLoadBalancerId(), Op.EQ);
+        LoadBalancerSearch.done();
     }
 
     @Override
     public List<LoadBalancerPortMapVO> listByLoadBalancerId(long loadBalancerId) {
-        SearchCriteria<LoadBalancerPortMapVO> sc = allFieldsSearch.create();
-        sc.setParameters("loadbalancerId", loadBalancerId);
+        SearchCriteria<LoadBalancerPortMapVO> sc = LoadBalancerSearch.create();
+        sc.setParameters("lbId", loadBalancerId);
         return listBy(sc);
     }
 }

@@ -30,6 +30,7 @@ import java.util.Set;
 import javax.ejb.Local;
 import javax.inject.Inject;
 
+import com.cloud.api.ApiDBUtils;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
@@ -1658,10 +1659,12 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
-        List<LoadBalancerPortMapVO> lbPortMaps = _lbPortMapDao.listByLoadBalancerId(loadBalancerId);
+        List<LoadBalancerPortMapVO> lbPortMaps = ApiDBUtils.listLoadBalancerAdditionalPorts(loadBalancerId);
         if (lbPortMaps != null) {
             for (LoadBalancerPortMapVO lbPortMap : lbPortMaps) {
-                _lbPortMapDao.remove(lbPortMap.getId());
+                if (lbPortMap.getLoadBalancerId() == loadBalancerId) { // FIXME Double-check lbID because query doesn't seem to be working
+                    _lbPortMapDao.remove(lbPortMap.getId());
+                }
             }
         }
 
@@ -1820,6 +1823,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         Ip sourceIp = getSourceIp(newRule);
         LoadBalancingRule loadBalancing = new LoadBalancingRule(newRule, new ArrayList<LbDestination>(), new ArrayList<LbStickinessPolicy>(), new ArrayList<LbHealthCheckPolicy>(),
                 sourceIp, null, lbProtocol);
+        loadBalancing.setAdditionalPortMap(additionalPortMap);
         if (!validateLbRule(loadBalancing)) {
             throw new InvalidParameterValueException("LB service provider cannot support this rule");
         }
@@ -1838,6 +1842,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 Ip sourceIp = getSourceIp(newRule);
                 LoadBalancingRule loadBalancing = new LoadBalancingRule(newRule, new ArrayList<LbDestination>(), new ArrayList<LbStickinessPolicy>(),
                         new ArrayList<LbHealthCheckPolicy>(), sourceIp, null, lbProtocol);
+                loadBalancing.setAdditionalPortMap(additionalPortMap);
                 if (!validateLbRule(loadBalancing)) {
                     throw new InvalidParameterValueException("LB service provider cannot support this rule");
                 }
