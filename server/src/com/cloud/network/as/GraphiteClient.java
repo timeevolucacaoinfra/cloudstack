@@ -16,6 +16,13 @@
 // under the License.
 package com.cloud.network.as;
 
+import com.cloud.utils.Pair;
+
+import java.util.List;
+import java.util.Map;
+
 public interface GraphiteClient {
+
+    public Map<String, GraphiteResult[]> fetchData(Map<String, Pair<List<String>, Integer>> countersAndTargets);
 
 }

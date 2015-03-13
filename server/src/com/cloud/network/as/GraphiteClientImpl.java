@@ -16,48 +16,123 @@
 // under the License.
 package com.cloud.network.as;
 
-
+import com.cloud.utils.Pair;
+import com.google.gson.Gson;
+import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.util.EntityUtils;
+import org.apache.log4j.Logger;
 
-import javax.inject.Inject;
-import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class GraphiteClientImpl implements GraphiteClient {
+public class GraphiteClientImpl implements GraphiteClient, Configurable {
 
-    @Inject
-    private HttpClient httpClient;
+    protected HttpClient httpClient;
 
-    public GraphiteClientImpl() {
-        //TODO: config httpclient bean on spring context xml
+    public static final Logger s_logger = Logger.getLogger(GraphiteClientImpl.class.getName());
 
-        ThreadSafeClientConnManager cm = new ThreadSafeClientConnManager();
-        cm.setDefaultMaxPerRoute(200);
-        cm.setMaxTotal(200);
+    private static final ConfigKey<String> GraphiteEndpoint = new ConfigKey<>("Advanced", String.class, "autosacale.graphite.endpoint", "", "Graphite's endpoint to be used on auto scale metrics gathering", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GraphiteTimeout = new ConfigKey<>("Advanced", Integer.class, "autosacale.graphite.timeout", "2000", "Graphite's connection timeout", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GraphiteSoTimeout = new ConfigKey<>("Advanced", Integer.class, "autosacale.graphite.sotimeout", "2000", "Graphite's socket timeout", true, ConfigKey.Scope.Global);
 
-        DefaultHttpClient httpClient = new DefaultHttpClient(cm);
+    public GraphiteClientImpl(){}
+
+    public GraphiteClientImpl(HttpClient httpClient) {
+        this.httpClient = httpClient;
         HttpParams params = httpClient.getParams();
-        HttpConnectionParams.setConnectionTimeout(params, 1000);
-        HttpConnectionParams.setSoTimeout(params, 1000);
+        Integer connectionTimeout = GraphiteTimeout.value();
+        Integer connectionSocketTimeout = GraphiteSoTimeout.value();
+        if(connectionTimeout != null && !"".equals(connectionTimeout)) {
+            HttpConnectionParams.setConnectionTimeout(params, GraphiteTimeout.value());
+        }
+        if(connectionSocketTimeout != null && !"".equals(connectionSocketTimeout)) {
+            HttpConnectionParams.setSoTimeout(params, GraphiteSoTimeout.value());
+        }
     }
 
-    public List<String> fetchData(List<String> ids){
-        HttpGet get = new HttpGet("");
+    public Map<String, GraphiteResult[]> fetchData(Map<String, Pair<List<String>, Integer>> countersAndTargets){
+        Map<String, GraphiteResult[]> result = new HashMap<>();
         try {
-            HttpResponse response = httpClient.execute(get);
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                throw new RuntimeException();
+            for(String counterName : countersAndTargets.keySet()){
+                Pair<List<String>, Integer> targets = countersAndTargets.get(counterName);
+                List<String> targetKeys = targets.first();
+                Integer duration = targets.second();
+
+                String url = GraphiteEndpoint.value() + "?format=json&from=-" + duration +"s";
+                for(String targetKey : targetKeys){
+                    url += "&target=" + targetKey;
+                }
+
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("[Graphite] Collecting Graphite's data: " + url);
+                }
+                HttpGet get = new HttpGet(url);
+                HttpResponse response = httpClient.execute(get);
+
+                if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK || response.getEntity() == null) {
+                    throw new Exception("[Graphite] Request to Graphite API return invalid status or empty content. Status code: " + response.getStatusLine().getStatusCode());
+                }
+                String jsonResponse = EntityUtils.toString(response.getEntity());
+
+                if (s_logger.isDebugEnabled()) {
+                    s_logger.debug("[Graphite] Data returned from graphite: \n" + jsonResponse);
+                }
+
+                GraphiteResult[] graphiteResult = new Gson().fromJson(jsonResponse, GraphiteResult[].class);
+                result.put(counterName, graphiteResult);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            s_logger.error("[Graphite] Error while reading from Graphite API", e);
         }
-        return null;
+        return result;
+    }
+
+    @Override
+    public ConfigKey<?>[] getConfigKeys() {
+        return new ConfigKey<?>[] { GraphiteEndpoint, GraphiteSoTimeout, GraphiteTimeout };
+    }
+
+    @Override
+    public String getConfigComponentName() {
+        return GraphiteClientImpl.class.getSimpleName();
+    }
+}
+
+class GraphiteResult{
+
+    private String target;
+    private List<List<Number>> datapoints;
+
+    public GraphiteResult(String target, List<List<Number>> datapoints) {
+        this.target = target;
+        this.datapoints = datapoints;
+    }
+
+    public String getTargetName(){
+        return this.target;
+    }
+
+    public List<List<Number>> getDataPoints(){
+        return this.datapoints;
+    }
+
+    public Double getAverage(){
+        Double counterSum = 0.0;
+        Integer points = 0;
+        for(List<Number> dataPoint : this.getDataPoints()){
+            if(dataPoint.get(0) != null) {
+                points++;
+                counterSum += dataPoint.get(0).doubleValue();
+            }
+        }
+        return counterSum / points;
     }
 }

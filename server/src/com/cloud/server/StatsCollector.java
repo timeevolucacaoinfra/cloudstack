@@ -710,7 +710,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                             AutoScaleStatsCollector statsCollector = autoScaleStatsCollectorFactory.getStatsCollector();
                             Map<String, Double> counterSummary = statsCollector.retrieveMetrics(asGroup, vmList);
 
-                            if(counterSummary != null) {
+                            if(counterSummary != null && !counterSummary.keySet().isEmpty()) {
                                 String scaleAction = this.getAutoScaleAction(counterSummary, asGroup, currentVMcount);
                                 if (scaleAction != null) {
                                     s_logger.debug("[AutoScale] Doing scale action: " + scaleAction + " for group " + asGroup.getId());
