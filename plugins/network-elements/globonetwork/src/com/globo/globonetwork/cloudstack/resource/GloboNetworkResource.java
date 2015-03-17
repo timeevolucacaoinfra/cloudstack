@@ -706,8 +706,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     RealIP realIP = new RealIP();
                     realIP.setName(real.getVmName());
                     realIP.setRealIp(real.getIp());
-
-                    realIP.setRealPort(Integer.valueOf(port));
+                    realIP.setVipPort(Integer.valueOf(port.split(":")[0]));
+                    realIP.setRealPort(Integer.valueOf(port.split(":")[1]));
                     realIP.setIpId(ip.getId());
                     realsIp.add(realIP);
 

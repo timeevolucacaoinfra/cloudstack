@@ -1972,6 +1972,17 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
         loadBalancing.setAdditionalNetworks(additionalNetworks);
 
+        List<String> additionalPorts = new ArrayList<String>();
+        List<LoadBalancerPortMapVO> lbPortMaps = ApiDBUtils.listLoadBalancerAdditionalPorts(lb.getId());
+        if (lbPortMaps != null) {
+            for (LoadBalancerPortMapVO lbPortMap : lbPortMaps) {
+                if (lbPortMap.getLoadBalancerId() == lb.getId()) { // FIXME Double-check lbID because query doesn't seem to be working
+                    additionalPorts.add(lbPortMap.getPublicPort() + ":" + lbPortMap.getPrivatePort());
+                }
+            }
+        }
+        loadBalancing.setAdditionalPortMap(additionalPorts);
+
         List<LbHealthCheckPolicy> hcPolicyList = getHealthCheckPolicies(lb.getId());
         loadBalancing.setHealthCheckPolicies(hcPolicyList);
 

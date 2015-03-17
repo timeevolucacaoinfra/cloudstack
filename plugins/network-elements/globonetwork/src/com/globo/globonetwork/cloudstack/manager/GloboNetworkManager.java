@@ -1936,14 +1936,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             // Port mapping
             List<String> ports = new ArrayList<String>();
-            List<String> realPorts = new ArrayList<String>();
             ports.add(rule.getSourcePortStart() + ":" + rule.getDefaultPortStart());
-            realPorts.add(String.valueOf(rule.getDefaultPortStart()));
             if (rule.getAdditionalPortMap() != null) {
                 for (String portMap : rule.getAdditionalPortMap()) {
                     // Right format of ports has already been validated in validateLBRule()
                     ports.add(portMap);
-                    realPorts.add(portMap.split(":")[1]);
                 }
             }
 
@@ -1956,7 +1953,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
                         real.setIp(destVM.getIpAddress());
                         real.setVmName(getEquipNameFromUuid(vm.getUuid()));
-                        real.setPorts(realPorts);
+                        real.setPorts(ports);
                         real.setRevoked(destVM.isRevoked());
 
                         GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
@@ -2103,8 +2100,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 if (portMapArray.length != 2) {
                     throw new InvalidParameterValueException("Additional port mapping is invalid, should be in the form '80:8080,443:8443'");
                 }
-                Integer lbPort = Integer.valueOf(portMapArray[0]);
-                Integer realPort = Integer.valueOf(portMapArray[1]);
+                Integer lbPort = Integer.valueOf(portMapArray[0].trim());
+                Integer realPort = Integer.valueOf(portMapArray[1].trim());
                 if (portsAlreadyMapped.contains(lbPort)) {
                     throw new InvalidParameterValueException("Additional port mapping is invalid. Duplicated Load Balancer port");
                 }
