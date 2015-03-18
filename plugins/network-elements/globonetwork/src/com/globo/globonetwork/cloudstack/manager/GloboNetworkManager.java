@@ -31,6 +31,8 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.network.dao.LoadBalancerPortMapDao;
+import com.cloud.network.dao.LoadBalancerPortMapVO;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -290,6 +292,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     PortableIpDao _portableIpDao;
     @Inject
     UserIpv6AddressDao _ipv6AddrDao;
+    @Inject
+    LoadBalancerPortMapDao _lbPortMapDao;
 
     // Managers
     @Inject
@@ -2251,13 +2255,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 throw new CloudRuntimeException("IP " + globoNetworkLB.getIp() + " is not free to be used in Cloudstack");
             }
 
-            if (globoNetworkLB.getPorts() == null || globoNetworkLB.getPorts().size() == 0 || globoNetworkLB.getPorts().size() > 1) {
-                throw new CloudRuntimeException("Invalid port mapping for LB. Cloudstack supports 1 and only 1 port mapping in a load balancer");
+            if (globoNetworkLB.getPorts() == null || globoNetworkLB.getPorts().size() == 0) {
+                throw new CloudRuntimeException("Invalid port mapping for LB. It is necessary to have at least 1 port mapping for a load balancer");
             }
             final String[] globoNetworkPorts = globoNetworkLB.getPorts().get(0).split(":");
             if (globoNetworkPorts[0] == "" || globoNetworkPorts[1] == "") {
                 throw new CloudRuntimeException("Invalid port mapping for LB: " + globoNetworkLB.getPorts().get(0));
             }
+            final List<String> additionalPortMapList = (globoNetworkLB.getPorts().size() > 1) ? globoNetworkLB.getPorts().subList(1, globoNetworkLB.getPorts().size()) : null;
 
             final String algorithm;
             if ("least-conn".equals(globoNetworkLB.getMethod())) {
@@ -2310,6 +2315,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         // Create LB
                         LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
                                 Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, null);
+
+                        // Set additional port mappings for LB
+                        if (additionalPortMapList != null) {
+                            for(String additionalPortMapStr : additionalPortMapList) {
+                                if (additionalPortMapStr.split(":").length != 2) {
+                                    throw new InvalidParameterValueException("Invalid additional port mapping");
+                                }
+                                Integer publicPort = Integer.valueOf(additionalPortMapStr.split(":")[0]);
+                                Integer privatePort = Integer.valueOf(additionalPortMapStr.split(":")[1]);
+                                LoadBalancerPortMapVO lbPortMapVO = new LoadBalancerPortMapVO(lb.getId(), publicPort, privatePort);
+                                _lbPortMapDao.persist(lbPortMapVO);
+                            }
+                        }
 
                         // Assign VMs that are managed in Cloudstack
                         List<Long> instancesToAdd = new ArrayList<Long>();

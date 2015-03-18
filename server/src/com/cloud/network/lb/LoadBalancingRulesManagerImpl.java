@@ -1973,7 +1973,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         loadBalancing.setAdditionalNetworks(additionalNetworks);
 
         List<String> additionalPorts = new ArrayList<String>();
-        List<LoadBalancerPortMapVO> lbPortMaps = ApiDBUtils.listLoadBalancerAdditionalPorts(lb.getId());
+        List<LoadBalancerPortMapVO> lbPortMaps = _lbPortMapDao.listByLoadBalancerId(lb.getId());
         if (lbPortMaps != null) {
             for (LoadBalancerPortMapVO lbPortMap : lbPortMaps) {
                 if (lbPortMap.getLoadBalancerId() == lb.getId()) { // FIXME Double-check lbID because query doesn't seem to be working

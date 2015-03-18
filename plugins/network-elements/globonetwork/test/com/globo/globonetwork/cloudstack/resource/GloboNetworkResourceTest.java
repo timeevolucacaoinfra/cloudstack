@@ -91,9 +91,6 @@ public class GloboNetworkResourceTest {
         String vipEnvironmentName = "TESTAPI";
         String vipCache = "(nenhum)";
 
-        // real
-        String realPort = "8080";
-
         Ipv4 vipIp = new Ipv4();
         vipIp.setId(vipIpId);
         vipIp.setOct1(Integer.valueOf(vipIpStr.split("\\.")[0]));
@@ -134,7 +131,8 @@ public class GloboNetworkResourceTest {
             realIp.setIpId(ip.getId());
             realIp.setName("vm-" + ip.getId());
             realIp.setRealIp(realAddr);
-            realIp.setRealPort(Integer.valueOf(realPort));
+            realIp.setVipPort(Integer.valueOf(vipPorts.get(0).split(":")[0]));
+            realIp.setRealPort(Integer.valueOf(vipPorts.get(0).split(":")[1]));
             realIpList.add(realIp);
         }
         vip.setRealsIp(realIpList);
@@ -177,7 +175,7 @@ public class GloboNetworkResourceTest {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
             real.setVmName(vipReal.getName());
-            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setPorts(Arrays.asList(vipReal.getVipPort() + ":" + vipReal.getRealPort()));
             real.setRevoked(false);
             real.setEnvironmentId(realEnvironmentId);
             realList.add(real);
@@ -247,7 +245,7 @@ public class GloboNetworkResourceTest {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
             real.setVmName(vipReal.getName());
-            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setPorts(Arrays.asList(vipReal.getVipPort() + ":" + vipReal.getRealPort()));
             real.setRevoked(false);
             real.setEnvironmentId(realEnvironmentId);
             realList.add(real);
@@ -309,7 +307,7 @@ public class GloboNetworkResourceTest {
         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
         real.setIp(realIp);
         real.setVmName(realName);
-        real.setPorts(Arrays.asList(realPort));
+        real.setPorts(vip.getServicePorts());
         real.setRevoked(false);
         real.setEnvironmentId(realEnvironmentId);
         cmd.setRealList(Arrays.asList(real));
@@ -383,7 +381,7 @@ public class GloboNetworkResourceTest {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
             real.setVmName(vipReal.getName());
-            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setPorts(Arrays.asList(vipReal.getVipPort() + ":" + vipReal.getRealPort()));
             real.setRevoked(true);
             real.setEnvironmentId(realEnvironmentId);
             realList.add(real);
@@ -410,7 +408,7 @@ public class GloboNetworkResourceTest {
 
         Answer answer = _resource.execute(cmd);
 
-        verify(_resource._globoNetworkApi.getVipAPI()).removeReal(vip.getId(), vip.getRealsIp().get(0).getIpId(), realEquipmentId, null, Integer.valueOf(realPort));
+        verify(_resource._globoNetworkApi.getVipAPI()).removeReal(vip.getId(), vip.getRealsIp().get(0).getIpId(), realEquipmentId, Integer.valueOf(vip.getServicePorts().get(0).split(":")[0]), Integer.valueOf(realPort));
 
         assertNotNull(answer);
         assertTrue(answer.getResult());
@@ -458,7 +456,7 @@ public class GloboNetworkResourceTest {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
             real.setVmName(vipReal.getName());
-            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setPorts(Arrays.asList(vipReal.getVipPort() + ":" + vipReal.getRealPort()));
             real.setRevoked(true);
             real.setEnvironmentId(realEnvironmentId);
             realList.add(real);
@@ -543,7 +541,7 @@ public class GloboNetworkResourceTest {
             GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
             real.setIp(vipReal.getRealIp());
             real.setVmName(vipReal.getName());
-            real.setPorts(Arrays.asList(String.valueOf(vipReal.getRealPort())));
+            real.setPorts(Arrays.asList(vipReal.getVipPort() + ":" + vipReal.getRealPort()));
             real.setRevoked(true);
             real.setEnvironmentId(realEnvironmentId);
             realList.add(real);
