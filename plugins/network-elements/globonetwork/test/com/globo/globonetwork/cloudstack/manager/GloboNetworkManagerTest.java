@@ -35,6 +35,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import com.cloud.network.dao.LoadBalancerPortMapDao;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -460,6 +461,9 @@ public class GloboNetworkManagerTest {
         public UserIpv6AddressDao userIpv6AddressDao() {
             return mock(UserIpv6AddressDao.class);
         }
+
+        @Bean
+        public LoadBalancerPortMapDao loadBalancerPortMapDao() { return mock(LoadBalancerPortMapDao.class); }
 
         public static class Library implements TypeFilter {
 

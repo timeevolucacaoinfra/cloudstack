@@ -696,17 +696,24 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         return new Answer(cmd, false, "Could not get real IP information: " + real.getIp());
                     }
                 }
-                RealIP realIP = new RealIP();
-                realIP.setName(real.getVmName());
-                realIP.setRealIp(real.getIp());
                 if (real.getPorts() == null) {
                     return new Answer(cmd, false, "You need to specify a port for the real");
                 }
-                realIP.setRealPort(Integer.valueOf(real.getPorts().get(0))); // There's only one
-                realIP.setIpId(ip.getId());
-                realsIp.add(realIP);
 
-                realsPriorities.add(DEFAULT_REALS_PRIORITY);
+                // GloboNetwork considers a different RealIP object if there are multiple ports
+                // even though IP and name info are the same
+                for(String port : real.getPorts()) {
+                    RealIP realIP = new RealIP();
+                    realIP.setName(real.getVmName());
+                    realIP.setRealIp(real.getIp());
+                    realIP.setVipPort(Integer.valueOf(port.split(":")[0]));
+                    realIP.setRealPort(Integer.valueOf(port.split(":")[1]));
+                    realIP.setIpId(ip.getId());
+                    realsIp.add(realIP);
+
+                    // Making sure there is the same number of reals and reals priorities
+                    realsPriorities.add(DEFAULT_REALS_PRIORITY);
+                }
             }
 
             // Check VIP IP in its environment

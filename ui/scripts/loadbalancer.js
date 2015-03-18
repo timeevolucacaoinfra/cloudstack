@@ -144,7 +144,12 @@
                     success: function(data) {
                         var loadBalancerData = data.listloadbalancerrulesresponse.loadbalancerrule;
                         $(loadBalancerData).each(function() {
-                            this.ports = this.publicport + ':' + this.privateport;
+                            var that = this;
+                            this.ports = this.publicport + ':' + this.privateport + ', ';
+                            $(this.additionalportmap).each(function() {
+                                that.ports += this + ', ';
+                            });
+                            this.ports = this.ports.substring(0, this.ports.length - 2); // remove last ', '
                         });
                         args.response.success({ data: loadBalancerData });
                     },
@@ -282,7 +287,7 @@
                                         success: function(json) {
                                             var network = json.listnetworksresponse.network[0];
                                             if(!network.cidr){
-                                                network.cidr = network.ip6cidr
+                                                network.cidr = network.ip6cidr;
                                             }
                                             networks.push(network);
                                         },
@@ -594,7 +599,12 @@
                                                     success: function(data) {
                                                         var loadBalancerData = data.listloadbalancerrulesresponse.loadbalancerrule;
                                                         $(loadBalancerData).each(function() {
-                                                            this.ports = this.publicport + ':' + this.privateport;
+                                                            var that = this;
+                                                            this.ports = this.publicport + ':' + this.privateport + ', ';
+                                                            $(this.additionalportmap).each(function() {
+                                                                that.ports += this + ', ';
+                                                            });
+                                                            this.ports = this.ports.substring(0, this.ports.length - 2); // remove last ', '
                                                         });
                                                         loadbalancer = loadBalancerData[0];
                                                     }
@@ -795,14 +805,9 @@
                                     });
                                 }
                             },
-                            publicport: {
-                                label: 'label.public.port',
-                                validation: {
-                                    required: true
-                                }
-                            },
-                            privateport: {
-                                label: 'label.private.port',
+                            ports: {
+                                label: 'label.port',
+                                docID: 'helpLbPorts',
                                 validation: {
                                     required: true
                                 }
@@ -1063,6 +1068,21 @@
                             args.response.error(parseXMLHttpResponse(json));
                         };
 
+                        var disassociate_ip_address_with_message = function(ipid, msg) {
+                            $.ajax({
+                                url: createURL('disassociateIpAddressFromGloboNetwork'),
+                                data: {
+                                    id: ipid
+                                },
+                                dataType: 'json',
+                                success: function(data) {
+                                    args.response.error(msg);
+                                    return;
+                                },
+                                error: show_error_message
+                            });
+                        };
+
                         $.ajax({
                             url: createURL(url),
                             data: data,
@@ -1070,14 +1090,51 @@
                             success: function(json) {
                                 var ipId = json.associateipaddressresponse.id;
 
+                                if (args.data.ports.startsWith("[")) {
+                                    args.data.ports = args.data.ports.substring(1, args.data.ports.length);
+                                }
+                                if (args.data.ports.endsWith("]") || args.data.ports.endsWith(",")) {
+                                    args.data.ports = args.data.ports.substring(0, args.data.ports.length - 1);
+                                }
+                                var portlist = args.data.ports.split(",");
+                                if (portlist[0].split(":").length !== 2) {
+                                    disassociate_ip_address_with_message(ipId, "Invalid ports. It should in the form \"80:8080,443:8443\"");
+                                }
+
+                                // Variable to make sure that mapping is valid, public port shouldn't repeat
+                                var alreadymappedports = [];
+
+                                var publicport = portlist[0].split(":")[0];
+                                var privateport = portlist[0].split(":")[1];
+
+                                alreadymappedports.push(publicport);
+
+                                var additionalportmap = [];
+                                if (portlist.length > 1) {
+                                    additionalportmap = portlist.slice(1, portlist.length);
+                                }
+
+                                // Validation
+                                $(additionalportmap).each(function() {
+                                    if (this.split(":").length != 2) {
+                                        disassociate_ip_address_with_message(ipId, "Invalid ports. It should in the form \"80:8080,443:8443\"");
+                                    }
+                                    var pubport = this.split(":")[0].trim();
+                                    if ($.inArray(pubport, alreadymappedports) !== -1) {
+                                        disassociate_ip_address_with_message(ipId, "Invalid ports. Duplicated public (VIP) port.");
+                                    }
+                                    alreadymappedports.push(pubport);
+                                });
+
                                 var data = {
                                     algorithm: args.data.algorithm,
                                     name: args.data.name + args.data.lbdomain,
-                                    privateport: args.data.privateport,
-                                    publicport: args.data.publicport,
+                                    privateport: privateport,
+                                    publicport: publicport,
                                     openfirewall: false,
                                     networkid: args.data.network,
-                                    publicipid: ipId
+                                    publicipid: ipId,
+                                    additionalportmap: additionalportmap.join(),
                                 };
 
                                 var stickyData = {methodname: args.data.sticky.valueOf(), stickyName: args.data.sticky.valueOf()};
