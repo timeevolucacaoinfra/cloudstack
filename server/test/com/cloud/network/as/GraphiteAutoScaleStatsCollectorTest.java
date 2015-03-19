@@ -16,15 +16,11 @@
 // under the License.
 package com.cloud.network.as;
 
-import com.cloud.hypervisor.Hypervisor;
-import com.cloud.vm.VMInstanceVO;
-import com.cloud.vm.VirtualMachine;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,11 +33,8 @@ public class GraphiteAutoScaleStatsCollectorTest extends AutoScaleStatsCollector
 
     @Before
     public void setUp() {
+        super.setUp();
         autoScaleStatsCollector = new GraphiteAutoScaleStatsCollector();
-        asGroup = new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
-        VMInstanceVO vm = new VMInstanceVO(1, 1, "vm-01", "vm-01", VirtualMachine.Type.Instance, 1L, Hypervisor.HypervisorType.Simulator, 1, 1, 1, false, true, 1L);
-        vm.setHostId(1L);
-        vmList.add(vm);
     }
 
     @Test

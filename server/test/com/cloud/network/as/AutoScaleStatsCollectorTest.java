@@ -20,6 +20,7 @@ import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.PerformanceMonitorAnswer;
+import com.cloud.hypervisor.Hypervisor;
 import com.cloud.network.as.dao.AutoScalePolicyConditionMapDao;
 import com.cloud.network.as.dao.AutoScalePolicyDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupPolicyMapDao;
@@ -50,7 +51,12 @@ public abstract class AutoScaleStatsCollectorTest {
     protected AutoScaleVmGroup asGroup;
     protected List<VMInstanceVO> vmList = new ArrayList<>();
 
-    public abstract void setUp();
+    public void setUp(){
+        asGroup = new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
+        VMInstanceVO vm = new VMInstanceVO(1, 1, "vm-01", "vm-01", VirtualMachine.Type.Instance, 1L, Hypervisor.HypervisorType.Simulator, 1, 1, 1, false, true, 1L);
+        vm.setHostId(1L);
+        vmList.add(vm);
+    }
 
     @Test
     public void testReadVmStatsWithCpuCounter(){

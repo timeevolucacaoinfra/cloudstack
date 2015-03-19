@@ -208,6 +208,8 @@
 
     <bean id="graphiteStatsCollector" class="com.cloud.network.as.GraphiteAutoScaleStatsCollector" />
 
+    <bean id="elasticSearchAutoScaleStatsCollector" class="com.cloud.network.as.ElasticSearchAutoScaleStatsCollector"/>
+
     <bean id="autoScaleStatsCollectorFactory" class="com.cloud.network.as.AutoScaleStatsCollectorFactoryImpl" />
 
     <bean id="storagePoolAutomationImpl" class="com.cloud.storage.StoragePoolAutomationImpl" />

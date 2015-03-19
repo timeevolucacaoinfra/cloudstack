@@ -691,8 +691,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
 
                         //check interval
                         long now = new Date().getTime();
-                        Long lastInterval = asGroup.getLastInterval().getTime();
-                        if ((now - lastInterval) < asGroup.getInterval() * 1000) {
+                        Date lastInterval = asGroup.getLastInterval();
+                        if (lastInterval != null && (now - lastInterval.getTime()) < asGroup.getInterval() * 1000) {
                             continue;
                         }
 
@@ -776,6 +776,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
                                 CounterVO counter = _asCounterDao.findById(conditionVO.getCounterid());
 
                                 Double sum = counterSummary.get(counter.getSource().name());
+                                if(sum == null){
+                                    isPolicyValid = false;
+                                    break;
+                                }
                                 Double avg = sum / currentVMcount;
                                 Operator op = conditionVO.getRelationalOperator();
 
