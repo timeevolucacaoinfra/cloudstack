@@ -1090,12 +1090,9 @@
                             success: function(json) {
                                 var ipId = json.associateipaddressresponse.id;
 
-                                if (args.data.ports.startsWith("[")) {
-                                    args.data.ports = args.data.ports.substring(1, args.data.ports.length);
-                                }
-                                if (args.data.ports.endsWith("]") || args.data.ports.endsWith(",")) {
-                                    args.data.ports = args.data.ports.substring(0, args.data.ports.length - 1);
-                                }
+                                // This regexp removes every character except numbers, ':' and ','. It also removes the ',' at the end of the string
+                                args.data.ports = args.data.ports.replace(/[^\d\:\,]/g, "").replace(/\,+$/g, "");
+
                                 var portlist = args.data.ports.split(",");
                                 if (portlist[0].split(":").length !== 2) {
                                     disassociate_ip_address_with_message(ipId, "Invalid ports. It should in the form \"80:8080,443:8443\"");
@@ -1104,8 +1101,8 @@
                                 // Variable to make sure that mapping is valid, public port shouldn't repeat
                                 var alreadymappedports = [];
 
-                                var publicport = portlist[0].split(":")[0];
-                                var privateport = portlist[0].split(":")[1];
+                                var publicport = portlist[0].split(":")[0].trim();
+                                var privateport = portlist[0].split(":")[1].trim();
 
                                 alreadymappedports.push(publicport);
 
@@ -1117,7 +1114,7 @@
                                 // Validation
                                 $(additionalportmap).each(function() {
                                     if (this.split(":").length != 2) {
-                                        disassociate_ip_address_with_message(ipId, "Invalid ports. It should in the form \"80:8080,443:8443\"");
+                                        disassociate_ip_address_with_message(ipId, "Invalid ports. It should be in the form \"80:8080,443:8443\"");
                                     }
                                     var pubport = this.split(":")[0].trim();
                                     if ($.inArray(pubport, alreadymappedports) !== -1) {
@@ -1195,7 +1192,9 @@
                                             });
                                         }
                                     },
-                                    error: show_error_message
+                                    error: function(json) {
+                                        disassociate_ip_address_with_message(ipId, json);
+                                    },
                                 });
                             },
                             error: show_error_message // associateipaddress

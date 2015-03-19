@@ -752,7 +752,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     if (real.isRevoked()) {
                         this.removeReal(vip, real.getVmName(), real.getIp());
                     } else {
-                        this.addAndEnableReal(vip, real.getVmName(), real.getIp());
+                        this.addAndEnableReal(vip, real.getVmName(), real.getIp(), real.getPorts());
                     }
                 }
 
@@ -796,7 +796,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return "GET " + path + " HTTP/1.0\\r\\nHost: " + host + "\\r\\n\\r\\n";
     }
 
-    private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
+    private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
         Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
         if (equipment == null) {
             // Equipment doesn't exist
@@ -816,10 +816,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return false;
         }
 
-        String servicePorts = vip.getServicePorts().get(0);
-        int vipPort = Integer.parseInt(servicePorts.split(":")[0]);
-        int realPort = Integer.parseInt(servicePorts.split(":")[1]);
-
         if (vip.getRealsIp() != null) {
             for (RealIP realIp : vip.getRealsIp()) {
                 if (ip.getId().equals(realIp.getIpId())) {
@@ -833,7 +829,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
         // added reals are always enabled by default
         s_logger.info("Adding real " + ip.getIpString() + " on loadbalancer " + vip.getId());
-        _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), vipPort, realPort);
+        for(String realPort : realPorts) {
+            _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), Integer.valueOf(realPort.split(":")[0]), Integer.valueOf(realPort.split(":")[1]));
+        }
         return true;
     }
 
