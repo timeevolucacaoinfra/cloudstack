@@ -191,6 +191,8 @@
 
     <bean id="statsCollector" class="com.cloud.server.StatsCollector" />
 
+    <bean id="autoScaleMonitor" class="com.cloud.server.as.AutoScaleMonitor" />
+
     <bean id="autoScaleStatsCollector" class="com.cloud.network.as.RRDAutoScaleStatsCollector" />
 
     <bean id="graphiteConnectionManager" class="org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager" >
