@@ -88,7 +88,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
                         QueryBuilders.matchAllQuery(),
                         FilterBuilders.andFilter(
                             FilterBuilders.rangeFilter("@timestamp").from("now-" + duration + "s/s").to("now"),
-                            FilterBuilders.termsFilter("hostname", hostNames)
+                            FilterBuilders.termsFilter("hostname.raw", hostNames)
                         )
                     )
                 )
