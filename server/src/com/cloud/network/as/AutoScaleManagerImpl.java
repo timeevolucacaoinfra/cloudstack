@@ -198,7 +198,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
 
-    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autosacaled.vm.prefix", "as-vm-",
+    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autoscale.vm.prefix", "as-vm-",
             "Auto scaled virtual machine name prefix", true, ConfigKey.Scope.Global);
 
     public List<AutoScaleCounter> getSupportedAutoScaleCounters(long networkid) {
@@ -1484,8 +1484,17 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             }
         }
         lstVmId.add(new Long(vmId));
-        return _loadBalancingRulesService.assignToLoadBalancer(lbId, lstVmId, new HashMap<Long, List<String>>());
-
+        try {
+            return _loadBalancingRulesService.assignToLoadBalancer(lbId, lstVmId, new HashMap<Long, List<String>>());
+        }catch(Exception e){
+            // Rolling back VM creation as it cannot be assigned to the load balancer
+            try {
+                _userVmManager.destroyVm(vmId);
+            } catch (ResourceUnavailableException ex) {
+                s_logger.error("error occurred while removing vm id: " + vmId, ex);
+            }
+            return false;
+        }
     }
 
     private long removeLBrule(AutoScaleVmGroupVO asGroup) {
