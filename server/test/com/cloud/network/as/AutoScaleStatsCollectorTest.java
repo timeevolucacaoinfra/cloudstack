@@ -30,6 +30,7 @@ import com.cloud.network.as.dao.ConditionDao;
 import com.cloud.network.as.dao.CounterDao;
 import com.cloud.service.ServiceOfferingVO;
 import com.cloud.service.dao.ServiceOfferingDao;
+import com.cloud.utils.Pair;
 import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
 import org.junit.Test;
@@ -115,6 +116,84 @@ public abstract class AutoScaleStatsCollectorTest {
         Map<String, Double> countersSummary = autoScaleStatsCollector.retrieveMetrics(asGroup, vmList);
 
         assert countersSummary == null;
+    }
+
+    @Test
+    public void testGetPairOfCounterNameAndDuration(){
+        AutoScaleVmGroupPolicyMapDao _asGroupPolicyDao = mock(AutoScaleVmGroupPolicyMapDao.class);
+        List<AutoScaleVmGroupPolicyMapVO> groupPolicymap = new ArrayList<>();
+        groupPolicymap.add(new AutoScaleVmGroupPolicyMapVO(1L, 1L));
+        when(_asGroupPolicyDao.listByVmGroupId(anyLong())).thenReturn(groupPolicymap);
+        autoScaleStatsCollector._asGroupPolicyDao = _asGroupPolicyDao;
+
+        AutoScalePolicyDao _asPolicyDao = mock(AutoScalePolicyDao.class);
+        AutoScalePolicyVO policyUp = new AutoScalePolicyVO(1L, 1L, 60, 120, new Date(), "scaleup");
+        when(_asPolicyDao.findById(1L)).thenReturn(policyUp);
+        autoScaleStatsCollector._asPolicyDao = _asPolicyDao;
+
+        AutoScalePolicyConditionMapDao _asConditionMapDao = mock(AutoScalePolicyConditionMapDao.class);
+        List<AutoScalePolicyConditionMapVO> policiesMap = new ArrayList<>();
+        policiesMap.add(new AutoScalePolicyConditionMapVO(1L, 1L));
+        when(_asConditionMapDao.findByPolicyId(anyLong())).thenReturn(policiesMap);
+        autoScaleStatsCollector._asConditionMapDao = _asConditionMapDao;
+
+        ConditionDao _asConditionDao = mock(ConditionDao.class);
+        ConditionVO conditionUp = new ConditionVO(1L, 90L, 1L, 1L, Condition.Operator.GT);
+        when(_asConditionDao.findById(1L)).thenReturn(conditionUp);
+        autoScaleStatsCollector._asConditionDao = _asConditionDao;
+
+        CounterDao _asCounterDao = mock(CounterDao.class);
+        CounterVO counter = new CounterVO(Counter.Source.cpu, "cpu", "");
+        when(_asCounterDao.findById(1L)).thenReturn(counter);
+        autoScaleStatsCollector._asCounterDao = _asCounterDao;
+
+        List<Pair<String, Integer>> counterAndDurations = autoScaleStatsCollector.getPairOfCounterNameAndDuration(asGroup);
+
+        assert 1 == counterAndDurations.size();
+        assert "cpu".equals(counterAndDurations.get(0).first().split(",")[0]);
+        assert 60 == counterAndDurations.get(0).second();
+    }
+
+    @Test
+    public void testGetPairOfCounterNameAndDurationGivenPolicyWithTwoConditions(){
+        AutoScaleVmGroupPolicyMapDao _asGroupPolicyDao = mock(AutoScaleVmGroupPolicyMapDao.class);
+        List<AutoScaleVmGroupPolicyMapVO> groupPolicymap = new ArrayList<>();
+        groupPolicymap.add(new AutoScaleVmGroupPolicyMapVO(1L, 1L));
+        when(_asGroupPolicyDao.listByVmGroupId(anyLong())).thenReturn(groupPolicymap);
+        autoScaleStatsCollector._asGroupPolicyDao = _asGroupPolicyDao;
+
+        AutoScalePolicyDao _asPolicyDao = mock(AutoScalePolicyDao.class);
+        AutoScalePolicyVO policyUp = new AutoScalePolicyVO(1L, 1L, 60, 120, new Date(), "scaleup");
+        when(_asPolicyDao.findById(1L)).thenReturn(policyUp);
+        autoScaleStatsCollector._asPolicyDao = _asPolicyDao;
+
+        AutoScalePolicyConditionMapDao _asConditionMapDao = mock(AutoScalePolicyConditionMapDao.class);
+        List<AutoScalePolicyConditionMapVO> policiesMap = new ArrayList<>();
+        policiesMap.add(new AutoScalePolicyConditionMapVO(1L, 1L));
+        policiesMap.add(new AutoScalePolicyConditionMapVO(1L, 2L));
+        when(_asConditionMapDao.findByPolicyId(anyLong())).thenReturn(policiesMap);
+        autoScaleStatsCollector._asConditionMapDao = _asConditionMapDao;
+
+        ConditionDao _asConditionDao = mock(ConditionDao.class);
+        ConditionVO condition1 = new ConditionVO(1L, 90L, 1L, 1L, Condition.Operator.GT);
+        ConditionVO condition2 = new ConditionVO(2L, 90L, 1L, 1L, Condition.Operator.GT);
+        when(_asConditionDao.findById(1L)).thenReturn(condition1);
+        when(_asConditionDao.findById(2L)).thenReturn(condition2);
+        autoScaleStatsCollector._asConditionDao = _asConditionDao;
+
+        CounterDao _asCounterDao = mock(CounterDao.class);
+        CounterVO counter1 = new CounterVO(Counter.Source.cpu, "cpu", "");
+        CounterVO counter2 = new CounterVO(Counter.Source.memory, "memory", "");
+        when(_asCounterDao.findById(1L)).thenReturn(counter1);
+        when(_asCounterDao.findById(2L)).thenReturn(counter2);
+        autoScaleStatsCollector._asCounterDao = _asCounterDao;
+
+        List<Pair<String, Integer>> counterAndDurations = autoScaleStatsCollector.getPairOfCounterNameAndDuration(asGroup);
+
+        assert 2 == counterAndDurations.size();
+        assert "cpu".equals(counterAndDurations.get(0).first().split(",")[0]);
+        assert "memory".equals(counterAndDurations.get(1).first().split(",")[0]);
+        assert 60 == counterAndDurations.get(0).second();
     }
 
     protected void mockAutoScaleVmGroupVmMapDao(){

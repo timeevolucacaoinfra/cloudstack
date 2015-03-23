@@ -75,22 +75,15 @@ public abstract class AutoScaleStatsCollector {
             AutoScalePolicyVO policyVo = _asPolicyDao.findById(gpMap.getPolicyId());
             Integer duration = policyVo.getDuration();
             //get collection of counter name
-            String counterNames = "";
             List<AutoScalePolicyConditionMapVO> policyConditionMap = _asConditionMapDao.findByPolicyId(policyVo.getId());
             for (AutoScalePolicyConditionMapVO pcMap : policyConditionMap) {
                 String counterName = getCounterNameByCondition(pcMap.getConditionId());
-                if(!counterNames.equals("")){
-                    counterNames += ",";
-                }
                 //avoid the same counter being added more than once
                 if(!countersAdded.contains(counterName)){
-                    counterNames += counterName + "," + pcMap.getConditionId();
                     countersAdded.add(counterName);
+                    counterName += "," + pcMap.getConditionId();
+                    result.add(new Pair<>(counterName, duration));
                 }
-            }
-            // add to result
-            if(!counterNames.equals("")) {
-                result.add(new Pair<>(counterNames, duration));
             }
         }
 
