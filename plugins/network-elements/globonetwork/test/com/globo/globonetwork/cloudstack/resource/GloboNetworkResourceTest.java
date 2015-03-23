@@ -155,7 +155,7 @@ public class GloboNetworkResourceTest {
 
         when(
                 _resource._globoNetworkApi.getVipAPI().add(vipIpId, null, null, vip.getFinality(), vip.getClient(), vip.getEnvironment(), vip.getCache(), vip.getMethod(),
-                        "(nenhum)", "TCP", "", 5, vip.getHost(), 0, vip.getBusinessArea(), vip.getServiceName(), null, vip.getRealsIp(), Arrays.asList(10), null,
+                        "(nenhum)", "TCP", "", 5, vip.getHost(), 0, vip.getBusinessArea(), vip.getServiceName(), null, vip.getRealsIp(), Arrays.asList(0), null,
                         vip.getServicePorts(), null)).thenReturn(vip);
 
         when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(vip);
@@ -255,7 +255,7 @@ public class GloboNetworkResourceTest {
         Answer answer = _resource.execute(cmd);
 
         verify(_resource._globoNetworkApi.getVipAPI()).alter(vip.getId(), vipIpId, null, null, false, false, vip2.getFinality(), vip2.getClient(), vip2.getEnvironment(),
-                vip2.getCache(), vipMethodBalNew, "(nenhum)", "TCP", "", 5, vipHostNew, 0, vipBusinessAreaNew, vipServiceNameNew, null, vip2.getRealsIp(), Arrays.asList(10), null,
+                vip2.getCache(), vipMethodBalNew, "(nenhum)", "TCP", "", 5, vipHostNew, 0, vipBusinessAreaNew, vipServiceNameNew, null, vip2.getRealsIp(), Arrays.asList(0), null,
                 vip2.getServicePorts(), null);
         verify(_resource._globoNetworkApi.getVipAPI()).validate(vip.getId());
 
