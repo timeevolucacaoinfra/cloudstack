@@ -192,12 +192,11 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
                             Double thresholdPercent = (double) thresholdValue / 100;
                             CounterVO counter = _asCounterDao.findById(conditionVO.getCounterid());
 
-                            Double sum = counterSummary.get(counter.getSource().name());
-                            if(sum == null){
+                            Double avg = counterSummary.get(counter.getSource().name());
+                            if(avg == null){
                                 isPolicyValid = false;
                                 break;
                             }
-                            Double avg = sum / currentVMcount;
                             Condition.Operator op = conditionVO.getRelationalOperator();
 
                             boolean isConditionValid = ((op == Condition.Operator.EQ) && (thresholdPercent.equals(avg)))

@@ -89,6 +89,10 @@ public class RRDAutoScaleStatsCollector extends AutoScaleStatsCollector {
 
                     counterSummary.put(counterName, counterSummary.get(counterName) + counterValue);
                 }
+
+                for(String counterName : counterSummary.keySet()){
+                    counterSummary.put(counterName, counterSummary.get(counterName) / vmList.size());
+                }
                 return counterSummary;
             }
         } catch (Exception e){
