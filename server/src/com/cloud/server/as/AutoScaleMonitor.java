@@ -17,7 +17,6 @@
 package com.cloud.server.as;
 
 import com.cloud.agent.AgentManager;
-import com.cloud.gpu.dao.HostGpuGroupsDao;
 import com.cloud.network.as.AutoScaleManager;
 import com.cloud.network.as.AutoScalePolicyConditionMapVO;
 import com.cloud.network.as.AutoScalePolicyVO;
@@ -35,7 +34,6 @@ import com.cloud.network.as.dao.AutoScalePolicyDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupPolicyMapDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupVmMapDao;
-import com.cloud.network.as.dao.AutoScaleVmProfileDao;
 import com.cloud.network.as.dao.ConditionDao;
 import com.cloud.network.as.dao.CounterDao;
 import com.cloud.service.dao.ServiceOfferingDao;
@@ -75,11 +73,7 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
     @Inject
     protected CounterDao _asCounterDao;
     @Inject
-    protected AutoScaleVmProfileDao _asProfileDao;
-    @Inject
     protected ServiceOfferingDao _serviceOfferingDao;
-    @Inject
-    protected HostGpuGroupsDao _hostGpuGroupsDao;
     @Inject
     protected AutoScaleStatsCollectorFactory autoScaleStatsCollectorFactory;
 
