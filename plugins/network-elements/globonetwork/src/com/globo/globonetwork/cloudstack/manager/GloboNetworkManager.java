@@ -1394,6 +1394,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
+    public boolean removeVmFromLoadBalancer(VirtualMachineProfile vm) {
+        return _lbMgr.removeVmFromLoadBalancers(vm.getId());
+    }
+
+    @Override
     public GloboNetworkVipAccVO addGloboNetworkVipToAcc(Long globoNetworkVipId, Long networkId) {
 
         Account caller = CallContext.current().getCallingAccount();

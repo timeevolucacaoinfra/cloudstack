@@ -227,9 +227,14 @@ public class GloboNetworkGuru extends GuestNetworkGuru {
             NicVO nicVO = _nicDao.findById(nic.getId());
             _globoNetworkService.disassociateNicFromVip(vip.getGloboNetworkVipId(), nicVO);
         }
-        _globoNetworkService.unregisterNicInGloboNetwork(nic, vm);
 
-        super.deallocate(network, nic, vm);
+        // Remove vm from any load balancer prior to deallocating it
+        if (_globoNetworkService.removeVmFromLoadBalancer(vm)) {
+            _globoNetworkService.unregisterNicInGloboNetwork(nic, vm);
+            super.deallocate(network, nic, vm);
+        } else {
+            throw new CloudRuntimeException("Could not remove VM from load balancers. Please remove it from any load balancer before continuing");
+        }
     }
 
     @Override
