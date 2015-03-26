@@ -750,7 +750,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 // Update reals
                 for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
                     if (real.isRevoked()) {
-                        this.removeReal(vip, real.getVmName(), real.getIp());
+                        this.removeReal(vip, real.getVmName(), real.getIp(), real.getPorts());
                     } else {
                         this.addAndEnableReal(vip, real.getVmName(), real.getIp(), real.getPorts());
                     }
@@ -835,7 +835,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return true;
     }
 
-    private boolean removeReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
+    private boolean removeReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
         Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
         if (equipment == null) {
             // Equipment doesn't exist. So, there is no Vip either.
@@ -847,7 +847,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 if (realIpAddr.equals(realIp.getRealIp())) {
                     // real exists in vip. Remove it.
                     s_logger.info("Removing real " + realIpAddr + " from loadbalancer " + vip.getId());
-                    _globoNetworkApi.getVipAPI().removeReal(vip.getId(), realIp.getIpId(), equipment.getId(), realIp.getVipPort(), realIp.getRealPort());
+                    for (String realPort : realPorts) {
+                        _globoNetworkApi.getVipAPI().removeReal(vip.getId(), realIp.getIpId(), equipment.getId(), Integer.valueOf(realPort.split(":")[0]), Integer.valueOf(realPort.split(":")[1]));
+                    }
                     return true;
                 }
             }
