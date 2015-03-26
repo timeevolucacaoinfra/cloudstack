@@ -31,6 +31,7 @@ import java.util.TimeZone;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpSession;
+
 import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
@@ -230,6 +231,7 @@ import com.cloud.network.as.ConditionVO;
 import com.cloud.network.as.Counter;
 import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.LoadBalancerNetworkMapVO;
+import com.cloud.network.dao.LoadBalancerPortMapVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.dao.PhysicalNetworkVO;
@@ -787,6 +789,15 @@ public class ApiResponseHelper implements ResponseGenerator {
             additionalNetworks.add(network.getUuid());
         }
         lbResponse.setAdditionalNetworks(additionalNetworks);
+
+        List<String> additionalPorts = new ArrayList<String>();
+        List<LoadBalancerPortMapVO> lbPortMaps = ApiDBUtils.listLoadBalancerAdditionalPorts(loadBalancer.getId());
+        for (LoadBalancerPortMapVO lbPortMapVO : lbPortMaps) {
+            if (lbPortMapVO.getLoadBalancerId() == loadBalancer.getId()) { // FIXME Double-check lbID because query doesn't seem to be working
+                additionalPorts.add(lbPortMapVO.getPublicPort() + ":" + lbPortMapVO.getPrivatePort());
+            }
+        }
+        lbResponse.setAdditionalPortMap(additionalPorts);
 
         lbResponse.setObjectName("loadbalancer");
         return lbResponse;

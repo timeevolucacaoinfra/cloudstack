@@ -14,13 +14,12 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package com.cloud.network.as;
+package com.cloud.network.dao;
 
-public interface AutoScaleManager extends AutoScaleService {
+import com.cloud.utils.db.GenericDao;
 
-    void cleanUpAutoScaleResources(Long accountId);
+import java.util.List;
 
-    void doScaleUp(long groupId, Integer numVm);
-
-    void doScaleDown(long groupId, Integer numVm);
+public interface LoadBalancerPortMapDao extends GenericDao<LoadBalancerPortMapVO, Long> {
+    List<LoadBalancerPortMapVO> listByLoadBalancerId(long loadBalancerId);
 }

@@ -198,7 +198,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
 
-    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autosacaled.vm.prefix", "as-vm-",
+    private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autoscale.vm.prefix", "as-vm-",
             "Auto scaled virtual machine name prefix", true, ConfigKey.Scope.Global);
 
     public List<AutoScaleCounter> getSupportedAutoScaleCounters(long networkid) {
@@ -1484,8 +1484,17 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             }
         }
         lstVmId.add(new Long(vmId));
-        return _loadBalancingRulesService.assignToLoadBalancer(lbId, lstVmId, new HashMap<Long, List<String>>());
-
+        try {
+            return _loadBalancingRulesService.assignToLoadBalancer(lbId, lstVmId, new HashMap<Long, List<String>>());
+        }catch(Exception e){
+            // Rolling back VM creation as it cannot be assigned to the load balancer
+            try {
+                _userVmManager.destroyVm(vmId);
+            } catch (ResourceUnavailableException ex) {
+                s_logger.error("error occurred while removing vm id: " + vmId, ex);
+            }
+            return false;
+        }
     }
 
     private long removeLBrule(AutoScaleVmGroupVO asGroup) {
@@ -1555,53 +1564,55 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     }
 
     @Override
-    public void doScaleDown(final long groupId) {
-        AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
-        if (asGroup == null) {
-            s_logger.error("Can not find the groupid " + groupId + " for scaling up");
-            return;
-        }
-        if (!checkConditionDown(asGroup)) {
-            return;
-        }
-        final long vmId = removeLBrule(asGroup);
-        if (vmId != -1) {
-            long profileId = asGroup.getProfileId();
-
-            // update group-vm mapping
-            _autoScaleVmGroupVmMapDao.remove(groupId, vmId);
-            // update last_quiettime
-            List<AutoScaleVmGroupPolicyMapVO> GroupPolicyVOs = _autoScaleVmGroupPolicyMapDao.listByVmGroupId(groupId);
-            for (AutoScaleVmGroupPolicyMapVO GroupPolicyVO : GroupPolicyVOs) {
-                AutoScalePolicyVO vo = _autoScalePolicyDao.findById(GroupPolicyVO.getPolicyId());
-                if (vo.getAction().equals("scaledown")) {
-                    vo.setLastQuiteTime(new Date());
-                    _autoScalePolicyDao.persist(vo);
-                    break;
-                }
+    public void doScaleDown(final long groupId, Integer numVm) {
+        for(int i = 0; i < numVm; i++) {
+            AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
+            if (asGroup == null) {
+                s_logger.error("Can not find the groupid " + groupId + " for scaling up");
+                return;
             }
+            if (!checkConditionDown(asGroup)) {
+                return;
+            }
+            final long vmId = removeLBrule(asGroup);
+            if (vmId != -1) {
+                long profileId = asGroup.getProfileId();
 
-            // get destroyvmgrace param
-            AutoScaleVmProfileVO asProfile = _autoScaleVmProfileDao.findById(profileId);
-            Integer destroyVmGracePeriod = asProfile.getDestroyVmGraceperiod();
-            if (destroyVmGracePeriod >= 0) {
-                _executor.schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-
-                            _userVmManager.destroyVm(vmId);
-
-                        } catch (ResourceUnavailableException e) {
-                            e.printStackTrace();
-                        } catch (ConcurrentOperationException e) {
-                            e.printStackTrace();
-                        }
+                // update group-vm mapping
+                _autoScaleVmGroupVmMapDao.remove(groupId, vmId);
+                // update last_quiettime
+                List<AutoScaleVmGroupPolicyMapVO> GroupPolicyVOs = _autoScaleVmGroupPolicyMapDao.listByVmGroupId(groupId);
+                for (AutoScaleVmGroupPolicyMapVO GroupPolicyVO : GroupPolicyVOs) {
+                    AutoScalePolicyVO vo = _autoScalePolicyDao.findById(GroupPolicyVO.getPolicyId());
+                    if (vo.getAction().equals("scaledown")) {
+                        vo.setLastQuiteTime(new Date());
+                        _autoScalePolicyDao.persist(vo);
+                        break;
                     }
-                }, destroyVmGracePeriod, TimeUnit.SECONDS);
+                }
+
+                // get destroyvmgrace param
+                AutoScaleVmProfileVO asProfile = _autoScaleVmProfileDao.findById(profileId);
+                Integer destroyVmGracePeriod = asProfile.getDestroyVmGraceperiod();
+                if (destroyVmGracePeriod >= 0) {
+                    _executor.schedule(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+
+                                _userVmManager.destroyVm(vmId);
+
+                            } catch (ResourceUnavailableException e) {
+                                e.printStackTrace();
+                            } catch (ConcurrentOperationException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }, destroyVmGracePeriod, TimeUnit.SECONDS);
+                }
+            } else {
+                s_logger.error("Can not remove LB rule for the VM being destroyed. Do nothing more.");
             }
-        } else {
-            s_logger.error("Can not remove LB rule for the VM being destroyed. Do nothing more.");
         }
     }
 
