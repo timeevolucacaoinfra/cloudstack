@@ -35,6 +35,8 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.network.as.AutoScaleVmGroupVmMapVO;
+import com.cloud.network.as.dao.AutoScaleVmGroupVmMapDao;
 import com.cloud.server.ManagementService;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
@@ -459,6 +461,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
     DataStoreManager _dataStoreMgr;
     @Inject
     ManagementService _mgr;
+    @Inject
+    protected AutoScaleVmGroupVmMapDao _asGroupVmMapDao;
 
     protected ScheduledExecutorService _executor = null;
     protected int _expungeInterval;
@@ -2104,6 +2108,13 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         UserVm destroyedVm = destroyVm(vmId);
+
+        // Removing from autoscale group
+        AutoScaleVmGroupVmMapVO autoScaleVmMap = _asGroupVmMapDao.findByVmId(vmId);
+        if(autoScaleVmMap != null){
+            _asGroupVmMapDao.remove(autoScaleVmMap.getVmGroupId(), autoScaleVmMap.getInstanceId());
+        }
+
         if (expunge) {
             UserVmVO vm = _vmDao.findById(vmId);
             if (!expunge(vm, ctx.getCallingUserId(), ctx.getCallingAccount())) {

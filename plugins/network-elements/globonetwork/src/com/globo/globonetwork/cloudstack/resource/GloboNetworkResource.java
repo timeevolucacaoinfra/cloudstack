@@ -696,17 +696,24 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         return new Answer(cmd, false, "Could not get real IP information: " + real.getIp());
                     }
                 }
-                RealIP realIP = new RealIP();
-                realIP.setName(real.getVmName());
-                realIP.setRealIp(real.getIp());
                 if (real.getPorts() == null) {
                     return new Answer(cmd, false, "You need to specify a port for the real");
                 }
-                realIP.setRealPort(Integer.valueOf(real.getPorts().get(0))); // There's only one
-                realIP.setIpId(ip.getId());
-                realsIp.add(realIP);
 
-                realsPriorities.add(DEFAULT_REALS_PRIORITY);
+                // GloboNetwork considers a different RealIP object if there are multiple ports
+                // even though IP and name info are the same
+                for(String port : real.getPorts()) {
+                    RealIP realIP = new RealIP();
+                    realIP.setName(real.getVmName());
+                    realIP.setRealIp(real.getIp());
+                    realIP.setVipPort(Integer.valueOf(port.split(":")[0]));
+                    realIP.setRealPort(Integer.valueOf(port.split(":")[1]));
+                    realIP.setIpId(ip.getId());
+                    realsIp.add(realIP);
+
+                    // Making sure there is the same number of reals and reals priorities
+                    realsPriorities.add(DEFAULT_REALS_PRIORITY);
+                }
             }
 
             // Check VIP IP in its environment
@@ -745,7 +752,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     if (real.isRevoked()) {
                         this.removeReal(vip, real.getVmName(), real.getIp());
                     } else {
-                        this.addAndEnableReal(vip, real.getVmName(), real.getIp());
+                        this.addAndEnableReal(vip, real.getVmName(), real.getIp(), real.getPorts());
                     }
                 }
 
@@ -789,7 +796,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return "GET " + path + " HTTP/1.0\\r\\nHost: " + host + "\\r\\n\\r\\n";
     }
 
-    private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr) throws GloboNetworkException {
+    private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
         Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
         if (equipment == null) {
             // Equipment doesn't exist
@@ -809,10 +816,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return false;
         }
 
-        String servicePorts = vip.getServicePorts().get(0);
-        int vipPort = Integer.parseInt(servicePorts.split(":")[0]);
-        int realPort = Integer.parseInt(servicePorts.split(":")[1]);
-
         if (vip.getRealsIp() != null) {
             for (RealIP realIp : vip.getRealsIp()) {
                 if (ip.getId().equals(realIp.getIpId())) {
@@ -826,7 +829,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
         // added reals are always enabled by default
         s_logger.info("Adding real " + ip.getIpString() + " on loadbalancer " + vip.getId());
-        _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), vipPort, realPort);
+        for(String realPort : realPorts) {
+            _globoNetworkApi.getVipAPI().addReal(vip.getId(), ip.getId(), equipment.getId(), Integer.valueOf(realPort.split(":")[0]), Integer.valueOf(realPort.split(":")[1]));
+        }
         return true;
     }
 
