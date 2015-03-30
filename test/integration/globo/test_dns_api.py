@@ -19,9 +19,8 @@
 # import for DNS lookup
 import dns.resolver
 import requests
-import json
 import os
-from ConfigParser import SafeConfigParser
+import sys
 
 #All tests inherit from cloudstackTestCase
 from marvin.cloudstackTestCase import cloudstackTestCase
@@ -32,17 +31,24 @@ from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering
 from marvin.integration.lib.utils import cleanup_resources
 from marvin.integration.lib.common import get_zone, get_domain, get_template
 
-# load config file
-endpoint_file = os.path.join(os.path.realpath(os.path.dirname(__file__)), 'cfg/endpoints.cfg')
-parser = SafeConfigParser()
-parser.read(endpoint_file)
-
 # get globodns endpoint
-globodns_host = parser.get('dns-api', 'host')
-globodns_export_path = parser.get('dns-api', 'export_location')
-globodns_payload = parser.get('dns-api', 'payload')
-globodns_headers = json.loads(parser.get('dns-api', 'header'))
-resolver_nameserver = parser.get('dns-api', 'resolver')
+if os.environ.get('dns_api_host'):
+    globodns_host = os.environ.get('dns_api_host')
+else:
+    sys.exit("The environment variable 'dns_api_host' was not found!")
+
+if os.getenv('dns_api_resolver_nameserver'):
+    resolver_nameserver = os.getenv('dns_api_resolver_nameserver')
+else:
+    sys.exit("The environment variable 'dns_api_resolver_nameserver' was not found!")
+
+if os.getenv('dns_api_auth_token'):
+    globodns_payload = {"auth_token": os.getenv('dns_api_auth_token'), "now": "true"}
+else:
+    sys.exit("The environment variable 'dns_api_auth_token' was not found!")
+
+globodns_export_path = '/bind9/export'
+globodns_headers = {"Content-type": "application/json", "Accept": "application/json"}
 
 
 class Data(object):
