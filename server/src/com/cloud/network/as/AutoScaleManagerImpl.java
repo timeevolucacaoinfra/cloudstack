@@ -478,6 +478,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         String otherDeployParams = cmd.getOtherDeployParams();
         Long serviceOffId = cmd.getServiceOfferingId();
         Long zoneId = cmd.getZoneId();
+        Long projectId = cmd.getProjectId();
         Boolean display = cmd.getDisplay();
 
         SearchWrapper<AutoScaleVmProfileVO> searchWrapper = new SearchWrapper<AutoScaleVmProfileVO>(_autoScaleVmProfileDao, AutoScaleVmProfileVO.class, cmd, cmd.getId());
@@ -507,6 +508,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
         if (zoneId != null) {
             sc.setParameters("zoneId", zoneId);
+        }
+
+        if (projectId != null) {
+            sc.setParameters("accountIdIN", projectId);
         }
 
         if (display != null) {
@@ -698,6 +703,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         Long conditionId = cmd.getConditionId();
         String action = cmd.getAction();
         Long vmGroupId = cmd.getVmGroupId();
+        Long projectId = cmd.getProjectId();
 
         sb.and("id", sb.entity().getId(), SearchCriteria.Op.EQ);
         sb.and("action", sb.entity().getAction(), SearchCriteria.Op.EQ);
@@ -722,6 +728,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
         if (action != null) {
             sc.setParameters("action", action);
+        }
+
+        if (projectId != null) {
+            sc.setParameters("accountIdIN", projectId);
         }
 
         if (conditionId != null) {
@@ -896,6 +906,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         Long loadBalancerId = cmd.getLoadBalancerId();
         Long profileId = cmd.getProfileId();
         Long zoneId = cmd.getZoneId();
+        Long projectId = cmd.getProjectId();
         Boolean forDisplay = cmd.getDisplay();
 
         SearchWrapper<AutoScaleVmGroupVO> searchWrapper = new SearchWrapper<AutoScaleVmGroupVO>(_autoScaleVmGroupDao, AutoScaleVmGroupVO.class, cmd, cmd.getId());
@@ -925,6 +936,9 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
         if (zoneId != null) {
             sc.setParameters("zoneId", zoneId);
+        }
+        if (projectId != null) {
+            sc.setParameters("accountIdIN", projectId);
         }
         if (policyId != null) {
             sc.setJoinParameters("asVmGroupPolicySearch", "policyId", policyId);
@@ -1189,6 +1203,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         Long id = cmd.getId();
         Long counterId = cmd.getCounterId();
         Long policyId = cmd.getPolicyId();
+        Long projectId = cmd.getProjectId();
         SearchWrapper<ConditionVO> searchWrapper = new SearchWrapper<ConditionVO>(_conditionDao, ConditionVO.class, cmd, cmd.getId());
         SearchBuilder<ConditionVO> sb = searchWrapper.getSearchBuilder();
         if (policyId != null) {
@@ -1210,6 +1225,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
         if (counterId != null) {
             sc.setParameters("counterId", counterId);
+        }
+
+        if (projectId != null) {
+            sc.setParameters("accountIdIN", projectId);
         }
 
         if (policyId != null) {

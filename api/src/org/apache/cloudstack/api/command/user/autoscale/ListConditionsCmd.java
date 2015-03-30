@@ -20,6 +20,7 @@ package org.apache.cloudstack.api.command.user.autoscale;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.api.APICommand;
@@ -56,6 +57,9 @@ public class ListConditionsCmd extends BaseListAccountResourcesCmd {
     @Parameter(name = ApiConstants.POLICY_ID, type = CommandType.UUID, entityType = AutoScalePolicyResponse.class, description = "the ID of the policy")
     private Long policyId;
 
+    @Parameter(name = ApiConstants.PROJECT_ID, type = CommandType.UUID, entityType = ProjectResponse.class, description = "the Project ID of the condition")
+    private Long projectId;
+
     // ///////////////////////////////////////////////////
     // ///////////// API Implementation///////////////////
     // ///////////////////////////////////////////////////
@@ -90,6 +94,13 @@ public class ListConditionsCmd extends BaseListAccountResourcesCmd {
 
     public Long getPolicyId() {
         return policyId;
+    }
+
+    public Long getProjectId() {
+        if(projectId != null){
+            return _accountService.finalyzeAccountId(null, null, projectId, true);
+        }
+        return null;
     }
 
     @Override

@@ -19,6 +19,7 @@ package org.apache.cloudstack.api.command.user.autoscale;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.api.APICommand;
@@ -57,6 +58,9 @@ public class ListAutoScalePoliciesCmd extends BaseListAccountResourcesCmd {
     @Parameter(name = ApiConstants.VMGROUP_ID, type = CommandType.UUID, entityType = AutoScaleVmGroupResponse.class, description = "the ID of the autoscale vm group")
     private Long vmGroupId;
 
+    @Parameter(name = ApiConstants.PROJECT_ID, type = CommandType.UUID, entityType = ProjectResponse.class, description = "the Project ID of the policy")
+    private Long projectId;
+
     // ///////////////////////////////////////////////////
     // ///////////////// Accessors ///////////////////////
     // ///////////////////////////////////////////////////
@@ -75,6 +79,13 @@ public class ListAutoScalePoliciesCmd extends BaseListAccountResourcesCmd {
 
     public Long getVmGroupId() {
         return vmGroupId;
+    }
+
+    public Long getProjectId() {
+        if(projectId != null){
+            return _accountService.finalyzeAccountId(null, null, projectId, true);
+        }
+        return null;
     }
 
     // ///////////////////////////////////////////////////

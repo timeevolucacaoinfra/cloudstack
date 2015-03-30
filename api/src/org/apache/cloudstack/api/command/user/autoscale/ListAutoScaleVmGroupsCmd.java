@@ -19,6 +19,7 @@ package org.apache.cloudstack.api.command.user.autoscale;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.cloudstack.api.response.ProjectResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.RoleType;
@@ -65,6 +66,9 @@ public class ListAutoScaleVmGroupsCmd extends BaseListProjectAndAccountResources
     @Parameter(name = ApiConstants.FOR_DISPLAY, type = CommandType.BOOLEAN, description = "list resources by display flag; only ROOT admin is eligible to pass this parameter", since = "4.4", authorized = {RoleType.Admin})
     private Boolean display;
 
+    @Parameter(name = ApiConstants.PROJECT_ID, type = CommandType.UUID, entityType = ProjectResponse.class, description = "the Project ID of the auto scale group")
+    private Long projectId;
+
     // ///////////////////////////////////////////////////
     // ///////////////// Accessors ///////////////////////
     // ///////////////////////////////////////////////////
@@ -87,6 +91,13 @@ public class ListAutoScaleVmGroupsCmd extends BaseListProjectAndAccountResources
 
     public Long getZoneId() {
         return zoneId;
+    }
+
+    public Long getProjectId() {
+        if(projectId != null){
+            return _accountService.finalyzeAccountId(null, null, projectId, true);
+        }
+        return null;
     }
 
     @Override
