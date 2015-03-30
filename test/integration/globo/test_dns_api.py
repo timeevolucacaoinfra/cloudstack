@@ -27,9 +27,9 @@ from marvin.cloudstackTestCase import cloudstackTestCase
 from marvin.cloudstackAPI import addGloboDnsHost, createNetwork
 
 #Import Integration Libraries
-from marvin.integration.lib.base import Account, VirtualMachine, ServiceOffering, Network, NetworkOffering, NetworkServiceProvider, PhysicalNetwork
-from marvin.integration.lib.utils import cleanup_resources
-from marvin.integration.lib.common import get_zone, get_domain, get_template
+from marvin.lib.base import Account, VirtualMachine, ServiceOffering, Network, NetworkOffering, NetworkServiceProvider, PhysicalNetwork
+from marvin.lib.utils import cleanup_resources
+from marvin.lib.common import get_zone, get_domain, get_template
 
 # get globodns endpoint
 if os.environ.get('dns_api_host'):
