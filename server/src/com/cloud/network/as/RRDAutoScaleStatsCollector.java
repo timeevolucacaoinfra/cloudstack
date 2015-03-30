@@ -51,7 +51,7 @@ public class RRDAutoScaleStatsCollector extends AutoScaleStatsCollector {
             Long receiveHost = vmList.get(0).getHostId();
             Answer answer = _agentMgr.send(receiveHost, perfMon);
 
-            if (answer == null || !answer.getResult()) {
+            if (answer == null || "fail".equals(answer) || !answer.getResult()) {
                 s_logger.debug("[AutoScale] Failed to send data to node");
                 return null;
             }
