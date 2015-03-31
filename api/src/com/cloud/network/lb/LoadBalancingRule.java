@@ -39,6 +39,7 @@ public class LoadBalancingRule {
     private LbSslCert sslCert;
     private String lbProtocol;
     private List<Long> additionalNetworks;
+    private List<String> additionalPortMap;
 
     public LoadBalancingRule(LoadBalancer lb, List<LbDestination> destinations, List<LbStickinessPolicy> stickinessPolicies,
             List<LbHealthCheckPolicy> healthCheckPolicies, Ip sourceIp) {
@@ -151,6 +152,10 @@ public class LoadBalancingRule {
     public void setAdditionalNetworks(List<Long> additionalNetworks) {
         this.additionalNetworks = additionalNetworks;
     }
+
+    public List<String> getAdditionalPortMap() { return additionalPortMap; }
+
+    public void setAdditionalPortMap(List<String> additionalPortMap) { this.additionalPortMap = additionalPortMap; }
 
     public interface Destination {
         String getIpAddress();

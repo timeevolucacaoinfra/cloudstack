@@ -16,11 +16,13 @@
 // under the License.
 package com.cloud.network.as;
 
-public interface AutoScaleManager extends AutoScaleService {
+import com.cloud.utils.Pair;
 
-    void cleanUpAutoScaleResources(Long accountId);
+import java.util.List;
+import java.util.Map;
 
-    void doScaleUp(long groupId, Integer numVm);
+public interface GraphiteClient {
 
-    void doScaleDown(long groupId, Integer numVm);
+    public Map<String, GraphiteResult[]> fetchData(Map<String, Pair<List<String>, Integer>> countersAndTargets);
+
 }

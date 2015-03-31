@@ -16,11 +16,13 @@
 // under the License.
 package com.cloud.network.as;
 
-public interface AutoScaleManager extends AutoScaleService {
+import org.junit.Before;
 
-    void cleanUpAutoScaleResources(Long accountId);
+public class RRDAutoScaleStatsCollectorTest extends AutoScaleStatsCollectorTest{
 
-    void doScaleUp(long groupId, Integer numVm);
-
-    void doScaleDown(long groupId, Integer numVm);
+    @Before
+    public void setUp() {
+        super.setUp();
+        autoScaleStatsCollector = new RRDAutoScaleStatsCollector();
+    }
 }

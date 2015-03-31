@@ -23,6 +23,7 @@ public class ApiConstants {
     public static final String ACCOUNT_ID = "accountid";
     public static final String ALGORITHM = "algorithm";
     public static final String ALLOCATED_ONLY = "allocatedonly";
+    public static final String ADDITIONAL_PORT_MAP = "additionalportmap";
     public static final String API_KEY = "apikey";
     public static final String USER_API_KEY = "userapikey";
     public static final String APPLIED = "applied";
