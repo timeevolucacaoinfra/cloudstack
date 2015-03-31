@@ -113,8 +113,8 @@ class TestVMGloboDns(cloudstackTestCase):
         self.apiclient = self.testClient.getApiClient()
 
         # Get Zone, Domain and Default Built-in template
-        self.domain = get_domain(self.apiclient, self.testdata)
-        self.zone = get_zone(self.apiclient, self.testdata)
+        self.domain = get_domain(self.apiclient)
+        self.zone = get_zone(self.apiclient)
         self.testdata["mode"] = self.zone.networktype
         self.template = get_template(self.apiclient, self.zone.id, self.testdata["ostype"])
 
@@ -159,7 +159,7 @@ class TestVMGloboDns(cloudstackTestCase):
         self.apiclient.addGloboDnsHost(cmd)
 
         if self.globodns_provider.state != 'Enabled':
-            self.globodns_provider.update(self.apiclient, self.globodns_provider.id, state='Enabled')
+            NetworkServiceProvider.update(self.apiclient, self.globodns_provider.id, state='Enabled')
 
         self.network_offering = NetworkOffering.create(
             self.apiclient,
