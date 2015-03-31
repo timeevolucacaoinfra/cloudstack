@@ -88,4 +88,5 @@ tools/apidoc/log/
 log/
 plugins/network-elements/juniper-contrail/logs/
 scripts/vm/hypervisor/xenserver/vhd-util
+test/integration/globo/test-result.xml
 api/test/META-INF

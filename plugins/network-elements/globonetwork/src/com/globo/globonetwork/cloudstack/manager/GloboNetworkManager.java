@@ -31,6 +31,8 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.network.dao.LoadBalancerPortMapDao;
+import com.cloud.network.dao.LoadBalancerPortMapVO;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -290,6 +292,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     PortableIpDao _portableIpDao;
     @Inject
     UserIpv6AddressDao _ipv6AddrDao;
+    @Inject
+    LoadBalancerPortMapDao _lbPortMapDao;
 
     // Managers
     @Inject
@@ -1935,9 +1939,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
 
             // Port mapping
-            String port = rule.getSourcePortStart() + ":" + rule.getDefaultPortStart();
             List<String> ports = new ArrayList<String>();
-            ports.add(port);
+            ports.add(rule.getSourcePortStart() + ":" + rule.getDefaultPortStart());
+            if (rule.getAdditionalPortMap() != null) {
+                for (String portMap : rule.getAdditionalPortMap()) {
+                    // Right format of ports has already been validated in validateLBRule()
+                    ports.add(portMap);
+                }
+            }
 
             // Reals
             List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
@@ -1948,7 +1957,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
                         real.setIp(destVM.getIpAddress());
                         real.setVmName(getEquipNameFromUuid(vm.getUuid()));
-                        real.setPorts(Arrays.asList(String.valueOf(destVM.getDestinationPortStart())));
+                        real.setPorts(ports);
                         real.setRevoked(destVM.isRevoked());
 
                         GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
@@ -2087,6 +2096,23 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
 
+        List<Integer> portsAlreadyMapped = new ArrayList<Integer>();
+        portsAlreadyMapped.add(rule.getSourcePortStart());
+        if (rule.getAdditionalPortMap() != null) {
+            for (String portMap : rule.getAdditionalPortMap()) {
+                String[] portMapArray = portMap.split(":");
+                if (portMapArray.length != 2) {
+                    throw new InvalidParameterValueException("Additional port mapping is invalid, should be in the form '80:8080,443:8443'");
+                }
+                Integer lbPort = Integer.valueOf(portMapArray[0].trim());
+                Integer realPort = Integer.valueOf(portMapArray[1].trim());
+                if (portsAlreadyMapped.contains(lbPort)) {
+                    throw new InvalidParameterValueException("Additional port mapping is invalid. Duplicated Load Balancer port");
+                }
+                portsAlreadyMapped.add(lbPort);
+            }
+        }
+
         IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
         if (ipVO == null) {
             throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
@@ -2118,8 +2144,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (answer != null && answer.getResult()) {
                 GloboNetworkVipResponse globoNetworkVip = (GloboNetworkVipResponse)answer;
                 // TODO Store ref between lb id and globonetwork vip id to solve this situation.
-                String port = String.format("%d:%d", rule.getSourcePortStart(), rule.getDefaultPortStart());
-                if (!port.equals(globoNetworkVip.getPorts().get(0))) {
+                // String port = String.format("%d:%d", rule.getSourcePortStart(), rule.getDefaultPortStart());
+                // if (!port.equals(globoNetworkVip.getPorts().get(0))) {
+                if (!rule.getSourceIp().equals(globoNetworkVip.getIp())) {
                     throw new InvalidParameterValueException("You can create only 1 lb rule per IP.");
                 }
                 String method = globoNetworkVip.getMethod();
@@ -2228,13 +2255,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 throw new CloudRuntimeException("IP " + globoNetworkLB.getIp() + " is not free to be used in Cloudstack");
             }
 
-            if (globoNetworkLB.getPorts() == null || globoNetworkLB.getPorts().size() == 0 || globoNetworkLB.getPorts().size() > 1) {
-                throw new CloudRuntimeException("Invalid port mapping for LB. Cloudstack supports 1 and only 1 port mapping in a load balancer");
+            if (globoNetworkLB.getPorts() == null || globoNetworkLB.getPorts().size() == 0) {
+                throw new CloudRuntimeException("Invalid port mapping for LB. It is necessary to have at least 1 port mapping for a load balancer");
             }
             final String[] globoNetworkPorts = globoNetworkLB.getPorts().get(0).split(":");
             if (globoNetworkPorts[0] == "" || globoNetworkPorts[1] == "") {
                 throw new CloudRuntimeException("Invalid port mapping for LB: " + globoNetworkLB.getPorts().get(0));
             }
+            final List<String> additionalPortMapList = (globoNetworkLB.getPorts().size() > 1) ? globoNetworkLB.getPorts().subList(1, globoNetworkLB.getPorts().size()) : null;
 
             final String algorithm;
             if ("least-conn".equals(globoNetworkLB.getMethod())) {
@@ -2286,7 +2314,20 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
                         // Create LB
                         LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
-                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE);
+                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, null);
+
+                        // Set additional port mappings for LB
+                        if (additionalPortMapList != null) {
+                            for(String additionalPortMapStr : additionalPortMapList) {
+                                if (additionalPortMapStr.split(":").length != 2) {
+                                    throw new InvalidParameterValueException("Invalid additional port mapping");
+                                }
+                                Integer publicPort = Integer.valueOf(additionalPortMapStr.split(":")[0]);
+                                Integer privatePort = Integer.valueOf(additionalPortMapStr.split(":")[1]);
+                                LoadBalancerPortMapVO lbPortMapVO = new LoadBalancerPortMapVO(lb.getId(), publicPort, privatePort);
+                                _lbPortMapDao.persist(lbPortMapVO);
+                            }
+                        }
 
                         // Assign VMs that are managed in Cloudstack
                         List<Long> instancesToAdd = new ArrayList<Long>();
