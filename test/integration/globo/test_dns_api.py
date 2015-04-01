@@ -21,6 +21,7 @@ import dns.resolver
 import requests
 import os
 import sys
+import json
 
 #All tests inherit from cloudstackTestCase
 from marvin.cloudstackTestCase import cloudstackTestCase
@@ -246,7 +247,7 @@ class TestVMGloboDns(cloudstackTestCase):
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
         # force export & reload bind in dns-api
-        requests.post(globodns_host + globodns_export_path, data=globodns_payload, headers=globodns_headers)
+        requests.post(globodns_host + globodns_export_path, data=json.dumps(globodns_payload), headers=globodns_headers)
 
         self.debug(
             "Verify listVirtualMachines response for virtual machine: %s" % self.virtual_machine.id
@@ -280,8 +281,9 @@ class TestVMGloboDns(cloudstackTestCase):
             msg="VM is not in Running state"
         )
 
+        query_name = vm.name + '.' + network.networkdomain
         self.assertEqual(
-            self.resolver.query(vm.name + '.' + network.networkdomain)[0].address,
+            self.resolver.query(query_name)[0].address,
             vm.nic[0].ipaddress,
             "Resolved IP address and VM IP address do not match"
         )
