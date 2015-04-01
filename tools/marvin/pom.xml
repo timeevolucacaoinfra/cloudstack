@@ -142,7 +142,8 @@
                   <arguments>
                     <argument>install</argument>
                     <argument>--upgrade</argument>
-                    <argument>Marvin-0.1.0.tar.gz</argument>
+                    <argument>--allow-external</argument>
+                    <argument>Marvin-4.4.1.tar.gz</argument>
                   </arguments>
                 </configuration>
               </execution>

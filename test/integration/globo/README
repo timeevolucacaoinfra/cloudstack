@@ -1,0 +1,1 @@
+nosetests --with-marvin --marvin-config=demo.cfg --load test_dns_api.py
