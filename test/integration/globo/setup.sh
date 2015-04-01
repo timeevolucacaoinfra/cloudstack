@@ -9,6 +9,9 @@ maven_log='/tmp/cloudstack.log'
 
 [[ -z $WORKON_HOME ]] && WORKON_HOME=$JENKINS_HOME/.virtualenvs
 
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
+export PATH="$JAVA_HOME/bin:$PATH"
+
 debug=1
 
 PrintLog() {
