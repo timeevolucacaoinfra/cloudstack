@@ -140,7 +140,7 @@ StartJetty
 # Tests
 PrintLog INFO "Sync marvin"
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
-nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator --load ${globo_test_basedir}/test_dns_api.py
+nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
 tail -1 ${results_file} | grep -qw 'OK'
 retval=$?
