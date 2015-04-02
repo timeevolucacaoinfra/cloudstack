@@ -24,7 +24,7 @@ PrintLog() {
 [[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
 
 StartJetty() {
-    max_retries=15
+    max_retries=18
     sleep_time=10
     ret_count=1
     PrintLog INFO "Starting cloudstack w/ simulator..."
@@ -46,7 +46,7 @@ StartJetty() {
 }
 
 ShutdownJetty() {
-    max_retries=5
+    max_retries=7
     sleep_time=3
     ret_count=1
     PrintLog INFO "Stopping cloudstack..."
@@ -66,7 +66,7 @@ ShutdownJetty() {
 }
 
 WaitForInfrastructure() {
-    max_retries=20
+    max_retries=22
     sleep_time=10
     ret_count=1
     PrintLog INFO "Waiting for infrastructure..."
@@ -104,6 +104,9 @@ mvn -Pdeveloper -Dsimulator clean install
 PrintLog INFO "Compiling and packing marvin..."
 mvn -P developer -pl :cloud-marvin
 [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
+
+# Tries to install marvin.. just in case..
+pip install ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
 # Install marvin to ensure that we are using the correct version
 pip install --upgrade ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
