@@ -105,13 +105,6 @@ PrintLog INFO "Compiling and packing marvin..."
 mvn -P developer -pl :cloud-marvin
 [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
 
-# Tries to install marvin.. just in case..
-pip install ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
-
-# Install marvin to ensure that we are using the correct version
-pip install --upgrade ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
-
-
 # Deploy DB, Populate DB and create infra structure
 PrintLog INFO "Creating SQL schema"
 mvn -q -P developer -pl developer -Ddeploydb >/dev/null 2>/dev/null
@@ -127,6 +120,15 @@ else
     echo "OPS... could not find migrate"
 fi
 StartJetty
+PrintLog INFO "Sync marvin"
+mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
+
+# Tries to install marvin.. just in case..
+pip install ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+
+# Install marvin to ensure that we are using the correct version
+pip install --upgrade ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+
 PrintLog INFO "Creating an advanced zone..."
 python ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
 
@@ -138,8 +140,6 @@ rm -f ${maven_log}
 StartJetty
 
 # Tests
-PrintLog INFO "Sync marvin"
-mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
 tail -1 ${results_file} | grep -qw 'OK'
