@@ -106,11 +106,13 @@ mvn -P developer -pl :cloud-marvin
 [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
 
 # Tries to install marvin.. just in case..
-pip install ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+/var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
 # Install marvin to ensure that we are using the correct version
-pip install --upgrade ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+echo "/var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
+/var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
+ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
 
 # Deploy DB, Populate DB and create infra structure
 PrintLog INFO "Creating SQL schema"
