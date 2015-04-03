@@ -109,7 +109,7 @@ mvn -P developer -pl :cloud-marvin
 /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
 # Install marvin to ensure that we are using the correct version
-echo "/var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
+echo "#### /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
 /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
 ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
