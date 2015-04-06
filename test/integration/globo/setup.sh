@@ -84,6 +84,17 @@ WaitForInfrastructure() {
     exit 1
 }
 
+installMarvin() {
+    # Tries to install marvin.. just in case..
+    /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+
+    # Install marvin to ensure that we are using the correct version
+    echo "#### /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
+    /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+
+    ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
+}
+
 # Checkout repository, compile, use virtualenv and sync the mavin commands
 ShutdownJetty
 PrintLog INFO "Removing log file '${maven_log}'"
@@ -105,14 +116,7 @@ PrintLog INFO "Compiling and packing marvin..."
 mvn -P developer -pl :cloud-marvin
 [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
 
-# Tries to install marvin.. just in case..
-/var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
-
-# Install marvin to ensure that we are using the correct version
-echo "#### /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
-/var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
-
-ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
+installMarvin
 
 # Deploy DB, Populate DB and create infra structure
 PrintLog INFO "Creating SQL schema"
@@ -142,6 +146,9 @@ StartJetty
 # Tests
 PrintLog INFO "Sync marvin"
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
+
+installMarvin
+
 nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
 tail -1 ${results_file} | grep -qw 'OK'
