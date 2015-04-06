@@ -147,7 +147,7 @@ StartJetty
 PrintLog INFO "Sync marvin"
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
-installMarvin
+#installMarvin
 
 nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
