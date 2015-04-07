@@ -6,6 +6,9 @@ project_basedir='/var/lib/jenkins/cloudstack'
 globo_test_basedir="${project_basedir}/test/integration/globo"
 project_branch='4.4.2-globo'
 maven_log='/tmp/cloudstack.log'
+pip="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/pip"
+python="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/python"
+nosetests="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/nosetests"
 
 [[ -z $WORKON_HOME ]] && WORKON_HOME=$JENKINS_HOME/.virtualenvs
 
@@ -84,13 +87,21 @@ WaitForInfrastructure() {
     exit 1
 }
 
+activateVirtualEnv() {
+    PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
+    source $WORKON_HOME/${virtualenv_name}/bin/activate
+}
+
 installMarvin() {
+
+    activateVirtualEnv
+
     # Tries to install marvin.. just in case..
-    /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+    [[ ${pip} freeze | grep -i Marvin > /dev/null ]] && ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     # Install marvin to ensure that we are using the correct version
-    echo "#### /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
-    /var/lib/jenkins/.virtualenvs/cloudstack/bin/pip install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+    echo "#### ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
+    ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
 }
@@ -106,8 +117,8 @@ PrintLog INFO "Checking out to branch '${project_branch}'"
 git checkout ${project_branch} >/dev/null 2>/dev/null
 PrintLog INFO "Pulling latest modifications"
 git pull
-PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
-source $WORKON_HOME/${virtualenv_name}/bin/activate
+
+activateVirtualEnv
 
 PrintLog INFO "Compiling cloudstack..."
 mvn -Pdeveloper -Dsimulator clean install
@@ -134,22 +145,25 @@ else
 fi
 StartJetty
 PrintLog INFO "Creating an advanced zone..."
-python ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
+${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
 
 # Required restart
 WaitForInfrastructure
 ShutdownJetty
 PrintLog INFO "Removing log file '${maven_log}'"
 rm -f ${maven_log}
+
 StartJetty
 
 # Tests
 PrintLog INFO "Sync marvin"
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
-#installMarvin
+sleep 5
 
-nosetests --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
+installMarvin
+
+${nosetests} --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
 tail -1 ${results_file} | grep -qw 'OK'
 retval=$?
