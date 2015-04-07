@@ -97,10 +97,10 @@ installMarvin() {
     activateVirtualEnv
 
     # Tries to install marvin.. just in case..
-    [[ ! ${pip} freeze | grep -i Marvin > /dev/null ]] && ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+    [[ ! `${pip} freeze | grep -i Marvin` ]] && ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     # Install marvin to ensure that we are using the correct version
-    echo "#### ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
+    [[ ! `${pip} freeze | grep -i Marvin` ]] && echo "#### ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
     ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
