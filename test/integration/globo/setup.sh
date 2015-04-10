@@ -120,29 +120,51 @@ git pull
 
 activateVirtualEnv
 
-PrintLog INFO "Compiling cloudstack..."
-mvn -Pdeveloper -Dsimulator clean install
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile ACS" && exit 1
-PrintLog INFO "Compiling and packing marvin..."
-mvn -P developer -pl :cloud-marvin
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
+last_commit=$(git log -n 1 | grep commit | cut -d' ' -f2)
+last_commit_file="/tmp/cloudstack-integration-tests-last-commit.txt"
 
-installMarvin
+PrintLog INFO "last git commit: ${last_commit}"
 
-# Deploy DB, Populate DB and create infra structure
-PrintLog INFO "Creating SQL schema"
-mvn -q -P developer -pl developer -Ddeploydb >/dev/null 2>/dev/null
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB" && exit 1
-mvn -Pdeveloper -pl developer -Ddeploydb-simulator >/dev/null 2>/dev/null
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB simulator" && exit 1
-PrintLog INFO "Doing some required SQL migrations"
-if [ -d "/var/lib/jenkins/cloudstack-deploy" ];
+#vejo se o arquivo de ultimo commit existe
+[[ ! -f "$last_commit_file" ]] && echo "" > ${last_commit_file}
+
+saved_last_commit=$(cat ${last_commit_file} | head -1)
+
+if [ "${last_commit}" != "${saved_last_commit}" ];
 then
-    (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && db-migrate >/dev/null)
-    cd -
+
+    PrintLog INFO "Compiling cloudstack..."
+
+    mvn -Pdeveloper -Dsimulator clean install
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile ACS" && exit 1
+    PrintLog INFO "Compiling and packing marvin..."
+    mvn -P developer -pl :cloud-marvin
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
+
+    echo "${last_commit}" > ${last_commit_file}
+
+    installMarvin
+
+    # Deploy DB, Populate DB and create infra structure
+    PrintLog INFO "Creating SQL schema"
+    mvn -q -P developer -pl developer -Ddeploydb >/dev/null 2>/dev/null
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB" && exit 1
+    mvn -Pdeveloper -pl developer -Ddeploydb-simulator >/dev/null 2>/dev/null
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB simulator" && exit 1
+    PrintLog INFO "Doing some required SQL migrations"
+    if [ -d "/var/lib/jenkins/cloudstack-deploy" ];
+    then
+        (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && db-migrate >/dev/null)
+        cd -
+    else
+        echo "OPS... could not find migrate"
+    fi
+
 else
-    echo "OPS... could not find migrate"
+    PrintLog INFO "There were no code changes, so we don't need compile!!! yaayyyyyyyy"
 fi
+
+
 StartJetty
 PrintLog INFO "Creating an advanced zone..."
 ${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
