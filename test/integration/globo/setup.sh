@@ -160,20 +160,19 @@ then
         echo "OPS... could not find migrate"
     fi
 
+    StartJetty
+    PrintLog INFO "Creating an advanced zone..."
+    ${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
+
+    # Required restart
+    WaitForInfrastructure
+    ShutdownJetty
+    PrintLog INFO "Removing log file '${maven_log}'"
+    rm -f ${maven_log}
+
 else
     PrintLog INFO "There were no code changes, so we don't need compile!!! yaayyyyyyyy"
 fi
-
-
-StartJetty
-PrintLog INFO "Creating an advanced zone..."
-${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
-
-# Required restart
-WaitForInfrastructure
-ShutdownJetty
-PrintLog INFO "Removing log file '${maven_log}'"
-rm -f ${maven_log}
 
 StartJetty
 
