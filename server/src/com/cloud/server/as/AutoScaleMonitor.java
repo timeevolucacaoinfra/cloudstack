@@ -122,20 +122,12 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
                             continue;
                         }
 
-                        // update last_interval
-                        asGroup.setLastInterval(new Date());
-                        _asGroupDao.persist(asGroup);
-
-                        List<VMInstanceVO> vmList = new ArrayList<>();
-                        List<AutoScaleVmGroupVmMapVO> asGroupVmVOs = _asGroupVmDao.listByGroup(asGroup.getId());
-                        for(AutoScaleVmGroupVmMapVO asGroupVmVO : asGroupVmVOs){
-                            vmList.add(_vmInstance.findById(asGroupVmVO.getInstanceId()));
-                        }
+                        updateLasIntervalFor(asGroup);
 
                         AutoScaleStatsCollector statsCollector = autoScaleStatsCollectorFactory.getStatsCollector();
-                        Map<String, Double> counterSummary = statsCollector.retrieveMetrics(asGroup, vmList);
+                        Map<String, Double> counterSummary = statsCollector.retrieveMetrics(asGroup, this.getVirtualMachinesFor(asGroup));
 
-                        if(counterSummary != null && !counterSummary.keySet().isEmpty()) {
+                        if(counterSummaryNotEmpty(counterSummary)) {
                             String scaleAction = this.getAutoScaleAction(counterSummary, asGroup, currentVMcount);
                             if (scaleAction != null) {
                                 s_logger.debug("[AutoScale] Doing scale action: " + scaleAction + " for group " + asGroup.getId());
@@ -157,6 +149,24 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
         } catch (Throwable t) {
             s_logger.error("[AutoScale] Error trying to monitor autoscaling", t);
         }
+    }
+
+    private boolean counterSummaryNotEmpty(Map<String, Double> counterSummary) {
+        return counterSummary != null && !counterSummary.keySet().isEmpty();
+    }
+
+    private void updateLasIntervalFor(AutoScaleVmGroupVO asGroup) {
+        asGroup.setLastInterval(new Date());
+        _asGroupDao.persist(asGroup);
+    }
+
+    private List<VMInstanceVO> getVirtualMachinesFor(AutoScaleVmGroupVO asGroup) {
+        List<VMInstanceVO> vmList = new ArrayList<>();
+        List<AutoScaleVmGroupVmMapVO> asGroupVmVOs = _asGroupVmDao.listByGroup(asGroup.getId());
+        for(AutoScaleVmGroupVmMapVO asGroupVmVO : asGroupVmVOs){
+            vmList.add(_vmInstance.findById(asGroupVmVO.getInstanceId()));
+        }
+        return vmList;
     }
 
     private void lockAutoScaleGroup(AutoScaleVmGroupVO autoScaleVmGroup){
