@@ -89,7 +89,7 @@ public class XenServerResourceNewBase extends XenServer620SP1Resource {
                 // TODO disable event listener for now. Wait until everything else is ready
                 //
 
-                // _listener.start();
+                _listener.start();
             } else {
                 _listener = new VmEventListener(false);
             }
