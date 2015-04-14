@@ -4133,7 +4133,7 @@ public class VirtualMachineManagerImpl extends ManagerBase implements VirtualMac
     public ConfigKey<?>[] getConfigKeys() {
         return new ConfigKey<?>[] {ClusterDeltaSyncInterval, StartRetry, VmDestroyForcestop, VmOpCancelInterval, VmOpCleanupInterval, VmOpCleanupWait,
                 VmOpLockStateRetry,
-                VmOpWaitInterval, ExecuteInSequence, VmJobCheckInterval, VmJobTimeout, VmJobStateReportInterval};
+                VmOpWaitInterval, ExecuteInSequence, VmJobEnabled, VmJobCheckInterval, VmJobTimeout, VmJobStateReportInterval};
     }
 
     public List<StoragePoolAllocator> getStoragePoolAllocators() {
