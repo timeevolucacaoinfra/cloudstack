@@ -185,6 +185,13 @@ sleep 5
 installMarvin
 
 ${nosetests} --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
+retval=$?
+if [[ $retval -ne 0 ]]; then
+    PrintLog ERROR "Tests failed!!!"
+    ShutdownJetty
+    exit 1
+fi
+
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
 tail -1 ${results_file} | grep -qw 'OK'
 retval=$?
