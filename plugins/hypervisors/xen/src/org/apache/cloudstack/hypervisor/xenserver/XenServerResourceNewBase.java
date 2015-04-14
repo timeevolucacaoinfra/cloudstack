@@ -84,12 +84,7 @@ public class XenServerResourceNewBase extends XenServer620SP1Resource {
             Host.Record masterRecord = poolr.master.getRecord(conn);
             if (_host.uuid.equals(masterRecord.uuid)) {
                 _listener = new VmEventListener(true);
-
-                //
-                // TODO disable event listener for now. Wait until everything else is ready
-                //
-
-                // _listener.start();
+                _listener.start();
             } else {
                 _listener = new VmEventListener(false);
             }

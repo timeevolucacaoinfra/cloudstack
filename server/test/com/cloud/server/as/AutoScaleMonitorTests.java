@@ -58,6 +58,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.internal.verification.VerificationModeFactory.times;
 
 public class AutoScaleMonitorTests {
 
@@ -109,6 +110,7 @@ public class AutoScaleMonitorTests {
         autoScaleMonitor.runInContext();
 
         verify(autoScaleMonitor._asManager).doScaleUp(asGroup.getId(), 1);
+        verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
     }
 
     @Test
@@ -146,6 +148,7 @@ public class AutoScaleMonitorTests {
         autoScaleMonitor.runInContext();
 
         verify(autoScaleMonitor._asManager).doScaleDown(asGroup.getId(), 1);
+        verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
     }
 
     @Test
@@ -185,6 +188,7 @@ public class AutoScaleMonitorTests {
         autoScaleMonitor.runInContext();
 
         verifyZeroInteractions(autoScaleMonitor._asManager);
+        verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
     }
 
     @Test
@@ -218,6 +222,7 @@ public class AutoScaleMonitorTests {
         autoScaleMonitor.runInContext();
 
         verifyZeroInteractions(autoScaleMonitor._asManager);
+        verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
     }
 
     @Test
@@ -250,6 +255,7 @@ public class AutoScaleMonitorTests {
         autoScaleMonitor.runInContext();
 
         verifyZeroInteractions(autoScaleMonitor._asManager);
+        verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
     }
 
     @Test
@@ -297,9 +303,24 @@ public class AutoScaleMonitorTests {
         verifyZeroInteractions(asManager);
     }
 
+    @Test
+    public void testAutoScaleGroupLocked(){
+        AutoScaleVmGroupVO asGroup = asGroups.get(0);
+        asGroup.setLocked(true);
+        mockAutoScaleGroupDao();
+
+        AutoScaleManager asManager = mock(AutoScaleManager.class);
+        autoScaleMonitor._asManager = asManager;
+
+        autoScaleMonitor.runInContext();
+
+        verifyZeroInteractions(asManager);
+    }
+
     protected void mockAutoScaleGroupDao(){
         AutoScaleVmGroupDao _asGroupVmDao = mock(AutoScaleVmGroupDao.class);
-        when(_asGroupVmDao.listAll()).thenReturn(asGroups);
+        when(_asGroupVmDao.listAllNotLocked()).thenReturn(asGroups);
+        when(_asGroupVmDao.findById(anyLong())).thenReturn(asGroups.get(0));
         autoScaleMonitor._asGroupDao = _asGroupVmDao;
     }
 

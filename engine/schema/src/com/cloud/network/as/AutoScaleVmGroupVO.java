@@ -90,6 +90,9 @@ public class AutoScaleVmGroupVO implements AutoScaleVmGroup, InternalIdentity {
     @Column(name = "display", updatable = true, nullable = false)
     protected boolean display = true;
 
+    @Column(name = "locked", updatable = true, nullable = false)
+    protected boolean locked = false;
+
     public AutoScaleVmGroupVO() {
     }
 
@@ -223,6 +226,15 @@ public class AutoScaleVmGroupVO implements AutoScaleVmGroup, InternalIdentity {
     @Override
     public boolean isDisplay() {
         return display;
+    }
+
+    @Override
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
     }
 
     @Override
