@@ -86,7 +86,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
         return avgSummary;
     }
 
-    private double getStatAverage(SearchResponse response) {
+    private Double getStatAverage(SearchResponse response) {
         double average = ((InternalAvg) response.getAggregations().asMap().get("counter_average")).value();
         return (average >= 0.0 ? average : null);
     }
