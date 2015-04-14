@@ -178,6 +178,8 @@ StartJetty
 
 # Tests
 PrintLog INFO "Sync marvin"
+cd ${project_basedir}
+pwd
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
 sleep 5
