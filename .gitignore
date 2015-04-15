@@ -27,6 +27,7 @@ override/
 dist/
 *~
 *.bak
+*.orig
 cloud-*.tar.bz2
 *.log
 *.log*
