@@ -57,6 +57,21 @@ public class ElasticSearchAutoScaleStatsCollectorTest extends AutoScaleStatsColl
         super.testReadVmStatsWithMemoryCounter();
     }
 
+    @Test
+    public void testReadVmStatsWithNullAverage(){
+        mockElasticSearchClient(null);
+        mockAutoScaleVmGroupVmMapDao();
+        mockAutoScaleGroupPolicyMapDao();
+        mockAutoScalePolicyDao();
+        mockAutoScalePolicyConditionMapDao();
+        mockConditionDao();
+        mockCounterDao("cpu");
+
+        Map<String, Double> countersSummary = autoScaleStatsCollector.retrieveMetrics(asGroup, vmList);
+
+        assert countersSummary.get("cpu") == null;
+    }
+
     private void mockElasticSearchClient(Double average){
         TransportClient client = mock(TransportClient.class);
         SearchRequestBuilder searchRequestBuilder = mock(SearchRequestBuilder.class);
@@ -64,7 +79,7 @@ public class ElasticSearchAutoScaleStatsCollectorTest extends AutoScaleStatsColl
         SearchResponse searchResponse = mock(SearchResponse.class);
         Aggregations aggregations = mock(Aggregations.class);
         Map<String, Aggregation> aggregationResponse = new HashMap<>();
-        aggregationResponse.put("counter_average", new InternalAvg("counter_average", average, 1));
+        aggregationResponse.put("counter_average", new InternalAvg("counter_average", average != null ? average : Double.NaN, 1));
 
         when(client.prepareSearch(anyString())).thenReturn(searchRequestBuilder);
         when(searchRequestBuilder.setTypes(anyString())).thenReturn(searchRequestBuilder);

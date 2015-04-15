@@ -22,7 +22,10 @@ import com.cloud.network.as.AutoScaleVmGroupVO;
 import com.cloud.utils.db.GenericDao;
 
 public interface AutoScaleVmGroupDao extends GenericDao<AutoScaleVmGroupVO, Long> {
+
     List<AutoScaleVmGroupVO> listByAll(Long loadBalancerId, Long profileId);
+
+    List<AutoScaleVmGroupVO> listAllNotLocked();
 
     boolean isProfileInUse(long profileId);
 

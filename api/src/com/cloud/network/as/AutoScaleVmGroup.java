@@ -54,6 +54,8 @@ public interface AutoScaleVmGroup extends ControlledEntity, InternalIdentity, Di
 
     String getUuid();
 
+    boolean isLocked();
+
     @Override
     boolean isDisplay();
 
