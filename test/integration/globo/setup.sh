@@ -100,7 +100,7 @@ installMarvin() {
     [[ ! `${pip} freeze | grep -i Marvin` ]] && ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     # Install marvin to ensure that we are using the correct version
-    [[ ! `${pip} freeze | grep -i Marvin` ]] && echo "#### ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
+    [[ `${pip} freeze | grep -i Marvin` ]] && echo "#### ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
     ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
@@ -120,50 +120,84 @@ git pull
 
 activateVirtualEnv
 
-PrintLog INFO "Compiling cloudstack..."
-mvn -Pdeveloper -Dsimulator clean install
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile ACS" && exit 1
-PrintLog INFO "Compiling and packing marvin..."
-mvn -P developer -pl :cloud-marvin
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
+last_commit=$(git log -n 1 | grep commit | cut -d' ' -f2)
+last_commit_file="/tmp/cloudstack-integration-tests-last-commit.txt"
 
-installMarvin
+PrintLog INFO "last git commit: ${last_commit}"
 
-# Deploy DB, Populate DB and create infra structure
-PrintLog INFO "Creating SQL schema"
-mvn -q -P developer -pl developer -Ddeploydb >/dev/null 2>/dev/null
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB" && exit 1
-mvn -Pdeveloper -pl developer -Ddeploydb-simulator >/dev/null 2>/dev/null
-[[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB simulator" && exit 1
-PrintLog INFO "Doing some required SQL migrations"
-if [ -d "/var/lib/jenkins/cloudstack-deploy" ];
+#vejo se o arquivo de ultimo commit existe
+[[ ! -f "$last_commit_file" ]] && echo "" > ${last_commit_file}
+
+saved_last_commit=$(cat ${last_commit_file} | head -1)
+
+if [ "${last_commit}" != "${saved_last_commit}" ];
 then
-    (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && db-migrate >/dev/null)
-    cd -
-else
-    echo "OPS... could not find migrate"
-fi
-StartJetty
-PrintLog INFO "Creating an advanced zone..."
-${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
 
-# Required restart
-WaitForInfrastructure
-ShutdownJetty
-PrintLog INFO "Removing log file '${maven_log}'"
-rm -f ${maven_log}
+    PrintLog INFO "Compiling cloudstack..."
+
+    mvn -Pdeveloper -Dsimulator clean install
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile ACS" && exit 1
+    PrintLog INFO "Compiling and packing marvin..."
+    mvn -P developer -pl :cloud-marvin
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to compile marvin" && exit 1
+
+    echo "${last_commit}" > ${last_commit_file}
+
+    installMarvin
+
+    # Deploy DB, Populate DB and create infra structure
+    PrintLog INFO "Creating SQL schema"
+    mvn -q -P developer -pl developer -Ddeploydb >/dev/null 2>/dev/null
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB" && exit 1
+    mvn -Pdeveloper -pl developer -Ddeploydb-simulator >/dev/null 2>/dev/null
+    [[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB simulator" && exit 1
+    PrintLog INFO "Doing some required SQL migrations"
+    if [ -d "/var/lib/jenkins/cloudstack-deploy" ];
+    then
+        (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && db-migrate >/dev/null)
+        cd -
+    else
+        echo "OPS... could not find migrate"
+    fi
+
+    StartJetty
+    PrintLog INFO "Creating an advanced zone..."
+    ${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
+
+    # Required restart
+    WaitForInfrastructure
+    ShutdownJetty
+    PrintLog INFO "Removing log file '${maven_log}'"
+    rm -f ${maven_log}
+
+else
+    PrintLog INFO "There were no code changes, so we don't need compile!!! yaayyyyyyyy"
+fi
 
 StartJetty
 
 # Tests
 PrintLog INFO "Sync marvin"
+cd ${project_basedir}
+pwd
 mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
 sleep 5
 
 installMarvin
 
+# check if Globo assets are in marvin tarball file
+[[ ! `tar tvzf ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz | grep Globo` ]] && PrintLog ERROR "Tests will fail!!! Marvin tarball does not contain Globo files" && exit 1
+
+
 ${nosetests} --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
+retval=$?
+if [[ $retval -ne 0 ]]; then
+    PrintLog ERROR "Tests failed!!!"
+    ShutdownJetty
+    exit 1
+fi
+
 results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
 tail -1 ${results_file} | grep -qw 'OK'
 retval=$?
