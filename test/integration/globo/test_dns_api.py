@@ -33,20 +33,31 @@ from marvin.lib.utils import cleanup_resources
 from marvin.lib.common import get_zone, get_domain, get_template
 
 # get globodns endpoint
-if os.environ.get('dns_api_host'):
-    globodns_host = os.environ.get('dns_api_host')
+if os.environ.get('globodns_host'):
+    globodns_host = os.environ.get('globodns_host')
 else:
-    sys.exit("The environment variable 'dns_api_host' was not found!")
+    sys.exit("The environment variable 'globodns_host' was not found!")
 
-if os.getenv('dns_api_resolver_nameserver'):
-    resolver_nameserver = os.getenv('dns_api_resolver_nameserver')
+if os.getenv('globodns_admin_user'):
+    globodns_admin_user = os.environ.get('globodns_admin_user')
 else:
-    sys.exit("The environment variable 'dns_api_resolver_nameserver' was not found!")
+    sys.exit("The environment variable 'globodns_admin_user' was not found!")
 
-if os.getenv('dns_api_auth_token'):
-    globodns_payload = {"auth_token": os.getenv('dns_api_auth_token'), "now": "true"}
+if os.getenv('globodns_admin_password'):
+    globodns_admin_password = os.environ.get('globodns_admin_password')
 else:
-    sys.exit("The environment variable 'dns_api_auth_token' was not found!")
+    sys.exit("The environment variable 'globodns_admin_password' was not found!")
+
+if os.getenv('globodns_resolver_nameserver'):
+    resolver_nameserver = os.getenv('globodns_resolver_nameserver')
+else:
+    sys.exit("The environment variable 'globodns_resolver_nameserver' was not found!")
+
+if os.getenv('globodns_auth_token'):
+    globodns_payload = {"auth_token": os.getenv('globodns_auth_token'), "now": "true"}
+else:
+    sys.exit("The environment variable 'globodns_auth_token' was not found!")
+
 
 globodns_export_path = '/bind9/export'
 globodns_headers = {"Content-type": "application/json", "Accept": "application/json"}
@@ -98,8 +109,8 @@ class Data(object):
             },
             "globodns_provider": {
                 "url": globodns_host,
-                "username": "admin@example.com",
-                "password": "password"
+                "username": globodns_admin_user,
+                "password": globodns_admin_password
             },
             "ostype": 'CentOS 5.6 (64-bit)',
         }
