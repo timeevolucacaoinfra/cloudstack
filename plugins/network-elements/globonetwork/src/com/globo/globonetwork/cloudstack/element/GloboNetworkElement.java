@@ -192,10 +192,7 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
 
     @Override
     public boolean release(Network network, NicProfile nic, VirtualMachineProfile vm, ReservationContext context) throws ConcurrentOperationException, ResourceUnavailableException {
-        // Even though removing a VM will clean up load balancing resources later on,
-        // we have to make sure VM is removed from the load balancer in GloboNetwork
-        // before attempting to remove its NIC
-        return _lbManager.removeVmFromLoadBalancers(vm.getId());
+        return true;
     }
 
     @Override

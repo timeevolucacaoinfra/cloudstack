@@ -192,6 +192,8 @@ public interface GloboNetworkService {
      */
     public void unregisterNicInGloboNetwork(NicProfile nic, VirtualMachineProfile vm);
 
+    public boolean removeVmFromLoadBalancer(VirtualMachineProfile vm);
+
     /**
      * Domain suffix for all networks.
      * @return
