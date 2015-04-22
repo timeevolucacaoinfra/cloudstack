@@ -31,11 +31,14 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.inject.Inject;
 
 import com.cloud.network.dao.LoadBalancerPortMapDao;
+import com.cloud.network.dao.LoadBalancerVO;
+import com.cloud.network.lb.LoadBalancingRule;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -281,6 +284,101 @@ public class GloboNetworkManagerTest {
         } finally {
             tx.rollback();
         }
+    }
+
+    @Test
+    public void testLbPortMapValidationWithNoAdditionalPortMap() {
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        try {
+            new GloboNetworkManager().validatePortMaps(loadBalancingRule);
+        }catch(Exception e){
+            fail();
+        }
+    }
+
+    @Test
+    public void testLbPortMapValidationWithOneAdditionalPortMap() {
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "443:8443" }));
+
+        try {
+            new GloboNetworkManager().validatePortMaps(loadBalancingRule);
+        }catch(Exception e){
+            fail();
+        }
+    }
+
+    @Test
+    public void testLbPortMapValidationWithMoreThanOneAdditionalPortMap() {
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "443:8443", "22:22" }));
+
+        try {
+            new GloboNetworkManager().validatePortMaps(loadBalancingRule);
+        }catch(Exception e){
+            fail();
+        }
+    }
+
+    @Test(expected=InvalidParameterValueException.class)
+    public void testLbPortMapValidationWithAdditionalPortMapEqualsMainPortMap() {
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "80:8080" }));
+
+        new GloboNetworkManager().validatePortMaps(loadBalancingRule);
+        fail();
+    }
+
+    @Test(expected=InvalidParameterValueException.class)
+    public void testLbPortMapValidationWithDuplicatedAdditionalPortMap() {
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "443:8443", "443:8443" }));
+
+        new GloboNetworkManager().validatePortMaps(loadBalancingRule);
+        fail();
+    }
+
+    @Test(expected=InvalidParameterValueException.class)
+    public void testLbPortMapValidationWithNoPrivatePort() {
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "80:" }));
+
+        new GloboNetworkManager().validatePortMaps(loadBalancingRule);
+        fail();
+    }
+
+    @Test(expected=InvalidParameterValueException.class)
+    public void testLbPortMapValidationWithInvalidPortMapFormat() {
+        GloboNetworkManager globoNetworkManager = new GloboNetworkManager();
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "----" }));
+
+        globoNetworkManager.validatePortMaps(loadBalancingRule);
+        fail();
+    }
+
+    @Test(expected=InvalidParameterValueException.class)
+    public void testLbPortMapValidationWithEmptyPortMapValue() {
+        GloboNetworkManager globoNetworkManager = new GloboNetworkManager();
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "" }));
+
+        globoNetworkManager.validatePortMaps(loadBalancingRule);
+        fail();
+    }
+
+    @Test(expected=InvalidParameterValueException.class)
+    public void testLbPortMapValidationWithNotNumericValue() {
+        GloboNetworkManager globoNetworkManager = new GloboNetworkManager();
+        LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "abc:abc" }));
+
+        globoNetworkManager.validatePortMaps(loadBalancingRule);
+        fail();
+    }
+
+    protected LoadBalancingRule createLoadBalancerRule() {
+        return new LoadBalancingRule(new LoadBalancerVO("id", "lb", "lb", 1, 80, 8080, "algorithm", 1, 1, 1, "HTTP"), null, null, null, null);
     }
 
     @Configuration

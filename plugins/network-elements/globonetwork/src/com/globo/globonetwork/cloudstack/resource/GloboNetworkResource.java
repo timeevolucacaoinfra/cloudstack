@@ -796,7 +796,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return "GET " + path + " HTTP/1.0\\r\\nHost: " + host + "\\r\\n\\r\\n";
     }
 
-    private boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
+    protected boolean addAndEnableReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
         Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
         if (equipment == null) {
             // Equipment doesn't exist
@@ -835,7 +835,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return true;
     }
 
-    private boolean removeReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
+    protected boolean removeReal(Vip vip, String equipName, String realIpAddr, List<String> realPorts) throws GloboNetworkException {
         Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(equipName);
         if (equipment == null) {
             // Equipment doesn't exist. So, there is no Vip either.
@@ -858,7 +858,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return true;
     }
 
-    private Answer createVipResponse(Vip vip, Command cmd) {
+    protected Answer createVipResponse(Vip vip, Command cmd) {
         if (vip == null || vip.getId() == null) {
             return new Answer(cmd, false, "Vip request was not created in GloboNetwork");
         }
@@ -892,7 +892,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     realResponse.setVmName(real.getName());
                     reals.put(real.getIpId(), realResponse);
                 }
-                realResponse.getPorts().add(String.valueOf(real.getVipPort()) + ":" + String.valueOf(real.getRealPort()));
+                realResponse.getPorts().addAll(vip.getServicePorts());
             }
 
             // Fill vip object with ip id and vip environment id

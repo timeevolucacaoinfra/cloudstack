@@ -19,6 +19,7 @@ package com.globo.globonetwork.cloudstack.resource;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -73,16 +74,16 @@ public class GloboNetworkResourceTest {
     }
 
     private Vip buildFakeVipValidatedAndCreated(Long vipEnvironment, Long realEnvironment, Long vipIpId, String... reals) throws GloboNetworkException {
-        Vip vip = this.buildFakeVip(vipEnvironment, realEnvironment, vipIpId, reals);
+        List<String> ports = Arrays.asList(new String[] { "80:8080" });
+        Vip vip = this.buildFakeVip(vipEnvironment, realEnvironment, vipIpId, ports, reals);
         vip.setCreated(true);
         return vip;
     }
 
-    private Vip buildFakeVip(Long vipEnvironment, Long realEnvironment, Long vipIpId, String... reals) throws GloboNetworkException {
+    private Vip buildFakeVip(Long vipEnvironment, Long realEnvironment, Long vipIpId, List<String> servicePorts, String... reals) throws GloboNetworkException {
         Long vipId = 987L;
         String vipIpStr = "192.168.1.15";
         String vipHost = "vip.domain.com";
-        List<String> vipPorts = Arrays.asList("80:8080");
         String vipBusinessArea = "vipbusiness";
         String vipServiceName = "vipservice";
         String vipMethodBal = "least-conn";
@@ -110,7 +111,7 @@ public class GloboNetworkResourceTest {
         Vip vip = new Vip();
         vip.setId(vipId);
         vip.setIps(Arrays.asList(vipIpStr));
-        vip.setServicePorts(vipPorts);
+        vip.setServicePorts(servicePorts);
         vip.setHost(vipHost);
         vip.setBusinessArea(vipBusinessArea);
         vip.setMethod(vipMethodBal);
@@ -131,8 +132,8 @@ public class GloboNetworkResourceTest {
             realIp.setIpId(ip.getId());
             realIp.setName("vm-" + ip.getId());
             realIp.setRealIp(realAddr);
-            realIp.setVipPort(Integer.valueOf(vipPorts.get(0).split(":")[0]));
-            realIp.setRealPort(Integer.valueOf(vipPorts.get(0).split(":")[1]));
+            realIp.setVipPort(Integer.valueOf(servicePorts.get(0).split(":")[0]));
+            realIp.setRealPort(Integer.valueOf(servicePorts.get(0).split(":")[1]));
             realIpList.add(realIp);
         }
         vip.setRealsIp(realIpList);
@@ -147,8 +148,9 @@ public class GloboNetworkResourceTest {
         Long realEnvironmentId = 546L;
         Long vipIpId = 345L;
         String realIp = "10.0.0.54";
+        List<String> ports = Arrays.asList(new String[] { "80:8080", "443:8443" });
 
-        Vip vip = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
+        Vip vip = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, ports, realIp);
 
         // Make sure VIP doesn't exist yet by returning empty list
         when(_resource._globoNetworkApi.getVipAPI().getByIp(vip.getIps().get(0))).thenReturn(new ArrayList<Vip>());
@@ -156,7 +158,7 @@ public class GloboNetworkResourceTest {
         when(
                 _resource._globoNetworkApi.getVipAPI().add(vipIpId, null, null, vip.getFinality(), vip.getClient(), vip.getEnvironment(), vip.getCache(), vip.getMethod(),
                         "(nenhum)", "TCP", "", 5, vip.getHost(), 0, vip.getBusinessArea(), vip.getServiceName(), null, vip.getRealsIp(), Arrays.asList(0), null,
-                        vip.getServicePorts(), null)).thenReturn(vip);
+                        ports, null)).thenReturn(vip);
 
         when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(vip);
 
@@ -169,6 +171,7 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vip.getServiceName());
         cmd.setMethodBal("leastconn");
         cmd.setRuleState(FirewallRule.State.Add);
+        cmd.setPorts(ports);
 
         List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
         for (RealIP vipReal : vip.getRealsIp()) {
@@ -213,8 +216,9 @@ public class GloboNetworkResourceTest {
         Long realEnvironmentId = 546L;
         Long vipIpId = 345L;
         String realIp = "10.0.0.54";
+        List<String> ports = Arrays.asList(new String[] { "80:8080", "443:8443" });
 
-        Vip vip = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
+        Vip vip = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, ports, realIp);
 
         // Vip after updating
         String vipHostNew = "vip.newdomain.com";
@@ -222,7 +226,7 @@ public class GloboNetworkResourceTest {
         String vipServiceNameNew = "vipservicenew";
         String vipMethodBalNew = "round-robin";
 
-        Vip vip2 = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
+        Vip vip2 = buildFakeVip(vipEnvironmentId, realEnvironmentId, vipIpId, ports, realIp);
         vip2.setHost(vipHostNew);
         vip2.setBusinessArea(vipBusinessAreaNew);
         vip2.setMethod(vipMethodBalNew);
@@ -592,5 +596,115 @@ public class GloboNetworkResourceTest {
         GloboNetworkVipResponse.Real responseReal = response.getReals().get(0);
         assertEquals(vip2.getRealsIp().get(0).getRealIp(), responseReal.getIp());
         assertEquals(vip2.getRealsIp().get(0).getName(), responseReal.getVmName());
+    }
+
+    @Test
+    public void testAddAndEnableRealWithOnePortMapping() throws GloboNetworkException {
+        Vip vip = this.buildFakeVipValidatedAndCreated(1L, 1L, 1L);
+        vip.setServicePorts(Arrays.asList(new String[] { "80:8080" }));
+
+        Ipv4 ip = createIp();
+        Equipment equipment = createEquipment();
+        VipAPI vipApiMock = setupAddOrRemoveRealMocks(ip, equipment);
+
+        _resource.addAndEnableReal(vip, "equipment", "10.170.10.2", vip.getServicePorts());
+
+        verify(vipApiMock, times(1)).addReal(vip.getId(), ip.getId(), equipment.getId(), 80, 8080);
+    }
+
+    @Test
+    public void testAddAndEnableRealWithMoreThanOnePortMapping() throws GloboNetworkException {
+        Vip vip = this.buildFakeVipValidatedAndCreated(1L, 1L, 1L);
+        vip.setServicePorts(Arrays.asList(new String[] { "80:8080", "443:8443" }));
+
+        Ipv4 ip = createIp();
+        Equipment equipment = createEquipment();
+        VipAPI vipApiMock = setupAddOrRemoveRealMocks(ip, equipment);
+
+        _resource.addAndEnableReal(vip, "equipment", "10.170.10.2", vip.getServicePorts());
+
+        verify(vipApiMock, times(1)).addReal(vip.getId(), ip.getId(), equipment.getId(), 80, 8080);
+        verify(vipApiMock, times(1)).addReal(vip.getId(), ip.getId(), equipment.getId(), 443, 8443);
+    }
+
+    @Test
+    public void testRemoveRealWithOnePortMapping() throws GloboNetworkException {
+        Vip vip = this.buildFakeVipValidatedAndCreated(1L, 1L, 1L, "10.170.10.2");
+        vip.setServicePorts(Arrays.asList(new String[] { "80:8080" }));
+
+        Ipv4 ip = createIp();
+        ip.setId(vip.getRealsIp().get(0).getIpId());
+        Equipment equipment = createEquipment();
+        VipAPI vipApiMock = setupAddOrRemoveRealMocks(ip, equipment);
+
+        _resource.removeReal(vip, "equipment", "10.170.10.2", vip.getServicePorts());
+        verify(vipApiMock, times(1)).removeReal(vip.getId(), ip.getId(), equipment.getId(), 80, 8080);
+    }
+
+    @Test
+    public void testRemoveRealWithMoreThanOnePortMapping() throws GloboNetworkException {
+        Vip vip = this.buildFakeVipValidatedAndCreated(1L, 1L, 1L, "10.170.10.2");
+        vip.setServicePorts(Arrays.asList(new String[] { "80:8080", "443:8443" }));
+
+        Ipv4 ip = createIp();
+        ip.setId(vip.getRealsIp().get(0).getIpId());
+        Equipment equipment = createEquipment();
+        VipAPI vipApiMock = setupAddOrRemoveRealMocks(ip, equipment);
+
+        _resource.removeReal(vip, "equipment", "10.170.10.2", vip.getServicePorts());
+        verify(vipApiMock, times(1)).removeReal(vip.getId(), ip.getId(), equipment.getId(), 80, 8080);
+        verify(vipApiMock, times(1)).removeReal(vip.getId(), ip.getId(), equipment.getId(), 443, 8443);
+    }
+
+    @Test
+    public void testCreateVipResponseGivenVipWithOnePortMapping() throws GloboNetworkException {
+        Vip vip = this.buildFakeVipValidatedAndCreated(1L, 1L, 1L, "10.170.10.2");
+        vip.setServicePorts(Arrays.asList(new String[] { "80:8080" }));
+
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddOrRemoveVipInGloboNetworkCommand());
+
+        assertTrue(answer.getResult());
+        assertEquals(1, answer.getReals().get(0).getPorts().size());
+    }
+
+    @Test
+    public void testCreateVipResponseGivenVipWithMoreThanOnePortMapping() throws GloboNetworkException {
+        Vip vip = this.buildFakeVipValidatedAndCreated(1L, 1L, 1L, "10.170.10.2");
+        vip.setServicePorts(Arrays.asList(new String[] { "80:8080", "43:8443" }));
+
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddOrRemoveVipInGloboNetworkCommand());
+
+        assertTrue(answer.getResult());
+        assertEquals(2, answer.getReals().get(0).getPorts().size());
+    }
+
+    protected VipAPI setupAddOrRemoveRealMocks(Ipv4 ip, Equipment equipment) throws GloboNetworkException {
+        EquipmentAPI equipmentAPIMock = mock(EquipmentAPI.class);
+        when(equipmentAPIMock.listByName("equipment")).thenReturn(equipment);
+
+        IpAPI ipApiMock = mock(IpAPI.class);
+        when(ipApiMock.findIpsByEquipment(equipment.getId())).thenReturn(Arrays.asList(new Ip[]{ip}));
+
+        VipAPI vipApiMock = mock(VipAPI.class);
+
+        when(_resource._globoNetworkApi.getEquipmentAPI()).thenReturn(equipmentAPIMock);
+        when(_resource._globoNetworkApi.getIpAPI()).thenReturn(ipApiMock);
+        when(_resource._globoNetworkApi.getVipAPI()).thenReturn(vipApiMock);
+        return vipApiMock;
+    }
+
+    protected Ipv4 createIp() {
+        Ipv4 ip = new Ipv4();
+        ip.setOct1(10);
+        ip.setOct2(170);
+        ip.setOct3(10);
+        ip.setOct4(2);
+        return ip;
+    }
+
+    protected Equipment createEquipment() {
+        Equipment equipment = new Equipment();
+        equipment.setId(1L);
+        return equipment;
     }
 }

@@ -2101,22 +2101,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
 
-        List<Integer> portsAlreadyMapped = new ArrayList<Integer>();
-        portsAlreadyMapped.add(rule.getSourcePortStart());
-        if (rule.getAdditionalPortMap() != null) {
-            for (String portMap : rule.getAdditionalPortMap()) {
-                String[] portMapArray = portMap.split(":");
-                if (portMapArray.length != 2) {
-                    throw new InvalidParameterValueException("Additional port mapping is invalid, should be in the form '80:8080,443:8443'");
-                }
-                Integer lbPort = Integer.valueOf(portMapArray[0].trim());
-                Integer realPort = Integer.valueOf(portMapArray[1].trim());
-                if (portsAlreadyMapped.contains(lbPort)) {
-                    throw new InvalidParameterValueException("Additional port mapping is invalid. Duplicated Load Balancer port");
-                }
-                portsAlreadyMapped.add(lbPort);
-            }
-        }
+        this.validatePortMaps(rule);
 
         IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
         if (ipVO == null) {
@@ -2208,6 +2193,31 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         return true;
+    }
+
+    protected void validatePortMaps(LoadBalancingRule rule) {
+        List<Integer> portsAlreadyMapped = new ArrayList<>();
+        portsAlreadyMapped.add(rule.getSourcePortStart());
+        if (rule.getAdditionalPortMap() != null) {
+            for (String portMap : rule.getAdditionalPortMap()) {
+                String[] portMapArray = portMap.split(":");
+                if (portMapArray.length != 2) {
+                    throw new InvalidParameterValueException("Additional port mapping is invalid, should be in the form '80:8080,443:8443'");
+                }
+                Integer lbPort;
+                Integer realPort;
+                try {
+                    lbPort = Integer.valueOf(portMapArray[0].trim());
+                    realPort = Integer.valueOf(portMapArray[1].trim());
+                }catch(NumberFormatException e){
+                    throw new InvalidParameterValueException("Additional port mapping is invalid. Only numbers are permitted");
+                }
+                if (portsAlreadyMapped.contains(lbPort)) {
+                    throw new InvalidParameterValueException("Additional port mapping is invalid. Duplicated Load Balancer port");
+                }
+                portsAlreadyMapped.add(lbPort);
+            }
+        }
     }
 
     @Override
