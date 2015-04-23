@@ -1,5 +1,6 @@
 package com.globo.globodns.cloudstack.element;
 
+import static junit.framework.TestCase.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -7,31 +8,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
-
-import javax.inject.Inject;
-
 import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
-import org.apache.cloudstack.test.utils.SpringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.core.type.classreading.MetadataReader;
-import org.springframework.core.type.classreading.MetadataReaderFactory;
-import org.springframework.core.type.filter.TypeFilter;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
@@ -48,28 +31,17 @@ import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
 import com.cloud.network.Network;
 import com.cloud.network.Network.Provider;
-import com.cloud.network.dao.NetworkDao;
-import com.cloud.network.dao.PhysicalNetworkDao;
-import com.cloud.resource.ResourceManager;
 import com.cloud.user.Account;
-import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
-import com.cloud.utils.component.ComponentContext;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.ReservationContext;
 import com.cloud.vm.ReservationContextImpl;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
-import com.globo.globodns.cloudstack.GloboDnsNetworkVO;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
-import com.globo.globodns.cloudstack.dao.GloboDnsNetworkDao;
-import com.globo.globodns.cloudstack.dao.GloboDnsVirtualMachineDao;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(loader = AnnotationConfigContextLoader.class)
-@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class GloboDnsElementTest {
 
     private static long zoneId = 5L;
@@ -78,30 +50,26 @@ public class GloboDnsElementTest {
     private AccountVO acct = null;
     private UserVO user = null;
 
-    @Inject
-    DataCenterDao _datacenterDao;
-
-    @Inject
-    GloboDnsVirtualMachineDao _globodnsVMDao;
-
-    @Inject
     GloboDnsElement _globodnsElement;
 
-    @Inject
-    GloboDnsNetworkDao _globodnsNetworkDao;
+    @Mock
+    DataCenterDao _datacenterDao;
 
-    @Inject
+    @Mock
     HostDao _hostDao;
 
-    @Inject
+    @Mock
     AgentManager _agentMgr;
-
-    @Inject
-    AccountManager _acctMgr;
 
     @Before
     public void setUp() throws Exception {
-        ComponentContext.initComponentsLifeCycle();
+        MockitoAnnotations.initMocks(this);
+
+        _globodnsElement = new GloboDnsElement();
+
+        _globodnsElement._dcDao = _datacenterDao;
+        _globodnsElement._hostDao = _hostDao;
+        _globodnsElement._agentMgr = _agentMgr;
 
         acct = new AccountVO(200L);
         acct.setType(Account.ACCOUNT_TYPE_NORMAL);
@@ -113,8 +81,6 @@ public class GloboDnsElementTest {
         user.setAccountId(acct.getAccountId());
 
         CallContext.register(user, acct);
-        when(_acctMgr.getSystemAccount()).thenReturn(this.acct);
-        when(_acctMgr.getSystemUser()).thenReturn(this.user);
     }
 
     @After
@@ -133,10 +99,12 @@ public class GloboDnsElementTest {
         when(vm.getHostName()).thenReturn("UPPERCASENAME");
         when(vm.getType()).thenReturn(VirtualMachine.Type.User);
         when(_datacenterDao.findById(zoneId)).thenReturn(mock(DataCenterVO.class));
-        when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
         DeployDestination dest = new DeployDestination();
         ReservationContext context = new ReservationContextImpl(null, null, user);
-        _globodnsElement.prepare(network, nic, vm, dest, context);
+        boolean result = _globodnsElement.prepare(network, nic, vm, dest, context);
+
+        assertTrue(result);
+        verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(CreateOrUpdateRecordAndReverseCommand.class));
     }
 
     @Test
@@ -152,7 +120,6 @@ public class GloboDnsElementTest {
         DataCenterVO dataCenterVO = mock(DataCenterVO.class);
         when(dataCenterVO.getId()).thenReturn(zoneId);
         when(_datacenterDao.findById(zoneId)).thenReturn(dataCenterVO);
-        when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
         DeployDestination dest = new DeployDestination();
         ReservationContext context = new ReservationContextImpl(null, null, user);
 
@@ -169,7 +136,8 @@ public class GloboDnsElementTest {
             }
         });
 
-        _globodnsElement.prepare(network, nic, vm, dest, context);
+        boolean result = _globodnsElement.prepare(network, nic, vm, dest, context);
+        assertTrue(result);
         verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(CreateOrUpdateRecordAndReverseCommand.class));
     }
 
@@ -186,7 +154,6 @@ public class GloboDnsElementTest {
         DataCenterVO dataCenterVO = mock(DataCenterVO.class);
         when(dataCenterVO.getId()).thenReturn(zoneId);
         when(_datacenterDao.findById(zoneId)).thenReturn(dataCenterVO);
-        when(_globodnsNetworkDao.findByNetworkId(network.getId())).thenReturn(new GloboDnsNetworkVO());
         ReservationContext context = new ReservationContextImpl(null, null, user);
 
         HostVO hostVO = mock(HostVO.class);
@@ -202,71 +169,8 @@ public class GloboDnsElementTest {
             }
         });
 
-        _globodnsElement.release(network, nic, vm, context);
+        boolean result = _globodnsElement.release(network, nic, vm, context);
+        assertTrue(result);
         verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(RemoveRecordCommand.class));
-    }
-
-    @Configuration
-    @ComponentScan(basePackageClasses = {GloboDnsElement.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
-    public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
-
-        @Bean
-        public GloboDnsNetworkDao globodnsNetworkDao() {
-            return mock(GloboDnsNetworkDao.class);
-        }
-
-        @Bean
-        public GloboDnsVirtualMachineDao dnsAPIVirtualMachineDao() {
-            return mock(GloboDnsVirtualMachineDao.class);
-        }
-
-        @Bean
-        public HostDao hostDao() {
-            return mock(HostDao.class);
-        }
-
-        @Bean
-        public DataCenterDao dataCenterDao() {
-            return mock(DataCenterDao.class);
-        }
-
-        @Bean
-        public PhysicalNetworkDao physicalNetworkDao() {
-            return mock(PhysicalNetworkDao.class);
-        }
-
-        @Bean
-        public NetworkDao networkDao() {
-            return mock(NetworkDao.class);
-        }
-
-        @Bean
-        public ConfigurationDao configurationDao() {
-            return mock(ConfigurationDao.class);
-        }
-
-        @Bean
-        public AgentManager agentManager() {
-            return mock(AgentManager.class);
-        }
-
-        @Bean
-        public ResourceManager resourceManager() {
-            return mock(ResourceManager.class);
-        }
-
-        @Bean
-        public AccountManager accountManager() {
-            return mock(AccountManager.class);
-        }
-
-        public static class Library implements TypeFilter {
-
-            @Override
-            public boolean match(MetadataReader mdr, MetadataReaderFactory arg1) throws IOException {
-                ComponentScan cs = TestConfiguration.class.getAnnotation(ComponentScan.class);
-                return SpringUtils.includedInBasePackageClasses(mdr.getClassMetadata().getClassName(), cs);
-            }
-        }
     }
 }

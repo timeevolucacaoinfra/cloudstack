@@ -34,8 +34,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.inject.Inject;
-
 import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.lb.LoadBalancingRule;
@@ -51,7 +49,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.owasp.esapi.waf.ConfigurationException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -61,11 +60,6 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.core.type.filter.TypeFilter;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.support.AnnotationConfigContextLoader;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
@@ -105,7 +99,6 @@ import com.cloud.user.AccountVO;
 import com.cloud.user.DomainManager;
 import com.cloud.user.UserVO;
 import com.cloud.user.dao.UserDao;
-import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.db.TransactionLegacy;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
@@ -120,9 +113,6 @@ import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(loader = AnnotationConfigContextLoader.class)
-@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class GloboNetworkManagerTest {
 
     private static long zoneId = 5L;
@@ -134,31 +124,30 @@ public class GloboNetworkManagerTest {
     private AccountVO acct = null;
     private UserVO user = null;
 
-    @Inject
-    GloboNetworkService _globoNetworkService;
+    GloboNetworkManager _globoNetworkService;
 
-    @Inject
+    @Mock
     DataCenterDao _dcDao;
 
-    @Inject
+    @Mock
     PhysicalNetworkDao _physicalNetworkDao;
 
-    @Inject
+    @Mock
     GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
 
-    @Inject
+    @Mock
     HostDao _hostDao;
 
-    @Inject
+    @Mock
     ConfigurationDao _configDao;
 
-    @Inject
+    @Mock
     AgentManager _agentMgr;
 
-    @Inject
+    @Mock
     ResourceManager _resourceMgr;
 
-    @Inject
+    @Mock
     AccountManager _acctMgr;
 
     @BeforeClass
@@ -167,7 +156,9 @@ public class GloboNetworkManagerTest {
 
     @Before
     public void testSetUp() {
-        ComponentContext.initComponentsLifeCycle();
+        MockitoAnnotations.initMocks(this);
+
+        _globoNetworkService = new GloboNetworkManager();
         acct = new AccountVO(200L);
         acct.setType(Account.ACCOUNT_TYPE_NORMAL);
         acct.setAccountName("user");
@@ -176,6 +167,15 @@ public class GloboNetworkManagerTest {
         user = new UserVO();
         user.setUsername("user");
         user.setAccountId(acct.getAccountId());
+
+        _globoNetworkService._dcDao = _dcDao;
+        _globoNetworkService._physicalNetworkDao = _physicalNetworkDao;
+        _globoNetworkService._globoNetworkEnvironmentDao = _globoNetworkEnvironmentDao;
+        _globoNetworkService._hostDao = _hostDao;
+        _globoNetworkService._configDao = _configDao;
+        _globoNetworkService._agentMgr = _agentMgr;
+        _globoNetworkService._resourceMgr = _resourceMgr;
+        _globoNetworkService._accountMgr = _acctMgr;
 
         CallContext.register(user, acct);
         when(_acctMgr.getSystemAccount()).thenReturn(this.acct);
