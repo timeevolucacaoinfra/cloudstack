@@ -4869,9 +4869,9 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
             if (zones != null && !zones.isEmpty()) {
                 for (DataCenterVO zone : zones) {
                     // check if there is zone vlan with same id
-                    if (_vlanDao.findByZoneAndVlanId(zone.getId(), vlanId) != null)
-                        throw new InvalidParameterValueException("Found a VLAN id " + vlanId + " already existing in" + " zone " + zone.getUuid()
-                                + " that conflicts with VLAN id of the portable ip range being configured");
+                    // if (_vlanDao.findByZoneAndVlanId(zone.getId(), vlanId) != null)
+                    //     throw new InvalidParameterValueException("Found a VLAN id " + vlanId + " already existing in" + " zone " + zone.getUuid()
+                    //             + " that conflicts with VLAN id of the portable ip range being configured");
                     //check if there is a public ip range that overlaps with portable ip range being created
                     checkOverlapPublicIpRange(zone.getId(), startIP, endIP);
                 }
