@@ -247,109 +247,113 @@
                     },
                     add: {
                         label: 'Create new VIP',
-                        createForm: {
-                            title: 'Real network',
-                            fields: {
-                                networkId: {
-                                    label: 'label.network',
-                                    validation: {
-                                        required: true
-                                    },
-                                    select: function(args) {
-                                        $.ajax({
-                                            url: createURL('listNetworks'),
-                                            async: false,
-                                            data: {
-                                                listAll: true
-                                            },
-                                            success: function(json) {
-                                                var networks = json.listnetworksresponse.network || [];
-                                                args.response.success({
-                                                    data: $.map(networks, function(network) {
-                                                        return {
-                                                            id: network.id,
-                                                            description: network.name
-                                                        };
-                                                    })
-                                                });
-                                            }
-                                        });
-                                    },
-                                },
-                            }
-                        },
+//                        createForm: {
+//                            title: 'Real network',
+//                            fields: {
+//                                networkId: {
+//                                    label: 'label.network',
+//                                    validation: {
+//                                        required: true
+//                                    },
+//                                    select: function(args) {
+//                                        $.ajax({
+//                                            url: createURL('listNetworks'),
+//                                            async: false,
+//                                            data: {
+//                                                listAll: true
+//                                            },
+//                                            success: function(json) {
+//                                                var networks = json.listnetworksresponse.network || [];
+//                                                args.response.success({
+//                                                    data: $.map(networks, function(network) {
+//                                                        return {
+//                                                            id: network.id,
+//                                                            description: network.name
+//                                                        };
+//                                                    })
+//                                                });
+//                                            }
+//                                        });
+//                                    },
+//                                },
+//                            }
+//                        },
                         action: function(args) {
-                            var message_vip_func = function(event) {
-                                var message = null;
-                                if (event && event.originalEvent && event.originalEvent.data) {
-                                    message = $.parseJSON(event.originalEvent.data);
-                                }
-                                if (!message || message.type !== "requestVip") {
-                                    // this is not my message
-                                    return;
-                                }
-
-                                var vipId = message.data.requestVip;
-
-                                $.ajax({
-                                    url: createURL('addGloboNetworkVipToAccount&networkid=' + args.data.networkId + '&vipid=' + vipId),
-                                    async: false,
-                                    success: function(vipJson) {
-                                        $(window).unbind('message.vip');
-                                        $('#editing-vip').dialog("close");
-                                        // args.response.success();
-                                        $(window).trigger('cloudStack.fullRefresh');
-                                    }
-                                });
-                            };
-
-                            $(window).unbind('message.vip').bind('message.vip', message_vip_func);
-
-                            $.ajax({
-                                url: createURL('generateUrlForEditingVip&networkid=' + args.data.networkId),
-                                async: false,
-                                success: function(json) {
-                                    var url = json.generateurlforeditingvipresponse.editingurl.url;
-                              
-                                    var $iframe = $("<iframe>").attr({
-                                        'src': url,
-                                        'width': '680px',
-                                        'height': '100%',
-                                        'scrolling': 'auto'
-                                    });
-                                    var $dialog = $("<div>");
-                                    $dialog.attr('id', 'editing-vip');
-                                    $dialog.append($iframe);
-                              
-                                    $dialog.dialog({
-                                        modal: false,
-                                        width: 700,
-                                        height: 500,
-                                        title: 'Create new VIP',
-                                        closeOnEscape: true,
-                                        buttons: {
-                                            'Close': function() {
-                                                $(this).dialog("close");
-                                                $(window).trigger('cloudStack.fullRefresh');
-                                            }
-                                        },
-                                        close: function(event, ui) {
-                                            $(':ui-dialog, .overlay').remove();
-                                        },
-                                        open: function(event, ui) {
-                                            $(window).scrollTop($dialog.scrollTop());
-                                        }
-                                    }).closest('.ui-dialog').overlay();
-
-                                    // Do not remove lines below. We use it for testing purpose.
-                                    // window.setTimeout(function() {
-                                        // message_vip_func({'originalEvent': {'data': '{"type": "requestVip", "data": { "requestVip": "6525"}}'}});
-                                    // }, 2000);
-
-                                }
-                            });
+                            return;
+//                            var message_vip_func = function(event) {
+//                                var message = null;
+//                                if (event && event.originalEvent && event.originalEvent.data) {
+//                                    message = $.parseJSON(event.originalEvent.data);
+//                                }
+//                                if (!message || message.type !== "requestVip") {
+//                                    // this is not my message
+//                                    return;
+//                                }
+//
+//                                var vipId = message.data.requestVip;
+//
+//                                $.ajax({
+//                                    url: createURL('addGloboNetworkVipToAccount&networkid=' + args.data.networkId + '&vipid=' + vipId),
+//                                    async: false,
+//                                    success: function(vipJson) {
+//                                        $(window).unbind('message.vip');
+//                                        $('#editing-vip').dialog("close");
+//                                        // args.response.success();
+//                                        $(window).trigger('cloudStack.fullRefresh');
+//                                    }
+//                                });
+//                            };
+//
+//                            $(window).unbind('message.vip').bind('message.vip', message_vip_func);
+//
+//                            $.ajax({
+//                                url: createURL('generateUrlForEditingVip&networkid=' + args.data.networkId),
+//                                async: false,
+//                                success: function(json) {
+//                                    var url = json.generateurlforeditingvipresponse.editingurl.url;
+//
+//                                    var $iframe = $("<iframe>").attr({
+//                                        'src': url,
+//                                        'width': '680px',
+//                                        'height': '100%',
+//                                        'scrolling': 'auto'
+//                                    });
+//                                    var $dialog = $("<div>");
+//                                    $dialog.attr('id', 'editing-vip');
+//                                    $dialog.append($iframe);
+//
+//                                    $dialog.dialog({
+//                                        modal: false,
+//                                        width: 700,
+//                                        height: 500,
+//                                        title: 'Create new VIP',
+//                                        closeOnEscape: true,
+//                                        buttons: {
+//                                            'Close': function() {
+//                                                $(this).dialog("close");
+//                                                $(window).trigger('cloudStack.fullRefresh');
+//                                            }
+//                                        },
+//                                        close: function(event, ui) {
+//                                            $(':ui-dialog, .overlay').remove();
+//                                        },
+//                                        open: function(event, ui) {
+//                                            $(window).scrollTop($dialog.scrollTop());
+//                                        }
+//                                    }).closest('.ui-dialog').overlay();
+//
+//                                    // Do not remove lines below. We use it for testing purpose.
+//                                    // window.setTimeout(function() {
+//                                        // message_vip_func({'originalEvent': {'data': '{"type": "requestVip", "data": { "requestVip": "6525"}}'}});
+//                                    // }, 2000);
+//
+//                                }
+//                            });
                         },
                         messages: {
+                            confirm: function(args) {
+                                return 'This action is no longer supported. You should use the Load Balance menu instead.';
+                            },
                             notification: function(args) {
                                 return 'Vip created';
                             }
