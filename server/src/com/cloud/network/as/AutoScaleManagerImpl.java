@@ -876,6 +876,9 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             }
         }
 
+        //removing VMS before removing auto scale group
+        this.destroyRemainingVms(id);
+
         return Transaction.execute(new TransactionCallback<Boolean>() {
             @Override
             public Boolean doInTransaction(TransactionStatus status) {
@@ -897,6 +900,16 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             }
         });
 
+    }
+
+    protected void destroyRemainingVms(long id) {
+        int vmCount = _autoScaleVmGroupVmMapDao.countByGroup(id);
+        if(vmCount > 0) {
+            AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(id);
+            asGroup.setMinMembers(0);
+            _autoScaleVmGroupDao.persist(asGroup);
+            this.doScaleDown(id, vmCount);
+        }
     }
 
     @Override
