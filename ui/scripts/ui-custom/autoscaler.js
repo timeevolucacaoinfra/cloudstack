@@ -350,6 +350,7 @@
                     click: function() {
                         $autoscalerDialog.dialog('destroy');
                         $('.overlay').remove();
+                        $('.loading-overlay').remove()
                     }
                 }, {
                     text: _l('Apply'),
@@ -373,6 +374,7 @@
                             response: {
                                 success: function() {
                                     $loading.remove();
+                                    $('.loading-overlay').remove()
                                     $autoscalerDialog.dialog('destroy');
                                     $autoscalerDialog.closest(':ui-dialog').remove();
                                     $('.overlay').remove();

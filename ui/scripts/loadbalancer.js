@@ -548,6 +548,29 @@
                     },
                 },
                 actions: {
+                    editAutoscale: {
+                        label: 'Edit Autoscale',
+                        custom: {
+                            buttonLabel: 'label.configure',
+                        },
+                        action: function(args) {
+                            args.context.networks = [];
+                            args.context.networks.push({zoneid: args.context.loadbalancers[0].zoneid});
+                            args.context.multiRules = [];
+                            args.context.multiRules.push(args.context.loadbalancers[0]);
+                            args.context.loadbalancer = args.context.loadbalancers[0];
+                            var returnFunction = cloudStack.uiCustom.autoscaler(cloudStack.autoscaler);
+                            return returnFunction(args);
+                        },
+                        messages: {
+                            notification: function() {
+                                return 'Update Autoscale';
+                            }
+                        },
+                        notification: {
+                            poll: pollAsyncJobResult
+                        },
+                    },
                     editHealthcheck: {
                         label: 'Edit Healthcheck',
                         custom: {

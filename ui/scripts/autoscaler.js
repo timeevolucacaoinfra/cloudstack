@@ -119,7 +119,16 @@
                         lbruleid: args.context.multiRules[0].id
                     },
                     success: function(json) {
-                        var autoscaleVmGroup = json.listautoscalevmgroupsresponse.autoscalevmgroup[0];
+                        var response = json.listautoscalevmgroupsresponse.autoscalevmgroup;
+                        if (!response || !response[0]) {
+                            // Existing LB, but no configured VM Group yet
+                            args.response.success({
+                                data: null
+                            });
+                            return;
+                        }
+
+                        var autoscaleVmGroup = response[0];
 
                         $.ajax({
                             url: createURL('listAutoScaleVmProfiles'),
@@ -329,7 +338,7 @@
 
                 minInstance: {
                     label: 'label.min.instances',
-                    defaultValue: '3',
+                    defaultValue: '1',
                     validation: {
                         required: true,
                         number: true
@@ -338,7 +347,7 @@
 
                 maxInstance: {
                     label: 'label.max.instances',
-                    defaultValue: '10',
+                    defaultValue: '5',
                     validation: {
                         required: true,
                         number: true
@@ -742,7 +751,7 @@
         actions: {
             apply: function(args) {
                 //validation (begin) *****
-                if (!('multiRules' in args.context)) { //from a new LB
+                if (!('multiRules' in args.context) || !args.context.originalAutoscaleData) { //from a new LB or from existing LB without AutoscaleVmGroup
                     if (args.formData.name == '' || args.formData.publicport == '' || args.formData.privateport == '') {
                         args.response.error('Name, Public Port, Private Port of Load Balancing are required. Please close this dialog box and fill Name, Public Port, Private Port first.');
                         return;
@@ -872,7 +881,7 @@
                                                     var item = json.queryasyncjobresultresponse.jobresult.condition;
                                                     scaleUpConditionIds.push(item.id);
                                                     if (scaleUpConditionIds.length == scaleUpData.length) {
-                                                        if (!('multiRules' in args.context)) { //from a new LB
+                                                        if (!('multiRules' in args.context) || !args.context.originalAutoscaleData) { //from a new LB or from existing LB without AutoscaleVmGroup
                                                             var data = {
                                                                 action: 'scaleup',
                                                                 conditionids: scaleUpConditionIds.join(","),
@@ -1004,7 +1013,7 @@
                                                     var item = json.queryasyncjobresultresponse.jobresult.condition;
                                                     scaleDownConditionIds.push(item.id);
                                                     if (scaleDownConditionIds.length == scaleDownData.length) {
-                                                        if (!('multiRules' in args.context)) { //from a new LB
+                                                        if (!('multiRules' in args.context) || !args.context.originalAutoscaleData) { //from a new LB or from existing LB without AutoscaleVmGroup
                                                             var data = {
                                                                 action: 'scaledown',
                                                                 conditionids: scaleDownConditionIds.join(","),
@@ -1114,7 +1123,7 @@
                 var createOrUpdateVmProfile = function(args) {
                     var array1 = [];
                     var apiCmd, apiCmdRes;
-                    if (!('multiRules' in args.context)) { //from a new LB
+                    if (!('multiRules' in args.context) || !args.context.originalAutoscaleData) { //from a new LB or from existing LB without AutoscaleVmGroup) { //from a new LB
                         var data = {
                             zoneid: args.context.networks[0].zoneid, //get zoneid from args.context.networks[0] instead of args.context.ipAddresses[0] because args.context.ipAddresses is null when adding AutoScale rule from Add Load Balancer tab in Network page
                             serviceofferingid: args.data.serviceOfferingId,
@@ -1266,6 +1275,13 @@
                 };
 
                 var loadBalancer = function(args) {
+                    // In case load balancer was already created, but no autoscale options yet
+                    if ('loadbalancer' in args.context) {
+                        loadBalancerResponse = args.context.loadbalancer;
+                        autoScaleVmGroup(args);
+                        return;
+                    }
+
                     var networkid;
                     if ('vpc' in args.context) { //from VPC section
                         if (args.data.tier == null) {
@@ -1332,7 +1348,7 @@
                 };
 
                 var autoScaleVmGroup = function(args) {
-                    if (!('multiRules' in args.context)) { //from a new LB
+                    if (!('multiRules' in args.context) || !args.context.originalAutoscaleData) { //from a new LB or from existing LB without AutoscaleVmGroup) { //from a new LB
                         var array1 = [];
                         array1.push("&lbruleid=" + loadBalancerResponse.id);
                         array1.push("&minMembers=" + args.data.minInstance);
