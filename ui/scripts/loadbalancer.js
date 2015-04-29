@@ -418,7 +418,7 @@
                                         id: args.context.loadbalancers[0].id,
                                     },
                                     success: function(data) {
-                                        var instances = [];
+                                        instances = [];
                                         response = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
                                             data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
                                             $(response).each(function() {
@@ -546,31 +546,104 @@
                             },
                         }
                     },
-                },
-                actions: {
-                    editAutoscale: {
-                        label: 'Edit Autoscale',
-                        custom: {
-                            buttonLabel: 'label.configure',
-                        },
-                        action: function(args) {
-                            args.context.networks = [];
-                            args.context.networks.push({zoneid: args.context.loadbalancers[0].zoneid});
-                            args.context.multiRules = [];
-                            args.context.multiRules.push(args.context.loadbalancers[0]);
-                            args.context.loadbalancer = args.context.loadbalancers[0];
-                            var returnFunction = cloudStack.uiCustom.autoscaler(cloudStack.autoscaler);
-                            return returnFunction(args);
-                        },
-                        messages: {
-                            notification: function() {
-                                return 'Update Autoscale';
-                            }
-                        },
-                        notification: {
-                            poll: pollAsyncJobResult
+                    autoscale: {
+                        title: 'label.autoscale',
+                        listView: {
+                            id: 'autoscalegroups',
+                            hideSearchBar: true,
+                            fields: {
+                                id: { label: 'label.id' },
+                                minmembers: { label: 'Min VMs' },
+                                maxmembers: { label: 'Max VMs' },
+                                deployedvms: { label: 'Deployed VMs' },
+                                state: {
+                                    converter: function(str) {
+                                        // For localization
+                                        return str;
+                                    },
+                                    label: 'label.state',
+                                    indicator: {
+                                        'enabled': 'on',
+                                        'disabled': 'off',
+                                        'revoke': 'off',
+                                    }
+                                },
+                            },
+                            dataProvider: function(args) {
+                                $.ajax({
+                                    url: createURL('listAutoScaleVmGroups'),
+                                    data: {
+                                        listAll: true,
+                                        lbruleid: args.context.loadbalancers[0].id
+                                    },
+                                    success: function(json) {
+                                        var response = json.listautoscalevmgroupsresponse.autoscalevmgroup ?
+                                            json.listautoscalevmgroupsresponse.autoscalevmgroup : [];
+
+                                        $(response).each(function() {
+                                            this.nbscaleuppolicies = this.scaleuppolicies.length;
+                                            this.nbscaledownpolicies = this.scaledownpolicies.length;
+                                        });
+
+                                        if (window.instances !== undefined && response[0]) {
+                                            response[0].deployedvms = instances.length;
+                                        } else {
+                                            $.ajax({
+                                                url: createURL('listLoadBalancerRuleInstances'),
+                                                data: {
+                                                    id: args.context.loadbalancers[0].id,
+                                                },
+                                                success: function(data) {
+                                                    instances = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
+                                                        data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
+                                                    if (response[0]) {
+                                                        response[0].deployedvms = instances.length;
+                                                    }
+                                                },
+                                                error: function(errorMessage) {
+                                                    args.response.error(errorMessage);
+                                                }
+                                            });
+                                        }
+
+                                        args.response.success({
+                                            data: response
+                                        });
+                                    },
+                                    error: function (errorMessage) {
+                                        args.response.error(errorMessage);
+                                    }
+                                });
+                            },
+
+                            actions: {
+                                add: {
+                                    label: 'Edit Autoscale',
+                                    action: {
+                                        custom: function(args) {
+                                            args.context.networks = [];
+                                            args.context.networks.push({zoneid: args.context.loadbalancers[0].zoneid});
+                                            args.context.multiRules = [];
+                                            args.context.multiRules.push(args.context.loadbalancers[0]);
+                                            args.context.loadbalancer = args.context.loadbalancers[0];
+                                            var returnFunction = cloudStack.uiCustom.autoscaler(cloudStack.autoscaler);
+                                            return returnFunction(args);
+                                        }
+                                    },
+                                    messages: {
+                                        notification: function() {
+                                            return 'Update Autoscale';
+                                        }
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    },
+                                },
+                            },
                         },
                     },
+                },
+                actions: {
                     editHealthcheck: {
                         label: 'Edit Healthcheck',
                         custom: {
