@@ -432,7 +432,7 @@
                                         id: args.context.loadbalancers[0].id,
                                     },
                                     success: function(data) {
-                                        instances = [];
+                                        lbinstances = [];
                                         response = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
                                             data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
                                             $(response).each(function() {
@@ -447,10 +447,10 @@
                                                         return false; // break 'each' loop since we've found it
                                                     }
                                                 });
-                                                instances.push({id: this.id, name: this.name, ip: ipaddress, network: networkname });
+                                                lbinstances.push({id: this.id, name: this.name, ip: ipaddress, network: networkname });
                                             });
                                         args.response.success({
-                                            data: instances
+                                            data: lbinstances
                                         });
                                     },
                                     error: function(errorMessage) {
@@ -512,13 +512,13 @@
                                                         dataType: "json",
                                                         async: false,
                                                         success: function(json) {
-                                                            var instances = [];
+                                                            var lbinstances = [];
                                                             var lb = args.context.loadbalancers[0];
                                                             $(json.listloadbalancerruleinstancesresponse.loadbalancerruleinstance).each(function() {
-                                                                instances.push({id: this.id, description: this.name });
+                                                                lbinstances.push({id: this.id, description: this.name });
                                                             });
                                                             args.response.success({
-                                                                data: instances
+                                                                data: lbinstances
                                                             });
                                                         }
                                                     });
@@ -599,34 +599,26 @@
                                             this.nbscaledownpolicies = this.scaledownpolicies.length;
                                         });
 
-                                        if (window.instances !== undefined && response[0]) {
-                                            response[0].deployedvms = instances.length;
-                                            args.response.success({
-                                                actionFilter: autoscaleActionfilter,
-                                                data: response
-                                            });
-                                        } else {
-                                            $.ajax({
-                                                url: createURL('listLoadBalancerRuleInstances'),
-                                                data: {
-                                                    id: args.context.loadbalancers[0].id,
-                                                },
-                                                success: function(data) {
-                                                    instances = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
-                                                        data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
-                                                    if (response[0]) {
-                                                        response[0].deployedvms = instances.length;
-                                                    }
-                                                    args.response.success({
-                                                        actionFilter: autoscaleActionfilter,
-                                                        data: response
-                                                    });
-                                                },
-                                                error: function(errorMessage) {
-                                                    args.response.error(errorMessage);
+                                        $.ajax({
+                                            url: createURL('listLoadBalancerRuleInstances'),
+                                            data: {
+                                                id: args.context.loadbalancers[0].id,
+                                            },
+                                            success: function(data) {
+                                                lbinstances = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
+                                                    data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
+                                                if (response[0]) {
+                                                    response[0].deployedvms = lbinstances.length;
                                                 }
-                                            });
-                                        }
+                                                args.response.success({
+                                                    actionFilter: autoscaleActionfilter,
+                                                    data: response
+                                                });
+                                            },
+                                            error: function(errorMessage) {
+                                                args.response.error(errorMessage);
+                                            }
+                                        });
                                     },
                                     error: function (errorMessage) {
                                         args.response.error(errorMessage);
@@ -681,8 +673,8 @@
                                                         jobId: jid,
                                                         getUpdatedItem: function(json) {
                                                             var response = json.queryasyncjobresultresponse.jobresult.autoscalevmgroup;
-                                                            if (window.instances !== undefined && response) {
-                                                                response.deployedvms = instances.length;
+                                                            if (window.lbinstances !== undefined && response) {
+                                                                response.deployedvms = lbinstances.length;
                                                             }
                                                             return response;
                                                         }
@@ -722,8 +714,8 @@
                                                         jobId: jid,
                                                         getUpdatedItem: function(json) {
                                                             var response = json.queryasyncjobresultresponse.jobresult.autoscalevmgroup;
-                                                            if (window.instances !== undefined && response) {
-                                                                response.deployedvms = instances.length;
+                                                            if (window.lbinstances !== undefined && response) {
+                                                                response.deployedvms = lbinstances.length;
                                                             }
                                                             return response;
                                                         }
