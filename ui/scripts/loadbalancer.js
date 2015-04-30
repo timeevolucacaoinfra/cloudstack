@@ -109,6 +109,20 @@
         process_command(0, {});
     };
 
+    var autoscaleActionfilter = function(args) {
+        var jsonObj = args.context.item;
+
+        var allowedActions = [];
+        // allowedActions.push("remove");
+
+        if (jsonObj.state == "enabled")
+            allowedActions.push("disable");
+        else if (jsonObj.state == "disabled")
+            allowedActions.push("enable");
+
+        return allowedActions;
+    };
+
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
         id: 'loadbalancer',
@@ -554,8 +568,8 @@
                             fields: {
                                 id: { label: 'label.id' },
                                 minmembers: { label: 'Min VMs' },
-                                maxmembers: { label: 'Max VMs' },
                                 deployedvms: { label: 'Deployed VMs' },
+                                maxmembers: { label: 'Max VMs' },
                                 state: {
                                     converter: function(str) {
                                         // For localization
@@ -587,6 +601,10 @@
 
                                         if (window.instances !== undefined && response[0]) {
                                             response[0].deployedvms = instances.length;
+                                            args.response.success({
+                                                actionFilter: autoscaleActionfilter,
+                                                data: response
+                                            });
                                         } else {
                                             $.ajax({
                                                 url: createURL('listLoadBalancerRuleInstances'),
@@ -599,16 +617,16 @@
                                                     if (response[0]) {
                                                         response[0].deployedvms = instances.length;
                                                     }
+                                                    args.response.success({
+                                                        actionFilter: autoscaleActionfilter,
+                                                        data: response
+                                                    });
                                                 },
                                                 error: function(errorMessage) {
                                                     args.response.error(errorMessage);
                                                 }
                                             });
                                         }
-
-                                        args.response.success({
-                                            data: response
-                                        });
                                     },
                                     error: function (errorMessage) {
                                         args.response.error(errorMessage);
@@ -639,6 +657,88 @@
                                         poll: pollAsyncJobResult
                                     },
                                 },
+                                enable: {
+                                    label: 'label.enable.autoscale',
+                                    messages: {
+                                        confirm: function(args) {
+                                            return 'Are you sure you want to enable Autoscale VM Group ' + args.context.autoscalegroups[0].id + '?';
+                                        },
+                                        notification: function(args) {
+                                            return 'label.enable.autoscale';
+                                        }
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL('enableAutoScaleVmGroup'),
+                                            data: {
+                                                id: args.context.autoscalegroups[0].id
+                                            },
+                                            async: true,
+                                            success: function(json) {
+                                                var jid = json.enableautoscalevmGroupresponse.jobid;
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: jid,
+                                                        getUpdatedItem: function(json) {
+                                                            var response = json.queryasyncjobresultresponse.jobresult.autoscalevmgroup;
+                                                            if (window.instances !== undefined && response) {
+                                                                response.deployedvms = instances.length;
+                                                            }
+                                                            return response;
+                                                        }
+                                                    },
+                                                    notification: {
+                                                        poll: pollAsyncJobResult
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    },
+                                },
+                                disable: {
+                                    label: 'label.disable.autoscale',
+                                    messages: {
+                                        confirm: function(args) {
+                                            return 'Are you sure you want to disable Autoscale VM Group ' + args.context.autoscalegroups[0].id + '?';
+                                        },
+                                        notification: function(args) {
+                                            return 'label.disable.autoscale';
+                                        }
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL('disableAutoScaleVmGroup'),
+                                            data: {
+                                                id: args.context.autoscalegroups[0].id
+                                            },
+                                            async: true,
+                                            success: function(json) {
+                                                var jid = json.disableautoscalevmGroupresponse.jobid;
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: jid,
+                                                        getUpdatedItem: function(json) {
+                                                            var response = json.queryasyncjobresultresponse.jobresult.autoscalevmgroup;
+                                                            if (window.instances !== undefined && response) {
+                                                                response.deployedvms = instances.length;
+                                                            }
+                                                            return response;
+                                                        }
+                                                    },
+                                                    notification: {
+                                                        poll: pollAsyncJobResult
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    },
+                                }
                             },
                         },
                     },
