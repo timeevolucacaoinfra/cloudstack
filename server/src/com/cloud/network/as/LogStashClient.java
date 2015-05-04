@@ -14,22 +14,9 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package com.cloud.network.as.dao;
+package com.cloud.network.as;
 
-import java.util.List;
+public interface LogStashClient {
 
-import com.cloud.network.as.AutoScaleVmGroupVO;
-import com.cloud.utils.db.GenericDao;
-
-public interface AutoScaleVmGroupDao extends GenericDao<AutoScaleVmGroupVO, Long> {
-
-    List<AutoScaleVmGroupVO> listByAll(Long loadBalancerId, Long profileId);
-
-    List<AutoScaleVmGroupVO> listAllNotLocked();
-
-    List<AutoScaleVmGroupVO> listAllEnabled();
-
-    boolean isProfileInUse(long profileId);
-
-    boolean isAutoScaleLoadBalancer(Long loadBalancerId);
+    public boolean send(String message);
 }

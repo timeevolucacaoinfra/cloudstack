@@ -188,8 +188,23 @@
         <property name="name" value="ApiAsyncJobDispatcher" />
     </bean>
 
-
     <bean id="statsCollector" class="com.cloud.server.StatsCollector" />
+
+    <bean id="transportMapping" class="org.snmp4j.transport.DefaultUdpTransportMapping" />
+
+    <bean id="snmp" class="org.snmp4j.Snmp">
+        <constructor-arg ref="transportMapping"/>
+    </bean>
+
+    <bean id="snmpClient" class="com.cloud.network.as.SNMPClientImpl">
+        <constructor-arg ref="snmp"/>
+    </bean>
+
+    <bean id="autoScaleCounterCollector" class="com.cloud.server.as.AutoScaleCounterCollector" />
+
+    <bean id="autoScaleCounterProcessor" class="com.cloud.network.as.AutoScaleCounterProcessorImpl" />
+
+    <bean id="logStashClient" class="com.cloud.network.as.LogStashClientImpl" />
 
     <bean id="autoScaleMonitor" class="com.cloud.server.as.AutoScaleMonitor" />
 

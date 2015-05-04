@@ -45,6 +45,7 @@ import org.springframework.stereotype.Component;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -94,7 +95,7 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
             for (AutoScaleVmGroupVO asGroup : asGroups) {
 
                 //refresh to have the most updated version of asGroup,
-                //as it can become outdatedwhile the list is iterated
+                //as it can become outdated while the list is iterated
                 asGroup = _asGroupDao.findById(asGroup.getId());
 
                 // check group state
@@ -180,17 +181,19 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
     }
 
     private boolean isNative(long groupId) {
+        boolean isNative = true;
         List<AutoScaleVmGroupPolicyMapVO> vos = _asGroupPolicyDao.listByVmGroupId(groupId);
         for (AutoScaleVmGroupPolicyMapVO vo : vos) {
             List<AutoScalePolicyConditionMapVO> ConditionPolicies = _asConditionMapDao.findByPolicyId(vo.getPolicyId());
             for (AutoScalePolicyConditionMapVO ConditionPolicy : ConditionPolicies) {
                 ConditionVO condition = _asConditionDao.findById(ConditionPolicy.getConditionId());
                 CounterVO counter = _asCounterDao.findById(condition.getCounterid());
-                if (counter.getSource() == Counter.Source.cpu || counter.getSource() == Counter.Source.memory)
-                    return true;
+                List<Counter.Source> notNativesSources = Arrays.asList(Counter.Source.snmp, Counter.Source.netscaler);
+                if (notNativesSources.contains(counter.getSource()))
+                    return false;
             }
         }
-        return false;
+        return isNative;
     }
 
     private String getAutoScaleAction(Map<String, Double> counterSummary, AutoScaleVmGroupVO asGroup, long currentVMcount) {

@@ -26,7 +26,9 @@ public interface Counter extends InternalIdentity, Identity {
         netscaler,
         snmp,
         cpu,
-        memory
+        memory,
+        cpu_used,
+        memory_used
     }
 
     String getName();
