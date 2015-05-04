@@ -165,7 +165,7 @@ public class AutoScaleCounterCollectorTest {
     public void testRunInContextGivenElasticSearchNotEnabled(){
         mockConfigurationDaoDataSource("rrd");
         autoScaleCounterCollector.runInContext();
-        verify(logger).debug("[AutoScale] Elasticsearch stats datasource not enabled");
+        verify(logger).debug("[AutoScale] Elasticsearch stats datasource not enabled or management server not configured");
     }
 
     @Test
