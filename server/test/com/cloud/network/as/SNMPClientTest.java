@@ -27,6 +27,7 @@ import org.snmp4j.Target;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.IpAddress;
+import org.snmp4j.smi.Null;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.VariableBinding;
 
@@ -40,6 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -137,6 +139,19 @@ public class SNMPClientTest {
 
         assertNull(metrics);
         verify(logger).error("Error querying SNMP on: 172.168.10.10", ex);
+    }
+
+    @Test
+    public void testReadGivenSNMPAgentNotReadyOnVm() throws IOException {
+        PDU response = new PDU();
+        response.add(new VariableBinding(new OID(SNMPClientImpl.MEMORY_TOTAL_OID), new Null(129)));
+        response.add(new VariableBinding(new OID(SNMPClientImpl.MEMORY_TOTAL_OID), new Null(129)));
+        stub(snmp.get(any(PDU.class), any(Target.class))).toReturn(new ResponseEvent("", new IpAddress("172.168.10.10"), new PDU(), response, ""));
+
+        Map<String, Double> metrics = snmpClient.read("172.168.10.10",  createRequestCounters(Arrays.asList("memory_used"), Arrays.asList(USED_MEMORY_OID)));
+
+        assertNull(metrics);
+        verify(logger).info(eq("The SNMP agent was not ready on the VM 172.168.10.10. Error: Result was 1.3.6.1.4.1.2021.4.5.0 = noSuchInstance"));
     }
 
     protected Map<String, String> createRequestCounters(List<String> counterNames, List<String> values) {

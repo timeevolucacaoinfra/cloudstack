@@ -24,6 +24,7 @@ import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.mp.SnmpConstants;
+import org.snmp4j.smi.Null;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.UdpAddress;
@@ -58,7 +59,7 @@ public class SNMPClientImpl implements SNMPClient, Configurable{
     @Override
     public Map<String, Double> read(String ipAddress, Map<String, String> counters) {
         try {
-            s_logger.debug("Sending GET SNMP to Server:" + ipAddress);
+            s_logger.debug("Sending GET SNMP to Server: " + ipAddress);
 
             ResponseEvent responseEvent = snmp.get(createPDU(counters), createTarget(ipAddress));
             if (responseEvent != null && responseEvent.getResponse() != null) {
@@ -72,13 +73,15 @@ public class SNMPClientImpl implements SNMPClient, Configurable{
             }
         } catch (IOException e) {
             s_logger.error("Error querying SNMP on: " + ipAddress, e);
+        } catch (SnmpAgentNotReadyException e){
+            s_logger.info("The SNMP agent was not ready on the VM " + ipAddress + ". Error: " + e.getMessage());
         } catch (Exception e) {
             s_logger.error("Unexpected error", e);
         }
         return null;
     }
 
-    private Map<String, Double> parseResponse(Map<String, String> counters, Vector<VariableBinding> variableBindings) {
+    private Map<String, Double> parseResponse(Map<String, String> counters, Vector<VariableBinding> variableBindings) throws SnmpAgentNotReadyException {
         Map<String, Double> metrics = new HashMap<>();
         for(String counterName : counters.keySet()){
             if(counterName.equals(Counter.Source.cpu_used.name())){
@@ -92,22 +95,25 @@ public class SNMPClientImpl implements SNMPClient, Configurable{
         return metrics;
     }
 
-    private Double getValueByOID(Vector<VariableBinding> variableBindings, String oid) {
+    private Double getValueByOID(Vector<VariableBinding> variableBindings, String oid) throws SnmpAgentNotReadyException {
         for(VariableBinding binding : variableBindings){
             if(binding.getOid().toString().equals(oid)){
+                if(binding.getVariable() instanceof Null){
+                    throw new SnmpAgentNotReadyException("Result was " + binding.toString());
+                }
                 return new Double(binding.toValueString());
             }
         }
         return null;
     }
 
-    private Double calculateMemoryUsed(Vector<VariableBinding> variableBindings) {
+    private Double calculateMemoryUsed(Vector<VariableBinding> variableBindings) throws SnmpAgentNotReadyException {
         Double memoryFree = getValueByOID(variableBindings, MEMORY_FREE_OID);
         Double memoryTotal = getValueByOID(variableBindings, MEMORY_TOTAL_OID);
         return 1.0 - (memoryFree/memoryTotal);
     }
 
-    private Double calculateCpuUsed(Vector<VariableBinding> variableBindings) {
+    private Double calculateCpuUsed(Vector<VariableBinding> variableBindings) throws SnmpAgentNotReadyException {
         Double cpuSystem = getValueByOID(variableBindings, CPU_SYSTEM_OID);
         Double cpuUser = getValueByOID(variableBindings, CPU_USER_OID);
         return (cpuSystem + cpuUser) / 100;
@@ -152,5 +158,11 @@ public class SNMPClientImpl implements SNMPClient, Configurable{
     @Override
     public ConfigKey<?>[] getConfigKeys() {
         return new ConfigKey<?>[]{ DefaultTimeout };
+    }
+
+    protected class SnmpAgentNotReadyException extends Exception {
+        public SnmpAgentNotReadyException(String message) {
+            super(message);
+        }
     }
 }
