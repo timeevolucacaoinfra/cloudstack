@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import com.cloud.server.as.AutoScaleMonitor;
+import com.cloud.server.as.AutoScaleCounterCollector;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -135,6 +136,8 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     private HostGpuGroupsDao _hostGpuGroupsDao;
     @Inject
     private AutoScaleMonitor _autoScaleMonitor;
+    @Inject
+    private AutoScaleCounterCollector _autoScaleCounterCollector;
 
     private ConcurrentHashMap<Long, HostStats> _hostStats = new ConcurrentHashMap<Long, HostStats>();
     private final ConcurrentHashMap<Long, VmStats> _VmStats = new ConcurrentHashMap<Long, VmStats>();
@@ -147,6 +150,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
     long storageStatsInterval = -1L;
     long volumeStatsInterval = -1L;
     long autoScaleStatsInterval = -1L;
+    long autoScaleCounterCollectorInterval = -1L;
     int vmDiskStatsInterval = 0;
     List<Long> hostIds = null;
 
@@ -188,6 +192,7 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
         storageStatsInterval = NumbersUtil.parseLong(configs.get("storage.stats.interval"), 60000L);
         volumeStatsInterval = NumbersUtil.parseLong(configs.get("volume.stats.interval"), -1L);
         autoScaleStatsInterval = NumbersUtil.parseLong(configs.get("autoscale.stats.interval"), 60000L);
+        autoScaleCounterCollectorInterval = NumbersUtil.parseLong(configs.get("autoscale.reading.interval"), 10000L);
         vmDiskStatsInterval = NumbersUtil.parseInt(configs.get("vm.disk.stats.interval"), 0);
 
         if (hostStatsInterval > 0) {
@@ -204,6 +209,10 @@ public class StatsCollector extends ManagerBase implements ComponentMethodInterc
 
         if (autoScaleStatsInterval > 0) {
             _executor.scheduleWithFixedDelay(_autoScaleMonitor, 15000L, autoScaleStatsInterval, TimeUnit.MILLISECONDS);
+        }
+
+        if (autoScaleCounterCollectorInterval > 0) {
+            _executor.scheduleWithFixedDelay(_autoScaleCounterCollector, 15000L, autoScaleCounterCollectorInterval, TimeUnit.MILLISECONDS);
         }
 
         if (vmDiskStatsInterval > 0) {

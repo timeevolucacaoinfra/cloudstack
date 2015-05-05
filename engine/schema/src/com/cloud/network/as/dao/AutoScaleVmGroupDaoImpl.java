@@ -53,6 +53,13 @@ public class AutoScaleVmGroupDaoImpl extends GenericDaoBase<AutoScaleVmGroupVO, 
     }
 
     @Override
+    public List<AutoScaleVmGroupVO> listAllEnabled() {
+        SearchCriteria<AutoScaleVmGroupVO> sc = createSearchCriteria();
+        sc.addAnd("state", SearchCriteria.Op.EQ, AutoScaleVmGroupVO.State_Enabled);
+        return listBy(sc);
+    }
+
+    @Override
     public boolean isProfileInUse(long profileId) {
         SearchCriteria<AutoScaleVmGroupVO> sc = createSearchCriteria();
         sc.addAnd("profileId", SearchCriteria.Op.EQ, profileId);

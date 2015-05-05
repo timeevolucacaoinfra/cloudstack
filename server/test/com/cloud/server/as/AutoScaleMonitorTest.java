@@ -60,7 +60,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 
-public class AutoScaleMonitorTests {
+public class AutoScaleMonitorTest {
 
     private AutoScaleMonitor autoScaleMonitor;
     protected List<AutoScaleVmGroupVO> asGroups = new ArrayList<>();

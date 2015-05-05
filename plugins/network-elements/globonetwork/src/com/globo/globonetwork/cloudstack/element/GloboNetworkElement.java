@@ -134,8 +134,8 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
         lbCapabilities.put(Capability.SupportedStickinessMethods, stickyMethodList);
 
         // Add auto scale capability to load balancer
-        AutoScaleCounter.AutoScaleCounterType AutoScaleCounterCpu = new AutoScaleCounter.AutoScaleCounterType("cpu");
-        AutoScaleCounter.AutoScaleCounterType AutoScaleCounterMemory = new AutoScaleCounter.AutoScaleCounterType("memory");
+        AutoScaleCounter.AutoScaleCounterType AutoScaleCounterCpu = new AutoScaleCounter.AutoScaleCounterType("cpu_used");
+        AutoScaleCounter.AutoScaleCounterType AutoScaleCounterMemory = new AutoScaleCounter.AutoScaleCounterType("memory_used");
 
         List<AutoScaleCounter> counterList = new ArrayList<AutoScaleCounter>();
         counterList.add(new AutoScaleCounter(AutoScaleCounterCpu));

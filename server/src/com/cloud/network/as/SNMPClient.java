@@ -14,22 +14,11 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-package com.cloud.network.as.dao;
+package com.cloud.network.as;
 
-import java.util.List;
+import java.util.Map;
 
-import com.cloud.network.as.AutoScaleVmGroupVO;
-import com.cloud.utils.db.GenericDao;
+public interface SNMPClient {
 
-public interface AutoScaleVmGroupDao extends GenericDao<AutoScaleVmGroupVO, Long> {
-
-    List<AutoScaleVmGroupVO> listByAll(Long loadBalancerId, Long profileId);
-
-    List<AutoScaleVmGroupVO> listAllNotLocked();
-
-    List<AutoScaleVmGroupVO> listAllEnabled();
-
-    boolean isProfileInUse(long profileId);
-
-    boolean isAutoScaleLoadBalancer(Long loadBalancerId);
+    public Map<String, Double> read(String ipAddress, Map<String, String> counters);
 }
