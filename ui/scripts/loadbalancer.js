@@ -113,7 +113,7 @@
         var jsonObj = args.context.item;
 
         var allowedActions = [];
-        // allowedActions.push("remove");
+        allowedActions.push("remove");
 
         if (jsonObj.state == "enabled")
             allowedActions.push("disable");
@@ -628,7 +628,7 @@
 
                             actions: {
                                 add: {
-                                    label: 'Edit Autoscale',
+                                    label: 'Configure AutoScale',
                                     action: {
                                         custom: function(args) {
                                             args.context.networks = [];
@@ -642,7 +642,7 @@
                                     },
                                     messages: {
                                         notification: function() {
-                                            return 'Update Autoscale';
+                                            return 'Update AutoScale';
                                         }
                                     },
                                     notification: {
@@ -653,7 +653,7 @@
                                     label: 'label.enable.autoscale',
                                     messages: {
                                         confirm: function(args) {
-                                            return 'Are you sure you want to enable Autoscale VM Group ' + args.context.autoscalegroups[0].id + '?';
+                                            return 'Are you sure you want to enable AutoScale?';
                                         },
                                         notification: function(args) {
                                             return 'label.enable.autoscale';
@@ -677,10 +677,8 @@
                                                                 response.deployedvms = lbinstances.length;
                                                             }
                                                             return response;
-                                                        }
-                                                    },
-                                                    notification: {
-                                                        poll: pollAsyncJobResult
+                                                        },
+                                                        fullRefreshAfterComplete: true
                                                     }
                                                 });
                                             }
@@ -694,7 +692,7 @@
                                     label: 'label.disable.autoscale',
                                     messages: {
                                         confirm: function(args) {
-                                            return 'Are you sure you want to disable Autoscale VM Group ' + args.context.autoscalegroups[0].id + '?';
+                                            return 'Are you sure you want to disable AutoScale?';
                                         },
                                         notification: function(args) {
                                             return 'label.disable.autoscale';
@@ -718,10 +716,41 @@
                                                                 response.deployedvms = lbinstances.length;
                                                             }
                                                             return response;
-                                                        }
-                                                    },
-                                                    notification: {
-                                                        poll: pollAsyncJobResult
+                                                        },
+                                                        fullRefreshAfterComplete: true
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    },
+                                },
+                                remove: {
+                                    label: 'label.delete',
+                                    messages: {
+                                        confirm: function(args) {
+                                            return 'Are you sure you want to remove AutoScale?';
+                                        },
+                                        notification: function(args) {
+                                            return 'Remove Autoscale';
+                                        }
+                                    },
+                                    action: function(args) {
+                                        $.ajax({
+                                            url: createURL('deleteAutoScaleVmGroup'),
+                                            data: {
+                                                id: args.context.autoscalegroups[0].id,
+                                                removedependencies: true,
+                                            },
+                                            async: true,
+                                            success: function(json) {
+                                                var jid = json.deleteautoscalevmgroupresponse.jobid;
+                                                args.response.success({
+                                                    _custom: {
+                                                        jobId: jid,
+                                                        fullRefreshAfterComplete: true
                                                     }
                                                 });
                                             }
