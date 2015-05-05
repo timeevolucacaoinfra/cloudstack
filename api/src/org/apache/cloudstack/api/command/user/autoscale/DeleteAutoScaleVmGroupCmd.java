@@ -52,6 +52,9 @@ public class DeleteAutoScaleVmGroupCmd extends BaseAsyncCmd {
                description = "the ID of the autoscale group")
     private Long id;
 
+    @Parameter(name = "removedependencies", type = CommandType.BOOLEAN, required = false, description = "remove all dependencies related to Autoscale VM Group")
+    private Boolean removeDependencies;
+
     // ///////////////////////////////////////////////////
     // ///////////////// Accessors ///////////////////////
     // ///////////////////////////////////////////////////
@@ -59,6 +62,8 @@ public class DeleteAutoScaleVmGroupCmd extends BaseAsyncCmd {
     public Long getId() {
         return id;
     }
+
+    public Boolean getRemoveDependencies() { return removeDependencies; }
 
     // ///////////////////////////////////////////////////
     // ///////////// API Implementation///////////////////
@@ -93,7 +98,14 @@ public class DeleteAutoScaleVmGroupCmd extends BaseAsyncCmd {
     @Override
     public void execute() {
         CallContext.current().setEventDetails("AutoScale Vm Group Id: " + getId());
-        boolean result = _autoScaleService.deleteAutoScaleVmGroup(id);
+        boolean result = false;
+        if (getRemoveDependencies() == null || !getRemoveDependencies()) {
+            // Remove autoscale VM group, but preserve all dependencies - i.e. profiles, policies, conditions
+            result = _autoScaleService.deleteAutoScaleVmGroup(id);
+        } else {
+            // Remove autoscale VM group and all profiles, policies and conditions associated to it
+            result = _autoScaleService.deleteAutoScaleVmGroupWithDependencies(id);
+        }
 
         if (result) {
             SuccessResponse response = new SuccessResponse(getCommandName());

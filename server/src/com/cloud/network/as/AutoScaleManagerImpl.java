@@ -902,6 +902,98 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
     }
 
+    @Override
+    @DB
+    @ActionEvent(eventType = EventTypes.EVENT_AUTOSCALEVMGROUP_DELETE, eventDescription = "deleting autoscale vm group with dependencies")
+    public boolean deleteAutoScaleVmGroupWithDependencies(final long id) {
+        AutoScaleVmGroupVO autoScaleVmGroupVO = getEntityInDatabase(CallContext.current().getCallingAccount(), "AutoScale Vm Group", id, _autoScaleVmGroupDao);
+
+        if (autoScaleVmGroupVO.getState().equals(AutoScaleVmGroup.State_New)) {
+            /* This condition is for handling failures during creation command */
+            return _autoScaleVmGroupDao.remove(id);
+        }
+        String bakupState = autoScaleVmGroupVO.getState();
+        autoScaleVmGroupVO.setState(AutoScaleVmGroup.State_Revoke);
+        _autoScaleVmGroupDao.persist(autoScaleVmGroupVO);
+        boolean success = false;
+
+        try {
+            success = configureAutoScaleVmGroup(id, bakupState);
+        } catch (ResourceUnavailableException e) {
+            autoScaleVmGroupVO.setState(bakupState);
+            _autoScaleVmGroupDao.persist(autoScaleVmGroupVO);
+        } finally {
+            if (!success) {
+                s_logger.warn("Could not delete AutoScale Vm Group id : " + id);
+                return false;
+            }
+        }
+
+        //removing VMS before removing auto scale group
+        this.destroyRemainingVms(id);
+
+        // Set up objects to be deleted
+        final Long vmProfileId = autoScaleVmGroupVO.getProfileId();
+
+        return Transaction.execute(new TransactionCallback<Boolean>() {
+            @Override
+            public Boolean doInTransaction(TransactionStatus status) {
+                boolean success = _autoScaleVmGroupDao.remove(id);
+
+                if (!success) {
+                    s_logger.warn("Failed to remove AutoScale Group db object");
+                    return false;
+                }
+
+                success = deleteAutoScaleVmProfile(vmProfileId);
+                if (!success) {
+                    s_logger.warn("Failed to remove AutoScale VM Profile associated to Autoscale VM Group");
+                    return false;
+                }
+
+                // Save up policies to be deleted
+                List<AutoScaleVmGroupPolicyMapVO> policiesMapList = _autoScaleVmGroupPolicyMapDao.listByVmGroupId(id);
+
+                // Remove mapping between AutoScale VM Group and policies so policies are not in use anymore
+                success = _autoScaleVmGroupPolicyMapDao.removeByGroupId(id);
+                if (!success) {
+                    s_logger.warn("Failed to remove AutoScale Group Policy mappings");
+                    return false;
+                }
+
+                for(AutoScaleVmGroupPolicyMapVO policyMapVO : policiesMapList) {
+                    Long policyId = policyMapVO.getPolicyId();
+                    List<AutoScalePolicyConditionMapVO> conditionsMapList = _autoScalePolicyConditionMapDao.findByPolicyId(policyId);
+
+                    success = deleteAutoScalePolicy(policyId);
+                    if (!success) {
+                        s_logger.warn("Failed to remove AutoScale Policy " + policyId);
+                        return false;
+                    }
+
+                    for(AutoScalePolicyConditionMapVO conditionMapVO : conditionsMapList) {
+                        Long conditionId = conditionMapVO.getConditionId();
+                        try {
+                            success = deleteCondition(conditionId);
+                        } catch (ResourceInUseException e) {
+                            s_logger.warn("Failed to remove condition " + conditionId);
+                            return false;
+                        }
+
+                        if (!success) {
+                            s_logger.warn("Failed to remove condition " + conditionId);
+                            return false;
+                        }
+                    }
+                }
+
+                s_logger.info("Successfully deleted autoscale vm group id : " + id);
+                return success; // Successfull
+            }
+        });
+
+    }
+
     protected void destroyRemainingVms(long id) {
         int vmCount = _autoScaleVmGroupVmMapDao.countByGroup(id);
         if(vmCount > 0) {

@@ -59,6 +59,8 @@ public interface AutoScaleService {
 
     boolean deleteAutoScaleVmGroup(long vmGroupId);
 
+    boolean deleteAutoScaleVmGroupWithDependencies(long vmGroupId);
+
     AutoScaleVmGroup updateAutoScaleVmGroup(UpdateAutoScaleVmGroupCmd cmd);
 
     AutoScaleVmGroup enableAutoScaleVmGroup(Long id);
