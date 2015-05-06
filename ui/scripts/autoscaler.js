@@ -1376,6 +1376,7 @@
                                                 clearInterval(scaleVmGroupTimer);
                                                 if (result.jobstatus == 1) { //autoscale Vm group successfully created
                                                     scaleVmGroupResponse = result.jobresult.autoscalevmgroup;
+                                                    $(window).trigger('cloudStack.fullRefresh');
                                                     args.response.success();
                                                 } else if (result.jobstatus == 2) {
                                                     args.response.error(_s(result.jobresult.errortext));
