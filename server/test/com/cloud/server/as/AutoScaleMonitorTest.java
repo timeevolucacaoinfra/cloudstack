@@ -49,6 +49,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
@@ -107,7 +108,7 @@ public class AutoScaleMonitorTest {
         autoScaleMonitor._asPolicyDao = mock(AutoScalePolicyDao.class);
         when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, new Date(1), "scaleup"));
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroup);
 
         verify(autoScaleMonitor._asManager).doScaleUp(asGroup.getId(), 1);
         verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
@@ -145,7 +146,7 @@ public class AutoScaleMonitorTest {
         autoScaleMonitor._asPolicyDao = mock(AutoScalePolicyDao.class);
         when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, new Date(1), "scaledown"));
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroup);
 
         verify(autoScaleMonitor._asManager).doScaleDown(asGroup.getId(), 1);
         verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
@@ -185,7 +186,7 @@ public class AutoScaleMonitorTest {
         autoScaleMonitor._asPolicyDao = mock(AutoScalePolicyDao.class);
         when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, now, "scaledown"));
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroup);
 
         verifyZeroInteractions(autoScaleMonitor._asManager);
         verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
@@ -219,7 +220,7 @@ public class AutoScaleMonitorTest {
         autoScaleMonitor.autoScaleStatsCollectorFactory = mock(AutoScaleStatsCollectorFactory.class);
         when(autoScaleMonitor.autoScaleStatsCollectorFactory.getStatsCollector()).thenReturn(collector);
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroup);
 
         verifyZeroInteractions(autoScaleMonitor._asManager);
         verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
@@ -252,7 +253,7 @@ public class AutoScaleMonitorTest {
         autoScaleMonitor.autoScaleStatsCollectorFactory = mock(AutoScaleStatsCollectorFactory.class);
         when(autoScaleMonitor.autoScaleStatsCollectorFactory.getStatsCollector()).thenReturn(collector);
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroup);
 
         verifyZeroInteractions(autoScaleMonitor._asManager);
         verify(autoScaleMonitor._asGroupDao, times(3)).persist(any(AutoScaleVmGroupVO.class));
@@ -268,7 +269,7 @@ public class AutoScaleMonitorTest {
         AutoScaleManager asManager = mock(AutoScaleManager.class);
         autoScaleMonitor._asManager = asManager;
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroups.get(0));
 
         verify(asManager).doScaleUp(asGroups.get(0).getId(), 1);
     }
@@ -283,7 +284,7 @@ public class AutoScaleMonitorTest {
         AutoScaleManager asManager = mock(AutoScaleManager.class);
         autoScaleMonitor._asManager = asManager;
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroups.get(0));
 
         verify(asManager).doScaleDown(asGroups.get(0).getId(), 2);
     }
@@ -298,7 +299,7 @@ public class AutoScaleMonitorTest {
         AutoScaleManager asManager = mock(AutoScaleManager.class);
         autoScaleMonitor._asManager = asManager;
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroups.get(0));
 
         verifyZeroInteractions(asManager);
     }
@@ -312,9 +313,23 @@ public class AutoScaleMonitorTest {
         AutoScaleManager asManager = mock(AutoScaleManager.class);
         autoScaleMonitor._asManager = asManager;
 
-        autoScaleMonitor.runInContext();
+        autoScaleMonitor.processAutoScaleGroup(asGroup);
 
         verifyZeroInteractions(asManager);
+    }
+
+    @Test
+    public void testRunInContext(){
+        asGroups = Arrays.asList(new AutoScaleVmGroupVO[]{ asGroups.get(0), asGroups.get(0), asGroups.get(0) });
+        AutoScaleVmGroupDao _asGroupVmDao = mock(AutoScaleVmGroupDao.class);
+        when(_asGroupVmDao.listAllNotLocked()).thenReturn(asGroups);
+        autoScaleMonitor._asGroupDao = _asGroupVmDao;
+
+        autoScaleMonitor.threadExecutor = mock(ExecutorService.class);
+
+        autoScaleMonitor.runInContext();
+        verify(autoScaleMonitor.threadExecutor, times(3)).execute(any(Runnable.class));
+        verify(autoScaleMonitor._asGroupDao, times(1)).listAllNotLocked();
     }
 
     protected void mockAutoScaleGroupDao(){

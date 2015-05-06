@@ -16,7 +16,6 @@
 // under the License.
 package com.cloud.server.as;
 
-import com.cloud.agent.AgentManager;
 import com.cloud.network.as.AutoScaleManager;
 import com.cloud.network.as.AutoScalePolicyConditionMapVO;
 import com.cloud.network.as.AutoScalePolicyVO;
@@ -36,9 +35,10 @@ import com.cloud.network.as.dao.AutoScaleVmGroupPolicyMapDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupVmMapDao;
 import com.cloud.network.as.dao.ConditionDao;
 import com.cloud.network.as.dao.CounterDao;
-import com.cloud.service.dao.ServiceOfferingDao;
 import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.dao.VMInstanceDao;
+import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.managed.context.ManagedContextRunnable;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
@@ -49,12 +49,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Component
-public class AutoScaleMonitor extends ManagedContextRunnable {
+public class AutoScaleMonitor extends ManagedContextRunnable implements Configurable{
 
-    @Inject
-    protected AgentManager _agentMgr;
     @Inject
     protected AutoScaleVmGroupDao _asGroupDao;
     @Inject
@@ -74,14 +74,19 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
     @Inject
     protected CounterDao _asCounterDao;
     @Inject
-    protected ServiceOfferingDao _serviceOfferingDao;
-    @Inject
     protected AutoScaleStatsCollectorFactory autoScaleStatsCollectorFactory;
+
+    protected ExecutorService threadExecutor;
 
     private static final String SCALE_UP_ACTION = "scaleup";
     private static final String AUTO_SCALE_ENABLED = "enabled";
+    private static final Logger s_logger = Logger.getLogger(AutoScaleMonitor.class.getName());
 
-    public static final Logger s_logger = Logger.getLogger(AutoScaleMonitor.class.getName());
+    private static final ConfigKey<Integer> ThreadPoolSize = new ConfigKey<>("Advanced", Integer.class, "autoscale.monitor.threadpoolsize", "10", "Auto scale monitor thread pool size", true, ConfigKey.Scope.Global);
+
+    public AutoScaleMonitor(){
+        threadExecutor = Executors.newFixedThreadPool(ThreadPoolSize.value());
+    }
 
     @Override
     protected void runInContext() {
@@ -90,67 +95,77 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
                 s_logger.debug("[AutoScale] AutoScaling Monitor is running");
             }
 
-            // list all AS VMGroups
-            List<AutoScaleVmGroupVO> asGroups = _asGroupDao.listAllNotLocked();
-            for (AutoScaleVmGroupVO asGroup : asGroups) {
-
-                //refresh to have the most updated version of asGroup,
-                //as it can become outdated while the list is iterated
-                asGroup = _asGroupDao.findById(asGroup.getId());
-
-                // check group state
-                if (!asGroup.isLocked() && asGroup.getState().equals(AUTO_SCALE_ENABLED) && isNative(asGroup.getId())) {
-                    try{
-                        lockAutoScaleGroup(asGroup);
-
-                        // check minimum vm of group
-                        Integer currentVMcount = _asGroupVmDao.countByGroup(asGroup.getId());
-                        if (currentVMcount < asGroup.getMinMembers()) {
-                            _asManager.doScaleUp(asGroup.getId(), asGroup.getMinMembers() - currentVMcount);
-                            continue;
+            for (final AutoScaleVmGroupVO asGroup : _asGroupDao.listAllNotLocked()) {
+                threadExecutor.execute(new Runnable() {
+                    public void run() {
+                        if (s_logger.isDebugEnabled()) {
+                            s_logger.debug("[AutoScale] Processing AutoScaleGroup id: " + asGroup.getId());
                         }
+                        processAutoScaleGroup(asGroup);
+                    }
+                });
+            }
+        } catch (Throwable t) {
+            s_logger.error("[AutoScale] Error trying to monitor auto scale", t);
+        }
+    }
 
-                        // check maximum vm of group
-                        if (currentVMcount > asGroup.getMaxMembers()) {
-                            _asManager.doScaleDown(asGroup.getId(), currentVMcount - asGroup.getMaxMembers());
-                            continue;
-                        }
+    protected void processAutoScaleGroup(AutoScaleVmGroupVO asGroup) {
+        try {
+            //refresh to have the most updated version of asGroup,
+            //as it can become outdated while the list is iterated
+            asGroup = _asGroupDao.findById(asGroup.getId());
 
-                        //check interval
-                        long now = new Date().getTime();
-                        Date lastInterval = asGroup.getLastInterval();
-                        if (lastInterval != null && (now - lastInterval.getTime()) < asGroup.getInterval() * 1000) {
-                            continue;
-                        }
+            if(asGroup.isLocked() || !asGroup.getState().equals(AUTO_SCALE_ENABLED) || !isNative(asGroup.getId()))
+                return;
 
-                        updateLasIntervalFor(asGroup);
+            lockAutoScaleGroup(asGroup);
 
-                        AutoScaleStatsCollector statsCollector = autoScaleStatsCollectorFactory.getStatsCollector();
-                        Map<String, Double> counterSummary = statsCollector.retrieveMetrics(asGroup, this.getVirtualMachinesFor(asGroup));
+            // check minimum vm of group
+            Integer currentVmCount = _asGroupVmDao.countByGroup(asGroup.getId());
+            if (currentVmCount < asGroup.getMinMembers()) {
+                _asManager.doScaleUp(asGroup.getId(), asGroup.getMinMembers() - currentVmCount);
+                return;
+            }
 
-                        if(counterSummaryNotEmpty(counterSummary)) {
-                            String scaleAction = this.getAutoScaleAction(counterSummary, asGroup, currentVMcount);
-                            if (scaleAction != null) {
-                                s_logger.debug("[AutoScale] Doing scale action: " + scaleAction + " for group " + asGroup.getId());
+            // check maximum vm of group
+            if (currentVmCount > asGroup.getMaxMembers()) {
+                _asManager.doScaleDown(asGroup.getId(), currentVmCount - asGroup.getMaxMembers());
+                return;
+            }
 
-                                if (scaleAction.equals(SCALE_UP_ACTION)) {
-                                    _asManager.doScaleUp(asGroup.getId(), 1);
-                                } else {
-                                    _asManager.doScaleDown(asGroup.getId(), 1);
-                                }
-                            }
-                        }
-                    }catch (Exception e){
-                        s_logger.error("[AutoScale] Error while processing AutoScale group "+ asGroup.getId() +" Stats", e);
-                    }finally {
-                        unlockAutoScaleGroup(asGroup);
+            if (minimumIntervalNotMet(asGroup)) return;
+
+            updateLasIntervalFor(asGroup);
+
+            AutoScaleStatsCollector statsCollector = autoScaleStatsCollectorFactory.getStatsCollector();
+            Map<String, Double> counterSummary = statsCollector.retrieveMetrics(asGroup, this.getVirtualMachinesFor(asGroup));
+
+            if (counterSummaryNotEmpty(counterSummary)) {
+                String scaleAction = this.getAutoScaleAction(counterSummary, asGroup);
+                if (scaleAction != null) {
+                    s_logger.debug("[AutoScale] Doing scale action: " + scaleAction + " for group " + asGroup.getId());
+
+                    if (scaleAction.equals(SCALE_UP_ACTION)) {
+                        _asManager.doScaleUp(asGroup.getId(), 1);
+                    } else {
+                        _asManager.doScaleDown(asGroup.getId(), 1);
                     }
                 }
             }
-        } catch (Throwable t) {
-            s_logger.error("[AutoScale] Error trying to monitor autoscaling", t);
+        }catch(Exception ex){
+            s_logger.error("[AutoScale] Error while processing AutoScale group id" + asGroup.getId(), ex);
+        }finally{
+            unlockAutoScaleGroup(asGroup);
         }
     }
+
+    private boolean minimumIntervalNotMet(AutoScaleVmGroupVO asGroup) {
+        long now = new Date().getTime();
+        Date lastInterval = asGroup.getLastInterval();
+        return (lastInterval != null && (now - lastInterval.getTime()) < asGroup.getInterval() * 1000);
+    }
+
 
     private boolean counterSummaryNotEmpty(Map<String, Double> counterSummary) {
         return counterSummary != null && !counterSummary.keySet().isEmpty();
@@ -181,7 +196,6 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
     }
 
     private boolean isNative(long groupId) {
-        boolean isNative = true;
         List<AutoScaleVmGroupPolicyMapVO> vos = _asGroupPolicyDao.listByVmGroupId(groupId);
         for (AutoScaleVmGroupPolicyMapVO vo : vos) {
             List<AutoScalePolicyConditionMapVO> ConditionPolicies = _asConditionMapDao.findByPolicyId(vo.getPolicyId());
@@ -193,10 +207,10 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
                     return false;
             }
         }
-        return isNative;
+        return true;
     }
 
-    private String getAutoScaleAction(Map<String, Double> counterSummary, AutoScaleVmGroupVO asGroup, long currentVMcount) {
+    private String getAutoScaleAction(Map<String, Double> counterSummary, AutoScaleVmGroupVO asGroup) {
         List<AutoScaleVmGroupPolicyMapVO> asGroupPolicyMap = _asGroupPolicyDao.listByVmGroupId(asGroup.getId());
         if (asGroupPolicyMap == null || asGroupPolicyMap.size() == 0)
             return null;
@@ -264,5 +278,15 @@ public class AutoScaleMonitor extends ManagedContextRunnable {
         }
 
         return conditions;
+    }
+
+    @Override
+    public String getConfigComponentName() {
+        return AutoScaleMonitor.class.getName();
+    }
+
+    @Override
+    public ConfigKey<?>[] getConfigKeys() {
+        return new ConfigKey<?>[]{ ThreadPoolSize };
     }
 }
