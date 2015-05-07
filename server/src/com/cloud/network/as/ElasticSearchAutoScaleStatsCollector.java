@@ -29,9 +29,9 @@ import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.query.FilterBuilders;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.Aggregations;
 import org.elasticsearch.search.aggregations.metrics.avg.InternalAvg;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +52,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
     private static final ConfigKey<String> ElasticSearchIndexName = new ConfigKey<>("Advanced", String.class, "autoscale.elasticsearch.index", null,
             "Elastic search index name", true, ConfigKey.Scope.Global);
 
-    public static final Logger s_logger = Logger.getLogger(ElasticSearchAutoScaleStatsCollector.class.getName());
+    private static final Logger s_logger = Logger.getLogger(ElasticSearchAutoScaleStatsCollector.class.getName());
 
     public ElasticSearchAutoScaleStatsCollector(){
         buildConnection();
@@ -61,14 +61,12 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
     @Override
     public Map<String, Double> retrieveMetrics(AutoScaleVmGroup asGroup, List<VMInstanceVO> vmList) {
         if (s_logger.isDebugEnabled()) {
-            s_logger.debug("[AutoScale] Collecting ElasticSearch's data.");
+            s_logger.debug("[AutoScale] Collecting ElasticSearch data.");
         }
 
-        if(vmList == null || vmList.size() == 0 || !connectionIsSet()) {
+        if(!connectionIsSet())
             return null;
-        }
 
-        List<String> hostNames = this.getHostNames(vmList);
         Map<String, Double> avgSummary = new HashMap<>();
         List<Pair<String, Integer>> counterNameAndDuration = this.getPairOfCounterNameAndDuration(asGroup);
 
@@ -76,30 +74,26 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
             for (Pair<String, Integer> counter : counterNameAndDuration) {
                 String counterName = counter.first().split(",")[0];
                 Integer duration = counter.second();
-                SearchResponse response = this.queryForStats(hostNames, counterName, duration);
-                s_logger.debug("[AutoScale] Elasticsearch response: " + response.toString());
+                SearchResponse response = this.queryForStats(asGroup.getId(), counterName, duration);
                 avgSummary.put(counterName, this.getStatAverage(response));
             }
         }catch (RuntimeException ex){
-            s_logger.error("[AutoScale] Error while reading AutoScale group " + asGroup.getId() + " Stats", ex);
+            s_logger.error("[AutoScale] Error while reading AutoScale group " + asGroup.getId() + " stats", ex);
         }
         return avgSummary;
     }
 
     private Double getStatAverage(SearchResponse response) {
-        double average = ((InternalAvg) response.getAggregations().asMap().get("counter_average")).value();
-        return (average >= 0.0 ? average : null);
-    }
-
-    private List<String> getHostNames(List<VMInstanceVO> vmList) {
-        List<String> hostNames = new ArrayList<>();
-        for(VMInstanceVO vm : vmList){
-            hostNames.add(vm.getHostName());
+        Double average = null;
+        Aggregations aggregations = response.getAggregations();
+        if(aggregations != null){
+            average = ((InternalAvg) aggregations.asMap().get("counter_average")).getValue();
+            average = (average >= 0.0 ? average : null);
         }
-        return hostNames;
+        return average;
     }
 
-    private SearchResponse queryForStats(List<String> hostNames, String counterName, Integer duration) {
+    private SearchResponse queryForStats(Long asGroupId, String counterName, Integer duration) {
         return elasticSearchClient.prepareSearch(ElasticSearchIndexName.value())
             .setTypes(counterName)
             .setFrom(0).setSize(0)
@@ -107,7 +101,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
                     QueryBuilders.matchAllQuery(),
                     FilterBuilders.andFilter(
                         FilterBuilders.rangeFilter("@timestamp").from("now-" + duration + "s/s").to("now"),
-                        FilterBuilders.termsFilter("hostname.raw", hostNames)
+                        FilterBuilders.termFilter("autoScaleGroupId", asGroupId)
                     )
                 )
             )
