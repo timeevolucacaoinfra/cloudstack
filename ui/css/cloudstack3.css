@@ -8265,7 +8265,6 @@ div.container div.panel div#details-tab-addloadBalancer.detail-group div.loadBal
 
 .multi-edit .data .data-body .data-item > table tbody tr td span {
   overflow: hidden;
-  max-width: 78px;
   display: block;
   float: left;
   text-overflow: ellipsis;
