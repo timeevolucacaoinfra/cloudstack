@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.ejb.Local;
 
+import com.cloud.utils.Pair;
 import org.apache.log4j.Logger;
 import org.apache.xmlrpc.XmlRpcException;
 
@@ -141,7 +142,7 @@ public class XenServer610Resource extends XenServer602Resource {
     protected MigrateWithStorageAnswer execute(MigrateWithStorageCommand cmd) {
         Connection connection = getConnection();
         VirtualMachineTO vmSpec = cmd.getVirtualMachine();
-        Map<VolumeTO, StorageFilerTO> volumeToFiler = cmd.getVolumeToFiler();
+        List<Pair<VolumeTO, StorageFilerTO>> volumeToFiler = cmd.getVolumeToFilerAsList();
         final String vmName = vmSpec.getName();
         State state = s_vms.getState(_cluster, vmName);
         Task task = null;
@@ -165,8 +166,10 @@ public class XenServer610Resource extends XenServer602Resource {
             // Create the vif map. The vm stays in the same cluster so we have to pass an empty vif map.
             Map<VIF, Network> vifMap = new HashMap<VIF, Network>();
             Map<VDI, SR> vdiMap = new HashMap<VDI, SR>();
-            for (Map.Entry<VolumeTO, StorageFilerTO> entry : volumeToFiler.entrySet()) {
-                vdiMap.put(getVDIbyUuid(connection, entry.getKey().getPath()), getStorageRepository(connection, entry.getValue().getUuid()));
+            for (Pair<VolumeTO, StorageFilerTO> entry : volumeToFiler) {
+                VolumeTO volume = entry.first();
+                StorageFilerTO filerTo = entry.second();
+                vdiMap.put(getVDIbyUuid(connection, volume.getPath()), getStorageRepository(connection, filerTo.getUuid()));
             }
 
             // Check migration with storage is possible.
@@ -220,14 +223,16 @@ public class XenServer610Resource extends XenServer602Resource {
     protected MigrateWithStorageReceiveAnswer execute(MigrateWithStorageReceiveCommand cmd) {
         Connection connection = getConnection();
         VirtualMachineTO vmSpec = cmd.getVirtualMachine();
-        Map<VolumeTO, StorageFilerTO> volumeToFiler = cmd.getVolumeToFiler();
+        List<Pair<VolumeTO, StorageFilerTO>> volumeToFiler = cmd.getVolumeToFilerAsList();
 
         try {
             // Get a map of all the SRs to which the vdis will be migrated.
             Map<VolumeTO, Object> volumeToSr = new HashMap<VolumeTO, Object>();
-            for (Map.Entry<VolumeTO, StorageFilerTO> entry : volumeToFiler.entrySet()) {
-                SR sr = getStorageRepository(connection, entry.getValue().getUuid());
-                volumeToSr.put(entry.getKey(), sr);
+            for (Pair<VolumeTO, StorageFilerTO> entry : volumeToFiler) {
+                VolumeTO volume = entry.first();
+                StorageFilerTO filerTo = entry.second();
+                SR sr = getStorageRepository(connection, filerTo.getUuid());
+                volumeToSr.put(volume, sr);
             }
 
             // Get the list of networks to which the vifs will attach.
