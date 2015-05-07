@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class AutoScaleCounterProcessorTest {
         Map<String, String> counters = new HashMap<>();
         counters.put("cpu", "1.1.1.1.1.1.1.1");
 
-        autoScaleCounterProcessor.process(virtualMachines, counters);
+        autoScaleCounterProcessor.process(createAutoScaleGroup(), virtualMachines, counters);
         verify(threadPoolExecutor, times(1)).execute(any(Runnable.class));
     }
 
@@ -74,7 +75,7 @@ public class AutoScaleCounterProcessorTest {
         List<VirtualMachineAddress> virtualMachines = Arrays.asList(new VirtualMachineAddress("172.168.10.10","host1"), new VirtualMachineAddress("172.168.10.9","host2"));
         Map<String, String> counters = createCountersInput(Arrays.asList("cpu"), Arrays.asList("1.1.1.1.1.1.1.1"));
 
-        autoScaleCounterProcessor.process(virtualMachines, counters);
+        autoScaleCounterProcessor.process(createAutoScaleGroup(), virtualMachines, counters);
         verify(threadPoolExecutor, times(2)).execute(any(Runnable.class));
     }
 
@@ -85,7 +86,7 @@ public class AutoScaleCounterProcessorTest {
 
         when(snmpClient.read("172.168.2.10", counters)).thenReturn(metricsResult);
 
-        autoScaleCounterProcessor.processCounters(new VirtualMachineAddress("172.168.2.10", "host"), counters);
+        autoScaleCounterProcessor.processCounters(createAutoScaleGroup(), new VirtualMachineAddress("172.168.2.10", "host"), counters);
         verify(snmpClient, times(1)).read("172.168.2.10", counters);
         verify(logStashClient, times(1)).send(anyString());
     }
@@ -97,7 +98,7 @@ public class AutoScaleCounterProcessorTest {
 
         when(snmpClient.read("172.168.2.10", counters)).thenReturn(metricsResult);
 
-        autoScaleCounterProcessor.processCounters(new VirtualMachineAddress("172.168.2.10","host1"), counters);
+        autoScaleCounterProcessor.processCounters(createAutoScaleGroup(), new VirtualMachineAddress("172.168.2.10","host1"), counters);
         verify(snmpClient, times(1)).read("172.168.2.10", counters);
         verify(logStashClient, times(2)).send(anyString());
     }
@@ -110,27 +111,27 @@ public class AutoScaleCounterProcessorTest {
         when(snmpClient.read("172.168.2.10", counters)).thenReturn(metricsResult);
         when(logStashClient.send(anyString())).thenReturn(false);
 
-        autoScaleCounterProcessor.processCounters(new VirtualMachineAddress("172.168.2.10","host1"), counters);
-        verify(logger).error("Error sending message to LogStash: {\"client\":\"cloudstack\",\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}");
+        autoScaleCounterProcessor.processCounters(createAutoScaleGroup(), new VirtualMachineAddress("172.168.2.10","host1"), counters);
+        verify(logger).error("Error sending message to LogStash: {\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}");
     }
 
     @Test
     public void testCreateLogStashMessageWithOneMetric(){
         Map<String, Double> metricsResult = createMetricsResult(Arrays.asList("cpu"),Arrays.asList("0.1"));
-        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
+        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(createAutoScaleGroup(), metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
 
         assertEquals(1, messages.size());
-        assertEquals("{\"client\":\"cloudstack\",\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
+        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
     }
 
     @Test
     public void testCreateLogStashMessageWithMoreThanOneMetric(){
         Map<String, Double> metricsResult = createMetricsResult(Arrays.asList("cpu", "memory"),Arrays.asList("0.1", "0.5"));
-        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
+        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(createAutoScaleGroup(), metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
 
         assertEquals(2, messages.size());
-        assertEquals("{\"client\":\"cloudstack\",\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
-        assertEquals("{\"client\":\"cloudstack\",\"hostname\":\"host1\",\"metric\":\"memory\",\"value\":0.5,\"count\":1}", messages.get(1));
+        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
+        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"memory\",\"value\":0.5,\"count\":1}", messages.get(1));
     }
 
     private Map<String, Double> createMetricsResult(List<String> metricNames, List<String> metricValues){
@@ -147,5 +148,9 @@ public class AutoScaleCounterProcessorTest {
             metrics.put(counterNames.get(i), snmpCodes.get(i));
         }
         return metrics;
+    }
+
+    private AutoScaleVmGroupVO createAutoScaleGroup() {
+        return new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
     }
 }

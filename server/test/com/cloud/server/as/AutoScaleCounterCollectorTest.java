@@ -61,7 +61,9 @@ import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -131,7 +133,7 @@ public class AutoScaleCounterCollectorTest {
 
         Map<String, String> counters = new HashMap<>();
         counters.put("cpu", "1.1.1.1.1");
-        verify(counterProcessor).process(Arrays.asList(new VirtualMachineAddress("172.168.10.5","vm-20")), counters);
+        verify(counterProcessor, times(1)).process(any(AutoScaleVmGroupVO.class), eq(Arrays.asList(new VirtualMachineAddress("172.168.10.5", "vm-20"))), eq(counters));
     }
 
     @Test
@@ -154,7 +156,7 @@ public class AutoScaleCounterCollectorTest {
 
         when(autoScaleVmGroupVmMapDao.listByGroup(anyLong())).thenReturn(Arrays.asList(new AutoScaleVmGroupVmMapVO(1L, 1L)));
         when(vmInstanceDao.findById(1L)).thenReturn(createVM(20L));
-        stub(counterProcessor.process(anyList(), anyMap())).toThrow(new RuntimeException());
+        stub(counterProcessor.process(any(AutoScaleVmGroupVO.class), anyList(), anyMap())).toThrow(new RuntimeException());
 
         autoScaleCounterCollector.runInContext();
 
