@@ -22,5 +22,5 @@ import java.util.List;
 import java.util.Map;
 
 public interface AutoScaleCounterProcessor {
-    boolean process(List<VirtualMachineAddress> ipAddresses, Map<String, String> counters);
+    boolean process(AutoScaleVmGroup asGroup, List<VirtualMachineAddress> ipAddresses, Map<String, String> counters);
 }

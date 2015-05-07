@@ -50,13 +50,13 @@ public class AutoScaleCounterProcessorImpl implements AutoScaleCounterProcessor,
     }
 
     @Override
-    public boolean process(final List<VirtualMachineAddress> virtualMachines, final Map<String, String> counters) {
+    public boolean process(final AutoScaleVmGroup asGroup, final List<VirtualMachineAddress> virtualMachines, final Map<String, String> counters) {
         for(final VirtualMachineAddress virtualMachine : virtualMachines){
             threadExecutorPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        processCounters(virtualMachine, counters);
+                        processCounters(asGroup, virtualMachine, counters);
                     }catch(Exception e){
                         s_logger.error("Error processing VM counters", e);
                     }
@@ -66,10 +66,10 @@ public class AutoScaleCounterProcessorImpl implements AutoScaleCounterProcessor,
         return true;
     }
 
-    protected void processCounters(VirtualMachineAddress virtualMachine, Map<String, String> counters){
+    protected void processCounters(AutoScaleVmGroup asGroup, VirtualMachineAddress virtualMachine, Map<String, String> counters){
         Map<String, Double> metrics = snmpClient.read(virtualMachine.getIpAddress(), counters);
         if(metrics != null){
-            List<String> messages = this.createLogStashMessage(metrics, virtualMachine);
+            List<String> messages = this.createLogStashMessage(asGroup, metrics, virtualMachine);
             for(String message : messages){
                 boolean success = logStashClient.send(message);
                 if(!success){
@@ -81,12 +81,13 @@ public class AutoScaleCounterProcessorImpl implements AutoScaleCounterProcessor,
         }
     }
 
-    protected List<String> createLogStashMessage(Map<String, Double> metrics, VirtualMachineAddress virtualMachine){
+    protected List<String> createLogStashMessage(AutoScaleVmGroup asGroup, Map<String, Double> metrics, VirtualMachineAddress virtualMachine){
         List<String> messages = new ArrayList<>();
         for(String metricName : metrics.keySet()){
             Double metricValue = metrics.get(metricName);
             JsonObject message = new JsonObject();
             message.addProperty("client", "cloudstack");
+            message.addProperty("autoScaleGroupId", asGroup.getId());
             message.addProperty("hostname", virtualMachine.getHostName());
             message.addProperty("metric", metricName);
             message.addProperty("value", metricValue);

@@ -89,7 +89,7 @@ public class AutoScaleCounterCollector extends ManagedContextRunnable implements
                 try{
                     List<VirtualMachineAddress> virtualMachines = this.getVirtualMachinesFrom(asGroup);
                     if(!virtualMachines.isEmpty()) {
-                        counterProcessor.process(virtualMachines, this.getCountersFrom(asGroup));
+                        counterProcessor.process(asGroup, virtualMachines, this.getCountersFrom(asGroup));
                     }
                 }catch(Exception ex){
                     s_logger.error("[AutoScale] Error while reading AutoScaleGroup #" + asGroup.getId(), ex);
