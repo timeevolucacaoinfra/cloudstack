@@ -1228,5 +1228,29 @@ cloudStack.docs = {
     helpLbPorts: {
         desc: 'List of port mapping for load balancer, e.g. "80:8080,443:8443"',
         externalLink: ''
-    }
+    },
+    helpAutoscaleMinInstance: {
+        desc: 'The number of instances in the VM Group will be equal to or more than this number.',
+        externalLink: ''
+    },
+    helpAutoscaleMaxInstance: {
+        desc: 'The number of instances in the VM Group will be equal to or less than this number.',
+        externalLink: ''
+    },
+    helpAutoscalePollingInterval: {
+        desc: 'The frequency in seconds at which the conditions have to be evaluated',
+        externalLink: ''
+    },
+    helpAutoscaleQuietTime: {
+        desc: 'The cool down period in seconds for which the policy should not be evaluated after the action has been taken',
+        externalLink: ''
+    },
+    helpAutoscaleVMGracePeriod: {
+        desc: 'The time in seconds allowed for existing connections to get closed before a VM is destroyed',
+        externalLink: ''
+    },
+    helpAutoscaleDuration: {
+        desc: 'The duration in seconds for which the conditions have to be true before action is taken',
+        externalLink: ''
+    },
 };

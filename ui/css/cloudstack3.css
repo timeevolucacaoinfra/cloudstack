@@ -11539,13 +11539,11 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.multi-edit {
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title {
   color: #0055BB;
-  margin-left: -650px;
   margin-top: 40px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title label {
   font-size: 13px;
-  margin-left: 200px;
   margin-right: 10px;
 }
 
@@ -11573,51 +11571,38 @@ div.ui-dialog div.autoscaler div.field-group.bottom-fields hr.policy-divider {
 
 div.ui-dialog div.autoscaler div.scale-down-policy-title label {
   font-size: 13px;
-  margin-left: 170px;
   margin-right: 10px;
 }
 
 div.ui-dialog div.autoscaler div.scale-down-policy-title {
   color: #0055BB;
-  margin-left: -620px;
   margin-top: 10px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title div.form-container div.form-item div.value input[type=text] {
-  margin-left: 729px;
-  width: 30%;
+  width: 49%;
   margin-top: -17px;
 }
 
-div.ui-dialog div.autoscaler div.scale-up-policy-title div.form-container div.form-item div.name {
-  margin-left: 420px;
-}
-
 div.ui-dialog div.autoscaler div.scale-down-policy-title div.form-container div.form-item div.value input[type=text] {
-  margin-left: 698px;
-  width: 30%;
-  margin-top: -16px;
-}
-
-div.ui-dialog div.autoscaler div.scale-down-policy-title div.form-container div.form-item div.name {
-  margin-left: 420px;
+  width: 49%;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy div.multi-edit div.data div.data-body div.data-item {
   margin-bottom: 0px;
-  margin-right: 22px;
+  margin-right: 0px;
 }
 
 div.ui-dialog div.autoscaler div.scale-down-policy div.multi-edit div.data div.data-body div.data-item {
   margin-bottom: 0px;
-  margin-right: 22px;
+  margin-right: 0px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy div.slide-label {
   color: #A5A3A7;
   font-size: 14px;
   margin-bottom: 3px;
-  margin-left: 755px;
+  margin-left: 715px;
   width: 12px;
 }
 
@@ -11625,7 +11610,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.slide-label {
   color: #A5A3A7;
   font-size: 14px;
   margin-bottom: 3px;
-  margin-left: 755px;
+  margin-left: 715px;
   width: 12px;
 }
 
@@ -11636,7 +11621,7 @@ div.ui-dialog div.autoscaler div.scale-up-policy div.hide {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11647,7 +11632,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.hide {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11658,7 +11643,7 @@ div.ui-dialog div.autoscaler div.scale-up-policy div.expand {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11669,7 +11654,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.expand {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11798,13 +11783,11 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.multi-edit {
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title {
   color: #0055BB;
-  margin-left: -650px;
   margin-top: 40px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title label {
   font-size: 13px;
-  margin-left: 200px;
   margin-right: 10px;
 }
 
@@ -11832,51 +11815,38 @@ div.ui-dialog div.autoscaler div.field-group.bottom-fields hr.policy-divider {
 
 div.ui-dialog div.autoscaler div.scale-down-policy-title label {
   font-size: 13px;
-  margin-left: 170px;
   margin-right: 10px;
 }
 
 div.ui-dialog div.autoscaler div.scale-down-policy-title {
   color: #0055BB;
-  margin-left: -620px;
   margin-top: 10px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title div.form-container div.form-item div.value input[type=text] {
-  margin-left: 195px;
-  width: 30%;
+  width: 49%;
   margin-top: 1px;
 }
 
-div.ui-dialog div.autoscaler div.scale-up-policy-title div.form-container div.form-item div.name {
-  margin-left: 390px;
-}
-
 div.ui-dialog div.autoscaler div.scale-down-policy-title div.form-container div.form-item div.value input[type=text] {
-  margin-left: 670px;
-  width: 30%;
-  margin-top: -16px;
-}
-
-div.ui-dialog div.autoscaler div.scale-down-policy-title div.form-container div.form-item div.name {
-  margin-left: 390px;
+  width: 49%;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy div.multi-edit div.data div.data-body div.data-item {
   margin-bottom: 0px;
-  margin-right: 22px;
+  margin-right: 0px;
 }
 
 div.ui-dialog div.autoscaler div.scale-down-policy div.multi-edit div.data div.data-body div.data-item {
   margin-bottom: 0px;
-  margin-right: 22px;
+  margin-right: 0px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy div.slide-label {
   color: #A5A3A7;
   font-size: 14px;
   margin-bottom: 3px;
-  margin-left: 755px;
+  margin-left: 715px;
   width: 12px;
 }
 
@@ -11884,7 +11854,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.slide-label {
   color: #A5A3A7;
   font-size: 14px;
   margin-bottom: 3px;
-  margin-left: 755px;
+  margin-left: 715px;
   width: 12px;
 }
 
@@ -11895,7 +11865,7 @@ div.ui-dialog div.autoscaler div.scale-up-policy div.hide {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11906,7 +11876,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.hide {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11917,7 +11887,7 @@ div.ui-dialog div.autoscaler div.scale-up-policy div.expand {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 
@@ -11928,7 +11898,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.expand {
   cursor: pointer;
   float: right;
   height: 15px;
-  margin: -20px 45px 0 11px;
+  margin: -20px 75px 0 11px;
   width: 14px;
 }
 

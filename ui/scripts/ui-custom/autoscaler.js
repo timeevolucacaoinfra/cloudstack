@@ -199,6 +199,7 @@
                         fields: {
                             scaleUpDuration: {
                                 label: 'Duration(in sec)',
+                                docID: 'helpAutoscaleDuration',
                                 validation: {
                                     required: true
                                 }
@@ -218,6 +219,7 @@
                         fields: {
                             scaleDownDuration: {
                                 label: 'Duration(in sec)',
+                                docID: 'helpAutoscaleDuration',
                                 validation: {
                                     required: true
                                 }
@@ -334,14 +336,14 @@
             var $loading = $('<div>').addClass('loading-overlay').appendTo($autoscalerDialog);
             $autoscalerDialog.dialog({
                 title: 'AutoScale Configuration Wizard',
-                width: 825,
+                width: 800,
                 height: 600,
                 draggable: true,
                 closeonEscape: false,
                 overflow: 'auto',
                 open: function() {
                     $("button").each(function() {
-                        $(this).attr("style", "left: 600px; position: relative; margin-right: 5px; ");
+                        $(this).attr("style", "left: 285px; position: relative; margin-right: 5px; ");
                     });
                 },
                 buttons: [{

@@ -339,6 +339,7 @@
                 minInstance: {
                     label: 'label.min.instances',
                     defaultValue: '1',
+                    docID: 'helpAutoscaleMinInstance',
                     validation: {
                         required: true,
                         number: true
@@ -348,6 +349,7 @@
                 maxInstance: {
                     label: 'label.max.instances',
                     defaultValue: '5',
+                    docID: 'helpAutoscaleMaxInstance',
                     validation: {
                         required: true,
                         number: true
@@ -363,6 +365,7 @@
                 interval: {
                     label: 'label.polling.interval.sec',
                     defaultValue: '30',
+                    docID: 'helpAutoscalePollingInterval',
                     validation: {
                         required: true,
                         number: true
@@ -372,6 +375,7 @@
                 quietTime: {
                     label: 'label.quiet.time.sec',
                     defaultValue: '300',
+                    docID: 'helpAutoscaleQuietTime',
                     validation: {
                         required: true,
                         number: true
@@ -381,6 +385,7 @@
                 destroyVMgracePeriod: {
                     label: 'label.destroy.vm.graceperiod',
                     defaultValue: '30',
+                    docID: 'helpAutoscaleVMGracePeriod',
                     isHidden: true,
                     dependsOn: 'isAdvanced',
                     validation: {
@@ -388,86 +393,86 @@
                         number: true
                     }
                 },
-                securityGroups: {
-                    label: 'label.menu.security.groups',
-                    isHidden: true,
-                    dependsOn: 'isAdvanced',
-                    select: function(args) {
-                        $.ajax({
-                            url: createURL("listSecurityGroups&listAll=true"),
-                            dataType: "json",
-                            async: true,
-                            success: function(json) {
-                                var securitygroups = json.listsecuritygroupsresponse.securitygroup;
-                                var items = [];
-                                items.push({
-                                    id: "",
-                                    description: ""
-                                });
-                                $(securitygroups).each(function() {
-                                    items.push({
-                                        id: this.id,
-                                        description: this.name
-                                    });
-                                });
-                                args.response.success({
-                                    data: items
-                                });
-                            }
-                        });
-                    }
-                },
+                // securityGroups: {
+                //     label: 'label.menu.security.groups',
+                //     isHidden: true,
+                //     dependsOn: 'isAdvanced',
+                //     select: function(args) {
+                //         $.ajax({
+                //             url: createURL("listSecurityGroups&listAll=true"),
+                //             dataType: "json",
+                //             async: true,
+                //             success: function(json) {
+                //                 var securitygroups = json.listsecuritygroupsresponse.securitygroup;
+                //                 var items = [];
+                //                 items.push({
+                //                     id: "",
+                //                     description: ""
+                //                 });
+                //                 $(securitygroups).each(function() {
+                //                     items.push({
+                //                         id: this.id,
+                //                         description: this.name
+                //                     });
+                //                 });
+                //                 args.response.success({
+                //                     data: items
+                //                 });
+                //             }
+                //         });
+                //     }
+                // },
 
-                diskOfferingId: {
-                    label: 'label.menu.disk.offerings',
-                    isHidden: true,
-                    dependsOn: 'isAdvanced',
-                    select: function(args) {
-                        $.ajax({
-                            url: createURL("listDiskOfferings&listAll=true"),
-                            dataType: "json",
-                            async: true,
-                            success: function(json) {
-                                var diskofferings = json.listdiskofferingsresponse.diskoffering;
-                                var items = [];
-                                items.push({
-                                    id: "",
-                                    description: ""
-                                });
-                                $(diskofferings).each(function() {
-                                    items.push({
-                                        id: this.id,
-                                        description: this.name
-                                    });
-                                });
-                                args.response.success({
-                                    data: items
-                                });
-                            }
-                        });
-                    }
-                },
+                // diskOfferingId: {
+                //     label: 'label.menu.disk.offerings',
+                //     isHidden: true,
+                //     dependsOn: 'isAdvanced',
+                //     select: function(args) {
+                //         $.ajax({
+                //             url: createURL("listDiskOfferings&listAll=true"),
+                //             dataType: "json",
+                //             async: true,
+                //             success: function(json) {
+                //                 var diskofferings = json.listdiskofferingsresponse.diskoffering;
+                //                 var items = [];
+                //                 items.push({
+                //                     id: "",
+                //                     description: ""
+                //                 });
+                //                 $(diskofferings).each(function() {
+                //                     items.push({
+                //                         id: this.id,
+                //                         description: this.name
+                //                     });
+                //                 });
+                //                 args.response.success({
+                //                     data: items
+                //                 });
+                //             }
+                //         });
+                //     }
+                // },
 
-                snmpCommunity: {
-                    isHidden: true,
-                    dependsOn: 'isAdvanced',
-                    label: 'label.SNMP.community',
-                    defaultValue: 'public',
-                    validation: {
-                        required: true
-                    }
-                },
+                // snmpCommunity: {
+                //     isHidden: true,
+                //     dependsOn: 'isAdvanced',
+                //     label: 'label.SNMP.community',
+                //     defaultValue: 'public',
+                //     validation: {
+                //         required: true
+                //     }
+                // },
 
-                snmpPort: {
-                    isHidden: true,
-                    dependsOn: 'isAdvanced',
-                    label: 'label.SNMP.port',
-                    defaultValue: '161',
-                    validation: {
-                        required: true,
-                        number: true
-                    }
-                },
+                // snmpPort: {
+                //     isHidden: true,
+                //     dependsOn: 'isAdvanced',
+                //     label: 'label.SNMP.port',
+                //     defaultValue: '161',
+                //     validation: {
+                //         required: true,
+                //         number: true
+                //     }
+                // },
 
                 username: {
                     isHidden: true,
