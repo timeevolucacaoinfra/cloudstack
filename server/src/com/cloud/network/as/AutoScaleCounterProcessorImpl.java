@@ -76,8 +76,6 @@ public class AutoScaleCounterProcessorImpl implements AutoScaleCounterProcessor,
                     s_logger.error("Error sending message to LogStash: " + message);
                 }
             }
-        }else{
-            s_logger.error("Error querying SNMP data, nothing returned from: " + virtualMachine.getHostName());
         }
     }
 
