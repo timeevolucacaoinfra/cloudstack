@@ -31,6 +31,7 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 
 import com.cloud.api.ApiDBUtils;
+import com.cloud.network.as.AutoScaleService;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
@@ -223,6 +224,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     DomainService _domainMgr;
     @Inject
     ConfigurationManager _configMgr;
+    @Inject
+    AutoScaleService _autoScaleMgr;
 
     @Inject
     ExternalDeviceUsageManager _externalDeviceUsageMgr;
@@ -1630,6 +1633,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
 
         if (apply) {
             try {
+                List<AutoScaleVmGroupVO> autoScaleGroups = _autoScaleVmGroupDao.listByAll(lb.getId(), null);
+                for(AutoScaleVmGroupVO autoScaleVmGroup : autoScaleGroups){
+                    _autoScaleMgr.deleteAutoScaleVmGroupWithDependencies(autoScaleVmGroup.getId());
+                }
+
                 if (!applyLoadBalancerConfig(loadBalancerId)) {
                     s_logger.warn("Unable to apply the load balancer config");
                     return false;
