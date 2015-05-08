@@ -2107,13 +2107,8 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new PermissionDeniedException("Parameter " + ApiConstants.EXPUNGE + " can be passed by Admin only");
         }
 
+        removeVmFromAutoScaleGroup(vmId);
         UserVm destroyedVm = destroyVm(vmId);
-
-        // Removing from autoscale group
-        AutoScaleVmGroupVmMapVO autoScaleVmMap = _asGroupVmMapDao.findByVmId(vmId);
-        if(autoScaleVmMap != null){
-            _asGroupVmMapDao.remove(autoScaleVmMap.getVmGroupId(), autoScaleVmMap.getInstanceId());
-        }
 
         if (expunge) {
             UserVmVO vm = _vmDao.findById(vmId);
@@ -2123,6 +2118,13 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         return destroyedVm;
+    }
+
+    private void removeVmFromAutoScaleGroup(long vmId) {
+        AutoScaleVmGroupVmMapVO autoScaleVmMap = _asGroupVmMapDao.findByVmId(vmId);
+        if(autoScaleVmMap != null){
+            _asGroupVmMapDao.remove(autoScaleVmMap.getVmGroupId(), vmId);
+        }
     }
 
     @Override
