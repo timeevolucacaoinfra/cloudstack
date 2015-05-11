@@ -101,7 +101,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
                     QueryBuilders.matchAllQuery(),
                     FilterBuilders.andFilter(
                         FilterBuilders.rangeFilter("@timestamp").from("now-" + duration + "s/s").to("now"),
-                        FilterBuilders.termFilter("autoScaleGroupUuid", autoScaleGroupUUID)
+                        FilterBuilders.termFilter("autoScaleGroupUuid.raw", autoScaleGroupUUID)
                     )
                 )
             )
