@@ -10,23 +10,18 @@ public class AutoScaleStatsCollectorFactoryImpl implements AutoScaleStatsCollect
     @Inject
     RRDAutoScaleStatsCollector rrdAutoScaleStatsCollector;
     @Inject
-    GraphiteAutoScaleStatsCollector graphiteAutoScaleStatsCollector;
-    @Inject
     ElasticSearchAutoScaleStatsCollector elasticSearchAutoScaleStatsCollector;
 
     private static final String RRD = "rrd";
-    private static final String GRAPHITE = "graphite";
     private static final String ELASTIC_SEARCH = "elasticsearch";
 
     private static final ConfigKey<String> StatsDataSource = new ConfigKey<String>("Advanced", String.class, "autoscale.stats.datasource", "rrd",
-            "Auto scale VM stats data source (rrd/graphite/elasticsearchs)", true, ConfigKey.Scope.Global);
+            "Auto scale VM stats data source (rrd/elasticsearch)", true, ConfigKey.Scope.Global);
 
     @Override
     public AutoScaleStatsCollector getStatsCollector() {
         if(RRD.equals(StatsDataSource.value())){
             return rrdAutoScaleStatsCollector;
-        }else if(GRAPHITE.equals(StatsDataSource.value())){
-            return graphiteAutoScaleStatsCollector;
         }else if(ELASTIC_SEARCH.equals(StatsDataSource.value())){
             return elasticSearchAutoScaleStatsCollector;
         }

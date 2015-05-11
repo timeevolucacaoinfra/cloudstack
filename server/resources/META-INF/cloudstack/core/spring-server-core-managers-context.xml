@@ -210,21 +210,6 @@
 
     <bean id="autoScaleStatsCollector" class="com.cloud.network.as.RRDAutoScaleStatsCollector" />
 
-    <bean id="graphiteConnectionManager" class="org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager" >
-        <property name="defaultMaxPerRoute" value="200" />
-        <property name="maxTotal" value="200" />
-    </bean>
-
-    <bean id="graphiteHttpClient" class="org.apache.http.impl.client.DefaultHttpClient">
-        <constructor-arg ref="graphiteConnectionManager"/>
-    </bean>
-
-    <bean id="graphiteClient" class="com.cloud.network.as.GraphiteClientImpl">
-        <constructor-arg ref="graphiteHttpClient"/>
-    </bean>
-
-    <bean id="graphiteStatsCollector" class="com.cloud.network.as.GraphiteAutoScaleStatsCollector" />
-
     <bean id="elasticSearchAutoScaleStatsCollector" class="com.cloud.network.as.ElasticSearchAutoScaleStatsCollector"/>
 
     <bean id="autoScaleStatsCollectorFactory" class="com.cloud.network.as.AutoScaleStatsCollectorFactoryImpl" />
