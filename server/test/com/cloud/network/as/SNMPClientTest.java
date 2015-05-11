@@ -48,7 +48,7 @@ import static org.mockito.Mockito.when;
 
 public class SNMPClientTest {
 
-    SNMPClientImpl snmpClient;
+    private SNMPClientImpl snmpClient;
     @Mock
     Snmp snmp;
     @Mock
@@ -63,7 +63,7 @@ public class SNMPClientTest {
     public void setUp() throws IOException {
         MockitoAnnotations.initMocks(this);
         snmpClient = new SNMPClientImpl(snmp);
-        snmpClient.s_logger = logger;
+        SNMPClientImpl.s_logger = logger;
     }
 
     @Test
@@ -117,7 +117,7 @@ public class SNMPClientTest {
         Map<String, Double> metrics = snmpClient.read("172.168.10.10",  createRequestCounters(Arrays.asList("memory_used"), Arrays.asList(USED_MEMORY_OID)));
 
         assertNull(metrics);
-        verify(logger).error("SNMP agent timeout");
+        verify(logger).info("SNMP agent did not respond. Possible causes: vm SNMP agent not ready / request timed out");
     }
 
     @Test
@@ -154,7 +154,7 @@ public class SNMPClientTest {
         verify(logger).info(eq("The SNMP agent was not ready on the VM 172.168.10.10. Error: Result was 1.3.6.1.4.1.2021.4.5.0 = noSuchInstance"));
     }
 
-    protected Map<String, String> createRequestCounters(List<String> counterNames, List<String> values) {
+    private Map<String, String> createRequestCounters(List<String> counterNames, List<String> values) {
         Map<String, String> counters = new HashMap<>();
         for (int i = 0; i < counterNames.size(); i++) {
             counters.put(counterNames.get(i), values.get(i));
@@ -162,7 +162,7 @@ public class SNMPClientTest {
         return counters;
     }
 
-    protected void mockSnmpGet(List<String> oids, List<String> values) throws IOException {
+    private void mockSnmpGet(List<String> oids, List<String> values) throws IOException {
         PDU response = new PDU();
         for (int i = 0; i < oids.size(); i++) {
             response.add(new VariableBinding(new OID(oids.get(i)), new Integer32(Integer.parseInt(values.get(i)))));

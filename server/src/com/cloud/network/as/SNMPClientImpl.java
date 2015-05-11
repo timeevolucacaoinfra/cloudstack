@@ -37,7 +37,7 @@ import java.util.Vector;
 
 public class SNMPClientImpl implements SNMPClient, Configurable{
 
-    protected Snmp snmp;
+    private final Snmp snmp;
 
     protected static final String CPU_SYSTEM_OID = "1.3.6.1.4.1.2021.11.10.0";
     protected static final String CPU_USER_OID = "1.3.6.1.4.1.2021.11.9.0";
@@ -69,7 +69,7 @@ public class SNMPClientImpl implements SNMPClient, Configurable{
                     s_logger.error("Error Status status/text: " + responseEvent.getResponse().getErrorStatus() + "/" + responseEvent.getResponse().getErrorStatusText());
                 }
             } else {
-                s_logger.error("SNMP agent timeout");
+                s_logger.info("SNMP agent did not respond. Possible causes: vm SNMP agent not ready / request timed out");
             }
         } catch (IOException e) {
             s_logger.error("Error querying SNMP on: " + ipAddress, e);
