@@ -74,7 +74,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
             for (Pair<String, Integer> counter : counterNameAndDuration) {
                 String counterName = counter.first().split(",")[0];
                 Integer duration = counter.second();
-                SearchResponse response = this.queryForStats(asGroup.getId(), counterName, duration);
+                SearchResponse response = this.queryForStats(asGroup.getUuid(), counterName, duration);
                 avgSummary.put(counterName, this.getStatAverage(response));
             }
         }catch (RuntimeException ex){
@@ -93,7 +93,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
         return average;
     }
 
-    private SearchResponse queryForStats(Long asGroupId, String counterName, Integer duration) {
+    private SearchResponse queryForStats(String autoScaleGroupUUID, String counterName, Integer duration) {
         return elasticSearchClient.prepareSearch(ElasticSearchIndexName.value())
             .setTypes(counterName)
             .setFrom(0).setSize(0)
@@ -101,7 +101,7 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
                     QueryBuilders.matchAllQuery(),
                     FilterBuilders.andFilter(
                         FilterBuilders.rangeFilter("@timestamp").from("now-" + duration + "s/s").to("now"),
-                        FilterBuilders.termFilter("autoScaleGroupId", asGroupId)
+                        FilterBuilders.termFilter("autoScaleGroupUuid", autoScaleGroupUUID)
                     )
                 )
             )

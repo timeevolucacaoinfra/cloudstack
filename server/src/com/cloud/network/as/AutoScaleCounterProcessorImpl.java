@@ -85,7 +85,7 @@ public class AutoScaleCounterProcessorImpl implements AutoScaleCounterProcessor,
             Double metricValue = metrics.get(metricName);
             JsonObject message = new JsonObject();
             message.addProperty("client", "cloudstack");
-            message.addProperty("autoScaleGroupId", asGroup.getId());
+            message.addProperty("autoScaleGroupUuid", asGroup.getUuid());
             message.addProperty("hostname", virtualMachine.getHostName());
             message.addProperty("metric", metricName);
             message.addProperty("value", metricValue);

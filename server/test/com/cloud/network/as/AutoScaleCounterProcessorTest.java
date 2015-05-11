@@ -53,11 +53,11 @@ public class AutoScaleCounterProcessorTest {
     @Before
     public void setUp(){
         MockitoAnnotations.initMocks(this);
+        AutoScaleCounterProcessorImpl.s_logger = logger;
         autoScaleCounterProcessor = new AutoScaleCounterProcessorImpl();
         autoScaleCounterProcessor.snmpClient = snmpClient;
         autoScaleCounterProcessor.logStashClient = logStashClient;
         autoScaleCounterProcessor.threadExecutorPool = threadPoolExecutor;
-        autoScaleCounterProcessor.s_logger = logger;
     }
 
     @Test
@@ -111,27 +111,30 @@ public class AutoScaleCounterProcessorTest {
         when(snmpClient.read("172.168.2.10", counters)).thenReturn(metricsResult);
         when(logStashClient.send(anyString())).thenReturn(false);
 
-        autoScaleCounterProcessor.processCounters(createAutoScaleGroup(), new VirtualMachineAddress("172.168.2.10","host1"), counters);
-        verify(logger).error("Error sending message to LogStash: {\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}");
+        AutoScaleVmGroupVO autoScaleGroup = createAutoScaleGroup();
+        autoScaleCounterProcessor.processCounters(autoScaleGroup, new VirtualMachineAddress("172.168.2.10","host1"), counters);
+        verify(logger).error("Error sending message to LogStash: {\"client\":\"cloudstack\",\"autoScaleGroupUuid\":\""+ autoScaleGroup.getUuid() +"\",\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}");
     }
 
     @Test
     public void testCreateLogStashMessageWithOneMetric(){
         Map<String, Double> metricsResult = createMetricsResult(Arrays.asList("cpu"),Arrays.asList("0.1"));
-        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(createAutoScaleGroup(), metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
+        AutoScaleVmGroupVO autoScaleGroup = createAutoScaleGroup();
+        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(autoScaleGroup, metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
 
         assertEquals(1, messages.size());
-        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
+        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupUuid\":\""+ autoScaleGroup.getUuid() +"\",\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
     }
 
     @Test
     public void testCreateLogStashMessageWithMoreThanOneMetric(){
         Map<String, Double> metricsResult = createMetricsResult(Arrays.asList("cpu", "memory"),Arrays.asList("0.1", "0.5"));
-        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(createAutoScaleGroup(), metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
+        AutoScaleVmGroupVO autoScaleGroup = createAutoScaleGroup();
+        List<String> messages = autoScaleCounterProcessor.createLogStashMessage(autoScaleGroup, metricsResult, new VirtualMachineAddress("172.168.10.10","host1"));
 
         assertEquals(2, messages.size());
-        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
-        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupId\":0,\"hostname\":\"host1\",\"metric\":\"memory\",\"value\":0.5,\"count\":1}", messages.get(1));
+        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupUuid\":\""+ autoScaleGroup.getUuid() +"\",\"hostname\":\"host1\",\"metric\":\"cpu\",\"value\":0.1,\"count\":1}", messages.get(0));
+        assertEquals("{\"client\":\"cloudstack\",\"autoScaleGroupUuid\":\""+ autoScaleGroup.getUuid() +"\",\"hostname\":\"host1\",\"metric\":\"memory\",\"value\":0.5,\"count\":1}", messages.get(1));
     }
 
     private Map<String, Double> createMetricsResult(List<String> metricNames, List<String> metricValues){
