@@ -1730,7 +1730,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         return asProfile.getDestroyVmGraceperiod();
     }
 
-    private void updateLastQuietTime(long groupId, String action) {
+    protected void updateLastQuietTime(long groupId, String action) {
         for (AutoScaleVmGroupPolicyMapVO groupPolicyMap : _autoScaleVmGroupPolicyMapDao.listByVmGroupId(groupId)) {
             AutoScalePolicyVO policy = _autoScalePolicyDao.findById(groupPolicyMap.getPolicyId());
             if (policy.getAction().equals(action)) {

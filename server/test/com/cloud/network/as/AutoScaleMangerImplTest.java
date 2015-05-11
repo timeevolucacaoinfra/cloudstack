@@ -21,6 +21,7 @@ import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.hypervisor.Hypervisor;
+import com.cloud.network.as.dao.AutoScalePolicyDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupPolicyMapDao;
 import com.cloud.network.as.dao.AutoScaleVmGroupVmMapDao;
@@ -39,13 +40,16 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.TestCase.assertTrue;
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
@@ -75,6 +79,8 @@ public class AutoScaleMangerImplTest {
     AccountManagerImpl accountManager;
     @Mock
     AutoScaleVmProfileDao autoScaleVmProfileDao;
+    @Mock
+    AutoScalePolicyDao autoScalePolicyDao;
     @Mock
     ScheduledExecutorService threadPool;
 
@@ -141,6 +147,7 @@ public class AutoScaleMangerImplTest {
         testScaleUpWith(1, true, true);
         verify(autoScaleVmGroupVmMapDao, times(1)).persist(any(AutoScaleVmGroupVmMapVO.class));
         verify(autoScaleManager, times(1)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
+        verify(autoScaleManager, times(1)).updateLastQuietTime(anyLong(), eq("scaleup"));
     }
 
     @Test
@@ -148,6 +155,7 @@ public class AutoScaleMangerImplTest {
         testScaleUpWith(3, true, true);
         verify(autoScaleVmGroupVmMapDao, times(3)).persist(any(AutoScaleVmGroupVmMapVO.class));
         verify(autoScaleManager, times(3)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
+        verify(autoScaleManager, times(3)).updateLastQuietTime(anyLong(), eq("scaleup"));
     }
 
     @Test
@@ -238,6 +246,50 @@ public class AutoScaleMangerImplTest {
         }
     }
 
+    @Test
+    public void testUpdateLastQuietTimeScaleUp(){
+        autoScaleManager = spy(new AutoScaleManagerImpl());
+        configureMocks(autoScaleManager);
+
+        AutoScaleVmGroupPolicyMapVO asPolicyMap1 = new AutoScaleVmGroupPolicyMapVO(1L, 1L, false);
+        AutoScaleVmGroupPolicyMapVO asPolicyMap2 = new AutoScaleVmGroupPolicyMapVO(1L, 2L, false);
+        AutoScalePolicyVO policy1 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaleup");
+        policy1.id = 1L;
+        AutoScalePolicyVO policy2 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaledown");
+        policy2.id = 2L;
+
+        when(autoScaleVmGroupPolicyMapDao.listByVmGroupId(anyLong())).thenReturn(Arrays.asList(asPolicyMap1, asPolicyMap2));
+        when(autoScalePolicyDao.findById(1L)).thenReturn(policy1);
+
+        autoScaleManager.updateLastQuietTime(1L, "scaleup");
+
+        assertNotNull(policy1.getLastQuiteTime());
+        assertNull(policy2.getLastQuiteTime());
+        verify(autoScalePolicyDao, times(1)).persist(policy1);
+    }
+
+    @Test
+    public void testUpdateLastQuietTimeScaleDown(){
+        autoScaleManager = spy(new AutoScaleManagerImpl());
+        configureMocks(autoScaleManager);
+
+        AutoScaleVmGroupPolicyMapVO asPolicyMap1 = new AutoScaleVmGroupPolicyMapVO(1L, 1L, false);
+        AutoScaleVmGroupPolicyMapVO asPolicyMap2 = new AutoScaleVmGroupPolicyMapVO(1L, 2L, false);
+        AutoScalePolicyVO policy1 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaleup");
+        policy1.id = 1L;
+        AutoScalePolicyVO policy2 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaledown");
+        policy2.id = 2L;
+
+        when(autoScaleVmGroupPolicyMapDao.listByVmGroupId(anyLong())).thenReturn(Arrays.asList(asPolicyMap1, asPolicyMap2));
+        when(autoScalePolicyDao.findById(1L)).thenReturn(policy2);
+
+        autoScaleManager.updateLastQuietTime(1L, "scaledown");
+
+        assertNull(policy1.getLastQuiteTime());
+        assertNotNull(policy2.getLastQuiteTime());
+        verify(autoScalePolicyDao, times(1)).persist(policy2);
+    }
+
     private void testScaleDownWith(Long removeLbResult, Exception exception) {
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
         autoScaleManager = spy(new AutoScaleManagerImpl());
@@ -301,6 +353,7 @@ public class AutoScaleMangerImplTest {
         autoScaleManager._accountMgr = accountManager;
         autoScaleManager._autoScaleVmGroupPolicyMapDao = autoScaleVmGroupPolicyMapDao;
         autoScaleManager._autoScaleVmProfileDao = autoScaleVmProfileDao;
+        autoScaleManager._autoScalePolicyDao = autoScalePolicyDao;
         autoScaleManager._executor = threadPool;
 
         AccountVO acct = new AccountVO(200L);
