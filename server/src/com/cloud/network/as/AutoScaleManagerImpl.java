@@ -878,7 +878,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
 
         //removing VMS before removing auto scale group
-        this.destroyRemainingVms(id);
+        this.destroyVmGroupVMs(id);
 
         return Transaction.execute(new TransactionCallback<Boolean>() {
             @Override
@@ -931,7 +931,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
 
         //removing VMS before removing auto scale group
-        this.destroyRemainingVms(id);
+        this.destroyVmGroupVMs(id);
 
         // Set up objects to be deleted
         final Long vmProfileId = autoScaleVmGroupVO.getProfileId();
@@ -995,13 +995,15 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
     }
 
-    protected void destroyRemainingVms(long id) {
-        int vmCount = _autoScaleVmGroupVmMapDao.countByGroup(id);
-        if(vmCount > 0) {
-            AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(id);
-            asGroup.setMinMembers(0);
-            _autoScaleVmGroupDao.persist(asGroup);
-            this.doScaleDown(id, vmCount);
+    protected void destroyVmGroupVMs(long groupId) {
+        AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
+        asGroup.setMinMembers(0);
+        asGroup.setState(AutoScaleVmGroup.State_Disabled);
+        _autoScaleVmGroupDao.persist(asGroup);
+
+        for(AutoScaleVmGroupVmMapVO autoScaleVmGroupVmMap : _autoScaleVmGroupVmMapDao.listByGroup(groupId)){
+            _autoScaleVmGroupVmMapDao.remove(groupId, autoScaleVmGroupVmMap.getInstanceId());
+            destroyVM(autoScaleVmGroupVmMap.getInstanceId());
         }
     }
 
@@ -1566,7 +1568,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         return sdf.format(current);
     }
 
-    protected boolean startNewVM(long vmId) {
+    protected void startNewVM(long vmId) {
         try {
             CallContext.current().setEventDetails("Vm Id: " + vmId);
             _userVmManager.startVirtualMachine(vmId, null, null, null);
@@ -1586,7 +1588,6 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             s_logger.info(message.toString(), ex);
             throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, message.toString());
         }
-        return true;
     }
 
     protected boolean assignLBruleToNewVm(long vmId, AutoScaleVmGroupVO asGroup) {
@@ -1653,29 +1654,16 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                     s_logger.error("Can not deploy new VM for scaling up in the group " + asGroup.getId() + ". Waiting for next round");
                     break;
                 }
-                if (startNewVM(vm.getId())) {
-                    if (assignLBruleToNewVm(vm.getId(), asGroup)) {
-                        // persist to DB
-                        AutoScaleVmGroupVmMapVO GroupVmVO = new AutoScaleVmGroupVmMapVO(asGroup.getId(), vm.getId());
-                        _autoScaleVmGroupVmMapDao.persist(GroupVmVO);
-                        // update last_quiettime
-                        List<AutoScaleVmGroupPolicyMapVO> GroupPolicyVOs = _autoScaleVmGroupPolicyMapDao.listByVmGroupId(groupId);
-                        for (AutoScaleVmGroupPolicyMapVO GroupPolicyVO : GroupPolicyVOs) {
-                            AutoScalePolicyVO vo = _autoScalePolicyDao.findById(GroupPolicyVO.getPolicyId());
-                            if (vo.getAction().equals("scalescaleup")) {
-                                vo.setLastQuiteTime(new Date());
-                                _autoScalePolicyDao.persist(vo);
-                                break;
-                            }
-                        }
-                        createScaleUpSuccessEvent(groupId, "VM " + vm.getDisplayName() + " was created as result of a scale up action. Auto Scale Id: " + groupId);
-                    } else {
-                        createScaleUpFailedEvent(groupId, "VM could not be assigned to LB for Auto Scale Id: " + groupId);
-                        s_logger.error("Can not assign LB rule for this new VM");
-                        break;
-                    }
+
+                startNewVM(vm.getId());
+
+                if (assignLBruleToNewVm(vm.getId(), asGroup)) {
+                    _autoScaleVmGroupVmMapDao.persist(new AutoScaleVmGroupVmMapVO(asGroup.getId(), vm.getId()));
+                    updateLastQuietTime(groupId, "scaleup");
+                    createScaleUpSuccessEvent(groupId, "VM " + vm.getDisplayName() + " was created as result of a scale up action. Auto Scale Id: " + groupId);
                 } else {
-                    s_logger.error("Can not deploy new VM for scaling up in the group " + asGroup.getId() + ". Waiting for next round");
+                    createScaleUpFailedEvent(groupId, "VM could not be assigned to LB for Auto Scale Id: " + groupId);
+                    s_logger.error("Can not assign LB rule for this new VM");
                     break;
                 }
             }
@@ -1706,35 +1694,19 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                 }
                 final long vmId = removeLBrule(asGroup);
                 if (vmId != -1) {
-                    long profileId = asGroup.getProfileId();
-
-                    // update group-vm mapping
                     _autoScaleVmGroupVmMapDao.remove(groupId, vmId);
-                    // update last_quiettime
-                    List<AutoScaleVmGroupPolicyMapVO> GroupPolicyVOs = _autoScaleVmGroupPolicyMapDao.listByVmGroupId(groupId);
-                    for (AutoScaleVmGroupPolicyMapVO GroupPolicyVO : GroupPolicyVOs) {
-                        AutoScalePolicyVO vo = _autoScalePolicyDao.findById(GroupPolicyVO.getPolicyId());
-                        if (vo.getAction().equals("scaledown")) {
-                            vo.setLastQuiteTime(new Date());
-                            _autoScalePolicyDao.persist(vo);
-                            break;
-                        }
-                    }
 
-                    // get destroyvmgrace param
-                    AutoScaleVmProfileVO asProfile = _autoScaleVmProfileDao.findById(profileId);
-                    Integer destroyVmGracePeriod = asProfile.getDestroyVmGraceperiod();
+                    updateLastQuietTime(groupId, "scaledown");
+
+                    Integer destroyVmGracePeriod = getDestroyVmGracePeriod(asGroup);
                     if (destroyVmGracePeriod >= 0) {
                         _executor.schedule(new Runnable() {
                             @Override
                             public void run() {
-                                try {
-                                    _userVmManager.destroyVm(vmId);
+                                if(destroyVM(vmId)){
                                     createScaleDownSuccessEvent(groupId, "VM was destroyed as result of a scale down action. Auto Scale Id: " + groupId);
-                                } catch (ResourceUnavailableException e) {
-                                    s_logger.error("It was not possible to destroy VM id: " + vmId, e);
-                                } catch (ConcurrentOperationException e) {
-                                    s_logger.error("It was not possible to destroy VM id: " + vmId, e);
+                                }else{
+                                    createScaleDownFailedEvent(groupId, "Scale down action failed for Auto Scale group id: " + groupId);
                                 }
                             }
                         }, destroyVmGracePeriod, TimeUnit.SECONDS);
@@ -1751,6 +1723,32 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                 throw ex;
             }
         }
+    }
+
+    private Integer getDestroyVmGracePeriod(AutoScaleVmGroupVO asGroup) {
+        AutoScaleVmProfileVO asProfile = _autoScaleVmProfileDao.findById(asGroup.getProfileId());
+        return asProfile.getDestroyVmGraceperiod();
+    }
+
+    private void updateLastQuietTime(long groupId, String action) {
+        for (AutoScaleVmGroupPolicyMapVO groupPolicyMap : _autoScaleVmGroupPolicyMapDao.listByVmGroupId(groupId)) {
+            AutoScalePolicyVO policy = _autoScalePolicyDao.findById(groupPolicyMap.getPolicyId());
+            if (policy.getAction().equals(action)) {
+                policy.setLastQuiteTime(new Date());
+                _autoScalePolicyDao.persist(policy);
+                break;
+            }
+        }
+    }
+
+    private boolean destroyVM(long vmId) {
+        try {
+            _userVmManager.destroyVm(vmId);
+            return true;
+        } catch (ResourceUnavailableException | ConcurrentOperationException e) {
+            s_logger.error("It was not possible to destroy VM id: " + vmId, e);
+        }
+        return false;
     }
 
     public void createScaleUpSuccessEvent(Long asGroupId, String description){

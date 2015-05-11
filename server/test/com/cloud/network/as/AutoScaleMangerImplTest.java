@@ -111,7 +111,7 @@ public class AutoScaleMangerImplTest {
         mockRemoveAutoScalePolicyByGroup();
 
         assertTrue(autoScaleManager.deleteAutoScaleVmGroup(AS_GROUP_ID));
-        verify(autoScaleManager, times(1)).doScaleDown(anyLong(), eq(3));
+        verify(autoScaleManager, times(1)).destroyVmGroupVMs(anyLong());
         verify(autoScaleVmGroupDao, times(1)).remove(AS_GROUP_ID);
     }
 
@@ -171,7 +171,7 @@ public class AutoScaleMangerImplTest {
         when(autoScaleVmGroupDao.findById(10L)).thenReturn(asGroup);
         //mocking createVm, assignLBRuleToNewVm and startVM so they can be tested in isolation
         doReturn(createUserVm(1L)).when(autoScaleManager).createNewVM(asGroup);
-        doReturn(startVmResult).when(autoScaleManager).startNewVM(1L);
+        doNothing().when(autoScaleManager).startNewVM(1L);
         doReturn(assignToLbResult).when(autoScaleManager).assignLBruleToNewVm(1L, asGroup);
         if(startVmResult && assignToLbResult){
             doNothing().when(autoScaleManager).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
