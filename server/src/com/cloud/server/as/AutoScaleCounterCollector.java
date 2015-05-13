@@ -118,15 +118,38 @@ public class AutoScaleCounterCollector extends ManagedContextRunnable implements
         if(autoScaleVmGroupVmMapVOs != null) {
             for (AutoScaleVmGroupVmMapVO asGroupVmVO : autoScaleVmGroupVmMapVOs) {
                 VMInstanceVO vmInstanceVO = vmInstanceDao.findById(asGroupVmVO.getInstanceId());
-                vmList.add(new VirtualMachineAddress(getIpAddressesFrom(vmInstanceVO), vmInstanceVO.getHostName()));
+                String ipAddress = getIpAddressesFrom(vmInstanceVO);
+                if(ipAddress != null) {
+                    vmList.add(new VirtualMachineAddress(ipAddress, vmInstanceVO.getHostName()));
+                }
             }
         }
         return vmList;
     }
 
     protected String getIpAddressesFrom(VMInstanceVO vm){
-        NicVO nic = nicDao.findDefaultNicForVM(vm.getId());
+        NicVO nic;
+        List<NicVO> nicList = nicDao.listByVmId(vm.getId());
+
+        if(nicList.size() == 1){
+            nic = nicList.get(0);
+        }else{
+            nic = getNonDefaultNic(nicList);
+        }
+
+        if(nic == null)
+            return null;
+
         return nic.getIp4Address() != null ? nic.getIp4Address() : nic.getIp6Address();
+    }
+
+    private NicVO getNonDefaultNic(List<NicVO> nicList) {
+        for(NicVO currentNic : nicList){
+            if(!currentNic.isDefaultNic()){
+                return currentNic;
+            }
+        }
+        return null;
     }
 
     protected Map<String, String> getCountersFrom(AutoScaleVmGroupVO asGroup){

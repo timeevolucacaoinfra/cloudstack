@@ -154,8 +154,9 @@ public class AutoScaleCounterCollectorTest {
         mockConfigurationDaoDataSource("elasticsearch");
         mockListEnabledAutoScaleGroups();
 
-        when(autoScaleVmGroupVmMapDao.listByGroup(anyLong())).thenReturn(Arrays.asList(new AutoScaleVmGroupVmMapVO(1L, 1L)));
-        when(vmInstanceDao.findById(1L)).thenReturn(createVM(20L));
+        when(autoScaleVmGroupVmMapDao.listByGroup(anyLong())).thenReturn(Arrays.asList(new AutoScaleVmGroupVmMapVO(1L, 20L)));
+        when(vmInstanceDao.findById(20L)).thenReturn(createVM(20L));
+        mockFindNIC(20L, "172.168.10.5", false);
         stub(counterProcessor.process(any(AutoScaleVmGroupVO.class), anyList(), anyMap())).toThrow(new RuntimeException());
 
         autoScaleCounterCollector.runInContext();
@@ -214,6 +215,20 @@ public class AutoScaleCounterCollectorTest {
         assertEquals("FE80:0000:0000:0000:0202:B3FF:FE1E:8329", ipAddress);
     }
 
+    @Test
+    public void testGetIpAddressGivenVmWithMoreThanOneNic(){
+        VMInstanceVO vm = createVM(1L);
+        NicVO defaultNic = createNIC("172.168.10.5", false);
+        defaultNic.setDefaultNic(true);
+        NicVO nonDefaultNic = createNIC("172.168.10.6", false);
+        nonDefaultNic.setDefaultNic(false);
+
+        when(nicDao.listByVmId(vm.getId())).thenReturn(Arrays.asList(defaultNic, nonDefaultNic));
+
+        String ipAddressesFrom = autoScaleCounterCollector.getIpAddressesFrom(vm);
+        assertEquals("IP should be from the non default NIC if VM has more than one NIC", nonDefaultNic.getIp4Address(), ipAddressesFrom);
+    }
+
     private void mockConfigurationDaoDataSource(String datasource) {
         when(configurationDao.findByName("autoscale.stats.datasource")).thenReturn(new ConfigurationVO("", "", "", "", datasource, ""));
     }
@@ -223,7 +238,7 @@ public class AutoScaleCounterCollectorTest {
     }
 
     private void mockFindNIC(Long vmId, String address, boolean ipv6) {
-        when(nicDao.findDefaultNicForVM(vmId)).thenReturn(createNIC(address, ipv6));
+        when(nicDao.listByVmId(vmId)).thenReturn(Arrays.asList(createNIC(address, ipv6)));
     }
 
     private void mockFindCounters(List<String> counterNames, List<String> counterValues) {
@@ -245,9 +260,9 @@ public class AutoScaleCounterCollectorTest {
     private NicVO createNIC(String address, boolean isIpv6) {
         NicVO nic = new NicVO("", 1L, 1, VirtualMachine.Type.Instance);
         if(isIpv6){
-            nic.setIp4Address(address);
-        } else {
             nic.setIp6Address(address);
+        } else {
+            nic.setIp4Address(address);
         }
         return nic;
     }
