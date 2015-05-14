@@ -506,13 +506,13 @@ public class XenServerStorageProcessor implements StorageProcessor {
             deleteVDI(conn, vdi);
             return new Answer(null);
         } catch (BadServerResponse e) {
-            s_logger.debug("Failed to delete volume", e);
+            s_logger.warn("Failed to delete volume", e);
             errorMsg = e.toString();
         } catch (XenAPIException e) {
-            s_logger.debug("Failed to delete volume", e);
+            s_logger.warn("Failed to delete volume", e);
             errorMsg = e.toString();
         } catch (XmlRpcException e) {
-            s_logger.debug("Failed to delete volume", e);
+            s_logger.warn("Failed to delete volume", e);
             errorMsg = e.toString();
         }
         return new Answer(null, false, errorMsg);
