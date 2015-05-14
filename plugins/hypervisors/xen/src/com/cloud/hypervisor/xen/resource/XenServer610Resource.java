@@ -24,6 +24,8 @@ import java.util.Set;
 
 import javax.ejb.Local;
 
+import com.cloud.agent.api.to.NetworkTO;
+import com.cloud.agent.api.to.SrTO;
 import com.cloud.utils.Pair;
 import org.apache.log4j.Logger;
 import org.apache.xmlrpc.XmlRpcException;
@@ -227,19 +229,22 @@ public class XenServer610Resource extends XenServer602Resource {
 
         try {
             // Get a map of all the SRs to which the vdis will be migrated.
-            Map<VolumeTO, Object> volumeToSr = new HashMap<VolumeTO, Object>();
+            List<Pair<VolumeTO, SrTO>> volumeToSr = new ArrayList<>();
             for (Pair<VolumeTO, StorageFilerTO> entry : volumeToFiler) {
                 VolumeTO volume = entry.first();
                 StorageFilerTO filerTo = entry.second();
                 SR sr = getStorageRepository(connection, filerTo.getUuid());
-                volumeToSr.put(volume, sr);
+                SrTO srTO = new SrTO(sr.getUuid(connection));
+                volumeToSr.add(new Pair<>(volume, srTO));
             }
 
             // Get the list of networks to which the vifs will attach.
-            Map<NicTO, Object> nicToNetwork = new HashMap<NicTO, Object>();
+            List<Pair<NicTO, NetworkTO>> nicToNetwork = new ArrayList<>();
             for (NicTO nicTo : vmSpec.getNics()) {
                 Network network = getNetwork(connection, nicTo);
-                nicToNetwork.put(nicTo, network);
+                NetworkTO networkTO = new NetworkTO();
+                networkTO.setUuid(network.getUuid(connection));
+                nicToNetwork.add(new Pair<>(nicTo, networkTO));
             }
 
             Map<String, String> other = new HashMap<String, String>();
@@ -261,8 +266,8 @@ public class XenServer610Resource extends XenServer602Resource {
     protected MigrateWithStorageSendAnswer execute(MigrateWithStorageSendCommand cmd) {
         Connection connection = getConnection();
         VirtualMachineTO vmSpec = cmd.getVirtualMachine();
-        Map<VolumeTO, Object> volumeToSr = cmd.getVolumeToSr();
-        Map<NicTO, Object> nicToNetwork = cmd.getNicToNetwork();
+        List<Pair<VolumeTO, SrTO>> volumeToSr = cmd.getVolumeToSr();
+        List<Pair<NicTO, NetworkTO>> nicToNetwork = cmd.getNicToNetwork();
         Map<String, String> token = cmd.getToken();
         final String vmName = vmSpec.getName();
         State state = s_vms.getState(_cluster, vmName);
@@ -282,26 +287,20 @@ public class XenServer610Resource extends XenServer602Resource {
 
             // Create the vdi map which tells what volumes of the vm need to go on which sr on the destination.
             Map<VDI, SR> vdiMap = new HashMap<VDI, SR>();
-            for (Map.Entry<VolumeTO, Object> entry : volumeToSr.entrySet()) {
-                if (entry.getValue() instanceof SR) {
-                    SR sr = (SR)entry.getValue();
-                    VDI vdi = getVDIbyUuid(connection, entry.getKey().getPath());
-                    vdiMap.put(vdi, sr);
-                } else {
-                    throw new CloudRuntimeException("The object " + entry.getValue() + " passed is not of type SR.");
-                }
+            for (Pair<VolumeTO, SrTO> pair : volumeToSr) {
+                SrTO srTO = pair.second();
+                VDI vdi = getVDIbyUuid(connection, pair.first().getPath());
+                SR sr = SR.getByUuid(connection, srTO.getUuid());
+                vdiMap.put(vdi, sr);
             }
 
             // Create the vif map.
             Map<VIF, Network> vifMap = new HashMap<VIF, Network>();
-            for (Map.Entry<NicTO, Object> entry : nicToNetwork.entrySet()) {
-                if (entry.getValue() instanceof Network) {
-                    Network network = (Network)entry.getValue();
-                    VIF vif = getVifByMac(connection, vmToMigrate, entry.getKey().getMac());
-                    vifMap.put(vif, network);
-                } else {
-                    throw new CloudRuntimeException("The object " + entry.getValue() + " passed is not of type Network.");
-                }
+            for (Pair<NicTO, NetworkTO> pair : nicToNetwork) {
+                NetworkTO networkTO = pair.second();
+                VIF vif = getVifByMac(connection, vmToMigrate, pair.first().getMac());
+                Network network = Network.getByUuid(connection, networkTO.getUuid());
+                vifMap.put(vif, network);
             }
 
             // Check migration with storage is possible.
