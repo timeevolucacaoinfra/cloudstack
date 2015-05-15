@@ -24,8 +24,8 @@ import java.util.Set;
 
 import javax.ejb.Local;
 
-import com.cloud.agent.api.to.NetworkTO;
 import com.cloud.agent.api.to.SrTO;
+import com.cloud.agent.api.to.VirtualNetworkTO;
 import com.cloud.utils.Pair;
 import org.apache.log4j.Logger;
 import org.apache.xmlrpc.XmlRpcException;
@@ -234,17 +234,14 @@ public class XenServer610Resource extends XenServer602Resource {
                 VolumeTO volume = entry.first();
                 StorageFilerTO filerTo = entry.second();
                 SR sr = getStorageRepository(connection, filerTo.getUuid());
-                SrTO srTO = new SrTO(sr.getUuid(connection));
-                volumeToSr.add(new Pair<>(volume, srTO));
+                volumeToSr.add(new Pair<>(volume, new SrTO(sr.toWireString())));
             }
 
             // Get the list of networks to which the vifs will attach.
-            List<Pair<NicTO, NetworkTO>> nicToNetwork = new ArrayList<>();
+            List<Pair<NicTO, VirtualNetworkTO>> nicToNetwork = new ArrayList<>();
             for (NicTO nicTo : vmSpec.getNics()) {
                 Network network = getNetwork(connection, nicTo);
-                NetworkTO networkTO = new NetworkTO();
-                networkTO.setUuid(network.getUuid(connection));
-                nicToNetwork.add(new Pair<>(nicTo, networkTO));
+                nicToNetwork.add(new Pair<>(nicTo, new VirtualNetworkTO(network.toWireString())));
             }
 
             Map<String, String> other = new HashMap<String, String>();
@@ -267,7 +264,7 @@ public class XenServer610Resource extends XenServer602Resource {
         Connection connection = getConnection();
         VirtualMachineTO vmSpec = cmd.getVirtualMachine();
         List<Pair<VolumeTO, SrTO>> volumeToSr = cmd.getVolumeToSr();
-        List<Pair<NicTO, NetworkTO>> nicToNetwork = cmd.getNicToNetwork();
+        List<Pair<NicTO, VirtualNetworkTO>> nicToNetwork = cmd.getNicToNetwork();
         Map<String, String> token = cmd.getToken();
         final String vmName = vmSpec.getName();
         State state = s_vms.getState(_cluster, vmName);
@@ -288,19 +285,15 @@ public class XenServer610Resource extends XenServer602Resource {
             // Create the vdi map which tells what volumes of the vm need to go on which sr on the destination.
             Map<VDI, SR> vdiMap = new HashMap<VDI, SR>();
             for (Pair<VolumeTO, SrTO> pair : volumeToSr) {
-                SrTO srTO = pair.second();
                 VDI vdi = getVDIbyUuid(connection, pair.first().getPath());
-                SR sr = SR.getByUuid(connection, srTO.getUuid());
-                vdiMap.put(vdi, sr);
+                vdiMap.put(vdi, getSR(pair.second().getRef()));
             }
 
             // Create the vif map.
             Map<VIF, Network> vifMap = new HashMap<VIF, Network>();
-            for (Pair<NicTO, NetworkTO> pair : nicToNetwork) {
-                NetworkTO networkTO = pair.second();
+            for (Pair<NicTO, VirtualNetworkTO> pair : nicToNetwork) {
                 VIF vif = getVifByMac(connection, vmToMigrate, pair.first().getMac());
-                Network network = Network.getByUuid(connection, networkTO.getUuid());
-                vifMap.put(vif, network);
+                vifMap.put(vif, getNetwork(pair.second().getRef()));
             }
 
             // Check migration with storage is possible.
@@ -446,5 +439,13 @@ public class XenServer610Resource extends XenServer602Resource {
     @Override
     protected void plugDom0Vif(Connection conn, VIF dom0Vif) throws XmlRpcException, XenAPIException {
         // do nothing. In xenserver 6.1 and beyond this step isn't needed.
+    }
+
+    private SR getSR(String ref){
+        return Types.toSR(ref);
+    }
+
+    private Network getNetwork(String ref){
+        return Types.toNetwork(ref);
     }
 }

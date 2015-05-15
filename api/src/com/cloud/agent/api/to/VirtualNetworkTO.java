@@ -16,11 +16,10 @@
 // under the License.
 package com.cloud.agent.api.to;
 
-public class SrTO  {
-
+public class VirtualNetworkTO {
     protected String ref;
 
-    public SrTO(String ref) {
+    public VirtualNetworkTO(String ref) {
         this.ref = ref;
     }
 
@@ -32,4 +31,3 @@ public class SrTO  {
         this.ref = ref;
     }
 }
-
