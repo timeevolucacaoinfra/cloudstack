@@ -161,6 +161,12 @@ public class XenServerResourceNewBase extends XenServer620SP1Resource {
         return new ClusterSyncAnswer(cmd.getClusterId(), newStates);
     }
 
+    @Override
+    public void disconnected() {
+        super.disconnected();
+        this._listener.signalStop();
+    }
+
     protected class VmEventListener extends Thread {
         boolean _stop = false;
         HashMap<String, Pair<String, VirtualMachine.State>> _changes = new HashMap<String, Pair<String, VirtualMachine.State>>();
