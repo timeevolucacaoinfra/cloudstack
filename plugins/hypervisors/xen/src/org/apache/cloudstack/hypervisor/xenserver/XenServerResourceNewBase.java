@@ -75,27 +75,25 @@ public class XenServerResourceNewBase extends XenServer620SP1Resource {
     public StartupCommand[] initialize() throws IllegalArgumentException {
         StartupCommand[] cmds = super.initialize();
 
-        Connection conn = getConnection();
-        Pool pool;
         try {
-            pool = Pool.getByUuid(conn, _host.pool);
-            Pool.Record poolr = pool.getRecord(conn);
-
-            Host.Record masterRecord = poolr.master.getRecord(conn);
-            if (_host.uuid.equals(masterRecord.uuid)) {
+            if (isMaster()) {
                 _listener = new VmEventListener(true);
                 _listener.start();
             } else {
                 _listener = new VmEventListener(false);
             }
-        } catch (XenAPIException e) {
-            throw new CloudRuntimeException("Unable to determine who is the master", e);
-        } catch (XmlRpcException e) {
+        } catch (XenAPIException | XmlRpcException e) {
             throw new CloudRuntimeException("Unable to determine who is the master", e);
         }
         return cmds;
     }
 
+    private boolean isMaster() throws XenAPIException, XmlRpcException {
+        Connection connection = getConnection();
+        Pool.Record pool = Pool.getByUuid(connection, _host.pool).getRecord(connection);
+        Host.Record master = pool.master.getRecord(connection);
+        return _host.uuid.equals(master.uuid);
+    }
 
     protected void waitForTask2(Connection c, Task task, long pollInterval, long timeout) throws XenAPIException, XmlRpcException, TimeoutException {
         long beginTime = System.currentTimeMillis();
@@ -149,16 +147,25 @@ public class XenServerResourceNewBase extends XenServer620SP1Resource {
         }
     }
 
-
-
     @Override
     protected Answer execute(final ClusterSyncCommand cmd) {
-        if (!_listener.isListening()) {
+        try {
+            if(isMaster() && _listener.isListening()){
+                return new ClusterSyncAnswer(cmd.getClusterId(), _listener.getChanges());
+            }else{
+                if(isMaster()){
+                    _listener._isMaster = true;
+                    _listener.start();
+                }else if(_listener.isListening()){
+                    _listener._isMaster = false;
+                    _listener.signalStop();
+                }
+                return new Answer(cmd);
+            }
+        } catch (XenAPIException | XmlRpcException e) {
+            s_logger.error("Unable to determine who is the master", e);
             return new Answer(cmd);
         }
-
-        HashMap<String, Pair<String, VirtualMachine.State>> newStates = _listener.getChanges();
-        return new ClusterSyncAnswer(cmd.getClusterId(), newStates);
     }
 
     @Override
