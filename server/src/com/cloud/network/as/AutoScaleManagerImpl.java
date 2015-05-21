@@ -1481,8 +1481,8 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
                 } else {
                     Long networkId = getDestinationNetworkId(asGroup);
-                    List<Long> networkIds = Arrays.asList(networkId);
-                    vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
+                    zone = _entityMgr.findById(DataCenter.class, _networkDao.findById(networkId).getDataCenterId());
+                    vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, Arrays.asList(networkId), owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
                         getCurrentTimeStampString(), AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(),
                         null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null, addrs, true, null, null, null, null);
 
