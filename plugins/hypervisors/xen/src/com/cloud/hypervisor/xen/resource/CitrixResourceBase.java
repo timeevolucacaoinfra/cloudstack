@@ -589,8 +589,21 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
     @Override
     public ExecutionResult createFileInVR(String routerIp, String path, String filename, String content) {
         Connection conn = getConnection();
-        String rc = callHostPlugin(conn, "vmops", "createFileInDomr", "domrip", routerIp, "filepath", path + filename, "filecontents", content);
-        // Fail case would be start with "fail#"
+//        String rc = callHostPlugin(conn, "vmops", "createFileInDomr", "domrip", routerIp, "filepath", path + filename, "filecontents", content);
+//        // Fail case would be start with "fail#"
+//        return new ExecutionResult(rc.startsWith("succ#"), rc.substring(5));
+
+        String hostPath = "/tmp/";
+
+        s_logger.info("Copying VR with ip " + routerIp +" config file into host "+ _host.ip );
+        try {
+            SshHelper.scpTo(_host.ip, 22, _username, null, _password.peek(), hostPath, content.getBytes(), filename, null);
+        } catch (Exception e) {
+            s_logger.error("scp VR config file into host " + _host.ip + " failed with exception " + e.getMessage().toString());
+        }
+
+        String rc = callHostPlugin(conn, "vmops", "createFileInDomr", "domrip", routerIp, "srcfilepath", hostPath + filename, "dstfilepath", path);
+        s_logger.info ("VR Config file " + filename + " got created in VR, ip " + routerIp + " with content \n" + content);
         return new ExecutionResult(rc.startsWith("succ#"), rc.substring(5));
     }
 

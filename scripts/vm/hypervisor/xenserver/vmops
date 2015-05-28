@@ -215,20 +215,28 @@ def createFile(session, args):
 
 @echo
 def createFileInDomr(session, args):
-    file_path = args['filepath']
-    file_contents = args['filecontents']
+    # file_path = args['filepath']
+    # file_contents = args['filecontents']
+    src_filepath = args['srcfilepath']
+    dst_path = args['dstfilepath']
     domrip = args['domrip']
+    txt=""
     try:
-        tmpfile = util.pread2(['mktemp']).strip()
-        f = open(tmpfile, "w")
-        f.write(file_contents)
-        f.close()
-        target = "root@" + domrip + ":" + file_path
-        txt = util.pread2(['scp','-P','3922','-q','-o','StrictHostKeyChecking=no','-i','/root/.ssh/id_rsa.cloud',tmpfile, target])
-        util.pread2(['rm',tmpfile])
+        # tmpfile = util.pread2(['mktemp']).strip()
+        # f = open(tmpfile, "w")
+        # f.write(file_contents)
+        # f.close()
+        # target = "root@" + domrip + ":" + file_path
+        # txt = util.pread2(['scp','-P','3922','-q','-o','StrictHostKeyChecking=no','-i','/root/.ssh/id_rsa.cloud',tmpfile, target])
+        # util.pread2(['rm',tmpfile])
+        # txt = 'succ#' + txt
+        target = "root@" + domrip + ":" + dst_path
+        txt = util.pread2(['scp','-P','3922','-q','-o','StrictHostKeyChecking=no','-i','/root/.ssh/id_rsa.cloud',src_filepath, target])
+        util.pread2(['rm',src_filepath])
         txt = 'succ#' + txt
     except:
-        logging.debug("failed to create file " + file_path + " in VR, contain: " + file_contents)
+        #logging.debug("failed to create file " + file_path + " in VR, contain: " + file_contents)
+        logging.warning("failed to copy file " + src_filepath + " from host to VR with ip " + domrip)
         txt = 'fail#' + txt
     return txt
 
