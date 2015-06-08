@@ -234,9 +234,9 @@ def createFileInDomr(session, args):
         txt = util.pread2(['scp','-P','3922','-q','-o','StrictHostKeyChecking=no','-i','/root/.ssh/id_rsa.cloud',src_filepath, target])
         util.pread2(['rm',src_filepath])
         txt = 'succ#' + txt
-    except:
+    except Exception, e:
         #logging.debug("failed to create file " + file_path + " in VR, contain: " + file_contents)
-        logging.warning("failed to copy file " + src_filepath + " from host to VR with ip " + domrip)
+        logging.warning("failed to copy file " + src_filepath + " from host " +socket.gethostname()+ " to VR with ip " + domrip + " with exception " + e)
         txt = 'fail#' + txt
     return txt
 
