@@ -958,6 +958,16 @@
                         error: function(args) {}
                     }
                 });
+
+                // Tooltip
+                if (field.docID) {
+                    $select.toolTip({
+                        docID: field.docID,
+                        tooltip: '.tooltip-box',
+                        mode: 'focus',
+                        attachTo: 'table.multi-edit'
+                    });
+                }
             } else if (field.edit && field.edit != 'ignore') {
                 if (field.range) {
                     var $range = $('<div>').addClass('range').appendTo($td);
