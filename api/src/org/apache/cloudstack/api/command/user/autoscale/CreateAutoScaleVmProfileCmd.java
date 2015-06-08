@@ -17,8 +17,10 @@
 package org.apache.cloudstack.api.command.user.autoscale;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.RoleType;
@@ -100,6 +102,17 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
                entityType = UserResponse.class,
                description = "the ID of the user used to launch and destroy the VMs")
     private Long autoscaleUserId;
+
+    @Parameter(name = ApiConstants.NETWORK_IDS,
+            type = CommandType.LIST,
+            collectionType = CommandType.UUID,
+            entityType = NetworkResponse.class,
+            required = false,
+            description = "list of additional networks (besides the LB network) to be added to the VMs")
+    private List<Long> networkIds;
+
+    @Parameter(name = ApiConstants.AUTOSCALE_PROFILE_REMOVE_NETWORKS, type = CommandType.BOOLEAN, description = "an optional field, all additional networks will be removed if true")
+    private boolean removeNetworks;
 
     @Parameter(name = ApiConstants.FOR_DISPLAY, type = CommandType.BOOLEAN, description = "an optional field, whether to the display the profile to the end user or not", since = "4.4", authorized = {RoleType.Admin})
     private Boolean display;
@@ -189,6 +202,14 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
         accountId = account.getAccountId();
         domainId = account.getDomainId();
         return accountId;
+    }
+
+    public List<Long> getNetworkIds() {
+        return networkIds;
+    }
+
+    public boolean isRemoveNetworks() {
+        return removeNetworks;
     }
 
     private void createOtherDeployParamMap() {

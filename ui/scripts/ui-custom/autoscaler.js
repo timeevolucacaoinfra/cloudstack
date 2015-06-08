@@ -24,6 +24,7 @@
         var bottomfields = forms.bottomFields;
         var scaleuppolicy = forms.scaleUpPolicy;
         var scaledownpolicy = forms.scaleDownPolicy;
+        var networks = forms.networks;
         var dataProvider = cloudStack.autoscaler.dataProvider;
         var actions = cloudStack.autoscaler.autoscaleActions;
         var actionFilter = cloudStack.autoscaler.actionFilter;
@@ -54,11 +55,15 @@
                 .html("Scale Up Policy");
             var $scaleDownPolicyTitle = $('<div>').addClass('scale-down-policy-title')
                 .html("Scale Down Policy");
+
+            var $networks = $('<div>').addClass('networks');
+
             var topFieldForm, $topFieldForm,
                 bottomFieldForm, $bottomFieldForm,
                 scaleUpPolicyTitleForm, $scaleUpPolicyTitleForm,
                 scaleDownPolicyTitleForm, $scaleDownPolicyTitleForm,
-                scaleUpPolicyForm, scaleDownPolicyForm;
+                scaleUpPolicyForm, scaleDownPolicyForm,
+                netorksForm;
 
             var renderActions = function(args) {
                 var targetActionFilter = args.actionFilter ? args.actionFilter : actionFilter;
@@ -230,6 +235,7 @@
                 $scaleDownPolicyTitleForm = scaleDownPolicyTitleForm.$formContainer;
                 $scaleDownPolicyTitleForm.appendTo($scaleDownPolicyTitle);
 
+
                 // Make multi-edits
                 //
                 // Scale up policy
@@ -262,6 +268,32 @@
                 scaledownpolicy.context = context;
                 scaleDownPolicyForm = $scaleDownPolicy.multiEdit(scaledownpolicy);
 
+                // Networks
+                if (data.context && $.isArray(data.context.autoscaleVmProfile.networkids)) {
+                    $.ajax({
+                        url: createURL("listNetworks"),
+                        dataType: "json",
+                        async: false,
+                        success: function(json) {
+                            var networks = json.listnetworksresponse.network;
+                            var networksIds = data.context.autoscaleVmProfile.networkids;
+
+                            var addedNetworks = [];
+
+                            $(networks).each(function(){
+                                if($.inArray(this.id, networksIds) >= 0){
+                                    addedNetworks.push({ networkid : this.id });
+                                }
+                            });
+
+                            $autoscalerDialog.data('autoscaler-networks-data', addedNetworks);
+                        }
+                    });
+                }
+
+                networks.context = context;
+                networksForm = $networks.multiEdit(networks);
+
                 // Create and append bottom fields
                 bottomFieldForm = cloudStack.dialog.createForm({
                     context: context,
@@ -277,6 +309,7 @@
                 // Append main div elements
                 $autoscalerDialog.append(
                     $topFields,
+                    $networks,
                     $scaleUpPolicyTitle,
                     $scaleUpPolicy,
                     $scaleDownPolicyTitle,
@@ -297,7 +330,7 @@
 
                 /* Hide effects for multi-edit table*/
                 $autoscalerDialog.find('div.scale-up-policy').prepend($hideScaleUp);
-                $autoscalerDialog.find('div.scale-down-policy ').prepend($hideScaleDown);
+                $autoscalerDialog.find('div.scale-down-policy').prepend($hideScaleDown);
                 $autoscalerDialog.find('div.scale-up-policy').prepend($scaleUpHideLabel);
                 $autoscalerDialog.find('div.scale-down-policy').prepend($scaleDownHideLabel);
 
@@ -313,6 +346,10 @@
                 });
 
                 $('div.ui-dialog div.autoscaler div.scale-down-policy div.hide').click(function() {
+                    $(this).toggleClass('expand hide');
+                });
+
+                $('div.ui-dialog div.autoscaler div.networks div.hide').click(function() {
                     $(this).toggleClass('expand hide');
                 });
 

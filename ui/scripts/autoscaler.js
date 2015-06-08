@@ -20,6 +20,8 @@
     var totalScaleUpCondition = 0;
     var scaleDownData = [];
     var totalScaleDownCondition = 0;
+    var networksData = []
+    var totalNetwork = 0;
 
     cloudStack.autoscaler = {
         // UI actions to appear in dialog
@@ -106,6 +108,8 @@
             totalScaleUpCondition = 0;
             scaleDownData = [];
             totalScaleDownCondition = 0;
+            networksData = []
+            totalNetwork = 0;
 
             if (!('multiRules' in args.context)) { //from a new LB
                 args.response.success({
@@ -315,7 +319,7 @@
                 },
 
                 serviceOfferingId: {
-                    label: 'label.compute.offering',
+                    label: 'label.menu.service.offerings',
                     select: function(args) {
                         $.ajax({
                             url: createURL("listServiceOfferings&issystem=false"),
@@ -544,6 +548,7 @@
                     }
                 }
             },
+
             scaleUpPolicy: {
                 title: 'ScaleUp Policy',
                 label: 'SCALE UP POLICY',
@@ -748,6 +753,88 @@
 
                     args.response.success({
                         data: scaleDownData
+                    });
+                }
+            },
+
+            networks: {
+                label: 'Additional networks',
+                noSelect: true,
+                noHeaderActionsColumn: true,
+                ignoreEmptyFields: true,
+                fields: {
+                    networkid: {
+                        label: 'Additional Networks',
+                        docID: 'helpAutoscaleProfileNetworks',
+                        select: function(args) {
+                            $.ajax({
+                                url: createURL("listNetworks"),
+                                dataType: "json",
+                                async: false,
+                                success: function(json) {
+                                    var networks = json.listnetworksresponse.network;
+
+                                    args.response.success({
+                                        data: $.map(networks, function(network) {
+                                            return {
+                                                name: network.id,
+                                                description: network.name + " - " + network.zonename + " - " + network.cidr
+                                            };
+                                        })
+                                    });
+                                }
+                            });
+                        }
+                    },
+                    'add-network': {
+                        label: 'label.add',
+                        addButton: true
+                    }
+                },
+                add: {
+                    label: 'label.add',
+                    action: function(args) {
+                        var result = $.grep(networksData, function(e){ return e.networkid == args.data.networkid; });
+
+                        if(result.length == 0){
+                            networksData.push($.extend(args.data, {
+                                index: totalNetwork
+                            }));
+
+                            totalNetwork++;
+                        }
+                        args.response.success();
+                    }
+                },
+                actions: {
+                    destroy: {
+                        label: '',
+                        action: function(args) {
+                            networksData = $.grep(networksData, function(item) {
+                                return item.index != args.context.multiRule[0].index;
+                            });
+                            totalNetwork--;
+                            args.response.success();
+                        }
+                    }
+                },
+                dataProvider: function(args) {
+                    var data = networksData;
+                    var $autoscaler = $('.ui-dialog .autoscaler');
+                    var initialData = $autoscaler.data('autoscaler-networks-data');
+
+                    if ($.isArray(initialData)) {
+                        $(initialData).each(function() {
+                            this.index = totalNetwork;
+                            totalNetwork++;
+                            networksData.push(this);
+                        });
+
+                        $autoscaler.data('autoscaler-networks-data', null);
+                    }
+
+                    args.response.success({
+                        data: networksData
                     });
                 }
             }
@@ -1138,11 +1225,19 @@
                             snmpport: args.data.snmpPort
                         };
 
+                        var networkIds = [];
+                        $(networksData).each(function(){
+                            networkIds.push(this.networkid);
+                        });
+                        $.extend(data, {
+                            networkids: networkIds.join(',')
+                        });
+
                         var allParamNames = $.map(data, function(value, key) {
                             return key;
                         });
 
-                        var notParams = ['zoneid', 'serviceofferingid', 'templateid', 'destroyvmgraceperiod'];
+                        var notParams = ['zoneid', 'serviceofferingid', 'templateid', 'destroyvmgraceperiod', 'networkids'];
                         var index = 0;
                         $(allParamNames).each(function() {
                             var param = 'counterparam[' + index + ']';
@@ -1218,11 +1313,21 @@
                             snmpport: args.data.snmpPort
                         };
 
+                        var networkIds = [];
+                        $(networksData).each(function(){
+                            networkIds.push(this.networkid);
+                        });
+                        if(networkIds.length > 0){
+                            $.extend(data, { networkids: networkIds.join(',') });
+                        }else{
+                          $.extend(data, { removenetworks: true });
+                        }
+
                         var allParamNames = $.map(data, function(value, key) {
                             return key;
                         });
 
-                        var notParams = ['id', 'templateid', 'destroyvmgraceperiod'];
+                        var notParams = ['id', 'templateid', 'destroyvmgraceperiod', 'networkids', 'removenetworks'];
                         var index = 0;
                         $(allParamNames).each(function() {
                             var param = 'counterparam[' + index + ']';
@@ -1236,9 +1341,6 @@
 
                             return true;
                         });
-
-
-
 
                         if (args.data.username != null && args.data.username.length > 0) {
                             $.extend(data, {

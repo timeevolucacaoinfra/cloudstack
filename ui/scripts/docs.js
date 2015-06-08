@@ -1253,4 +1253,8 @@ cloudStack.docs = {
         desc: 'The duration in seconds for which the conditions have to be true before action is taken',
         externalLink: ''
     },
+    helpAutoscaleProfileNetworks: {
+        desc: 'Additional networks (optional) to be added to the created VMs. The default network interface will be the load balancer\'s followed by the networks selected here.',
+        externalLink: ''
+    },
 };

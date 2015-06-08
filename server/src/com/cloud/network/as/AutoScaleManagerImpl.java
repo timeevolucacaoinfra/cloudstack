@@ -19,11 +19,12 @@ package com.cloud.network.as;
 import java.security.InvalidParameterException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,8 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 
 import com.cloud.event.ActionEventUtils;
+import com.cloud.network.as.dao.AutoScaleVmProfileNetworkMapDao;
+import com.cloud.network.dao.NetworkVO;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.log4j.Logger;
@@ -166,6 +169,8 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     LoadBalancerDao _lbDao;
     @Inject
     AutoScaleVmProfileDao _autoScaleVmProfileDao;
+    @Inject
+    AutoScaleVmProfileNetworkMapDao _autoScaleVmProfileNetworkMapDao;
     @Inject
     AutoScalePolicyDao _autoScalePolicyDao;
     @Inject
@@ -313,7 +318,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     }
 
     @DB
-    protected AutoScaleVmProfileVO checkValidityAndPersist(AutoScaleVmProfileVO vmProfile) {
+    protected AutoScaleVmProfileVO checkValidityAndPersist(final AutoScaleVmProfileVO vmProfile, final List<Long> networkIds, final boolean removeNetworks) {
         long templateId = vmProfile.getTemplateId();
         long autoscaleUserId = vmProfile.getAutoScaleUserId();
         int destroyVmGraceperiod = vmProfile.getDestroyVmGraceperiod();
@@ -351,9 +356,43 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             throw new InvalidParameterValueException("Global setting endpointe.url has to be set to the Management Server's API end point");
         }
 
-        vmProfile = _autoScaleVmProfileDao.persist(vmProfile);
+        return Transaction.execute(new TransactionCallback<AutoScaleVmProfileVO>() {
 
-        return vmProfile;
+            @Override
+            public AutoScaleVmProfileVO doInTransaction(TransactionStatus status) {
+                AutoScaleVmProfileVO newVmProfile = _autoScaleVmProfileDao.persist(vmProfile);
+
+                if (networkIds != null && !networkIds.isEmpty()) {
+                    SearchBuilder<NetworkVO> networkSearch = _networkDao.createSearchBuilder();
+                    networkSearch.and("ids", networkSearch.entity().getId(), Op.IN);
+                    networkSearch.done();
+                    SearchCriteria<NetworkVO> sc = networkSearch.create();
+
+                    sc.setParameters("ids", networkIds.toArray(new Object[0]));
+                    List<NetworkVO> networks = _networkDao.search(sc, null);
+
+                    ControlledEntity[] sameOwnerEntities = networks.toArray(new ControlledEntity[networks.size() + 1]);
+                    sameOwnerEntities[sameOwnerEntities.length - 1] = newVmProfile;
+                    _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, true, sameOwnerEntities);
+
+                    if (networkIds.size() != networks.size()) {
+                        throw new InvalidParameterValueException("Unable to find the network specified");
+                    }
+
+                    /* For update case remove the existing mappings and create fresh ones */
+                    _autoScaleVmProfileNetworkMapDao.removeByVmProfileId(newVmProfile.getId());
+
+                    Set<Long> networkSet = new LinkedHashSet<>(networkIds); //convert to set to remove duplicates
+                    for (Long networkId : networkSet) {
+                        _autoScaleVmProfileNetworkMapDao.persist(new AutoScaleVmProfileNetworkMapVO(newVmProfile.getId(), networkId));
+                    }
+                }else if(removeNetworks){
+                    _autoScaleVmProfileNetworkMapDao.removeByVmProfileId(newVmProfile.getId());
+                }
+
+                return newVmProfile;
+            }
+        });
     }
 
     @Override
@@ -400,7 +439,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             profileVO.setDisplay(cmd.getDisplay());
         }
 
-        profileVO = checkValidityAndPersist(profileVO);
+        profileVO = checkValidityAndPersist(profileVO, cmd.getNetworkIds(), cmd.isRemoveNetworks());
         s_logger.info("Successfully create AutoScale Vm Profile with Id: " + profileVO.getId());
 
         return profileVO;
@@ -451,7 +490,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             }
         }
 
-        vmProfile = checkValidityAndPersist(vmProfile);
+        vmProfile = checkValidityAndPersist(vmProfile, cmd.getNetworkIds(), cmd.isRemoveNetworks());
         s_logger.info("Updated Auto Scale Vm Profile id:" + vmProfile.getId());
 
         return vmProfile;
@@ -1467,23 +1506,26 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
             UserVm vm = null;
             IpAddresses addrs = new IpAddresses(null, null);
+            String instanceName = createInstanceName(asGroup);
+
             if (zone.getNetworkType() == NetworkType.Basic) {
-                vm = _userVmService.createBasicSecurityGroupVirtualMachine(zone, serviceOffering, template, null, owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
-                    getCurrentTimeStampString(),
-                    AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(), null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null,
+                vm = _userVmService.createBasicSecurityGroupVirtualMachine(zone, serviceOffering, template, null, owner, instanceName,
+                        instanceName, null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null,
                     null, true, null, null, null, null);
             } else {
                 if (zone.isSecurityGroupEnabled()) {
                     vm = _userVmService.createAdvancedSecurityGroupVirtualMachine(zone, serviceOffering, template, null, null,
-                        owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(),
-                        AutoScaledVmPrefix .value()+ asGroup.getId() + "-" + getCurrentTimeStampString(), null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null,
+                        owner, instanceName,
+                            instanceName, null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null,
                         null, null, true, null, null, null, null);
 
                 } else {
-                    Long networkId = getDestinationNetworkId(asGroup);
-                    zone = _entityMgr.findById(DataCenter.class, _networkDao.findById(networkId).getDataCenterId());
-                    vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, Arrays.asList(networkId), owner, AutoScaledVmPrefix.value() + asGroup.getId() + "-" +
-                        getCurrentTimeStampString(), AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString(),
+                    List<Long> networkIds = new ArrayList<>();
+                    Long mainNetworkId = getDestinationNetworkId(asGroup);
+                    networkIds.add(mainNetworkId);
+                    networkIds.addAll(getAdditionalNetWorkIds(profileVo));
+                    zone = getZone(mainNetworkId);
+                    vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, instanceName, instanceName,
                         null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null, addrs, true, null, null, null, null);
 
                 }
@@ -1491,8 +1533,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
             return vm;
         } catch (InsufficientCapacityException ex) {
-            s_logger.info(ex);
-            s_logger.trace(ex.getMessage(), ex);
+            s_logger.warn(ex.getMessage(), ex);
             throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, ex.getMessage());
         } catch (ResourceUnavailableException ex) {
             s_logger.warn("Exception: ", ex);
@@ -1506,7 +1547,23 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
     }
 
-    private Long getDestinationNetworkId(AutoScaleVmGroup asGroup){
+    protected String createInstanceName(AutoScaleVmGroupVO asGroup) {
+        return AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString();
+    }
+
+    private List<Long> getAdditionalNetWorkIds(AutoScaleVmProfileVO profileVo) {
+        List<Long> networkIds = new ArrayList<>();
+        for(AutoScaleVmProfileNetworkMapVO asProfileNetMap : _autoScaleVmProfileNetworkMapDao.listByVmProfileId(profileVo.getId())){
+            networkIds.add(asProfileNetMap.getNetworkId());
+        }
+        return networkIds;
+    }
+
+    private DataCenter getZone(Long mainNetworkId) {
+        return _entityMgr.findById(DataCenter.class, _networkDao.findById(mainNetworkId).getDataCenterId());
+    }
+
+    protected Long getDestinationNetworkId(AutoScaleVmGroup asGroup){
         LoadBalancer lb = _loadBalancingRulesService.findById(asGroup.getLoadBalancerId());
         List<LoadBalancerNetworkMapVO> lbNetMapList = _lbNetMapDao.listByLoadBalancerId(lb.getId());
 

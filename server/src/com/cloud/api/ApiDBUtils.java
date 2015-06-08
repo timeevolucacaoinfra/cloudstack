@@ -27,6 +27,8 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import com.cloud.network.as.AutoScaleVmProfileNetworkMapVO;
+import com.cloud.network.as.dao.AutoScaleVmProfileNetworkMapDao;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
 import org.apache.cloudstack.affinity.dao.AffinityGroupDao;
@@ -380,6 +382,7 @@ public class ApiDBUtils {
     static AutoScaleVmGroupPolicyMapDao s_asVmGroupPolicyMapDao;
     static AutoScalePolicyDao s_asPolicyDao;
     static AutoScaleVmProfileDao s_asVmProfileDao;
+    static AutoScaleVmProfileNetworkMapDao s_asVmProfileNetworkMapDao;
     static AutoScaleVmGroupDao s_asVmGroupDao;
     static CounterDao s_counterDao;
     static ResourceTagJoinDao s_tagJoinDao;
@@ -561,6 +564,8 @@ public class ApiDBUtils {
     @Inject
     private AutoScalePolicyConditionMapDao asPolicyConditionMapDao;
     @Inject
+    private AutoScaleVmProfileNetworkMapDao asVmProfileNetworkMapDao;
+    @Inject
     private AutoScaleVmGroupPolicyMapDao asVmGroupPolicyMapDao;
     @Inject
     private AutoScalePolicyDao asPolicyDao;
@@ -716,6 +721,7 @@ public class ApiDBUtils {
         s_sshKeyPairDao = sshKeyPairDao;
         s_userVmDetailsDao = userVmDetailsDao;
         s_asConditionDao = asConditionDao;
+        s_asVmProfileNetworkMapDao = asVmProfileNetworkMapDao;
         s_asPolicyDao = asPolicyDao;
         s_asPolicyConditionMapDao = asPolicyConditionMapDao;
         s_counterDao = counterDao;
@@ -1421,6 +1427,10 @@ public class ApiDBUtils {
 
     public static AutoScaleVmProfileVO findAutoScaleVmProfileById(long profileId) {
         return s_asVmProfileDao.findById(profileId);
+    }
+
+    public static List<AutoScaleVmProfileNetworkMapVO> listAutoScaleVmProfileNetworkMapByProfileId(long profileId){
+        return s_asVmProfileNetworkMapDao.listByVmProfileId(profileId);
     }
 
     public static AutoScaleVmGroupVO findAutoScaleVmGroupById(long groupId) {

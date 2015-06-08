@@ -101,6 +101,10 @@ public class AutoScaleVmProfileResponse extends BaseResponse implements Controll
     @Param(description = "is profile for display to the regular user", since = "4.4", authorized = {RoleType.Admin})
     private Boolean forDisplay;
 
+    @SerializedName(ApiConstants.NETWORK_IDS)
+    @Param(description = "list of additional networks (besides the LB network) to be added to the VMs")
+    private List<String> networkIds;
+
     public AutoScaleVmProfileResponse() {
     }
 
@@ -177,5 +181,9 @@ public class AutoScaleVmProfileResponse extends BaseResponse implements Controll
 
     public void setForDisplay(Boolean forDisplay) {
         this.forDisplay = forDisplay;
+    }
+
+    public void setNetworkIds(List<String> networkIds) {
+        this.networkIds = networkIds;
     }
 }

@@ -11520,6 +11520,26 @@ div.container div.panel div#details-tab-network.detail-group div div.multi-edit 
   float: left;
 }
 
+div.ui-dialog div.autoscaler div.networks  {
+  margin-top: 25px;
+}
+
+div.ui-dialog div.autoscaler div.networks-title div.form-container {
+  height: 55px;
+}
+
+div.ui-dialog div.autoscaler div.networks div.multi-edit {
+  margin-top: 0px;
+}
+
+div.ui-dialog div.autoscaler .networks .multi-edit th.add-network {
+   width: 12%;
+}
+
+div.ui-dialog div.autoscaler .networks .multi-edit td.multi-actions {
+   width: 12%;
+}
+
 div.ui-dialog div.autoscaler div.scale-up-policy-title div.form-container {
   height: 55px;
 }
@@ -11613,6 +11633,14 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.slide-label {
   width: 12px;
 }
 
+div.ui-dialog div.autoscaler div.networks div.slide-label {
+  color: #A5A3A7;
+  font-size: 14px;
+  margin-bottom: 3px;
+  margin-left: 715px;
+  width: 12px;
+}
+
 div.ui-dialog div.autoscaler div.scale-up-policy div.hide {
   background: #FFFFFF url("../images/minus.png") no-repeat 38% 59%;
   border: 1px solid #D0D0D0;
@@ -11635,6 +11663,16 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.hide {
   width: 14px;
 }
 
+div.ui-dialog div.autoscaler div.networks div.hide {
+  background: #FFFFFF url("../images/minus.png") no-repeat 31% 54%;
+  border: 1px solid #D0D0D0;
+  border-radius: 9px 9px 9px 9px;
+  cursor: pointer;
+  float: right;
+  height: 15px;
+  margin: -20px 75px 0 11px;
+  width: 14px;
+}
 div.ui-dialog div.autoscaler div.scale-up-policy div.expand {
   background: #FFFFFF url("../images/sprites.png") repeat -541px -499px;
   border: 1px solid #D0D0D0;
@@ -11657,6 +11695,16 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.expand {
   width: 14px;
 }
 
+div.ui-dialog div.autoscaler div.networks div.expand {
+  background: #FFFFFF url("../images/sprites.png") repeat -541px -499px;
+  border: 1px solid #D0D0D0;
+  border-radius: 9px 9px 9px 9px;
+  cursor: pointer;
+  float: right;
+  height: 15px;
+  margin: -20px 75px 0 11px;
+  width: 14px;
+}
 div.ui-dialog div.autoscaler div.field-group div.form-container form div.form-item div.name label {
   font-size: 11px;
 }
@@ -11782,7 +11830,7 @@ div.ui-dialog div.autoscaler div.scale-down-policy div.multi-edit {
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title {
   color: #0055BB;
-  margin-top: 40px;
+  margin-top: 15px;
 }
 
 div.ui-dialog div.autoscaler div.scale-up-policy-title label {

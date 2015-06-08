@@ -32,6 +32,7 @@ import java.util.TimeZone;
 import javax.inject.Inject;
 import javax.servlet.http.HttpSession;
 
+import com.cloud.network.as.AutoScaleVmProfileNetworkMapVO;
 import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
@@ -3036,6 +3037,12 @@ public class ApiResponseHelper implements ResponseGenerator {
         if (user != null) {
             response.setAutoscaleUserId(user.getUuid());
         }
+
+        List<String> networkIds = new ArrayList<>();
+        for(AutoScaleVmProfileNetworkMapVO asProfileNetMap : ApiDBUtils.listAutoScaleVmProfileNetworkMapByProfileId(profile.getId())){
+            networkIds.add(ApiDBUtils.findNetworkById(asProfileNetMap.getNetworkId()).getUuid());
+        }
+        response.setNetworkIds(networkIds);
         response.setObjectName("autoscalevmprofile");
 
         // Populates the account information in the response
