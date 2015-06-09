@@ -89,7 +89,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class AutoScaleMangerImplTest {
+public class AutoScaleManagerImplTest {
 
     private AutoScaleManagerImpl autoScaleManager;
 
@@ -542,6 +542,7 @@ public class AutoScaleMangerImplTest {
     private NetworkDao mockFindNetworkById() {
         NetworkDao networkDao = mock(NetworkDao.class);
         when(networkDao.findById(1L)).thenReturn(createNetwork());
+        when(networkDao.findById(2L)).thenReturn(createNetwork());
         autoScaleManager._networkDao = networkDao;
         return networkDao;
     }
@@ -605,20 +606,20 @@ public class AutoScaleMangerImplTest {
     }
 
     private void mockAutoScaleVmMapCountBy(int vmCount){
-        when(autoScaleVmGroupVmMapDao.countByGroup(AutoScaleMangerImplTest.AS_GROUP_ID)).thenReturn(vmCount);
+        when(autoScaleVmGroupVmMapDao.countByGroup(AutoScaleManagerImplTest.AS_GROUP_ID)).thenReturn(vmCount);
     }
 
     private void mockRemoveAutoScaleGroup(){
-        when(autoScaleVmGroupDao.remove(AutoScaleMangerImplTest.AS_GROUP_ID)).thenReturn(true);
+        when(autoScaleVmGroupDao.remove(AutoScaleManagerImplTest.AS_GROUP_ID)).thenReturn(true);
     }
 
     private void mockRemoveAutoScalePolicyByGroup(){
-        when(autoScaleVmGroupPolicyMapDao.removeByGroupId(AutoScaleMangerImplTest.AS_GROUP_ID)).thenReturn(true);
+        when(autoScaleVmGroupPolicyMapDao.removeByGroupId(AutoScaleManagerImplTest.AS_GROUP_ID)).thenReturn(true);
     }
 
     private AutoScaleVmGroupVO createAutoScaleGroup(){
         AutoScaleVmGroupVO asGroup = new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
-        asGroup.id = AutoScaleMangerImplTest.AS_GROUP_ID;
+        asGroup.id = AutoScaleManagerImplTest.AS_GROUP_ID;
         return asGroup;
     }
 

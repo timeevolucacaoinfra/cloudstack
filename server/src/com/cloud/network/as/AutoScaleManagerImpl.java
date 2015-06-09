@@ -1522,9 +1522,9 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                 } else {
                     List<Long> networkIds = new ArrayList<>();
                     Long mainNetworkId = getDestinationNetworkId(asGroup);
-                    networkIds.add(mainNetworkId);
-                    networkIds.addAll(getAdditionalNetWorkIds(profileVo));
                     zone = getZone(mainNetworkId);
+                    networkIds.add(mainNetworkId);
+                    networkIds.addAll(getAdditionalNetWorkIds(profileVo, zone));
                     vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, instanceName, instanceName,
                         null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null, addrs, true, null, null, null, null);
 
@@ -1551,10 +1551,13 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         return AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString();
     }
 
-    private List<Long> getAdditionalNetWorkIds(AutoScaleVmProfileVO profileVo) {
+    private List<Long> getAdditionalNetWorkIds(AutoScaleVmProfileVO profileVo, DataCenter zone) {
         List<Long> networkIds = new ArrayList<>();
         for(AutoScaleVmProfileNetworkMapVO asProfileNetMap : _autoScaleVmProfileNetworkMapDao.listByVmProfileId(profileVo.getId())){
-            networkIds.add(asProfileNetMap.getNetworkId());
+            NetworkVO network = _networkDao.findById(asProfileNetMap.getNetworkId());
+            if(network.getDataCenterId() == zone.getId()) {
+                networkIds.add(asProfileNetMap.getNetworkId());
+            }
         }
         return networkIds;
     }
