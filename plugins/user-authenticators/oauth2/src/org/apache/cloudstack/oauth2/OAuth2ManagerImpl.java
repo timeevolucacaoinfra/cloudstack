@@ -53,7 +53,6 @@ import com.cloud.user.AccountManager;
 import com.cloud.user.DomainManager;
 import com.cloud.user.UserAccount;
 import com.cloud.user.dao.UserAccountDao;
-import com.cloud.utils.Pair;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.AdapterBase;
 import com.cloud.utils.exception.CloudRuntimeException;
@@ -215,7 +214,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         }
     }
 
-    protected Pair<String, String> requestUsernameFromUserInfoProviderAPI(String accessToken) {
+    protected String requestUsernameFromUserInfoProviderAPI(String accessToken) {
         try {
             OAuthClientRequest bearerClientRequest = new OAuthBearerClientRequest(getUserInfoURLWithProvider()).setAccessToken(accessToken).buildHeaderMessage();
 
@@ -226,16 +225,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
                         + " content type = " + resourceResponse.getContentType());
             }
             Map<String, Object> json = JSONUtils.parseJSON(resourceResponse.getBody());
-            String username = (String)json.get(getUserAttributeWithProvider());
-            String email = null;
-            if (StringUtils.isNotBlank(username)) {
-                if (username.contains("@")) {
-                    // remove content after @
-                    email = username;
-                    username = username.substring(0, username.indexOf('@'));
-                }
-            }
-            return new Pair<String, String>(username, email);
+            return (String)json.get(getUserAttributeWithProvider());
         } catch (OAuthSystemException e) {
             throw new CloudRuntimeException(e.getLocalizedMessage(), e);
         } catch (OAuthProblemException e) {
@@ -251,9 +241,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     public UserAccount authenticate(String code, String redirectUri) throws CloudAuthenticationException {
 
         String accessToken = changeCodeToAccessToken(code, redirectUri);
-        Pair<String, String> username_email = requestUsernameFromUserInfoProviderAPI(accessToken);
-        String username = username_email.first();
-        String email = username_email.second();
+        String username = requestUsernameFromUserInfoProviderAPI(accessToken);
         if (username == null) {
             throw new CloudRuntimeException("Can't get username from OAuth Server.");
         }
@@ -263,13 +251,14 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
         if (userAcc == null) {
             if (!createsNewAccountWhenNotFound()) {
                 s_logger.info("User " + username + " not found in domain " + domain.getId());
-                throw new CloudAuthenticationException("User " + username + " not found. Contact administrator.");
+                throw new CloudAuthenticationException("User " + username + " not found. Contact the administrator.");
             }
+            String email = username.contains("@") ? username : "";
             s_logger.info("Creating new user/account with username=" + username + ", email=" + email + " in domain " + domain.getId());
-            userAcc = _accManager.createUserAccount(username, UUID.randomUUID().toString(), username, username, email, null, username, Account.ACCOUNT_TYPE_NORMAL, domain.getId(), null, null, null, null);
+            userAcc = _accManager.createUserAccount(username, UUID.randomUUID().toString(), username, username, username, null, username, Account.ACCOUNT_TYPE_NORMAL, domain.getId(), null, null, null, null);
             // if there are any conflict of username/account name raises an error and administrator take care, to avoid security problems.
             if (userAcc == null) {
-                throw new CloudAuthenticationException("Unable to create new account to " + username + ". Contact administrator to creates one.");
+                throw new CloudAuthenticationException("Unable to create new account " + username + ". Contact the administrator.");
             }
         }
         return userAcc;
