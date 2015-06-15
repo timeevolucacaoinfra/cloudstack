@@ -80,6 +80,9 @@ public class AutoScaleVmProfileVO implements AutoScaleVmProfile, Identity, Inter
     @Column(name = "counter_params", updatable = true)
     private String counterParams;
 
+    @Column(name = "user_data", updatable = true, length = 32768)
+    private String userData;
+
     @Column(name = GenericDao.REMOVED_COLUMN)
     protected Date removed;
 
@@ -93,7 +96,7 @@ public class AutoScaleVmProfileVO implements AutoScaleVmProfile, Identity, Inter
     }
 
     public AutoScaleVmProfileVO(long zoneId, long domainId, long accountId, long serviceOfferingId, long templateId, String otherDeployParams, Map counterParamList,
-            Integer destroyVmGraceperiod, long autoscaleUserId) {
+            Integer destroyVmGraceperiod, long autoscaleUserId, String userData) {
         uuid = UUID.randomUUID().toString();
         this.zoneId = zoneId;
         this.domainId = domainId;
@@ -102,6 +105,7 @@ public class AutoScaleVmProfileVO implements AutoScaleVmProfile, Identity, Inter
         this.templateId = templateId;
         this.otherDeployParams = otherDeployParams;
         this.autoscaleUserId = autoscaleUserId;
+        this.userData = userData;
         if (destroyVmGraceperiod != null) {
             this.destroyVmGraceperiod = destroyVmGraceperiod;
         }
@@ -207,6 +211,11 @@ public class AutoScaleVmProfileVO implements AutoScaleVmProfile, Identity, Inter
     }
 
     @Override
+    public String getUserData() {
+        return userData;
+    }
+
+    @Override
     public Integer getDestroyVmGraceperiod() {
         return destroyVmGraceperiod;
     }
@@ -226,6 +235,10 @@ public class AutoScaleVmProfileVO implements AutoScaleVmProfile, Identity, Inter
 
     public void setDisplay(boolean display) {
         this.display = display;
+    }
+
+    public void setUserData(String userData) {
+        this.userData = userData;
     }
 
     @Override

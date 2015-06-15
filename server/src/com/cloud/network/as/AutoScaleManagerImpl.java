@@ -37,6 +37,7 @@ import com.cloud.network.as.dao.AutoScaleVmProfileNetworkMapDao;
 import com.cloud.network.dao.NetworkVO;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -204,6 +205,8 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
 
+    private static final int MAX_HTTP_POST_LENGTH = 16 * 2048;
+
     private static final ConfigKey<String> AutoScaledVmPrefix = new ConfigKey<String>("Advanced", String.class, "autoscale.vm.prefix", "as-vm-",
             "Auto scaled virtual machine name prefix", true, ConfigKey.Scope.Global);
 
@@ -356,6 +359,8 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             throw new InvalidParameterValueException("Global setting endpointe.url has to be set to the Management Server's API end point");
         }
 
+        validateUserData(vmProfile.getUserData());
+
         return Transaction.execute(new TransactionCallback<AutoScaleVmProfileVO>() {
 
             @Override
@@ -393,6 +398,26 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                 return newVmProfile;
             }
         });
+    }
+
+    protected void validateUserData(String userData) {
+        byte[] decodedUserData;
+        if (userData != null) {
+            if (!Base64.isBase64(userData)) {
+                throw new InvalidParameterValueException("User data is not base64 encoded");
+            }
+            if (userData.length() >= MAX_HTTP_POST_LENGTH) {
+                throw new InvalidParameterValueException("User data is too long for an http POST request");
+            }
+            decodedUserData = Base64.decodeBase64(userData.getBytes());
+            if (decodedUserData.length > MAX_HTTP_POST_LENGTH) {
+                throw new InvalidParameterValueException("User data is too long for POST request");
+            }
+
+            if (decodedUserData.length < 1) {
+                throw new InvalidParameterValueException("User data is too short");
+            }
+        }
     }
 
     @Override
@@ -433,7 +458,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
         AutoScaleVmProfileVO profileVO =
             new AutoScaleVmProfileVO(cmd.getZoneId(), cmd.getDomainId(), cmd.getAccountId(), cmd.getServiceOfferingId(), cmd.getTemplateId(), cmd.getOtherDeployParams(),
-                cmd.getCounterParamList(), cmd.getDestroyVmGraceperiod(), autoscaleUserId);
+                cmd.getCounterParamList(), cmd.getDestroyVmGraceperiod(), autoscaleUserId, cmd.getUserData());
 
         if (cmd.getDisplay() != null) {
             profileVO.setDisplay(cmd.getDisplay());
@@ -481,6 +506,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
         if (cmd.getDisplay() != null) {
             vmProfile.setDisplay(cmd.getDisplay());
+        }
+
+        if(cmd.getUserData() != null){
+            vmProfile.setUserData(cmd.getUserData());
         }
 
         List<AutoScaleVmGroupVO> vmGroupList = _autoScaleVmGroupDao.listByAll(null, profileId);
@@ -1526,7 +1555,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                     networkIds.add(mainNetworkId);
                     networkIds.addAll(getAdditionalNetWorkIds(profileVo, zone));
                     vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, instanceName, instanceName,
-                        null, null, null, HypervisorType.XenServer, HTTPMethod.GET, null, null, null, addrs, true, null, null, null, null);
+                        null, null, null, HypervisorType.XenServer, HTTPMethod.POST, profileVo.getUserData(), null, null, addrs, true, null, null, null, null);
 
                 }
             }

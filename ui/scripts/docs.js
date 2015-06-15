@@ -1257,4 +1257,9 @@ cloudStack.docs = {
         desc: 'Additional networks (optional) to be added to the created VMs. The default network interface will be the load balancer\'s followed by the networks selected here.',
         externalLink: ''
     },
+
+    helpAutoscaleUserData: {
+        desc: 'Binary data that can be sent to the virtual machine upon a successful deployment. This binary data must be base64 encoded. You can send up to 32K of data after base64 encoding.',
+        externalLink: ''
+    }
 };

@@ -114,6 +114,12 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
     @Parameter(name = ApiConstants.AUTOSCALE_PROFILE_REMOVE_NETWORKS, type = CommandType.BOOLEAN, description = "an optional field, all additional networks will be removed if true")
     private boolean removeNetworks;
 
+    @Parameter(name = ApiConstants.USER_DATA,
+            type = CommandType.STRING,
+            description = "an optional binary data that can be sent to the virtual machine upon a successful deployment. This binary data must be base64 encoded before adding it to the request. Using HTTP GET (via querystring), you can send up to 2KB of data after base64 encoding. Using HTTP POST(via POST body), you can send up to 32K of data after base64 encoding.",
+            length = 32768)
+    private String userData;
+
     @Parameter(name = ApiConstants.FOR_DISPLAY, type = CommandType.BOOLEAN, description = "an optional field, whether to the display the profile to the end user or not", since = "4.4", authorized = {RoleType.Admin})
     private Boolean display;
 
@@ -210,6 +216,10 @@ public class CreateAutoScaleVmProfileCmd extends BaseAsyncCreateCmd {
 
     public boolean isRemoveNetworks() {
         return removeNetworks;
+    }
+
+    public String getUserData() {
+        return userData;
     }
 
     private void createOtherDeployParamMap() {

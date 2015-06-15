@@ -105,6 +105,10 @@ public class AutoScaleVmProfileResponse extends BaseResponse implements Controll
     @Param(description = "list of additional networks (besides the LB network) to be added to the VMs")
     private List<String> networkIds;
 
+    @SerializedName(ApiConstants.USER_DATA)
+    @Param(description = "an optional binary data that can be sent to the virtual machine upon a successful deployment. This binary data must be base64 encoded.")
+    private String userData;
+
     public AutoScaleVmProfileResponse() {
     }
 
@@ -185,5 +189,9 @@ public class AutoScaleVmProfileResponse extends BaseResponse implements Controll
 
     public void setNetworkIds(List<String> networkIds) {
         this.networkIds = networkIds;
+    }
+
+    public void setUserData(String userData) {
+        this.userData = userData;
     }
 }

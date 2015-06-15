@@ -3043,6 +3043,7 @@ public class ApiResponseHelper implements ResponseGenerator {
             networkIds.add(ApiDBUtils.findNetworkById(asProfileNetMap.getNetworkId()).getUuid());
         }
         response.setNetworkIds(networkIds);
+        response.setUserData(profile.getUserData());
         response.setObjectName("autoscalevmprofile");
 
         // Populates the account information in the response

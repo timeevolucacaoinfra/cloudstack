@@ -263,7 +263,7 @@ public abstract class AutoScaleStatsCollectorTest {
 
     protected void mockAutoScaleProfileDao() {
         AutoScaleVmProfileDao _asProfileDao = mock(AutoScaleVmProfileDao.class);
-        when(_asProfileDao.findById(anyLong())).thenReturn(new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L));
+        when(_asProfileDao.findById(anyLong())).thenReturn(new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, null));
         autoScaleStatsCollector._asProfileDao = _asProfileDao;
     }
 }

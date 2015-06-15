@@ -191,6 +191,7 @@
                                     serviceOfferingId: autoscaleVmProfile.serviceofferingid,
                                     minInstance: autoscaleVmGroup.minmembers,
                                     maxInstance: autoscaleVmGroup.maxmembers,
+                                    userData: autoscaleVmProfile.userdata,
                                     scaleUpPolicy: scaleUpPolicy,
                                     scaleDownPolicy: scaleDownPolicy,
                                     interval: autoscaleVmGroup.interval,
@@ -358,6 +359,11 @@
                         required: true,
                         number: true
                     }
+                },
+
+                userData: {
+                    label: 'label.user.data',
+                    docID: 'helpAutoscaleUserData'
                 }
             },
 
@@ -939,6 +945,22 @@
                     args.response.error("At least one condition is required in Scale Down Policy.");
                     return;
                 }
+
+                if(args.data.userData.length > 32768){
+                    args.response.error("User data should be only 30k long.");
+                    return;
+                }
+
+                if(args.data.userData.length == 1){
+                    args.response.error("User data is too short.");
+                    return;
+                }
+
+                var base64Matcher = new RegExp("^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4})$");
+                if (args.data.userData.length > 0 && !base64Matcher.test(args.data.userData)) {
+                    args.response.error("User data is not base64 encode.");
+                    return;
+                }
                 //validation (end) *****
 
                 var scaleVmProfileResponse = [];
@@ -1225,6 +1247,10 @@
                             snmpport: args.data.snmpPort
                         };
 
+                        if(args.data.userData != ''){
+                            $.extend(data, { userdata: args.data.userData });
+                        }
+
                         var networkIds = [];
                         $(networksData).each(function(){
                             networkIds.push(this.networkid);
@@ -1237,7 +1263,7 @@
                             return key;
                         });
 
-                        var notParams = ['zoneid', 'serviceofferingid', 'templateid', 'destroyvmgraceperiod', 'networkids'];
+                        var notParams = ['zoneid', 'serviceofferingid', 'templateid', 'destroyvmgraceperiod', 'networkids', 'userdata'];
                         var index = 0;
                         $(allParamNames).each(function() {
                             var param = 'counterparam[' + index + ']';
@@ -1277,6 +1303,7 @@
                         $.ajax({
                             url: createURL('createAutoScaleVmProfile'),
                             data: data,
+                            type: "post",
                             success: function(json) {
                                 var jobId = json.autoscalevmprofileresponse.jobid;
                                 var autoscaleVmProfileTimer = setInterval(function() {
@@ -1313,6 +1340,10 @@
                             snmpport: args.data.snmpPort
                         };
 
+                         if(args.data.userData != ''){
+                            $.extend(data, { userdata: args.data.userData });
+                         }
+
                         var networkIds = [];
                         $(networksData).each(function(){
                             networkIds.push(this.networkid);
@@ -1327,7 +1358,7 @@
                             return key;
                         });
 
-                        var notParams = ['id', 'templateid', 'destroyvmgraceperiod', 'networkids', 'removenetworks'];
+                        var notParams = ['id', 'templateid', 'destroyvmgraceperiod', 'networkids', 'removenetworks', 'userdata'];
                         var index = 0;
                         $(allParamNames).each(function() {
                             var param = 'counterparam[' + index + ']';
@@ -1351,6 +1382,7 @@
                         $.ajax({
                             url: createURL('updateAutoScaleVmProfile'),
                             data: data,
+                            type: "post",
                             success: function(json) {
                                 var jobId = json.updateautoscalevmprofileresponse.jobid;
                                 var autoscaleVmProfileTimer = setInterval(function() {

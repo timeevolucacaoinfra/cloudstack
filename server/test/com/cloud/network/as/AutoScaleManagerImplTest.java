@@ -111,6 +111,7 @@ public class AutoScaleManagerImplTest {
     ScheduledExecutorService threadPool;
 
     private static final long AS_GROUP_ID = 10L;
+    private static final String USER_DATA = "IA==";
 
     @Before
     public void setUp(){
@@ -317,10 +318,10 @@ public class AutoScaleManagerImplTest {
     }
 
     @Test
-    public void testCreateNewVMWithAdvancedNetworkAndNoSecurityGroup() throws ResourceUnavailableException, ResourceAllocationException, InsufficientCapacityException {
+    public void testCreateNewVMWithAdvancedNetworkAndNoSecurityGroupAndUserData() throws ResourceUnavailableException, ResourceAllocationException, InsufficientCapacityException {
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
 
@@ -347,14 +348,14 @@ public class AutoScaleManagerImplTest {
 
         mockCreateUserVm(owner, zone, serviceOffering, template, userVm, Arrays.asList(1L));
 
-        assertEquals(userVm,  autoScaleManager.createNewVM(asGroup));
+        assertEquals(userVm, autoScaleManager.createNewVM(asGroup));
     }
 
     @Test
     public void testCreateNewVMWithTwoNICs() throws InsufficientCapacityException, ResourceUnavailableException, ResourceAllocationException {
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
 
@@ -388,7 +389,7 @@ public class AutoScaleManagerImplTest {
     public void testCreateNewVMWithInvalidServiceOffering() throws InsufficientCapacityException, ResourceUnavailableException, ResourceAllocationException {
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
         mockGetActiveAccount(new AccountVO());
@@ -411,7 +412,7 @@ public class AutoScaleManagerImplTest {
     public void testCreateNewVMWithInvalidZone(){
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
         mockGetActiveAccount(new AccountVO());
@@ -433,7 +434,7 @@ public class AutoScaleManagerImplTest {
     public void testCreateNewVMWithInvalidTemplate(){
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
         mockGetActiveAccount(new AccountVO());
@@ -457,7 +458,7 @@ public class AutoScaleManagerImplTest {
     public void testCreateNewVMWithEmptyTemplate(){
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
         autoScaleVmProfile.setTemplateId(-1L);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
@@ -470,7 +471,7 @@ public class AutoScaleManagerImplTest {
     public void testCreateNewVMGivenInsufficientCapacity() throws ResourceUnavailableException, ResourceAllocationException, InsufficientCapacityException {
         autoScaleManager = spy(new AutoScaleManagerImpl());
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
-        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L);
+        AutoScaleVmProfileVO autoScaleVmProfile = new AutoScaleVmProfileVO(1L, 1L, 1L, 1L, 1L, null, null, 30, 1L, USER_DATA);
 
         mockFindAutoScaleVmProfile(autoScaleVmProfile);
 
@@ -497,7 +498,7 @@ public class AutoScaleManagerImplTest {
         when(userVmService.createAdvancedVirtualMachine(eq(zone), eq(serviceOffering), eq(template),
                 eq(Arrays.asList(1L)), eq(owner), eq("instanceName"), eq("instanceName"), isNull(Long.class),
                 isNull(Long.class), isNull(String.class), eq(Hypervisor.HypervisorType.XenServer),
-                eq(BaseCmd.HTTPMethod.GET), isNull(String.class), isNull(String.class), isNull(Map.class),
+                eq(BaseCmd.HTTPMethod.POST), eq(USER_DATA), isNull(String.class), isNull(Map.class),
                 any(Network.IpAddresses.class), eq(true), isNull(String.class), isNull(List.class), isNull(Map.class), isNull(String.class))).
                 thenThrow(new InsufficientNetworkCapacityException("Network error", Networks.class, 1L));
         autoScaleManager._userVmService = userVmService;
@@ -508,6 +509,26 @@ public class AutoScaleManagerImplTest {
         }catch(ServerApiException ex){
             assertEquals(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, ex.getErrorCode());
         }
+    }
+
+    @Test
+    public void testValidateUserDataGivenValidData(){
+        new AutoScaleManagerImpl().validateUserData("dGVzdGU=");
+    }
+
+    @Test
+    public void testValidateUserDataGivenEmptyData(){
+        new AutoScaleManagerImpl().validateUserData(null);
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testValidateUserDataGivenShortUserData(){
+        new AutoScaleManagerImpl().validateUserData("a");
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testValidateUserDataGivenLongUserData(){
+        new AutoScaleManagerImpl().validateUserData(new String(new char[35000]));
     }
 
     private AccountService mockGetActiveAccount(AccountVO owner) {
@@ -527,7 +548,7 @@ public class AutoScaleManagerImplTest {
 
     private UserVmService mockCreateUserVm(AccountVO owner, DataCenterVO zone, ServiceOfferingVO serviceOffering, VirtualMachineTemplate template, UserVmVO userVm, List<Long> networkIds) throws InsufficientCapacityException, ResourceUnavailableException, ResourceAllocationException {
         UserVmService userVmService = mock(UserVmService.class);
-        when(userVmService.createAdvancedVirtualMachine(eq(zone), eq(serviceOffering), eq(template), eq(networkIds), eq(owner), eq("instanceName"), eq("instanceName"), isNull(Long.class), isNull(Long.class), isNull(String.class), eq(Hypervisor.HypervisorType.XenServer), eq(BaseCmd.HTTPMethod.GET), isNull(String.class), isNull(String.class), isNull(Map.class), any(Network.IpAddresses.class), eq(true), isNull(String.class), isNull(List.class), isNull(Map.class), isNull(String.class))).thenReturn(userVm);
+        when(userVmService.createAdvancedVirtualMachine(eq(zone), eq(serviceOffering), eq(template), eq(networkIds), eq(owner), eq("instanceName"), eq("instanceName"), isNull(Long.class), isNull(Long.class), isNull(String.class), eq(Hypervisor.HypervisorType.XenServer), eq(BaseCmd.HTTPMethod.POST), eq(USER_DATA), isNull(String.class), isNull(Map.class), any(Network.IpAddresses.class), eq(true), isNull(String.class), isNull(List.class), isNull(Map.class), isNull(String.class))).thenReturn(userVm);
         autoScaleManager._userVmService = userVmService;
         return userVmService;
     }
