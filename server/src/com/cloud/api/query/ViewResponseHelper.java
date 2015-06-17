@@ -198,6 +198,25 @@ public class ViewResponseHelper {
         return new ArrayList<ProjectResponse>(prjDataList.values());
     }
 
+    public static List<ProjectResponse> createSimpleProjectResponse(ProjectJoinVO... projects) {
+        List<ProjectResponse> prjDataList = new ArrayList<>();
+        for(ProjectJoinVO project : projects){
+            ProjectResponse projectResponse = new ProjectResponse();
+            projectResponse.setName(project.getName());
+            projectResponse.setDisplaytext(project.getDisplayText());
+            projectResponse.setId(project.getUuid());
+            if (project.getState() != null) {
+                projectResponse.setState(project.getState().toString());
+            }
+            projectResponse.setDomainId(project.getDomainUuid());
+            projectResponse.setDomain(project.getDomainName());
+            projectResponse.setOwner(project.getOwner());
+            projectResponse.setObjectName("project");
+            prjDataList.add(projectResponse);
+        }
+        return prjDataList;
+    }
+
     public static List<ProjectAccountResponse> createProjectAccountResponse(ProjectAccountJoinVO... projectAccounts) {
         List<ProjectAccountResponse> responseList = new ArrayList<ProjectAccountResponse>();
         for (ProjectAccountJoinVO proj : projectAccounts) {

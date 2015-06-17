@@ -625,7 +625,8 @@
             var user = args.context.users[0];
             var data = {
                 accountId: user.userid,
-                listAll: true
+                listAll: true,
+                simple: true
             };
 
             if (args.projectName) {
@@ -634,7 +635,7 @@
 
             $.ajax({
                 url: createURL('listProjects', {
-                    ignoreProject: true
+                    ignoreProject: true,
                 }),
                 data: data,
                 dataType: 'json',

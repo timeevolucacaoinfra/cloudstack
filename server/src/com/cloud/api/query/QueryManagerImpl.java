@@ -1242,7 +1242,12 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
     public ListResponse<ProjectResponse> listProjects(ListProjectsCmd cmd) {
         Pair<List<ProjectJoinVO>, Integer> projects = listProjectsInternal(cmd);
         ListResponse<ProjectResponse> response = new ListResponse<ProjectResponse>();
-        List<ProjectResponse> projectResponses = ViewResponseHelper.createProjectResponse(projects.first().toArray(new ProjectJoinVO[projects.first().size()]));
+        List<ProjectResponse> projectResponses = null;
+        if (cmd.isSimple()){
+            projectResponses = ViewResponseHelper.createSimpleProjectResponse(projects.first().toArray(new ProjectJoinVO[projects.first().size()]));
+        }else{
+            projectResponses = ViewResponseHelper.createProjectResponse(projects.first().toArray(new ProjectJoinVO[projects.first().size()]));
+        }
         response.setResponses(projectResponses, projects.second());
         return response;
     }

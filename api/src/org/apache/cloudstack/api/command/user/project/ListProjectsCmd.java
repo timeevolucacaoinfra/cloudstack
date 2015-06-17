@@ -61,6 +61,9 @@ public class ListProjectsCmd extends BaseListAccountResourcesCmd {
     @Parameter(name = ApiConstants.TAGS, type = CommandType.MAP, description = "List projects by tags (key/value pairs)")
     private Map tags;
 
+    @Parameter(name = "simple", type = CommandType.BOOLEAN, description = "List only basic projec data like id, name, domain")
+    private boolean simple;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -79,6 +82,10 @@ public class ListProjectsCmd extends BaseListAccountResourcesCmd {
 
     public String getState() {
         return state;
+    }
+
+    public boolean isSimple() {
+        return simple;
     }
 
     @Override
