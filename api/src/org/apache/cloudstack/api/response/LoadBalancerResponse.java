@@ -107,6 +107,10 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
     @Param(description = "additional port map associated with load balancing rule")
     private List<String> additionalPortMap;
 
+    @SerializedName(ApiConstants.CACHE)
+    @Param(description = "cache group associated with load balancing rule")
+    private String cache;
+
     @SerializedName(ApiConstants.TAGS)
     @Param(description = "the list of resource tags associated with load balancer", responseObject = ResourceTagResponse.class)
     private List<ResourceTagResponse> tags;
@@ -201,6 +205,8 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
     }
 
     public void setAdditionalPortMap(List<String> additionalPortMap) { this.additionalPortMap = additionalPortMap; }
+
+    public void setCache(String cache) { this.cache = cache; }
 
     public void setForDisplay(Boolean forDisplay) {
         this.forDisplay = forDisplay;

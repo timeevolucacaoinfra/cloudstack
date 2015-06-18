@@ -23,6 +23,9 @@ import java.util.Map;
 
 import javax.naming.ConfigurationException;
 
+import com.globo.globonetwork.client.model.OptionVip;
+import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.IAgentControl;
@@ -250,8 +253,23 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((AddOrRemoveVipInGloboNetworkCommand)cmd);
         } else if (cmd instanceof GetNetworkFromGloboNetworkCommand) {
             return execute((GetNetworkFromGloboNetworkCommand)cmd);
+        } else if (cmd instanceof ListGloboNetworkLBCacheGroupsCommand) {
+            return execute((ListGloboNetworkLBCacheGroupsCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
+    }
+
+    private Answer execute(ListGloboNetworkLBCacheGroupsCommand cmd) {
+        try {
+            List<OptionVip> optionVips = _globoNetworkApi.getOptionVipAPI().listCacheGroups(cmd.getLBEnvironmentId());
+            List<String> cacheGroups = new ArrayList<String>();
+            for(OptionVip optionVip : optionVips) {
+                cacheGroups.add(optionVip.getCacheGroup());
+            }
+            return new GloboNetworkCacheGroupsResponse(cmd, cacheGroups);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        }
     }
 
     private Answer execute(GetNetworkFromGloboNetworkCommand cmd) {
@@ -725,6 +743,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             String finality = environmentVip.getFinality();
             String client = environmentVip.getClient();
             String environment = environmentVip.getEnvironmentName();
+            String cache = cmd.getCache() == null ? DEFAULT_CACHE : cmd.getCache();
 
             Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), cmd.getVipEnvironmentId(), false);
             if (ip == null) {
@@ -733,7 +752,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             if (vip == null) {
                 // Vip doesn't exist yet
                 // Actually add the VIP to GloboNetwork
-                vip = _globoNetworkApi.getVipAPI().add(ip.getId(), null, expectedHealthcheckId, finality, client, environment, DEFAULT_CACHE,
+                vip = _globoNetworkApi.getVipAPI().add(ip.getId(), null, expectedHealthcheckId, finality, client, environment, cache,
                         lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence, healthcheckType, healthcheck, DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea, serviceName,
                         l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
@@ -771,7 +790,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             } else {
                 // Otherwise, we update the VIP and validate it
                 _globoNetworkApi.getVipAPI().alter(vip.getId(), ip.getId(), null, expectedHealthcheckId, vip.getValidated(), vip.getCreated(), finality, client, environment,
-                        DEFAULT_CACHE, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence, healthcheckType, healthcheck, DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea,
+                        cache, lbAlgorithm.getGloboNetworkBalMethod(), lbPersistence, healthcheckType, healthcheck, DEFAULT_TIMEOUT, host, DEFAULT_MAX_CONN, businessArea,
                         serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                 _globoNetworkApi.getVipAPI().validate(vip.getId());

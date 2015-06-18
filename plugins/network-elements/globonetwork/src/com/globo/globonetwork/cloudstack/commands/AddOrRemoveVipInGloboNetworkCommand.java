@@ -41,6 +41,8 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     private String host;
 
+    private String cache;
+
     private String serviceName;
 
     private LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy;
@@ -101,6 +103,10 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
     public void setHost(String host) {
         this.host = host;
     }
+
+    public String getCache() { return cache; }
+
+    public void setCache(String cache) { this.cache = cache; }
 
     public String getServiceName() {
         return serviceName;

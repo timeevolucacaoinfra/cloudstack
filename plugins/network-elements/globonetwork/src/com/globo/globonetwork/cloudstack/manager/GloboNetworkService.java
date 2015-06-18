@@ -261,4 +261,6 @@ public interface GloboNetworkService {
     public boolean validateLBRule(Network network, LoadBalancingRule rule);
 
     public LoadBalancer importGloboNetworkLoadBalancer(Long lbId, Long networkId, Long projectId);
+
+    public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentId, Long networkId);
 }

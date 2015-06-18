@@ -24,14 +24,13 @@ import com.cloud.utils.db.SearchCriteria.Op;
 import org.springframework.stereotype.Component;
 
 import javax.ejb.Local;
-import java.util.List;
 
 @Component
-@Local(value = LoadBalancerPortMapDao.class)
+@Local(value = LoadBalancerOptionsDao.class)
 @DB
-public class LoadBalancerOptionsDaoImpl extends GenericDaoBase<LoadBalancerPortMapVO, Long> implements LoadBalancerPortMapDao {
+public class LoadBalancerOptionsDaoImpl extends GenericDaoBase<LoadBalancerOptionsVO, Long> implements LoadBalancerOptionsDao {
 
-    final SearchBuilder<LoadBalancerPortMapVO> LoadBalancerSearch;
+    final SearchBuilder<LoadBalancerOptionsVO> LoadBalancerSearch;
 
     protected LoadBalancerOptionsDaoImpl() {
         super();
@@ -42,9 +41,9 @@ public class LoadBalancerOptionsDaoImpl extends GenericDaoBase<LoadBalancerPortM
     }
 
     @Override
-    public List<LoadBalancerPortMapVO> listByLoadBalancerId(long loadBalancerId) {
-        SearchCriteria<LoadBalancerPortMapVO> sc = LoadBalancerSearch.create();
+    public LoadBalancerOptionsVO getByLoadBalancerId(long loadBalancerId) {
+        SearchCriteria<LoadBalancerOptionsVO> sc = LoadBalancerSearch.create();
         sc.setParameters("lbId", loadBalancerId);
-        return listBy(sc);
+        return findOneBy(sc);
     }
 }

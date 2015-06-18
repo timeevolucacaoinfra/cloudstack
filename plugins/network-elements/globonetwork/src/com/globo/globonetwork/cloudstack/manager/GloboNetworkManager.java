@@ -33,6 +33,9 @@ import javax.naming.ConfigurationException;
 
 import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.cloud.network.dao.LoadBalancerPortMapVO;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBCacheGroupsCmd;
+import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -986,6 +989,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
         cmdList.add(RemoveGloboNetworkLBEnvironmentCmd.class);
         cmdList.add(RemoveGloboNetworkVipCmd.class);
+        cmdList.add(ListGloboNetworkLBCacheGroupsCmd.class);
         return cmdList;
     }
 
@@ -1987,6 +1991,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
             // VIP infos
             cmd.setHost(rule.getName());
+            cmd.setCache(rule.getCache());
             cmd.setIpv4(rule.getSourceIp().addr());
             cmd.setVipEnvironmentId(gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
             cmd.setPorts(ports);
@@ -2195,6 +2200,31 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return true;
     }
 
+    @Override
+    public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentId, Long networkId) {
+        if (lbEnvironmentId == null) {
+            throw new InvalidParameterValueException("Invalid LB Environment ID");
+        }
+
+        if (networkId == null) {
+            throw new InvalidParameterValueException("Invalid Network ID");
+        }
+
+        Network network = _networkManager.getNetwork(networkId);
+        if (network == null) {
+            throw new InvalidParameterValueException("Cannot find network with ID : " + networkId);
+        }
+
+        ListGloboNetworkLBCacheGroupsCommand cmd = new ListGloboNetworkLBCacheGroupsCommand();
+        cmd.setLBEnvironmentId(lbEnvironmentId);
+
+        Answer answer = callCommand(cmd, network.getDataCenterId());
+
+        List<String> lbCacheGroups = ((GloboNetworkCacheGroupsResponse)answer).getCacheGroups();
+        return lbCacheGroups;
+
+    }
+
     protected void validatePortMaps(LoadBalancingRule rule) {
         List<Integer> portsAlreadyMapped = new ArrayList<>();
         portsAlreadyMapped.add(rule.getSourcePortStart());
@@ -2329,7 +2359,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
                         // Create LB
                         LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
-                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, null);
+                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, null, null);
 
                         // Set additional port mappings for LB
                         if (additionalPortMapList != null) {

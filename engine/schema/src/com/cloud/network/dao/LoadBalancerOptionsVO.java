@@ -26,7 +26,7 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name=("load_balancer_port_map"))
+@Table(name=("load_balancer_options"))
 public class LoadBalancerOptionsVO implements InternalIdentity {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
@@ -36,19 +36,15 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     @Column(name="lb_id")
     private long lbId;
 
-    @Column(name="public_port")
-    private int publicPort;
-
-    @Column(name="private_port")
-    private int privatePort;
+    @Column(name="cache")
+    private String cache;
 
     public LoadBalancerOptionsVO() {
     }
 
-    public LoadBalancerOptionsVO(long lbId, int publicPort, int privatePort) {
+    public LoadBalancerOptionsVO(long lbId, String cache) {
         this.lbId = lbId;
-        this.publicPort = publicPort;
-        this.privatePort = privatePort;
+        this.cache = cache;
     }
 
     @Override
@@ -60,11 +56,5 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
         return lbId;
     }
 
-    public int getPublicPort() {
-        return publicPort;
-    }
-
-    public int getPrivatePort() {
-        return privatePort;
-    }
+    public String getCache() { return cache; }
 }
