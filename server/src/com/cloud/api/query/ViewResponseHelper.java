@@ -199,7 +199,7 @@ public class ViewResponseHelper {
     }
 
     public static List<ProjectResponse> createSimpleProjectResponse(ProjectJoinVO... projects) {
-        List<ProjectResponse> prjDataList = new ArrayList<>();
+        Hashtable<Long, ProjectResponse> prjDataList = new Hashtable<>();
         for(ProjectJoinVO project : projects){
             ProjectResponse projectResponse = new ProjectResponse();
             projectResponse.setName(project.getName());
@@ -212,9 +212,9 @@ public class ViewResponseHelper {
             projectResponse.setDomain(project.getDomainName());
             projectResponse.setOwner(project.getOwner());
             projectResponse.setObjectName("project");
-            prjDataList.add(projectResponse);
+            prjDataList.put(project.getId(), projectResponse);
         }
-        return prjDataList;
+        return new ArrayList<>(prjDataList.values());
     }
 
     public static List<ProjectAccountResponse> createProjectAccountResponse(ProjectAccountJoinVO... projectAccounts) {
