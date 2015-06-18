@@ -207,8 +207,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     private static final Logger s_logger = Logger.getLogger(GloboNetworkManager.class);
 
-    static final int NUMBER_OF_RESERVED_IPS_FROM_START = 5;
-    static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 5;
+    static final int NUMBER_OF_RESERVED_IPS_FROM_START = 1;
+    static final int NUMBER_OF_RESERVED_IPS_BEFORE_END = 2;
     static final int NUMBER_OF_RESERVED_IPS_FOR_LB_FROM_START = 1;
     static final int NUMBER_OF_RESERVED_IPS_FOR_LB_BEFORE_END = 2;
 
