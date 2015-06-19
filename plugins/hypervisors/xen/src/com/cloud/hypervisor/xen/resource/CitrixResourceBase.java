@@ -2394,7 +2394,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
 
             vmStatsAnswer.setCPUUtilization(vmStatsAnswer.getCPUUtilization() * 100);
             if (s_logger.isDebugEnabled()) {
-                s_logger.debug("Vm cpu utilization " + vmStatsAnswer.getCPUUtilization());
+                s_logger.trace("Vm cpu utilization " + vmStatsAnswer.getCPUUtilization());
             }
         }
 
@@ -2411,7 +2411,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
                             diskReadKBs += vbdmetrics.getIoReadKbs(conn);
                             diskWriteKBs += vbdmetrics.getIoWriteKbs(conn);
                         }  catch (Types.HandleInvalid e) {
-                            s_logger.debug("vbdmetrics doesn't exist ");
+                            s_logger.trace("vbdmetrics doesn't exist ");
                         }
                     }
                 }
