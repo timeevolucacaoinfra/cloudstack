@@ -17,6 +17,9 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 debug=1
 
+echo "globodns_host: ${globodns_host}"
+echo "globodns_resolver_nameserver: ${globodns_resolver_nameserver}"
+
 PrintLog() {
     level=$1
     msg=$2
