@@ -12,6 +12,9 @@ case "$1" in
   compile)
     mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator clean install -DskipTests
     ;;
+  compile-with-tests)
+    mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator clean install 
+    ;;
   compile-changes)
     mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator install -DskipTests
     ;;
