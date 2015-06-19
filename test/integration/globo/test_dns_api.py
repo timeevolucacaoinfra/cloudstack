@@ -299,7 +299,7 @@ class TestVMGloboDns(cloudstackTestCase):
         query_name = vm.name + '.' + network.networkdomain
         self.debug("Asserting query name %s to ip %s" % (query_name, vm.nic[0].ipaddress))
         self.assertEqual(
-            self.resolver.query(query_name)[0].address,
+            self.resolver.query(query_name, 'A')[0].address,
             vm.nic[0].ipaddress,
             "Resolved IP address and VM IP address do not match"
         )
