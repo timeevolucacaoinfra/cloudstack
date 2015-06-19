@@ -32,6 +32,8 @@ import javax.inject.Inject;
 
 import com.cloud.api.ApiDBUtils;
 import com.cloud.network.as.AutoScaleService;
+import com.cloud.network.dao.LoadBalancerOptionsDao;
+import com.cloud.network.dao.LoadBalancerOptionsVO;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
@@ -272,6 +274,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     LoadBalancerNetworkMapDao _lbNetMapDao;
     @Inject
     LoadBalancerPortMapDao _lbPortMapDao;
+    @Inject
+    LoadBalancerOptionsDao _lbOptionsDao;
     @Inject
     NetworkOfferingDao _netOffDao;
 
@@ -1676,6 +1680,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
+        LoadBalancerOptionsVO lbOptionsVO = _lbOptionsDao.getByLoadBalancerId(loadBalancerId);
+        if (lbOptionsVO != null) {
+            _lbOptionsDao.remove(lbOptionsVO.getId());
+        }
+
         FirewallRuleVO relatedRule = _firewallDao.findByRelatedId(lb.getId());
         if (relatedRule != null) {
             s_logger.warn("Unable to remove firewall rule id=" + lb.getId() + " as it has related firewall rule id=" + relatedRule.getId() + "; leaving it in Revoke state");
@@ -1697,7 +1706,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_LOAD_BALANCER_CREATE, eventDescription = "creating load balancer")
     public LoadBalancer createPublicLoadBalancerRule(String xId, String name, String description, int srcPortStart, int srcPortEnd, int defPortStart, int defPortEnd,
-            Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap)
+            Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache)
             throws NetworkRuleConflictException, InsufficientAddressCapacityException {
         Account lbOwner = _accountMgr.getAccount(lbOwnerId);
 
@@ -1754,7 +1763,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 }
 
                 result = createPublicLoadBalancer(xId, name, description, srcPortStart, defPortStart, ipVO.getId(), protocol, algorithm, openFirewall, CallContext.current(),
-                        lbProtocol, forDisplay, additionalPortMap);
+                        lbProtocol, forDisplay, additionalPortMap, cache);
             } catch (Exception ex) {
                 s_logger.warn("Failed to create load balancer due to ", ex);
                 if (ex instanceof NetworkRuleConflictException) {
@@ -1783,7 +1792,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @DB
     @Override
     public LoadBalancer createPublicLoadBalancer(final String xId, final String name, final String description, final int srcPort, final int destPort, final long sourceIpId,
-            final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap)
+            final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache)
             throws NetworkRuleConflictException {
 
         if (!NetUtils.isValidPort(destPort)) {
@@ -1850,6 +1859,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 Ip sourceIp = getSourceIp(newRule);
                 LoadBalancingRule loadBalancing = new LoadBalancingRule(newRule, new ArrayList<LbDestination>(), new ArrayList<LbStickinessPolicy>(),
                         new ArrayList<LbHealthCheckPolicy>(), sourceIp, null, lbProtocol);
+                loadBalancing.setCache(cache);
                 loadBalancing.setAdditionalPortMap(additionalPortMap);
                 if (!validateLbRule(loadBalancing)) {
                     throw new InvalidParameterValueException("LB service provider cannot support this rule");
@@ -1903,6 +1913,14 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 LoadBalancerPortMapVO lbPortMapVO = new LoadBalancerPortMapVO(lb.getId(), Integer.parseInt(publicPrivatePorts[0]), Integer.parseInt(publicPrivatePorts[1]));
                 _lbPortMapDao.persist(lbPortMapVO);
             }
+        }
+
+        // If load balancer rule was created successfully, add cache option
+        if (lb != null && cache != null) {
+            String cacheStr = cache.trim(); // Remove any white spaces on either side
+
+            LoadBalancerOptionsVO lbOptionsVO = new LoadBalancerOptionsVO(lb.getId(), cacheStr);
+            _lbOptionsDao.persist(lbOptionsVO);
         }
 
         return lb;
@@ -1990,6 +2008,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
         loadBalancing.setAdditionalPortMap(additionalPorts);
+
+        LoadBalancerOptionsVO lbOptionsVO = _lbOptionsDao.getByLoadBalancerId(lb.getId());
+        if (lbOptionsVO != null) {
+            loadBalancing.setCache(lbOptionsVO.getCache());
+        }
 
         List<LbHealthCheckPolicy> hcPolicyList = getHealthCheckPolicies(lb.getId());
         loadBalancing.setHealthCheckPolicies(hcPolicyList);

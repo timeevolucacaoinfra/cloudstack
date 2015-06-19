@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpSession;
 
 import com.cloud.network.as.AutoScaleVmProfileNetworkMapVO;
+import com.cloud.network.dao.LoadBalancerOptionsVO;
 import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
@@ -799,6 +800,11 @@ public class ApiResponseHelper implements ResponseGenerator {
             }
         }
         lbResponse.setAdditionalPortMap(additionalPorts);
+
+        LoadBalancerOptionsVO lbOptionsVO = ApiDBUtils.getLoadBalancerCache(loadBalancer.getId());
+        if (lbOptionsVO != null) {
+            lbResponse.setCache(lbOptionsVO.getCache());
+        }
 
         lbResponse.setObjectName("loadbalancer");
         return lbResponse;

@@ -123,6 +123,9 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.ADDITIONAL_PORT_MAP, type = CommandType.LIST, collectionType = CommandType.STRING, description = "additional port mappings for load balancing rule", since = "4.4")
     private List<String> additionalPortMap;
 
+    @Parameter(name = ApiConstants.CACHE, type = CommandType.STRING, description = "Cache group associated to Load Balancer")
+    private String cache;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -226,6 +229,8 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         }
     }
 
+    public String getCache() { return cache; }
+
     public Integer getPublicPort() {
         return publicPort;
     }
@@ -319,7 +324,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         try {
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
-                    getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(), getAdditionalPortMap());
+                    getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(), getAdditionalPortMap(), getCache());
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {

@@ -38,6 +38,7 @@ public class LoadBalancingRule {
     private List<LbHealthCheckPolicy> healthCheckPolicies;
     private LbSslCert sslCert;
     private String lbProtocol;
+    private String cache;
     private List<Long> additionalNetworks;
     private List<String> additionalPortMap;
 
@@ -108,6 +109,10 @@ public class LoadBalancingRule {
     public String getLbProtocol() {
         return this.lbProtocol;
     }
+
+    public String getCache() { return this.cache; }
+
+    public void setCache(String cache) { this.cache = cache; }
 
     public FirewallRule.Purpose getPurpose() {
         return FirewallRule.Purpose.LoadBalancing;
