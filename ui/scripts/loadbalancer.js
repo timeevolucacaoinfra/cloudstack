@@ -1134,6 +1134,7 @@
                                 validation: {
                                     required: true
                                 },
+                                defaultValue: "(nenhum)",
                                 dependsOn: ['lbenvironment'],
                                 select: function(args) {
                                     var network;

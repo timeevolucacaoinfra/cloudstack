@@ -263,9 +263,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         try {
             List<OptionVip> optionVips = _globoNetworkApi.getOptionVipAPI().listCacheGroups(cmd.getLBEnvironmentId());
             List<String> cacheGroups = new ArrayList<String>();
-            for(OptionVip optionVip : optionVips) {
-                cacheGroups.add(optionVip.getCacheGroup());
+            if (optionVips != null) {
+                for(OptionVip optionVip : optionVips) {
+                    cacheGroups.add(optionVip.getCacheGroup());
+                }
             }
+            // if optionVips is null, then an empty list will be returned
             return new GloboNetworkCacheGroupsResponse(cmd, cacheGroups);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);

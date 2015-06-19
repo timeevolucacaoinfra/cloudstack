@@ -2201,9 +2201,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentId, Long networkId) {
-        if (lbEnvironmentId == null) {
+    public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentIdRef, Long networkId) {
+        if (lbEnvironmentIdRef == null) {
             throw new InvalidParameterValueException("Invalid LB Environment ID");
+        }
+
+        GloboNetworkLoadBalancerEnvironment gnLbEnv = _globoNetworkLBEnvironmentDao.findById(lbEnvironmentIdRef);
+        if (gnLbEnv == null) {
+            throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnLbEnv.getGloboNetworkEnvironmentRefId());
         }
 
         if (networkId == null) {
@@ -2216,7 +2221,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         ListGloboNetworkLBCacheGroupsCommand cmd = new ListGloboNetworkLBCacheGroupsCommand();
-        cmd.setLBEnvironmentId(lbEnvironmentId);
+        cmd.setLBEnvironmentId(gnLbEnv.getGloboNetworkLoadBalancerEnvironmentId());
 
         Answer answer = callCommand(cmd, network.getDataCenterId());
 
