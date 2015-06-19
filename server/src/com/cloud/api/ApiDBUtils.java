@@ -29,6 +29,8 @@ import javax.inject.Inject;
 
 import com.cloud.network.as.AutoScaleVmProfileNetworkMapVO;
 import com.cloud.network.as.dao.AutoScaleVmProfileNetworkMapDao;
+import com.cloud.network.dao.LoadBalancerOptionsDao;
+import com.cloud.network.dao.LoadBalancerOptionsVO;
 import org.apache.cloudstack.affinity.AffinityGroup;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
 import org.apache.cloudstack.affinity.dao.AffinityGroupDao;
@@ -336,6 +338,7 @@ public class ApiDBUtils {
     static IPAddressDao s_ipAddressDao;
     static LoadBalancerDao s_loadBalancerDao;
     static LoadBalancerNetworkMapDao s_lbNetMapDao;
+    static LoadBalancerOptionsDao s_lbOptionsDao;
     static LoadBalancerPortMapDao s_lbPortMapDao;
     static SecurityGroupDao s_securityGroupDao;
     static SecurityGroupJoinDao s_securityGroupJoinDao;
@@ -478,6 +481,8 @@ public class ApiDBUtils {
     private LoadBalancerDao loadBalancerDao;
     @Inject
     private LoadBalancerNetworkMapDao lbNetMapDao;
+    @Inject
+    private LoadBalancerOptionsDao lbOptionsDao;
     @Inject
     private LoadBalancerPortMapDao lbPortMapDao;
     @Inject
@@ -681,6 +686,7 @@ public class ApiDBUtils {
         s_ipAddressDao = ipAddressDao;
         s_loadBalancerDao = loadBalancerDao;
         s_lbNetMapDao = lbNetMapDao;
+        s_lbOptionsDao = lbOptionsDao;
         s_lbPortMapDao = lbPortMapDao;
         s_networkRuleConfigDao = networkRuleConfigDao;
         s_podDao = podDao;
@@ -1906,5 +1912,9 @@ public class ApiDBUtils {
 
     public static List<LoadBalancerPortMapVO> listLoadBalancerAdditionalPorts(long loadBalancerId) {
         return s_lbPortMapDao.listByLoadBalancerId(loadBalancerId);
+    }
+
+    public static LoadBalancerOptionsVO getLoadBalancerCache(long loadBalancerId) {
+        return s_lbOptionsDao.getByLoadBalancerId(loadBalancerId);
     }
 }
