@@ -48,10 +48,12 @@ if os.getenv('globodns_admin_password'):
 else:
     sys.exit("The environment variable 'globodns_admin_password' was not found!")
 
-if os.getenv('globodns_resolver_nameserver'):
-    resolver_nameserver = os.getenv('globodns_resolver_nameserver')
+if os.getenv('globodns_resolver_nameserver_1'):
+    resolver_nameserver_1 = os.getenv('globodns_resolver_nameserver_1')
 else:
-    sys.exit("The environment variable 'globodns_resolver_nameserver' was not found!")
+    sys.exit("The environment variable 'globodns_resolver_nameserver_1' was not found!")
+
+resolver_nameserver_2 = os.getenv('globodns_resolver_nameserver_2','')
 
 if os.getenv('globodns_auth_token'):
     globodns_payload = {"auth_token": os.getenv('globodns_auth_token'), "now": "true"}
@@ -188,7 +190,9 @@ class TestVMGloboDns(cloudstackTestCase):
         ]
 
         self.resolver = dns.resolver.Resolver()
-        self.resolver.nameservers = [resolver_nameserver]  # Set nameserver to resolve hostnames
+        self.resolver.nameservers = [resolver_nameserver_1]  # Set nameserver to resolve hostnames
+        if resolver_nameserver_2:
+            self.resolver.nameservers.append(resolver_nameserver_2)
 
     def test_deploy_vm_with_globodns(self):
         """Test Deploy Virtual Machine with DNS API
@@ -295,7 +299,7 @@ class TestVMGloboDns(cloudstackTestCase):
         query_name = vm.name + '.' + network.networkdomain
         self.debug("Asserting query name %s to ip %s" % (query_name, vm.nic[0].ipaddress))
         self.assertEqual(
-            self.resolver.query(query_name)[0].address,
+            self.resolver.query(query_name, 'A')[0].address,
             vm.nic[0].ipaddress,
             "Resolved IP address and VM IP address do not match"
         )
