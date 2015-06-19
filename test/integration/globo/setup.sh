@@ -1,10 +1,14 @@
 #!/bin/bash
 
+echo "project_branch: ${project_branch}"
+echo "globodns_host: ${globodns_host}"
+echo "globodns_resolver_nameserver: ${globodns_resolver_nameserver}"
+
 virtualenv_name='cloudstack'
 
 project_basedir='/var/lib/jenkins/cloudstack'
 globo_test_basedir="${project_basedir}/test/integration/globo"
-project_branch='4.4.2-globo'
+#project_branch='develop'
 maven_log='/tmp/cloudstack.log'
 pip="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/pip"
 python="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/python"
@@ -16,9 +20,6 @@ export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
 export PATH="$JAVA_HOME/bin:$PATH"
 
 debug=1
-
-echo "globodns_host: ${globodns_host}"
-echo "globodns_resolver_nameserver: ${globodns_resolver_nameserver}"
 
 PrintLog() {
     level=$1
