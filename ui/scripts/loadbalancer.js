@@ -1084,7 +1084,7 @@
                                 }
                             },
                             lbenvironment: {
-                                label: 'Load Balancer Environment',
+                                label: 'LB Environment',
                                 validation: {
                                     required: true
                                 },
@@ -1118,38 +1118,6 @@
                                             var data = [];
                                             $(json.listglobonetworklbenvironmentsresponse.globonetworklbenvironments).each(function() {
                                                 data.push({id: this.id, name: this.name, description: this.name});
-                                            });
-                                            args.response.success({
-                                                data: data
-                                            });
-                                        },
-                                        error: function(json) {
-                                            args.response.error(parseXMLHttpResponse(json));
-                                        }
-                                    });
-                                }
-                            },
-                            cachegroup: {
-                                label: 'Cache',
-                                validation: {
-                                    required: true
-                                },
-                                defaultValue: "(nenhum)",
-                                dependsOn: ['lbenvironment'],
-                                select: function(args) {
-                                    var network;
-                                    $.ajax({
-                                        url: createURL("listGloboNetworkLBCacheGroups"),
-                                        data: {
-                                            lbenvironment: args.data.lbenvironment,
-                                            networkid: args.data.network
-                                        },
-                                        dataType: "json",
-                                        async: false,
-                                        success: function(json) {
-                                            var data = [];
-                                            $(json.listglobonetworklbcachegroupsresponse.globonetworkcachegroups).each(function() {
-                                                data.push({id: this.name, name: this.name, description: this.name});
                                             });
                                             args.response.success({
                                                 data: data
@@ -1206,10 +1174,56 @@
                                     });
                                 },
                             },
-
+                            isLbAdvanced: {
+                                label: 'label.show.advanced.settings',
+                                dependsOn: ['network'],  
+                                isBoolean: true,
+                                defaultValue: false,
+                                isChecked: false,
+                            },
+                            cachegroup: {
+                                label: 'Cache',
+                                isHidden: function (args) {
+                                    var isAdvancedChecked = $('input[name=isLbAdvanced]:checked').length > 0;
+                                    return !isAdvancedChecked;
+                                },
+                                validation: {
+                                    required: true
+                                },
+                                defaultValue: "(nenhum)",
+                                dependsOn: ['lbenvironment','isLbAdvanced'],
+                                select: function(args) {
+                                    var network;
+                                    $.ajax({
+                                        url: createURL("listGloboNetworkLBCacheGroups"),
+                                        data: {
+                                            lbenvironment: args.data.lbenvironment,
+                                            networkid: args.data.network
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            var data = [];
+                                            $(json.listglobonetworklbcachegroupsresponse.globonetworkcachegroups).each(function() {
+                                                data.push({id: this.name, name: this.name, description: this.name});
+                                            });
+                                            args.response.success({
+                                                data: data
+                                            });
+                                        },
+                                        error: function(json) {
+                                            args.response.error(parseXMLHttpResponse(json));
+                                        }
+                                    });
+                                }
+                            },
                             sticky: {
                                 label: 'label.stickiness',
-                                dependsOn: ['network'],
+                                isHidden: function (args) {
+                                    var isAdvancedChecked = $('input[name=isLbAdvanced]:checked').length > 0;
+                                    return !isAdvancedChecked;
+                                },
+                                dependsOn: ['network', 'isLbAdvanced'],
                                 select: function(args) {
                                     var network;
                                     $.ajax({
@@ -1254,7 +1268,9 @@
 
                             healthcheck: {
                                 label: 'Healthcheck',
-                                docID: 'helpHealthcheck'
+                                isHidden: true,
+                                docID: 'helpHealthcheck',
+                                dependsOn: ['isLbAdvanced']
                             },
                         },
                     },

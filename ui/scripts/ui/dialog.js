@@ -246,7 +246,19 @@
                                 });
                             } else if (($target.is(':unchecked') && !isReverse) ||
                                        ($target.is(':checked') && isReverse)) {
-                                $dependent.hide();
+                                var fieldObj = args.form.fields[$dependent.attr('rel')];
+                                
+                                var shouldHidden = true;
+                                if (typeof(fieldObj.isHidden) == 'function') {
+                                    shouldHidden = fieldObj.isHidden(args);
+                                } else if (typeof(fieldObj.isHidden) == 'boolean') {
+                                    shouldHidden = fieldObj.isHidden;
+                                }
+
+                                if (shouldHidden) {
+                                    $dependent.hide();    
+                                }
+                                
                             }
 
                             $dependent.find('input[type=checkbox]').click();
