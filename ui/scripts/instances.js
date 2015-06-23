@@ -557,10 +557,10 @@
                                 return 'label.action.reboot.instance';
                             },
                             complete: function(args) {
-                            	if (args.password != null && args.password.length > 0)
+                                if (args.password != null && args.password.length > 0)
                                     return 'Password has been reset to ' + args.password;
-                            	else
-                            		return null;
+                                else
+                                    return null;
                             }
                         },
                         notification: {
@@ -575,14 +575,14 @@
                             title: 'label.action.destroy.instance', 
                             desc: 'label.action.destroy.instance',
                             preFilter: function(args) {
-                            	if (isAdmin() || isDomainAdmin()) {
-                            		args.$form.find('.form-item[rel=expunge]').css('display', 'inline-block');
-                            	} else {
-                            		args.$form.find('.form-item[rel=expunge]').hide();
-                            	}
+                                if (isAdmin() || isDomainAdmin()) {
+                                    args.$form.find('.form-item[rel=expunge]').css('display', 'inline-block');
+                                } else {
+                                    args.$form.find('.form-item[rel=expunge]').hide();
+                                }
                             },
                             fields: {
-                            	expunge: {
+                                expunge: {
                                     label: 'label.expunge',
                                     isBoolean: true,
                                     isChecked: false
@@ -594,15 +594,15 @@
                                 return 'label.action.destroy.instance';
                             }
                         },
-                        action: function(args) {                        	
-                        	var data = {
-                        		id: args.context.instances[0].id		
-                        	};                        	
-                        	if (args.data.expunge == 'on') {
-                        		$.extend(data, {
-                        			expunge: true
-                        		});
-                        	}                        	
+                        action: function(args) {                            
+                            var data = {
+                                id: args.context.instances[0].id        
+                            };                          
+                            if (args.data.expunge == 'on') {
+                                $.extend(data, {
+                                    expunge: true
+                                });
+                            }                           
                             $.ajax({
                                 url: createURL('destroyVirtualMachine'),
                                 data: data,                                
@@ -611,11 +611,11 @@
                                     args.response.success({
                                         _custom: {
                                             jobId: jid,
-                                            getUpdatedItem: function(json) {                                            	
-                                            	if ('virtualmachine' in json.queryasyncjobresultresponse.jobresult) //destroy without expunge                                            	
+                                            getUpdatedItem: function(json) {                                                
+                                                if ('virtualmachine' in json.queryasyncjobresultresponse.jobresult) //destroy without expunge                                               
                                                     return json.queryasyncjobresultresponse.jobresult.virtualmachine;
-                                            	else //destroy with expunge
-                                            		return { 'toRemove': true };
+                                                else //destroy with expunge
+                                                    return { 'toRemove': true };
                                             },
                                             getActionFilter: function() {
                                                 return vmActionfilter;
@@ -706,10 +706,10 @@
                                 return 'label.reinstall.vm';
                             },
                             complete: function(args) {
-                            	if (args.password != null && args.password.length > 0)
+                                if (args.password != null && args.password.length > 0)
                                     return 'label.password.reset.confirm' + args.password;
-                            	else
-                            		return null;
+                                else
+                                    return null;
                             }
                         },
 
@@ -719,8 +719,8 @@
                                 dataType: "json",
                                 async: true,
                                 success: function(json) {                                    
-                                	var jid = json.restorevmresponse.jobid;                                    	
-                                	args.response.success({
+                                    var jid = json.restorevmresponse.jobid;                                     
+                                    args.response.success({
                                         _custom: {
                                             jobId: jid,
                                             getUpdatedItem: function(json) {                                         
@@ -730,7 +730,7 @@
                                                 return vmActionfilter;
                                             }
                                         }
-                                    });                          	
+                                    });                             
                                 }
                             });
 
@@ -908,17 +908,17 @@
                             
                             //***** addResourceDetail *****
                             //XenServer only (starts here)                               
-			                if(args.$detailView.find('form').find('div .detail-group').find('.xenserverToolsVersion61plus').length > 0) {	  					                	
-			                	$.ajax({
-			                		url: createURL('addResourceDetail'),
-			                		data: {
-			                			resourceType: 'uservm',
-			                			resourceId: args.context.instances[0].id,
-			                			'details[0].key': 'hypervisortoolsversion',
-			                			'details[0].value': (args.data.xenserverToolsVersion61plus == "on") ? 'xenserver61' : 'xenserver56'
-			                		},
-			                		success: function(json) {			                			
-			                			 var jobId = json.addResourceDetailresponse.jobid;
+                            if(args.$detailView.find('form').find('div .detail-group').find('.xenserverToolsVersion61plus').length > 0) {                                           
+                                $.ajax({
+                                    url: createURL('addResourceDetail'),
+                                    data: {
+                                        resourceType: 'uservm',
+                                        resourceId: args.context.instances[0].id,
+                                        'details[0].key': 'hypervisortoolsversion',
+                                        'details[0].value': (args.data.xenserverToolsVersion61plus == "on") ? 'xenserver61' : 'xenserver56'
+                                    },
+                                    success: function(json) {                                       
+                                         var jobId = json.addResourceDetailresponse.jobid;
                                          var addResourceDetailIntervalID = setInterval(function() {
                                              $.ajax({
                                                  url: createURL("queryAsyncJobResult&jobid=" + jobId),
@@ -931,10 +931,10 @@
                                                      } else {
                                                          clearInterval(addResourceDetailIntervalID);
 
-                                                         if (result.jobstatus == 1) {                                                        	 
-                                                        	 //do nothing                                                        	 
+                                                         if (result.jobstatus == 1) {                                                            
+                                                             //do nothing                                                            
                                                          } else if (result.jobstatus == 2) {
-                                                        	 cloudStack.dialog.notice({
+                                                             cloudStack.dialog.notice({
                                                                  message: "Failed to update XenServer Tools Version 6.1+ field. Error: " + _s(result.jobresult.errortext)
                                                              });                                                             
                                                          }
@@ -946,11 +946,11 @@
                                                      });                                                          
                                                  }
                                              });
-                                         }, g_queryAsyncJobResultInterval);			                			   
-			                		}
-			                	});  					                					                	               
-						    }				      
-					        //XenServer only (ends here)  	
+                                         }, g_queryAsyncJobResultInterval);                                        
+                                    }
+                                });                                                                                            
+                            }                     
+                            //XenServer only (ends here)    
                             
                         }
                     },
@@ -1432,32 +1432,32 @@
                         createForm: {
                             title: 'label.change.service.offering',
                             desc: function(args) {
-                            	var description = '';                            	
-                            	var vmObj = args.jsonObj;                            	
-                            	if (vmObj.state == 'Running' && vmObj.hypervisor == 'VMware') {
-                            		description = 'message.read.admin.guide.scaling.up';
-                            	}                             
-                                return description;                  	                
+                                var description = '';                               
+                                var vmObj = args.jsonObj;                               
+                                if (vmObj.state == 'Running' && vmObj.hypervisor == 'VMware') {
+                                    description = 'message.read.admin.guide.scaling.up';
+                                }                             
+                                return description;                                     
                             },
                             fields: {
-                            	serviceofferingid: {
+                                serviceofferingid: {
                                     label: 'label.compute.offering',
                                     select: function(args) {
-                                    	var serviceofferingObjs;
+                                        var serviceofferingObjs;
                                         $.ajax({
                                             url: createURL("listServiceOfferings&VirtualMachineId=" + args.context.instances[0].id),
                                             dataType: "json",
                                             async: true,
                                             success: function(json) {
-                                            	serviceofferingObjs = json.listserviceofferingsresponse.serviceoffering;
+                                                serviceofferingObjs = json.listserviceofferingsresponse.serviceoffering;
                                                 var items = [];                                              
                                                 if (serviceofferingObjs != null) {
-                                                	for (var i = 0; i < serviceofferingObjs.length; i++) {
-                                                		items.push({
+                                                    for (var i = 0; i < serviceofferingObjs.length; i++) {
+                                                        items.push({
                                                             id: serviceofferingObjs[i].id,
                                                             description: serviceofferingObjs[i].name
                                                         });
-                                                	}
+                                                    }
                                                 }                                               
                                                 args.response.success({
                                                     data: items
@@ -1466,7 +1466,7 @@
                                         });
                                         
                                         args.$select.change(function(){
-                                        	var $form = $(this).closest('form');
+                                            var $form = $(this).closest('form');
                                             
                                             var serviceofferingid = $(this).val();
                                             if (serviceofferingid == null || serviceofferingid.length == 0)
@@ -1475,30 +1475,30 @@
                                             var items = [];
                                             var selectedServiceofferingObj;
                                             if (serviceofferingObjs != null) {
-                                            	for (var i = 0; i < serviceofferingObjs.length; i++) {
-                                            		if (serviceofferingObjs[i].id == serviceofferingid) {
-                                            			selectedServiceofferingObj = serviceofferingObjs[i];
-                                            			break; 
-                                            		}
-                                            	}
+                                                for (var i = 0; i < serviceofferingObjs.length; i++) {
+                                                    if (serviceofferingObjs[i].id == serviceofferingid) {
+                                                        selectedServiceofferingObj = serviceofferingObjs[i];
+                                                        break; 
+                                                    }
+                                                }
                                             }                                            
                                             if (selectedServiceofferingObj == undefined) 
-                                            	return;                                                  
+                                                return;                                                  
                                             
                                             if (selectedServiceofferingObj.iscustomized == true) {
-                                            	$form.find('.form-item[rel=cpuSpeed]').css('display', 'inline-block');
-                                            	$form.find('.form-item[rel=cpuNumber]').css('display', 'inline-block');
-                                            	$form.find('.form-item[rel=memory]').css('display', 'inline-block');
+                                                $form.find('.form-item[rel=cpuSpeed]').css('display', 'inline-block');
+                                                $form.find('.form-item[rel=cpuNumber]').css('display', 'inline-block');
+                                                $form.find('.form-item[rel=memory]').css('display', 'inline-block');
                                             } else {
-                                            	$form.find('.form-item[rel=cpuSpeed]').hide();
-                                            	$form.find('.form-item[rel=cpuNumber]').hide();
-                                            	$form.find('.form-item[rel=memory]').hide();
+                                                $form.find('.form-item[rel=cpuSpeed]').hide();
+                                                $form.find('.form-item[rel=cpuNumber]').hide();
+                                                $form.find('.form-item[rel=memory]').hide();
                                             }
                                         });
                                     }
                                 },                               
                                 cpuSpeed: {
-                                	label: 'label.cpu.mhz',                                    
+                                    label: 'label.cpu.mhz',                                    
                                     validation: {
                                         required: true,
                                         number: true
@@ -1506,7 +1506,7 @@
                                     isHidden: true
                                 },
                                 cpuNumber: {
-                                	label: 'label.num.cpu.cores',                                   
+                                    label: 'label.num.cpu.cores',                                   
                                     validation: {
                                         required: true,
                                         number: true
@@ -1514,7 +1514,7 @@
                                     isHidden: true
                                 },
                                 memory: {
-                                	label: 'label.memory.mb',                                   
+                                    label: 'label.memory.mb',                                   
                                     validation: {
                                         required: true,
                                         number: true
@@ -1525,27 +1525,27 @@
                         },
 
                         action: function(args) {
-                        	var data = {
-                        		id: args.context.instances[0].id,
-                        		serviceofferingid: args.data.serviceofferingid
-                        	};       
-                        	                        	
-                        	if (args.$form.find('.form-item[rel=cpuSpeed]').is(':visible')) {
+                            var data = {
+                                id: args.context.instances[0].id,
+                                serviceofferingid: args.data.serviceofferingid
+                            };       
+                                                        
+                            if (args.$form.find('.form-item[rel=cpuSpeed]').is(':visible')) {
                                 $.extend(data, {
-                                	'details[0].cpuSpeed': args.data.cpuSpeed 
+                                    'details[0].cpuSpeed': args.data.cpuSpeed 
                                 });
-                            }                        	
-                        	if (args.$form.find('.form-item[rel=cpuNumber]').is(':visible')) {
+                            }                           
+                            if (args.$form.find('.form-item[rel=cpuNumber]').is(':visible')) {
                                 $.extend(data, {
-                                	'details[0].cpuNumber': args.data.cpuNumber
+                                    'details[0].cpuNumber': args.data.cpuNumber
                                 });
-                            }                        	
-                        	if (args.$form.find('.form-item[rel=memory]').is(':visible')) {
+                            }                           
+                            if (args.$form.find('.form-item[rel=memory]').is(':visible')) {
                                 $.extend(data, {
-                                	'details[0].memory': args.data.memory
+                                    'details[0].memory': args.data.memory
                                 });
-                            }                        	
-                        	
+                            }                           
+                            
                             $.ajax({
                                 url: createURL('scaleVirtualMachine'),
                                 data: data,
@@ -1588,42 +1588,42 @@
                         createForm: {
                             title: 'label.assign.instance.another',
                             fields: {                                
-                            	domainid: {
-                				    label: 'label.domain',
-                				    validation: {
+                                domainid: {
+                                    label: 'label.domain',
+                                    validation: {
                                         required: true
                                     },
-                				    select: function(args) {	
-                				    	$.ajax({
-            				                url: createURL('listDomains'),
-            				                data: {
-            				                    listAll: true,
-            				                    details: 'min'
-            				                },
-            				                success: function(json) {
-            				                    var array1 = [];
-            				                    var domains = json.listdomainsresponse.domain;
-            				                    if (domains != null && domains.length > 0) {
-            				                        for (var i = 0; i < domains.length; i++) {
-            				                            array1.push({
-            				                                id: domains[i].id,
-            				                                description: domains[i].path
-            				                            });
-            				                        }
-            				                    }
-            				                    args.response.success({
-            				                        data: array1
-            				                    });
-            				                }
-            				            });				                   				                 
-                				    }
-                				},
-                				account: {
-                				    label: 'label.account',
-                				    validation: {
+                                    select: function(args) {    
+                                        $.ajax({
+                                            url: createURL('listDomains'),
+                                            data: {
+                                                listAll: true,
+                                                details: 'min'
+                                            },
+                                            success: function(json) {
+                                                var array1 = [];
+                                                var domains = json.listdomainsresponse.domain;
+                                                if (domains != null && domains.length > 0) {
+                                                    for (var i = 0; i < domains.length; i++) {
+                                                        array1.push({
+                                                            id: domains[i].id,
+                                                            description: domains[i].path
+                                                        });
+                                                    }
+                                                }
+                                                args.response.success({
+                                                    data: array1
+                                                });
+                                            }
+                                        });                                                              
+                                    }
+                                },
+                                account: {
+                                    label: 'label.account',
+                                    validation: {
                                         required: true
                                     }
-                				}		
+                                }       
                             }
                         },
                         action: function(args) {                            
@@ -1684,7 +1684,7 @@
                             }
                             
                             if ('instances' in args.context && args.context.instances[0].hypervisor != 'XenServer') {
-                          	  hiddenFields.push('xenserverToolsVersion61plus');
+                              hiddenFields.push('xenserverToolsVersion61plus');
                             }
                             
                             if (!args.context.instances[0].publicip) {
@@ -1699,6 +1699,13 @@
                         },
 
                         fields: [{
+                            id: {
+                                label: 'label.id'
+                            },
+                            fqdn: {
+                                label: 'label.fqdn'
+                            },
+                        }, {
                             displayname: {
                                 label: 'label.display.name',
                                 isEditable: true
@@ -1781,14 +1788,14 @@
                             },
                             
                             /*
-								isoid: {
+                                isoid: {
                   label: 'label.attached.iso',
                   isEditable: false,
                   converter: function(isoid) {
                     return cloudStack.converters.toBooleanText(isoid != null);
                   }
                 },
-								*/
+                                */
                             isoname: {
                                 label: 'label.attached.iso'
                             },
@@ -1797,13 +1804,13 @@
                                 label: 'label.compute.offering'
                             },
                             cpunumber: {
-                            	label: 'label.num.cpu.cores'
+                                label: 'label.num.cpu.cores'
                             },
                             cpuspeed: {
-                            	label: 'label.cpu.mhz'
+                                label: 'label.cpu.mhz'
                             },
                             memory: {
-                            	label: 'label.memory.mb'
+                                label: 'label.memory.mb'
                             },
                             vgpu: {
                                 label: 'VGPU'
@@ -1842,9 +1849,6 @@
                             },
                             name: {
                                 label: 'label.name'
-                            },
-                            id: {
-                                label: 'label.id'
                             }
                         }],
 
@@ -1880,8 +1884,27 @@
                                                                        
                                     if (isModuleIncluded("dr")) {
                                         cloudStack.dr.sharedFunctions.addExtraProperties(jsonObj, "UserVM");
-                                    }                                    
-                                                                        
+                                    }
+
+                                    if (jsonObj.nic) {
+                                        // Set full FQDN for virtual machine based on default NIC
+                                        $(jsonObj.nic).each(function() {
+                                            if (this.isdefault) {
+                                                var that = this;
+                                                $.ajax({
+                                                    url: createURL('listNetworks'),
+                                                    async: false,
+                                                    data: {
+                                                        id: that.networkid
+                                                    },
+                                                    success: function(json) {
+                                                        jsonObj.fqdn = jsonObj.name + '.' + json.listnetworksresponse.network[0].networkdomain;
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+
                                     args.response.success({
                                         actionFilter: vmActionfilter,
                                         data: jsonObj
@@ -2217,7 +2240,7 @@
              
             //when userVm is running, scaleUp is not supported for KVM
             if (jsonObj.hypervisor != 'KVM') {
-            	allowedActions.push("scaleUp");
+                allowedActions.push("scaleUp");
             }              
 
             if (isAdmin())

@@ -1861,7 +1861,6 @@ div.list-view td.state.off span {
   position: relative;
   top: 9px;
   float: left;
-  width: 245px;
 }
 
 .detail-group .main-groups table td.value > span.copypasteenabledvalue {
