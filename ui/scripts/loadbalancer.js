@@ -148,11 +148,12 @@
                 },
             },
             dataProvider: function(args) {
+                var data = {};
+                listViewDataProvider(args, data);
+
                 $.ajax({
                     url: createURL("listLoadBalancerRules"),
-                    data: {
-                        listAll: true,
-                    },
+                    data: data,
                     dataType: "json",
                     async: true,
                     success: function(data) {
