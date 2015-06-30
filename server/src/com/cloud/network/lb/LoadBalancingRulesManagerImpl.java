@@ -1680,9 +1680,13 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
-        LoadBalancerOptionsVO lbOptionsVO = _lbOptionsDao.getByLoadBalancerId(loadBalancerId);
-        if (lbOptionsVO != null) {
-            _lbOptionsDao.remove(lbOptionsVO.getId());
+        List<LoadBalancerOptionsVO> lbOptions = _lbOptionsDao.listByLoadBalancerId(loadBalancerId);
+        if (lbOptions != null) {
+            for (LoadBalancerOptionsVO lbOption : lbOptions) {
+                if (lbOption.getLoadBalancerId() == loadBalancerId) {
+                    _lbOptionsDao.remove(lbOption.getId());
+                }
+            }
         }
 
         FirewallRuleVO relatedRule = _firewallDao.findByRelatedId(lb.getId());
@@ -1889,7 +1893,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 } catch (Exception e) {
                     success = false;
                     if (e instanceof NetworkRuleConflictException) {
-                        throw (NetworkRuleConflictException)e;
+                        throw (NetworkRuleConflictException) e;
                     }
                     throw new CloudRuntimeException("Unable to add rule for ip address id=" + newRule.getSourceIpAddressId(), e);
                 } finally {
