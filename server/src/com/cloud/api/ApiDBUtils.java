@@ -1914,7 +1914,7 @@ public class ApiDBUtils {
         return s_lbPortMapDao.listByLoadBalancerId(loadBalancerId);
     }
 
-    public static LoadBalancerOptionsVO getLoadBalancerCache(long loadBalancerId) {
-        return s_lbOptionsDao.getByLoadBalancerId(loadBalancerId);
+    public static List<LoadBalancerOptionsVO> listLoadBalancerCache(long loadBalancerId) {
+        return s_lbOptionsDao.listByLoadBalancerId(loadBalancerId);
     }
 }

@@ -2013,9 +2013,13 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         }
         loadBalancing.setAdditionalPortMap(additionalPorts);
 
-        LoadBalancerOptionsVO lbOptionsVO = _lbOptionsDao.getByLoadBalancerId(lb.getId());
-        if (lbOptionsVO != null) {
-            loadBalancing.setCache(lbOptionsVO.getCache());
+        List<LoadBalancerOptionsVO> lbOptions = _lbOptionsDao.listByLoadBalancerId(lb.getId());
+        if (lbOptions != null) {
+            for (LoadBalancerOptionsVO lbOption : lbOptions) {
+                if (lbOption.getLoadBalancerId() == lb.getId()) {
+                    loadBalancing.setCache(lbOption.getCache());
+                }
+            }
         }
 
         List<LbHealthCheckPolicy> hcPolicyList = getHealthCheckPolicies(lb.getId());

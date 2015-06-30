@@ -801,9 +801,13 @@ public class ApiResponseHelper implements ResponseGenerator {
         }
         lbResponse.setAdditionalPortMap(additionalPorts);
 
-        LoadBalancerOptionsVO lbOptionsVO = ApiDBUtils.getLoadBalancerCache(loadBalancer.getId());
-        if (lbOptionsVO != null) {
-            lbResponse.setCache(lbOptionsVO.getCache());
+        List<LoadBalancerOptionsVO> lbOptions = ApiDBUtils.listLoadBalancerCache(loadBalancer.getId());
+        if (lbOptions != null) {
+            for (LoadBalancerOptionsVO lbOption : lbOptions) {
+                if (lbOption.getLoadBalancerId() == loadBalancer.getId()) {
+                    lbResponse.setCache(lbOption.getCache());
+                }
+            }
         }
 
         lbResponse.setObjectName("loadbalancer");

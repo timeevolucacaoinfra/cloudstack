@@ -42,13 +42,6 @@ public class LoadBalancerOptionsDaoImpl extends GenericDaoBase<LoadBalancerOptio
     }
 
     @Override
-    public LoadBalancerOptionsVO getByLoadBalancerId(long loadBalancerId) {
-        SearchCriteria<LoadBalancerOptionsVO> sc = LoadBalancerSearch.create();
-        sc.setParameters("lbId", loadBalancerId);
-        return findOneBy(sc);
-    }
-
-    @Override
     public List<LoadBalancerOptionsVO> listByLoadBalancerId(long loadBalancerId) {
         SearchCriteria<LoadBalancerOptionsVO> sc = LoadBalancerSearch.create();
         sc.setParameters("lbId", loadBalancerId);

@@ -21,7 +21,5 @@ import com.cloud.utils.db.GenericDao;
 import java.util.List;
 
 public interface LoadBalancerOptionsDao extends GenericDao<LoadBalancerOptionsVO, Long> {
-    LoadBalancerOptionsVO getByLoadBalancerId(long loadBalancerId);
-
     List<LoadBalancerOptionsVO> listByLoadBalancerId(long loadBalancerId);
 }
