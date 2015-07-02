@@ -236,7 +236,7 @@ def createFileInDomr(session, args):
         txt = 'succ#' + txt
     except Exception, e:
         #logging.debug("failed to create file " + file_path + " in VR, contain: " + file_contents)
-        logging.warning("failed to copy file " + src_filepath + " from host " +socket.gethostname()+ " to VR with ip " + domrip + " with exception " + e)
+        logging.exception("failed to copy file " + src_filepath + " from host " +socket.gethostname()+ " to VR with ip " + domrip + " with exception")
         txt = 'fail#' + txt
     return txt
 
