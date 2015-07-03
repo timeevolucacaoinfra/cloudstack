@@ -17,6 +17,7 @@
 # under the License.
 
 # import for DNS lookup
+from bs4 import BeautifulSoup
 import dns.resolver
 import requests
 import os
@@ -262,7 +263,20 @@ class TestVMGloboDns(cloudstackTestCase):
 
         list_vms = VirtualMachine.list(self.apiclient, id=self.virtual_machine.id)
         # force export & reload bind in dns-api
-        requests.post(globodns_host + globodns_export_path, data=json.dumps(globodns_payload), headers=globodns_headers)
+        self.info("forcing export & reload bind in dns-api")
+        login_url = globodns_host + '/users/sign_in'
+        globodns_headers = {"Referer": login_url}
+        client = requests.Session()
+        soup = BeautifulSoup(client.get(login_url).content)
+        authenticity_token = soup.find('input', dict(name='authenticity_token'))['value']
+        self.debug("Globodns host: %s | authenticity_token: %s | globodns_admin_user: %s" % (globodns_host, authenticity_token, globodns_admin_user))
+        login_data={"authenticity_token": authenticity_token, 'user[email]':globodns_admin_user, 'user[password]':globodns_admin_password, 'user[remember_me]': "1"}
+
+        r = client.post(login_url, data=login_data, headers=globodns_headers)
+        r = client.post(globodns_host + globodns_export_path, data=login_data, headers=globodns_headers)
+
+        self.debug("DnsAPI response:\n %s" % r.content)
+        #requests.post(globodns_host + globodns_export_path, data=json.dumps(globodns_payload), headers=globodns_headers)
 
         self.debug(
             "Verify listVirtualMachines response for virtual machine: %s" % self.virtual_machine.id

@@ -96,9 +96,11 @@ activateVirtualEnv() {
     source $WORKON_HOME/${virtualenv_name}/bin/activate
 }
 
-installMarvin() {
+installPip() {
 
     activateVirtualEnv
+    #required for test_dns_api.py
+    ${pip} install beautifulsoup4==4.3.2 --extra-index-url=https://artifactory.globoi.com/artifactory/pypi/ --extra-index-url=https://artifactory.globoi.com/artifactory/api/pypi/pypi/simple --extra-index-url=https://pypi.python.org
 
     # Tries to install marvin.. just in case..
     [[ ! `${pip} freeze | grep -i Marvin` ]] && ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
@@ -147,7 +149,7 @@ then
 
     echo "${last_commit}" > ${last_commit_file}
 
-    installMarvin
+    installPip
 
     # Deploy DB, Populate DB and create infra structure
     PrintLog INFO "Creating SQL schema"
@@ -188,7 +190,7 @@ mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
 sleep 5
 
-installMarvin
+installPip
 
 # check if Globo assets are in marvin tarball file
 [[ ! `tar tvzf ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz | grep Globo` ]] && PrintLog ERROR "Tests will fail!!! Marvin tarball does not contain Globo files" && exit 1
