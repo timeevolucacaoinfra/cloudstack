@@ -22,6 +22,7 @@ import dns.resolver
 import requests
 import os
 import sys
+import time
 import json
 
 #All tests inherit from cloudstackTestCase
@@ -250,6 +251,7 @@ class TestVMGloboDns(cloudstackTestCase):
         # Throws exception if domain doesn't exist
         # self.resolver.query(network.networkdomain)
 
+        self.debug("creating virtual machine")
         self.virtual_machine = VirtualMachine.create(
             self.apiclient,
             self.testdata["virtual_machine"],
@@ -270,7 +272,7 @@ class TestVMGloboDns(cloudstackTestCase):
         soup = BeautifulSoup(client.get(login_url).content)
         authenticity_token = soup.find('input', dict(name='authenticity_token'))['value']
         self.debug("Globodns host: %s | authenticity_token: %s | globodns_admin_user: %s" % (globodns_host, authenticity_token, globodns_admin_user))
-        login_data={"authenticity_token": authenticity_token, 'user[email]':globodns_admin_user, 'user[password]':globodns_admin_password, 'user[remember_me]': "1"}
+        login_data={"authenticity_token": authenticity_token, 'user[email]':globodns_admin_user, 'user[password]':globodns_admin_password, 'user[remember_me]': "1", "now": "true"}
 
         r = client.post(login_url, data=login_data, headers=globodns_headers)
         r = client.post(globodns_host + globodns_export_path, data=login_data, headers=globodns_headers)
@@ -312,8 +314,9 @@ class TestVMGloboDns(cloudstackTestCase):
 
         query_name = vm.name + '.' + network.networkdomain
         self.debug("Asserting query name %s to ip %s" % (query_name, vm.nic[0].ipaddress))
+        resolver_ = self.resolver.query(query_name)
         self.assertEqual(
-            self.resolver.query(query_name)[0].address,
+            resolver_[0].address,
             vm.nic[0].ipaddress,
             "Resolved IP address and VM IP address do not match"
         )
