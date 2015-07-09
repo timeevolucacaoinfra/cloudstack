@@ -365,16 +365,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     }
 
     private boolean applyAutoScaleConfig(LoadBalancerVO lb, AutoScaleVmGroupVO vmGroup, String currentState) throws ResourceUnavailableException {
-        LbAutoScaleVmGroup lbAutoScaleVmGroup = getLbAutoScaleVmGroup(vmGroup, currentState, lb);
-        /*
-         * Regular config like destinations need not be packed for applying
-         * autoscale config as of today.
-         */
-        List<LbStickinessPolicy> policyList = getStickinessPolicies(lb.getId());
-        List<LbHealthCheckPolicy> healthCheckPolicyList = getHealthCheckPolicies(lb.getId());
-        Ip sourceIp = getSourceIp(lb);
-        LoadBalancingRule rule = new LoadBalancingRule(lb, null, policyList, healthCheckPolicyList, sourceIp, null, lb.getLbProtocol());
-        rule.setAutoScaleVmGroup(lbAutoScaleVmGroup);
+        LoadBalancingRule rule = getLoadBalancerRuleToApply(lb);
 
         if (!isRollBackAllowedForProvider(lb)) {
             // this is for Netscaler type of devices. if their is failure the db
@@ -382,9 +373,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             return false;
         }
 
-        List<LoadBalancingRule> rules = Arrays.asList(rule);
-
-        if (!applyLbRules(rules, false)) {
+        if (!applyLbRules(Arrays.asList(rule), false)) {
             s_logger.debug("LB rules' autoscale config are not completely applied");
             return false;
         }
