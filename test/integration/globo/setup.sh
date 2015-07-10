@@ -204,15 +204,17 @@ if [[ $retval -ne 0 ]]; then
     exit 1
 fi
 
-results_file=$(ls -tr /tmp/[0-9]*/results.txt|tail -1)
+results_file=$(ls -tr /tmp/MarvinLogs/$(date +"%b_%d_%Y")*/results.txt | tail -1)
+echo "Results file: ${results_file}"
+
 tail -1 ${results_file} | grep -qw 'OK'
 retval=$?
+cat ${results_file}
 if [[ $retval -eq 0 ]]; then
     ShutdownJetty
     PrintLog INFO "All steps and tests successfully passed"
     exit 0
 else
     PrintLog ERROR "Tests failed!!!"
-    cat ${results_file}
     exit 1
 fi
