@@ -589,21 +589,8 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
     @Override
     public ExecutionResult createFileInVR(String routerIp, String path, String filename, String content) {
         Connection conn = getConnection();
-//        String rc = callHostPlugin(conn, "vmops", "createFileInDomr", "domrip", routerIp, "filepath", path + filename, "filecontents", content);
-//        // Fail case would be start with "fail#"
-//        return new ExecutionResult(rc.startsWith("succ#"), rc.substring(5));
-
-        String hostPath = "/tmp/";
-
-        s_logger.info("Copying VR Config file with ip " + routerIp + " config file into host " + _host.ip + " to path " + path);
-        try {
-            SshHelper.scpTo(_host.ip, 22, _username, null, _password.peek(), hostPath, content.getBytes(), filename, null);
-        } catch (Exception e) {
-            s_logger.error("scp VR config file into host " + _host.ip + " failed with exception " + e.getMessage().toString());
-        }
-
-        String rc = callHostPlugin(conn, "vmops", "createFileInDomr", "domrip", routerIp, "srcfilepath", hostPath + filename, "dstfilepath", path);
-        s_logger.info("VR Config file " + hostPath + filename + " got created in VR, ip " + routerIp + " with content \n" + content);
+        String rc = callHostPlugin(conn, "vmops", "createFileInDomr", "domrip", routerIp, "filepath", path + filename, "filecontents", content);
+        // Fail case would be start with "fail#"
         return new ExecutionResult(rc.startsWith("succ#"), rc.substring(5));
     }
 
@@ -2394,7 +2381,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
 
             vmStatsAnswer.setCPUUtilization(vmStatsAnswer.getCPUUtilization() * 100);
             if (s_logger.isDebugEnabled()) {
-                s_logger.trace("Vm cpu utilization " + vmStatsAnswer.getCPUUtilization());
+                s_logger.debug("Vm cpu utilization " + vmStatsAnswer.getCPUUtilization());
             }
         }
 
@@ -2411,7 +2398,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
                             diskReadKBs += vbdmetrics.getIoReadKbs(conn);
                             diskWriteKBs += vbdmetrics.getIoWriteKbs(conn);
                         }  catch (Types.HandleInvalid e) {
-                            s_logger.trace("vbdmetrics doesn't exist ");
+                            s_logger.debug("vbdmetrics doesn't exist ");
                         }
                     }
                 }
