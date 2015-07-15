@@ -32,7 +32,6 @@ import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
 import com.cloud.network.dao.LoadBalancerPortMapDao;
-import com.cloud.network.dao.LoadBalancerPortMapVO;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBCacheGroupsCmd;
 import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
@@ -2323,6 +2322,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 throw new CloudRuntimeException("Invalid balancing method: " + globoNetworkLB.getMethod());
             }
 
+            final String cache = globoNetworkLB.getCache();
+
+            final String lbPersistence;
+            if ("cookie".equals(globoNetworkLB.getPersistence())) {
+                lbPersistence = "Cookie";
+            } else if ("source-ip".equals(globoNetworkLB.getPersistence())) {
+                lbPersistence = "Source-ip";
+            } else if ("source-ip com persist. entre portas".equals(globoNetworkLB.getPersistence())) {
+                lbPersistence = "Source-ip with persistence between ports";
+            } else {
+                lbPersistence = null;
+            }
+
             try {
                 LoadBalancer lb = Transaction.execute(new TransactionCallbackWithException<LoadBalancer, CloudException>() {
 
@@ -2364,19 +2376,16 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
                         // Create LB
                         LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
-                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, null, null);
+                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, additionalPortMapList, cache);
 
-                        // Set additional port mappings for LB
-                        if (additionalPortMapList != null) {
-                            for(String additionalPortMapStr : additionalPortMapList) {
-                                if (additionalPortMapStr.split(":").length != 2) {
-                                    throw new InvalidParameterValueException("Invalid additional port mapping");
-                                }
-                                Integer publicPort = Integer.valueOf(additionalPortMapStr.split(":")[0]);
-                                Integer privatePort = Integer.valueOf(additionalPortMapStr.split(":")[1]);
-                                LoadBalancerPortMapVO lbPortMapVO = new LoadBalancerPortMapVO(lb.getId(), publicPort, privatePort);
-                                _lbPortMapDao.persist(lbPortMapVO);
-                            }
+                        // If healthcheck is TCP, do nothing; otherwise, create the healthcheck policy
+                        if (globoNetworkLB.getHealthcheckType() != null && "HTTP".equals(globoNetworkLB.getHealthcheckType())) {
+                            // Default values for timeout and threshold, since those are not used by GloboNetwork
+                            _lbService.validateAndPersistLbHealthcheckPolicy(lb.getId(), globoNetworkLB.getHealthcheck(), null, 2, 5, 2, 1, true);
+                        }
+
+                        if (lbPersistence != null) {
+                            _lbService.validateAndPersistLbStickinessPolicy(lb.getId(), lbPersistence, lbPersistence, null, null, true);
                         }
 
                         // Assign VMs that are managed in Cloudstack

@@ -170,4 +170,8 @@ public interface LoadBalancingRulesService {
     LoadBalancer findLbByStickinessId(long stickinessPolicyId);
 
     Long findLBIdByHealtCheckPolicyId(long lbHealthCheckPolicy);
+
+    public HealthCheckPolicy validateAndPersistLbHealthcheckPolicy(Long lbRuleId, String pingPath, String description, int timeout, int healthcheckInterval, int healthyThreshold, int unhealthyThreshold, Boolean forDisplay);
+
+    public StickinessPolicy validateAndPersistLbStickinessPolicy(Long lbRuleId, String lbStickinessPolicyName, String lbStickinessMethodName, Map paramList, String description, Boolean forDisplay);
 }
