@@ -445,8 +445,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         return success;
     }
 
-    private boolean validateHealthCheck(CreateLBHealthCheckPolicyCmd cmd) {
-        LoadBalancerVO loadBalancer = _lbDao.findById(cmd.getLbRuleId());
+    private boolean validateHealthCheck(Long lbRuleId) {
+        LoadBalancerVO loadBalancer = _lbDao.findById(lbRuleId);
         String capability = getLBCapability(loadBalancer.getNetworkId(), Capability.HealthCheckPolicy.getName());
         if (capability != null) {
             return true;
@@ -454,19 +454,18 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         return false;
     }
 
-    private boolean genericValidator(CreateLBStickinessPolicyCmd cmd) throws InvalidParameterValueException {
-        LoadBalancerVO loadBalancer = _lbDao.findById(cmd.getLbRuleId());
+    private boolean genericValidator(Long lbRuleId, String stickinessMethodName, Map apiParamList) throws InvalidParameterValueException {
+        LoadBalancerVO loadBalancer = _lbDao.findById(lbRuleId);
         /* Validation : check for valid Method name and params */
         List<LbStickinessMethod> stickinessMethodList = getStickinessMethods(loadBalancer.getNetworkId());
         boolean methodMatch = false;
 
         if (stickinessMethodList == null) {
-            throw new InvalidParameterValueException("Failed:  No Stickiness method available for LB rule:" + cmd.getLbRuleId());
+            throw new InvalidParameterValueException("Failed:  No Stickiness method available for LB rule:" + lbRuleId);
         }
         for (LbStickinessMethod method : stickinessMethodList) {
-            if (method.getMethodName().equalsIgnoreCase(cmd.getStickinessMethodName())) {
+            if (method.getMethodName().equalsIgnoreCase(stickinessMethodName)) {
                 methodMatch = true;
-                Map apiParamList = cmd.getparamList();
                 List<LbStickinessMethodParam> methodParamList = method.getParamList();
                 Map<String, String> tempParamList = new HashMap<String, String>();
 
@@ -513,13 +512,13 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
         if (methodMatch == false) {
-            throw new InvalidParameterValueException("Failed to match Stickiness method name for LB rule:" + cmd.getLbRuleId());
+            throw new InvalidParameterValueException("Failed to match Stickiness method name for LB rule:" + lbRuleId);
         }
 
         /* Validation : check for the multiple policies to the rule id */
-        List<LBStickinessPolicyVO> stickinessPolicies = _lb2stickinesspoliciesDao.listByLoadBalancerId(cmd.getLbRuleId(), false);
+        List<LBStickinessPolicyVO> stickinessPolicies = _lb2stickinesspoliciesDao.listByLoadBalancerId(lbRuleId, false);
         if (stickinessPolicies.size() > 1) {
-            throw new InvalidParameterValueException("Failed to create Stickiness policy: Already two policies attached " + cmd.getLbRuleId());
+            throw new InvalidParameterValueException("Failed to create Stickiness policy: Already two policies attached " + lbRuleId);
         }
         return true;
     }
@@ -542,29 +541,33 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterValueException("Failed:  LB rule id: " + cmd.getLbRuleId() + " is in deleting state: ");
         }
 
+        return validateAndPersistLbStickinessPolicy(loadBalancer.getId(), cmd.getLBStickinessPolicyName(), cmd.getStickinessMethodName(), cmd.getparamList(), cmd.getDescription(), cmd.getDisplay());
+    }
+
+    @Override
+    @DB
+    public StickinessPolicy validateAndPersistLbStickinessPolicy(Long lbRuleId, String lbStickinessPolicyName, String lbStickinessMethodName, Map paramList, String description, Boolean forDisplay) {
         /* Generic validations */
-        if (!genericValidator(cmd)) {
-            throw new InvalidParameterValueException("Failed to create Stickiness policy: Validation Failed " + cmd.getLbRuleId());
+        if (!genericValidator(lbRuleId, lbStickinessMethodName, paramList)) {
+            throw new InvalidParameterValueException("Failed to create Stickiness policy: Validation Failed " + lbRuleId);
         }
 
         /*
          * Specific validations using network element validator for specific
          * validations
          */
-        LBStickinessPolicyVO lbpolicy = new LBStickinessPolicyVO(loadBalancer.getId(), cmd.getLBStickinessPolicyName(), cmd.getStickinessMethodName(), cmd.getparamList(),
-                cmd.getDescription());
+        LBStickinessPolicyVO lbpolicy = new LBStickinessPolicyVO(lbRuleId, lbStickinessPolicyName, lbStickinessMethodName, paramList, description);
         List<LbStickinessPolicy> policyList = new ArrayList<LbStickinessPolicy>();
-        policyList.add(new LbStickinessPolicy(cmd.getStickinessMethodName(), lbpolicy.getParams()));
+        policyList.add(new LbStickinessPolicy(lbStickinessMethodName, lbpolicy.getParams()));
+        LoadBalancerVO loadBalancer = _lbDao.findById(lbRuleId);
         Ip sourceIp = getSourceIp(loadBalancer);
         LoadBalancingRule lbRule = new LoadBalancingRule(loadBalancer, getExistingDestinations(lbpolicy.getId()), policyList, null, sourceIp, null, loadBalancer.getLbProtocol());
         if (!validateLbRule(lbRule)) {
-            throw new InvalidParameterValueException("Failed to create Stickiness policy: Validation Failed " + cmd.getLbRuleId());
+            throw new InvalidParameterValueException("Failed to create Stickiness policy: Validation Failed " + lbRuleId);
         }
 
         /* Finally Insert into DB */
-        LBStickinessPolicyVO policy = new LBStickinessPolicyVO(loadBalancer.getId(), cmd.getLBStickinessPolicyName(), cmd.getStickinessMethodName(), cmd.getparamList(),
-                cmd.getDescription());
-        Boolean forDisplay = cmd.getDisplay();
+        LBStickinessPolicyVO policy = new LBStickinessPolicyVO(loadBalancer.getId(), lbStickinessPolicyName, lbStickinessMethodName, paramList, description);
         if (forDisplay != null) {
             policy.setDisplay(forDisplay);
         }
@@ -601,36 +604,41 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             throw new InvalidParameterValueException("Failed:  LB rule id: " + cmd.getLbRuleId() + " is in deleting state: ");
         }
 
+        return validateAndPersistLbHealthcheckPolicy(loadBalancer.getId(), cmd.getPingPath(), cmd.getDescription(), cmd.getResponsTimeOut(), cmd.getHealthCheckInterval(), cmd.getHealthyThreshold(), cmd.getUnhealthyThreshold(), cmd.getDisplay());
+    }
+
+    @Override
+    @DB
+    public HealthCheckPolicy validateAndPersistLbHealthcheckPolicy(Long lbRuleId, String pingPath, String description, int timeout, int healthcheckInterval, int healthyThreshold, int unhealthyThreshold, Boolean forDisplay) {
         /*
          * Validate Whether LB Provider has the capabilities to support Health
          * Checks
          */
-        if (!validateHealthCheck(cmd)) {
+        if (!validateHealthCheck(lbRuleId)) {
             throw new InvalidParameterValueException(
-                    "Failed to create HealthCheck policy: Validation Failed (HealthCheck Policy is not supported by LB Provider for the LB rule id :)" + cmd.getLbRuleId());
+                    "Failed to create HealthCheck policy: Validation Failed (HealthCheck Policy is not supported by LB Provider for the LB rule id :)" + lbRuleId);
         }
 
         /* Validation : check for the multiple hc policies to the rule id */
-        List<LBHealthCheckPolicyVO> hcPolicies = _lb2healthcheckDao.listByLoadBalancerId(cmd.getLbRuleId(), false);
+        List<LBHealthCheckPolicyVO> hcPolicies = _lb2healthcheckDao.listByLoadBalancerId(lbRuleId, false);
         if (hcPolicies.size() > 0) {
-            throw new InvalidParameterValueException("Failed to create HealthCheck policy: Already policy attached  for the LB Rule id :" + cmd.getLbRuleId());
+            throw new InvalidParameterValueException("Failed to create HealthCheck policy: Already policy attached  for the LB Rule id :" + lbRuleId);
         }
         /*
          * Specific validations using network element validator for specific
          * validations
          */
-        LBHealthCheckPolicyVO hcpolicy = new LBHealthCheckPolicyVO(loadBalancer.getId(), cmd.getPingPath(), cmd.getDescription(), cmd.getResponsTimeOut(),
-                cmd.getHealthCheckInterval(), cmd.getHealthyThreshold(), cmd.getUnhealthyThreshold());
+        LBHealthCheckPolicyVO hcpolicy = new LBHealthCheckPolicyVO(lbRuleId, pingPath, description, timeout,
+                healthcheckInterval, healthyThreshold, unhealthyThreshold);
 
         List<LbHealthCheckPolicy> hcPolicyList = new ArrayList<LbHealthCheckPolicy>();
         hcPolicyList.add(new LbHealthCheckPolicy(hcpolicy.getpingpath(), hcpolicy.getDescription(), hcpolicy.getResponseTime(), hcpolicy.getHealthcheckInterval(), hcpolicy
                 .getHealthcheckThresshold(), hcpolicy.getUnhealthThresshold()));
 
         // Finally Insert into DB
-        LBHealthCheckPolicyVO policy = new LBHealthCheckPolicyVO(loadBalancer.getId(), cmd.getPingPath(), cmd.getDescription(), cmd.getResponsTimeOut(),
-                cmd.getHealthCheckInterval(), cmd.getHealthyThreshold(), cmd.getUnhealthyThreshold());
+        LBHealthCheckPolicyVO policy = new LBHealthCheckPolicyVO(lbRuleId, pingPath, description, timeout,
+                healthcheckInterval, healthyThreshold, unhealthyThreshold);
 
-        Boolean forDisplay = cmd.getDisplay();
         if (forDisplay != null) {
             policy.setDisplay(forDisplay);
         }

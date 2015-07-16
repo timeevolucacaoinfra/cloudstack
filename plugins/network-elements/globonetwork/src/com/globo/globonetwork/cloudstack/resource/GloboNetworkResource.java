@@ -640,7 +640,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             Integer DEFAULT_MAX_CONN = 0;
             String DEFAULT_HEALTHCHECK_TYPE = "TCP";
             String HEALTHCHECK_HTTP_STRING = "HTTP";
-            Long DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK = 25L;
+            Long DEFAULT_ID_EXPECT_FOR_HTTP_HEALTHCHECK = 2L;
             Integer DEFAULT_TIMEOUT = 5;
             String DEFAULT_CACHE = "(nenhum)";
 
@@ -797,6 +797,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         serviceName, l7Filter, realsIp, realsPriorities, realsWeights, ports, null);
 
                 _globoNetworkApi.getVipAPI().validate(vip.getId());
+
+                // Create the vip on the equipment
+                if (!vip.getCreated()) {
+                    s_logger.info("Requesting GloboNetwork to create vip " + vip.getId());
+                    _globoNetworkApi.getVipAPI().create(vip.getId());
+                }
             }
             vip = _globoNetworkApi.getVipAPI().getById(vip.getId());
             vip.setIpv4Id(ip.getId());

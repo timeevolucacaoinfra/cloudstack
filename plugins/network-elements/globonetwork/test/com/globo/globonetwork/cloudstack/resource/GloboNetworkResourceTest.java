@@ -520,7 +520,7 @@ public class GloboNetworkResourceTest {
         Long realEquipmentId = 999L;
         String healthcheckType = "HTTP";
         String healthcheck = "200 OK";
-        Long expectedHealthcheckId = 25L;
+        Long expectedHealthcheckId = 2L;
 
         Vip vip = buildFakeVipValidatedAndCreated(vipEnvironmentId, realEnvironmentId, vipIpId, realIp);
 
