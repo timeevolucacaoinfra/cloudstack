@@ -288,18 +288,25 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
 
             if (getOpenFirewall()) {
                 success = success && _firewallService.applyIngressFirewallRules(getSourceIpAddressId(), callerContext.getCallingAccount());
+                if(!success) {
+                    throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to apply firewall rules.");
+                }
             }
 
             // State might be different after the rule is applied, so get new object here
             rule = _entityMgr.findById(LoadBalancer.class, getEntityId());
-            LoadBalancerResponse lbResponse = new LoadBalancerResponse();
-            if (rule != null) {
-                lbResponse = _responseGenerator.createLoadBalancerResponse(rule);
-                setResponseObject(lbResponse);
+            if (rule == null) {
+                throw new InvalidParameterValueException("Unable to find load balancer rule " + getEntityId() + ".");
             }
+
+            LoadBalancerResponse lbResponse = _responseGenerator.createLoadBalancerResponse(rule);
             lbResponse.setResponseName(getCommandName());
+
+            setResponseObject(lbResponse);
         } catch (Exception ex) {
             s_logger.warn("Failed to create LB rule due to exception ", ex);
+            String msg = ex.getMessage() != null ? ex.getMessage() : "";
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create load balancer rule. " + msg);
         } finally {
             if (!success || rule == null) {
 
@@ -308,8 +315,6 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
                 }
                 // no need to apply the rule on the backend as it exists in the db only
                 _lbService.deleteLoadBalancerRule(getEntityId(), false);
-
-                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create load balancer rule");
             }
         }
     }

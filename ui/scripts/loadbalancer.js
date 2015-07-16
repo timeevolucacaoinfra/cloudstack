@@ -1334,11 +1334,16 @@
                             };
                         }
 
-                        var show_error_message = function(json) {
-                            args.response.error(parseXMLHttpResponse(json));
+                        var show_error_message = function(msg) {
+                            if (typeof(msg) == 'string') {
+                                args.response.error(msg);
+                            } else if (typeof(msg) == 'object') {
+                                args.response.error(parseXMLHttpResponse(msg));
+                            }
                         };
 
                         var disassociate_ip_address_with_message = function(ipid, msg) {
+                            show_error_message(msg);
                             $.ajax({
                                 url: createURL('disassociateIpAddressFromGloboNetwork'),
                                 data: {
@@ -1346,7 +1351,6 @@
                                 },
                                 dataType: 'json',
                                 success: function(data) {
-                                    args.response.error(msg);
                                     return;
                                 },
                                 error: show_error_message
