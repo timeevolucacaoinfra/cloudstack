@@ -3184,39 +3184,33 @@ public class VirtualMachineManagerImpl extends ManagerBase implements VirtualMac
         if(s_logger.isDebugEnabled())
             s_logger.debug("Received startup command from hypervisor host. host id: " + agent.getId());
 
-        if(VmJobEnabled.value()) {
-            _syncMgr.resetHostSyncState(agent.getId());
-        }
-
-        if (forRebalance) {
-            s_logger.debug("Not processing listener " + this + " as connect happens on rebalance process");
-            return;
-        }
-
-        if (forRebalance) {
-            s_logger.debug("Not processing listener " + this + " as connect happens on rebalance process");
-            return;
-        }
-
         Long clusterId = agent.getClusterId();
         long agentId = agent.getId();
 
-        if (agent.getHypervisorType() == HypervisorType.XenServer) { // only for Xen
-            if (!VmJobEnabled.value()) {
-                StartupRoutingCommand startup = (StartupRoutingCommand)cmd;
-                HashMap<String, Pair<String, State>> allStates = startup.getClusterVMStateChanges();
-                if (allStates != null) {
-                    fullSync(clusterId, allStates);
-                }
-                // initiate the cron job
-                ClusterSyncCommand syncCmd = new ClusterSyncCommand(ClusterDeltaSyncInterval.value(), clusterId);
-                try {
-                    long seq_no = _agentMgr.send(agentId, new Commands(syncCmd), this);
-                    s_logger.debug("Cluster VM sync started with jobid " + seq_no);
-                } catch (AgentUnavailableException e) {
-                    s_logger.fatal("The Cluster VM sync process failed for cluster id " + clusterId + " with ", e);
-                }
+        if(VmJobEnabled.value()) {
+            _syncMgr.resetHostSyncState(agent.getId());
+        }else if(!VmJobEnabled.value() && agent.getHypervisorType() == HypervisorType.XenServer){
+            StartupRoutingCommand startup = (StartupRoutingCommand)cmd;
+            HashMap<String, Pair<String, State>> allStates = startup.getClusterVMStateChanges();
+            if (allStates != null) {
+                fullSync(clusterId, allStates);
             }
+            // initiate the cron job
+            ClusterSyncCommand syncCmd = new ClusterSyncCommand(ClusterDeltaSyncInterval.value(), clusterId);
+            try {
+                long seq_no = _agentMgr.send(agentId, new Commands(syncCmd), this);
+                s_logger.debug("Cluster VM sync started with jobid " + seq_no);
+            } catch (AgentUnavailableException e) {
+                s_logger.fatal("The Cluster VM sync process failed for cluster id " + clusterId + " with ", e);
+            }
+        }
+
+        if (forRebalance) {
+            s_logger.debug("Not processing listener " + this + " as connect happens on rebalance process");
+            return;
+        }
+
+        if (agent.getHypervisorType() == HypervisorType.XenServer) { // only for Xen
             // initiate the cron job
             ClusterVMMetaDataSyncCommand syncVMMetaDataCmd = new ClusterVMMetaDataSyncCommand(ClusterVMMetaDataSyncInterval.value(), clusterId);
             try {
