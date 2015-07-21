@@ -1774,22 +1774,25 @@ public class VpcManagerImpl extends ManagerBase implements VpcManager, VpcProvis
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {
-        PrivateIpVO ip = _privateIpDao.findByIpAndVpcId(gateway.getVpcId(), gateway.getIp4Address());
-        if (ip != null) {
-            _privateIpDao.remove(ip.getId());
-            s_logger.debug("Deleted private ip " + ip);
-        }
+                PrivateIpVO ip = _privateIpDao.findByIpAndVpcId(gateway.getVpcId(), gateway.getIp4Address());
+                if (ip != null) {
+                    _privateIpDao.remove(ip.getId());
+                    s_logger.debug("Deleted private ip " + ip);
+                }
+                try {
+                    if (deleteNetworkFinal) {
+                        User callerUser = _accountMgr.getActiveUser(CallContext.current().getCallingUserId());
+                        Account owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
+                        ReservationContext context = new ReservationContextImpl(null, null, callerUser, owner);
+                        _ntwkMgr.destroyNetwork(networkId, context, false);
+                        s_logger.debug("Deleted private network id=" + networkId);
+                    }
+                }catch (CloudRuntimeException e) {
+                    s_logger.error("deletePrivateGatewayFromTheDB failed to delete network id " + networkId + "due to => ", e);
+                }
 
-                if (deleteNetworkFinal) {
-            User callerUser = _accountMgr.getActiveUser(CallContext.current().getCallingUserId());
-            Account owner = _accountMgr.getAccount(Account.ACCOUNT_ID_SYSTEM);
-            ReservationContext context = new ReservationContextImpl(null, null, callerUser, owner);
-                    _ntwkMgr.destroyNetwork(networkId, context, false);
-            s_logger.debug("Deleted private network id=" + networkId);
-        }
-
-        _vpcGatewayDao.remove(gateway.getId());
-        s_logger.debug("Deleted private gateway " + gateway);
+                _vpcGatewayDao.remove(gateway.getId());
+                s_logger.debug("Deleted private gateway " + gateway);
             }
         });
 

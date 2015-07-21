@@ -410,11 +410,16 @@ public class DomainManagerImpl extends ManagerBase implements DomainManager, Dom
         ReservationContext context = new ReservationContextImpl(null, null, _accountMgr.getActiveUser(ctx.getCallingUserId()), ctx.getCallingAccount());
         for (Long networkId : networkIds) {
             s_logger.debug("Deleting network id=" + networkId + " as a part of domain id=" + domainId + " cleanup");
-            if (!_networkMgr.destroyNetwork(networkId, context, false)) {
-                s_logger.warn("Unable to destroy network id=" + networkId + " as a part of domain id=" + domainId + " cleanup.");
+            try {
+                if (!_networkMgr.destroyNetwork(networkId, context, false)) {
+                    s_logger.warn("Unable to destroy network id=" + networkId + " as a part of domain id=" + domainId + " cleanup.");
+                    networksDeleted = false;
+                } else {
+                    s_logger.debug("Network " + networkId + " successfully deleted as a part of domain id=" + domainId + " cleanup.");
+                }
+            } catch (CloudRuntimeException e) {
+                s_logger.warn(e.getMessage(), e);
                 networksDeleted = false;
-            } else {
-                s_logger.debug("Network " + networkId + " successfully deleted as a part of domain id=" + domainId + " cleanup.");
             }
         }
 

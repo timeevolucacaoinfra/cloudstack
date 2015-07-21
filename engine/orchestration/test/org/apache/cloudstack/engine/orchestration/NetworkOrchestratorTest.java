@@ -16,44 +16,48 @@
 // under the License.
 package org.apache.cloudstack.engine.orchestration;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.when;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-
-import junit.framework.TestCase;
-
-import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Matchers;
-
 import com.cloud.network.Network;
-
-import com.cloud.network.NetworkModel;
 import com.cloud.network.Network.GuestType;
 import com.cloud.network.Network.Service;
+import com.cloud.network.NetworkModel;
 import com.cloud.network.Networks.TrafficType;
 import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.element.DhcpServiceProvider;
 import com.cloud.network.guru.NetworkGuru;
-
+import com.cloud.uservm.UserVm;
+import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.Nic;
 import com.cloud.vm.NicVO;
+import com.cloud.vm.UserVmVO;
 import com.cloud.vm.VirtualMachine;
-import com.cloud.vm.VirtualMachineProfile;
+import com.cloud.vm.VirtualMachine.State;
 import com.cloud.vm.VirtualMachine.Type;
+import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.NicIpAliasDao;
 import com.cloud.vm.dao.NicSecondaryIpDao;
+import com.cloud.vm.dao.UserVmDaoImpl;
+import junit.framework.TestCase;
+import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Matchers;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+
+
 
 /**
  * NetworkManagerImpl implements NetworkManager.
@@ -160,5 +164,55 @@ public class NetworkOrchestratorTest extends TestCase {
         verify(testOrchastrator._networkModel, never()).getElementImplementingProvider(dhcpProvider);
         verify(testOrchastrator._ntwkSrvcDao, never()).getProviderForServiceInNetwork(network.getId(), Service.Dhcp);
         verify(testOrchastrator._networksDao, times(1)).findById(nic.getNetworkId());
+    }
+
+    @Test
+    public void testValidateUserVMsInNetwork() {
+        List list = new ArrayList<UserVm>();
+        list.add(newUserVm(1l, "vm 01", State.Expunging, new Date()));
+
+        UserVmDaoImpl dao = mock(UserVmDaoImpl.class);
+        when(dao.listByNetworkIdAndStates(1l)).thenReturn(list);
+
+        testOrchastrator._userVmDao = dao;
+        testOrchastrator.validateUserVMsInNetwork(1l);
+
+    }
+
+    @Test
+    public void testValidateUserVMsInNetwork_fail() {
+        List list = new ArrayList<UserVm>();
+        list.add(newUserVm(123l, "vm-0123", State.Stopped, null));
+        list.add(newUserVm(555l, "vm-555", State.Running, null));
+
+        try {
+            UserVmDaoImpl dao = mock(UserVmDaoImpl.class);
+            when(dao.listByNetworkIdAndStates(1l)).thenReturn(list);
+
+            testOrchastrator._userVmDao = dao;
+            testOrchastrator.validateUserVMsInNetwork(1l);
+        } catch (CloudRuntimeException e ) {
+            assertTrue(e.getMessage().contains("vm-0123"));
+            assertTrue(e.getMessage().contains("vm-555"));
+        } catch (Exception e) {
+           fail("should be CloudRuntimeException with vm name. " + e.getClass()+" "+ e.getMessage());
+        }
+
+    }
+
+
+    public UserVm newUserVm(Long id, String name, State state, final  Date removedTemp) {
+        UserVmVO vm = new UserVmVO(id, name, null, 0l, null,
+                     0l, false, false, 0l, 0l,
+                     0l, null, null, 0l) {
+            public Date getRemoved() {
+                return removedTemp;
+            }
+        };
+
+        vm.setState(state);
+
+
+        return vm;
     }
 }

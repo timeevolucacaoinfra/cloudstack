@@ -16,6 +16,7 @@
 // under the License.
 package org.apache.cloudstack.api.command.user.network;
 
+import com.cloud.utils.exception.CloudRuntimeException;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
@@ -75,13 +76,19 @@ public class DeleteNetworkCmd extends BaseAsyncCmd {
 
     @Override
     public void execute() {
-        CallContext.current().setEventDetails("Network Id: " + id);
-        boolean result = _networkService.deleteNetwork(id, isForced());
-        if (result) {
-            SuccessResponse response = new SuccessResponse(getCommandName());
-            setResponseObject(response);
-        } else {
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to delete network");
+        CallContext.current().setEventDetails("Network Id: " + getId());
+        try {
+            boolean result = _networkService.deleteNetwork(getId(), isForced());
+
+            if (result) {
+                SuccessResponse response = new SuccessResponse(getCommandName());
+                setResponseObject(response);
+            } else {
+                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to delete network");
+            }
+
+        }catch (CloudRuntimeException e ) {
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage(), e);
         }
     }
 

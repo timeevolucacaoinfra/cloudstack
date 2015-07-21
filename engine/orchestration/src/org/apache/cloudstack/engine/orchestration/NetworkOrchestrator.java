@@ -2125,7 +2125,7 @@ public class NetworkOrchestrator extends ManagerBase implements NetworkOrchestra
 
     @Override
     @DB
-    public boolean destroyNetwork(long networkId, final ReservationContext context, boolean forced) {
+    public boolean destroyNetwork(long networkId, final ReservationContext context, boolean forced) throws CloudRuntimeException {
         final Account callerAccount = context.getAccount();
 
         NetworkVO network = _networksDao.findById(networkId);
@@ -2134,15 +2134,7 @@ public class NetworkOrchestrator extends ManagerBase implements NetworkOrchestra
             return false;
         }
 
-        // Make sure that there are no user vms in the network that are not Expunged/Error
-        List<UserVmVO> userVms = _userVmDao.listByNetworkIdAndStates(networkId);
-
-        for (UserVmVO vm : userVms) {
-            if (!(vm.getState() == VirtualMachine.State.Expunging && vm.getRemoved() != null)) {
-                s_logger.warn("Can't delete the network, not all user vms are expunged. Vm " + vm + " is in " + vm.getState() + " state");
-                return false;
-            }
-        }
+        validateUserVMsInNetwork(networkId);
 
         // Don't allow to delete network via api call when it has vms assigned to it
         int nicCount = getActiveNicsInNetwork(networkId);
@@ -2265,6 +2257,24 @@ public class NetworkOrchestrator extends ManagerBase implements NetworkOrchestra
         }
 
         return success;
+    }
+    // Make sure that there are no user vms in the network that are not Expunged/Error before delete network, else throws CloudRuntimeException
+    public void validateUserVMsInNetwork(Long networkId) throws CloudRuntimeException {
+         List<UserVmVO> userVms = _userVmDao.listByNetworkIdAndStates(networkId);
+
+         boolean error = false;
+         StringBuilder builder = new StringBuilder("");
+         for (UserVmVO vm : userVms) {
+             if (!(vm.getState() == VirtualMachine.State.Expunging && vm.getRemoved() != null)) {
+                 error = true;
+                 builder.append("Vm " + vm + " is in " + vm.getState() + " state. ");
+             }
+         }
+         if (error) {
+             String msg = "Can't delete the network, not all user vms are expunged. " + builder.toString();
+             s_logger.warn(msg);
+             throw new CloudRuntimeException(msg);
+         }
     }
 
     @Override
