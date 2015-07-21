@@ -18,6 +18,7 @@ package com.globo.globonetwork.cloudstack.api;
 
 import javax.inject.Inject;
 
+import com.cloud.utils.exception.CloudRuntimeException;
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
 import org.apache.cloudstack.api.ACL;
 import org.apache.cloudstack.api.APICommand;
@@ -79,13 +80,17 @@ public class DeleteNetworkInGloboNetworkCmd extends BaseAsyncCmd {
 
     @Override
     public void execute() {
-        CallContext.current().setEventDetails("Network Id: " + id);
-        boolean result = _glbNetService.destroyGloboNetwork(id, isForced());
-        if (result) {
-            SuccessResponse response = new SuccessResponse(getCommandName());
-            setResponseObject(response);
-        } else {
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to delete network");
+        CallContext.current().setEventDetails("Network Id: " + getId());
+        try {
+            boolean result = _glbNetService.destroyGloboNetwork(getId(), isForced());
+            if (result) {
+                SuccessResponse response = new SuccessResponse(getCommandName());
+                setResponseObject(response);
+            } else {
+                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to delete network");
+            }
+        }catch (CloudRuntimeException e ) {
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage(), e);
         }
     }
 
