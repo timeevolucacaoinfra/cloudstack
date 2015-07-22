@@ -18,6 +18,8 @@
  */
 package org.apache.cloudstack.managed.context;
 
+import com.newrelic.api.agent.NewRelic;
+import com.newrelic.api.agent.Trace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +44,10 @@ public abstract class ManagedContextRunnable implements Runnable {
     }
 
     @Override
+    @Trace
     public void run() {
+        NewRelic.setTransactionName(null, "/job/" + this.getClass().getName());
+
         getContext().runWithContext(new Runnable() {
             @Override
             public void run() {

@@ -155,6 +155,7 @@ public class ApiServlet extends HttpServlet {
             if (commandObj != null) {
                 final String command = (String) commandObj[0];
 
+                req.setAttribute("com.newrelic.agent.TRANSACTION_NAME", "/api/" + command);
                 APIAuthenticator apiAuthenticator = _authManager.getAPIAuthenticator(command);
                 if (apiAuthenticator != null) {
                     auditTrailSb.append("command=");
