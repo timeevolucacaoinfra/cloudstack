@@ -425,8 +425,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     }
 
     public Answer execute(CreateNewVlanInGloboNetworkCommand cmd) {
+        Vlan vlan = null;
         try {
-            Vlan vlan = _globoNetworkApi.getVlanAPI().allocateWithoutNetwork(cmd.getGloboNetworkEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
+            vlan = _globoNetworkApi.getVlanAPI().allocateWithoutNetwork(cmd.getGloboNetworkEnvironmentId(), cmd.getVlanName(), cmd.getVlanDescription());
 
             /*Network network = */_globoNetworkApi.getNetworkAPI().addNetwork(vlan.getId(), Long.valueOf(NETWORK_TYPE), null, cmd.isIpv6());
 
@@ -434,6 +435,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             vlan = _globoNetworkApi.getVlanAPI().getById(vlan.getId());
             return createResponse(vlan, cmd);
         } catch (GloboNetworkException e) {
+            if (vlan != null) {
+                try {
+                    _globoNetworkApi.getVlanAPI().deallocate(vlan.getId());
+                } catch (GloboNetworkException ex) {
+                    s_logger.error("Error deallocating vlan " + vlan.getId() + "from GloboNetwork.");
+                }
+            }
             return handleGloboNetworkException(cmd, e);
         }
     }
