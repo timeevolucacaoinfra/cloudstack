@@ -1009,6 +1009,12 @@ public class VolumeServiceImpl implements VolumeService {
                 destVolume.processEvent(Event.OperationFailed);
                 srcVolume.processEvent(Event.OperationFailed);
                 destroyVolume(destVolume.getId());
+
+                //Release volume from its original pod so it can be expunged
+                VolumeVO volumeVO = volDao.findById(destVolume.getId());
+                volumeVO.setPodId(null);
+                volDao.persist(volumeVO);
+
                 destVolume = volFactory.getVolume(destVolume.getId());
                 AsyncCallFuture<VolumeApiResult> destroyFuture = expungeVolumeAsync(destVolume);
                 destroyFuture.get();
