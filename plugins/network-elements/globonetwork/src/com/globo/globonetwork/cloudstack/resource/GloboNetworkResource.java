@@ -16,6 +16,7 @@
 */
 package com.globo.globonetwork.cloudstack.resource;
 
+import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,7 +45,6 @@ import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.globonetwork.client.exception.GloboNetworkErrorCodeException;
 import com.globo.globonetwork.client.exception.GloboNetworkException;
-import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Environment;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.Ip;
@@ -90,7 +90,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private String _password;
 
-    protected HttpXMLRequestProcessor _globoNetworkApi;
+    protected GloboNetworkAPI _globoNetworkApi;
 
     private static final Logger s_logger = Logger.getLogger(GloboNetworkResource.class);
 
@@ -146,7 +146,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 throw new ConfigurationException("Unable to find password");
             }
 
-            _globoNetworkApi = new HttpXMLRequestProcessor(_url, _username, _password);
+            _globoNetworkApi = new GloboNetworkAPI(_url, _username, _password);
 
             if (params.containsKey("readTimeout")) {
                 _globoNetworkApi.setReadTimeout(Integer.valueOf((String)params.get("readTimeout")));

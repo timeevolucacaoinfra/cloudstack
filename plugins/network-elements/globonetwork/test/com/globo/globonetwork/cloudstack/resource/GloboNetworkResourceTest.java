@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.globo.globonetwork.client.api.GloboNetworkAPI;
+import com.globo.globonetwork.client.model.VipXml;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +45,6 @@ import com.globo.globonetwork.client.api.VipAPI;
 import com.globo.globonetwork.client.api.VipEnvironmentAPI;
 import com.globo.globonetwork.client.api.VlanAPI;
 import com.globo.globonetwork.client.exception.GloboNetworkException;
-import com.globo.globonetwork.client.http.HttpXMLRequestProcessor;
 import com.globo.globonetwork.client.model.Equipment;
 import com.globo.globonetwork.client.model.Ip;
 import com.globo.globonetwork.client.model.Ipv4;
@@ -59,7 +60,7 @@ public class GloboNetworkResourceTest {
     @Before
     public void setUp() throws ConfigurationException {
         _resource = new GloboNetworkResource();
-        _resource._globoNetworkApi = mock(HttpXMLRequestProcessor.class);
+        _resource._globoNetworkApi = mock(GloboNetworkAPI.class);
         when(_resource._globoNetworkApi.getEquipmentAPI()).thenReturn(mock(EquipmentAPI.class));
         when(_resource._globoNetworkApi.getIpAPI()).thenReturn(mock(IpAPI.class));
         when(_resource._globoNetworkApi.getVipAPI()).thenReturn(mock(VipAPI.class));
@@ -108,7 +109,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironment, null, null, null)).thenReturn(environmentVip);
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vipFinality, vipClient, vipEnvironmentName)).thenReturn(environmentVip);
 
-        Vip vip = new Vip();
+        Vip vip = new VipXml();
         vip.setId(vipId);
         vip.setIps(Arrays.asList(vipIpStr));
         vip.setServicePorts(servicePorts);
