@@ -28,7 +28,7 @@ PrintLog() {
     echo "[${timestamp}] [${level}] ${msg}"
 }
 
-[[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
+# [[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
 
 StartJetty() {
     max_retries=18
