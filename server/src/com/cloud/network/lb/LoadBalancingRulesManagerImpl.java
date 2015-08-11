@@ -2018,6 +2018,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 if (lbOption.getLoadBalancerId() == lb.getId()) {
                     loadBalancing.setCache(lbOption.getCache());
                     loadBalancing.setServiceDownAction(lbOption.getServiceDownAction());
+                    loadBalancing.setHealthCheckDestination(lbOption.getHealthCheckDestination());
                 }
             }
         }
