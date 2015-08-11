@@ -723,6 +723,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             List<Long> idPoolMembers = new ArrayList<Long>();
             List<Long> realsWeights = new ArrayList<Long>();
             for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                if (real.isRevoked()) {
+                    continue;
+                }
                 Ip ip = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), real.getEnvironmentId(), false);
                 if (ip == null) {
                     if (real.isRevoked()) {
@@ -833,17 +836,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 for (Pool pool : poolsList) {
                     poolsToRemove.add(pool.getId());
                 }
-                _globoNetworkApi.getPoolAPI().remove(poolsToRemove); // Remove from equipment
-                for (Pool pool : poolsList) {
-                    _globoNetworkApi.getPoolAPI().save(pool.getId(), pool.getIdentifier(), null, vlan.getEnvironment(),
-                            lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                            DEFAULT_MAX_CONN, null, null, null, null, null, null, null); // Remove reals from pool
-                }
-                _globoNetworkApi.getPoolAPI().delete(poolsToRemove); // Delete from NetworkAPI
+                if (!poolsToRemove.isEmpty()) {
+                    _globoNetworkApi.getPoolAPI().remove(poolsToRemove); // Remove from equipment
 
-                // Update the VIP to GloboNetwork
-                vip = _globoNetworkApi.getVipAPI().save(ip.getId(), null, finality, client, environment, cache,
-                        lbPersistence, DEFAULT_TIMEOUT, host, businessArea, serviceName, l7Filter, vipPoolMapList, null, vipId);
+                    for (Pool pool : poolsList) {
+                        _globoNetworkApi.getPoolAPI().save(pool.getId(), pool.getIdentifier(), null, vlan.getEnvironment(),
+                                lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
+                                DEFAULT_MAX_CONN, null, null, null, null, null, null, null); // Remove reals from pool
+                    }
+                    _globoNetworkApi.getPoolAPI().delete(poolsToRemove); // Delete from NetworkAPI
+                    // Update the VIP to GloboNetwork
+                    vip = _globoNetworkApi.getVipAPI().save(ip.getId(), null, finality, client, environment, cache,
+                            lbPersistence, DEFAULT_TIMEOUT, host, businessArea, serviceName, l7Filter, vipPoolMapList, null, vipId);
+                }
             }
             vip = _globoNetworkApi.getVipAPI().getByPk(vip.getId());
             vip.setIpv4Id(ip.getId());
