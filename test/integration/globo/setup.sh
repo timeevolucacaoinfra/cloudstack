@@ -6,17 +6,16 @@ echo "globodns_resolver_nameserver: ${globodns_resolver_nameserver}"
 
 virtualenv_name='cloudstack'
 
-project_basedir='/var/lib/jenkins/cloudstack'
+project_basedir='/var/lib/jenkins/jobs/cloudstack-integration-tests/workspace'
 globo_test_basedir="${project_basedir}/test/integration/globo"
-#project_branch='develop'
 maven_log='/tmp/cloudstack.log'
 pip="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/pip"
 python="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/python"
 nosetests="/var/lib/jenkins/.virtualenvs/${virtualenv_name}/bin/nosetests"
 
-[[ -z $WORKON_HOME ]] && WORKON_HOME=$JENKINS_HOME/.virtualenvs
+[[ -z $WORKON_HOME ]] && WORKON_HOME=~jenkins/.virtualenvs
 
-export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
+export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.65.x86_64
 export PATH="$JAVA_HOME/bin:$PATH"
 
 debug=1
