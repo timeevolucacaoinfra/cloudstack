@@ -1707,7 +1707,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_LOAD_BALANCER_CREATE, eventDescription = "creating load balancer")
     public LoadBalancer createPublicLoadBalancerRule(String xId, String name, String description, int srcPortStart, int srcPortEnd, int defPortStart, int defPortEnd,
-            Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache)
+                                                     Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache, String serviceDownAction)
             throws NetworkRuleConflictException, InsufficientAddressCapacityException {
         Account lbOwner = _accountMgr.getAccount(lbOwnerId);
 
@@ -1764,7 +1764,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 }
 
                 result = createPublicLoadBalancer(xId, name, description, srcPortStart, defPortStart, ipVO.getId(), protocol, algorithm, openFirewall, CallContext.current(),
-                        lbProtocol, forDisplay, additionalPortMap, cache);
+                        lbProtocol, forDisplay, additionalPortMap, cache, serviceDownAction);
             } catch (Exception ex) {
                 s_logger.warn("Failed to create load balancer due to ", ex);
                 if (ex instanceof NetworkRuleConflictException) {
@@ -1793,7 +1793,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @DB
     @Override
     public LoadBalancer createPublicLoadBalancer(final String xId, final String name, final String description, final int srcPort, final int destPort, final long sourceIpId,
-            final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache)
+                                                 final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache, final String serviceDownAction)
             throws NetworkRuleConflictException {
 
         if (!NetUtils.isValidPort(destPort)) {
@@ -1861,6 +1861,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 LoadBalancingRule loadBalancing = new LoadBalancingRule(newRule, new ArrayList<LbDestination>(), new ArrayList<LbStickinessPolicy>(),
                         new ArrayList<LbHealthCheckPolicy>(), sourceIp, null, lbProtocol);
                 loadBalancing.setCache(cache);
+                loadBalancing.setServiceDownAction(serviceDownAction);
                 loadBalancing.setAdditionalPortMap(additionalPortMap);
                 if (!validateLbRule(loadBalancing)) {
                     throw new InvalidParameterValueException("LB service provider cannot support this rule");
@@ -1916,12 +1917,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
-        // If load balancer rule was created successfully, add cache option
-        if (lb != null && cache != null) {
-            String cacheStr = cache.trim(); // Remove any white spaces on either side
-
-            LoadBalancerOptionsVO lbOptionsVO = new LoadBalancerOptionsVO(lb.getId(), cacheStr);
-            _lbOptionsDao.persist(lbOptionsVO);
+        // If load balancer rule was created successfully, add cache and service down action options
+        if (lb != null && (cache != null || serviceDownAction != null)) {
+            String cacheStr = cache != null ? cache.trim() : null; // Remove any white spaces on either side
+            String serviceDownActionStr = serviceDownAction != null ? serviceDownAction.trim() : null;
+            _lbOptionsDao.persist(new LoadBalancerOptionsVO(lb.getId(), cacheStr, serviceDownActionStr));
         }
 
         return lb;
@@ -2015,6 +2015,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             for (LoadBalancerOptionsVO lbOption : lbOptions) {
                 if (lbOption.getLoadBalancerId() == lb.getId()) {
                     loadBalancing.setCache(lbOption.getCache());
+                    loadBalancing.setServiceDownAction(lbOption.getServiceDownAction());
                 }
             }
         }

@@ -126,6 +126,9 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.CACHE, type = CommandType.STRING, description = "Cache group associated to Load Balancer")
     private String cache;
 
+    @Parameter(name = ApiConstants.SERVICE_DOWN_ACTION, type = CommandType.STRING, description = "ID of the action to be executed when service is down")
+    private String serviceDownAction;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -231,6 +234,10 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
 
     public String getCache() { return cache; }
 
+    public String getServiceDownAction() {
+        return serviceDownAction;
+    }
+
     public Integer getPublicPort() {
         return publicPort;
     }
@@ -329,7 +336,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         try {
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
-                    getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(), getAdditionalPortMap(), getCache());
+                    getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(), getAdditionalPortMap(), getCache(), getServiceDownAction());
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {

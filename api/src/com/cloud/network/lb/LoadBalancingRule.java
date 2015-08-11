@@ -39,6 +39,7 @@ public class LoadBalancingRule {
     private LbSslCert sslCert;
     private String lbProtocol;
     private String cache;
+    private String serviceDownAction;
     private List<Long> additionalNetworks;
     private List<String> additionalPortMap;
 
@@ -113,6 +114,14 @@ public class LoadBalancingRule {
     public String getCache() { return this.cache; }
 
     public void setCache(String cache) { this.cache = cache; }
+
+    public String getServiceDownAction() {
+        return serviceDownAction;
+    }
+
+    public void setServiceDownAction(String serviceDownAction) {
+        this.serviceDownAction = serviceDownAction;
+    }
 
     public FirewallRule.Purpose getPurpose() {
         return FirewallRule.Purpose.LoadBalancing;
