@@ -1,28 +1,5 @@
 #!/bin/bash
 
-echo "project_branch: ${project_branch}"
-echo "globodns_host: ${globodns_host}"
-echo "globodns_resolver_nameserver: ${globodns_resolver_nameserver}"
-
-# virtual env vars
-virtualenv_name='cloudstack'
-# source /opt/generic/python27/bin/virtualenvwrapper.sh
-[[ -z ${WORKON_HOME} ]] && WORKON_HOME=~jenkins/.virtualenvs
-# [[ -d ${WORKON_HOME} ]] || mkdir ${WORKON_HOME}
-[[ -d "${WORKON_HOME}/${virtualenv_name}" ]] || mkvirtualenv -p /opt/generic/python27/bin/python ${virtualenv_name}
-pip="${WORKON_HOME}/${virtualenv_name}/bin/pip"
-python="${WORKON_HOME}/${virtualenv_name}/bin/python"
-nosetests="${WORKON_HOME}/${virtualenv_name}/bin/nosetests"
-
-project_basedir=$(pwd)
-globo_test_basedir="${project_basedir}/test/integration/globo"
-maven_log='/tmp/cloudstack.log'
-
-cloudstack_deploy_dir='/var/lib/jenkins/cloudstack-deploy'
-export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.65.x86_64
-export PATH="$JAVA_HOME/bin:$PATH"
-
-debug=1
 
 PrintLog() {
     level=$1
@@ -31,7 +8,52 @@ PrintLog() {
     echo "[${timestamp}] [${level}] ${msg}"
 }
 
-# [[ ! -f /etc/lsb-release ]] && PrintLog ERROR "Opss... run this script only in Ubuntu. Exiting..." && exit 1
+
+PrintLog DEBUG "project_branch: ${project_branch}"
+PrintLog DEBUG "globodns_host: ${globodns_host}"
+PrintLog DEBUG "globodns_resolver_nameserver: ${globodns_resolver_nameserver}"
+
+# virtual env vars
+virtualenv_name='cloudstack'
+
+if [ -f "/opt/generic/python27/bin/virtualenvwrapper.sh" ]; then
+    source /opt/generic/python27/bin/virtualenvwrapper.sh
+
+    req_pkgs=$(rpm -qa | egrep -c "(python-devel|gmp-devel)")
+    if [ ${req_pkgs} -ne 2 ]; then
+        PrintLog FATAL "Please install python-devel and gmp-devel packages"
+        exit 1
+    fi
+    PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
+
+    [[ -z ${WORKON_HOME} ]] && WORKON_HOME=~jenkins/.virtualenvs
+    [[ ! -d "${WORKON_HOME}/${virtualenv_name}" ]] && mkvirtualenv -p /opt/generic/python27/bin/python ${virtualenv_name}
+    source $WORKON_HOME/${virtualenv_name}/bin/activate
+    
+    pip="${WORKON_HOME}/${virtualenv_name}/bin/pip"
+    pip_options="--extra-index-url=https://artifactory.globoi.com/artifactory/pypi/ --extra-index-url=https://artifactory.globoi.com/artifactory/api/pypi/pypi/simple --extra-index-url=https://pypi.python.org"
+    python="${WORKON_HOME}/${virtualenv_name}/bin/python"
+    nosetests="${WORKON_HOME}/${virtualenv_name}/bin/nosetests"
+    $pip freeze | grep -q simple-db-migrate || pip install simple-db-migrate
+    #     # pip freeze | grep -q pycrypto || pip install pycrypto
+    # require for dnsapi
+    $pip freeze | grep -q beautifulsoup4 || pip install beautifulsoup4==4.3.2 ${pip_options}
+
+else
+    PrintLog FATAL "No virtualenv wrapper was found, please install it!"
+fi
+
+project_basedir=$(pwd)
+globo_test_basedir="${project_basedir}/test/integration/globo"
+maven_log='/tmp/cloudstack.log'
+
+cloudstack_deploy_dir='/var/lib/jenkins/cloudstack-deploy'
+export JAVA_HOME='/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.65.x86_64'
+export PATH="$JAVA_HOME/bin:$PATH"
+
+debug=1
+
+[[ ! -f /etc/redhat-release ]] && PrintLog ERROR "Opss... run this script only in RedHat OS. Exiting..." && exit 1
 
 StartJetty() {
     max_retries=18
@@ -44,7 +66,7 @@ StartJetty() {
     while [ $ret_count -le $max_retries ]; do
         if grep -q '\[INFO\] Started Jetty Server' ${maven_log}; then
             [[ $debug ]] && PrintLog INFO "Jetty is running and ready"
-            return 1
+            return 0
         else
             [[ $debug ]] && PrintLog DEBUG "Jetty is not ready yet... sleeping more ${sleep_time}sec (${ret_count}/${max_retries})"
             sleep $sleep_time
@@ -94,26 +116,16 @@ WaitForInfrastructure() {
     exit 1
 }
 
-activateVirtualEnv() {
-    PrintLog INFO "Switching to '${virtualenv_name}' virtualenv"
-    source $WORKON_HOME/${virtualenv_name}/bin/activate
-}
-
-installPip() {
-
-    activateVirtualEnv
-    #required for test_dns_api.py
-    ${pip} install beautifulsoup4==4.3.2 --extra-index-url=https://artifactory.globoi.com/artifactory/pypi/ --extra-index-url=https://artifactory.globoi.com/artifactory/api/pypi/pypi/simple --extra-index-url=https://pypi.python.org
-
+installMarvin() {
     # Tries to install marvin.. just in case..
-    [[ ! `${pip} freeze | grep -i Marvin` ]] && ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+    $pip freeze | grep -qi Marvin || ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     # Install marvin to ensure that we are using the correct version
-    [[ `${pip} freeze | grep -i Marvin` ]] && echo "#### ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz"
-    ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+    ${pip} freeze | grep -qi Marvin && ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     ls ~/.virtualenvs/cloudstack/lib/python2.7/site-packages/marvin/cloudstackAPI/ | grep addG
 }
+
 
 # Checkout repository, compile, use virtualenv and sync the mavin commands
 ShutdownJetty
@@ -127,8 +139,6 @@ git checkout ${project_branch} >/dev/null 2>/dev/null
 PrintLog INFO "Pulling latest modifications"
 git pull
 
-activateVirtualEnv
-
 last_commit=$(git log -n 1 | grep commit | cut -d' ' -f2)
 last_commit_file="/tmp/cloudstack-integration-tests-last-commit.txt"
 
@@ -141,6 +151,12 @@ saved_last_commit=$(cat ${last_commit_file} | head -1)
 
 if [ "${last_commit}" != "${saved_last_commit}" ]; then
 
+    PrintLog INFO "Solving some dependencies..."
+    if [ ! -d "/var/lib/jenkins/cloudstack-deploy" ]; then
+        PrintLog INFO "Clone cloudstack-deploy project into ${cloudstack_deploy_dir}"
+        git clone https://gitlab.globoi.com/time-evolucao-infra/cloudstack-deploy.git -b master ${cloudstack_deploy_dir}
+    fi
+
     PrintLog INFO "Compiling cloudstack..."
 
     mvn -Pdeveloper -Dsimulator clean install
@@ -151,7 +167,7 @@ if [ "${last_commit}" != "${saved_last_commit}" ]; then
 
     echo "${last_commit}" > ${last_commit_file}
 
-    installPip
+    installMarvin
 
     # Deploy DB, Populate DB and create infra structure
     PrintLog INFO "Creating SQL schema"
@@ -160,7 +176,6 @@ if [ "${last_commit}" != "${saved_last_commit}" ]; then
     mvn -Pdeveloper -pl developer -Ddeploydb-simulator >/dev/null 2>/dev/null
     [[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB simulator" && exit 1
     PrintLog INFO "Doing some required SQL migrations"
-    [[ ! -d "/var/lib/jenkins/cloudstack-deploy" ]] && git clone https://gitlab.globoi.com/time-evolucao-infra/cloudstack-deploy.git ${cloudstack_deploy_dir}
     (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && git checkout master && db-migrate >/dev/null)
     cd -
     StartJetty
@@ -186,7 +201,7 @@ mvn -Pdeveloper,marvin.sync -Dendpoint=localhost -pl :cloud-marvin
 
 sleep 5
 
-installPip
+installMarvin
 
 # check if Globo assets are in marvin tarball file
 [[ ! `tar tvzf ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz | grep Globo` ]] && PrintLog ERROR "Tests will fail!!! Marvin tarball does not contain Globo files" && exit 1
@@ -214,4 +229,3 @@ else
     PrintLog ERROR "Tests failed!!!"
     exit 1
 fi
-
