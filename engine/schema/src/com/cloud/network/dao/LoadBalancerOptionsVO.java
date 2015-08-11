@@ -69,4 +69,12 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     public String getServiceDownAction() {
         return serviceDownAction;
     }
+
+    public String getHealthCheckDestination() {
+        return healthCheckDestination;
+    }
+
+    public void setHealthCheckDestination(String healthCheckDestination) {
+        this.healthCheckDestination = healthCheckDestination;
+    }
 }
