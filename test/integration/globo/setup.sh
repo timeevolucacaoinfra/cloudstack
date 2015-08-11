@@ -1,5 +1,6 @@
 #!/bin/bash
 
+[[ ! -f /etc/redhat-release ]] && PrintLog ERROR "Opss... run this script only in RedHat OS. Exiting..." && exit 1
 
 PrintLog() {
     level=$1
@@ -34,11 +35,10 @@ if [ -f "/opt/generic/python27/bin/virtualenvwrapper.sh" ]; then
     pip_options="--extra-index-url=https://artifactory.globoi.com/artifactory/pypi/ --extra-index-url=https://artifactory.globoi.com/artifactory/api/pypi/pypi/simple --extra-index-url=https://pypi.python.org"
     python="${WORKON_HOME}/${virtualenv_name}/bin/python"
     nosetests="${WORKON_HOME}/${virtualenv_name}/bin/nosetests"
-    $pip freeze | grep -q simple-db-migrate || pip install simple-db-migrate
-    #     # pip freeze | grep -q pycrypto || pip install pycrypto
+    ${pip} freeze | grep -q simple-db-migrate || ${pip} install simple-db-migrate
     # require for dnsapi
-    $pip freeze | grep -q beautifulsoup4 || pip install beautifulsoup4==4.3.2 ${pip_options}
-
+    ${pip} freeze | grep -q beautifulsoup4 || ${pip} install beautifulsoup4==4.3.2 ${pip_options}
+    # {pip} freeze | grep -q pycrypto || {pip} install pycrypto
 else
     PrintLog FATAL "No virtualenv wrapper was found, please install it!"
 fi
@@ -52,8 +52,6 @@ export JAVA_HOME='/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.65.x86_64'
 export PATH="$JAVA_HOME/bin:$PATH"
 
 debug=1
-
-[[ ! -f /etc/redhat-release ]] && PrintLog ERROR "Opss... run this script only in RedHat OS. Exiting..." && exit 1
 
 StartJetty() {
     max_retries=18
@@ -118,7 +116,7 @@ WaitForInfrastructure() {
 
 installMarvin() {
     # Tries to install marvin.. just in case..
-    $pip freeze | grep -qi Marvin || ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
+    ${pip} freeze | grep -qi Marvin || ${pip} install --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
 
     # Install marvin to ensure that we are using the correct version
     ${pip} freeze | grep -qi Marvin && ${pip} install --upgrade --allow-external mysql-connector-python ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz
@@ -206,7 +204,7 @@ installMarvin
 # check if Globo assets are in marvin tarball file
 [[ ! `tar tvzf ${project_basedir}/tools/marvin/dist/Marvin-*.tar.gz | grep Globo` ]] && PrintLog ERROR "Tests will fail!!! Marvin tarball does not contain Globo files" && exit 1
 
-
+PrintLog INFO "Testing DNS API"
 ${nosetests} --with-marvin --marvin-config=${globo_test_basedir}/demo.cfg --zone=Sandbox-simulator ${globo_test_basedir}/test_dns_api.py
 retval=$?
 if [[ $retval -ne 0 ]]; then
