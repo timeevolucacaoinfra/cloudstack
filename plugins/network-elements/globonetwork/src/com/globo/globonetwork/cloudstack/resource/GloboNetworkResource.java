@@ -850,7 +850,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                             lbPersistence, DEFAULT_TIMEOUT, host, businessArea, serviceName, l7Filter, vipPoolMapList, null, vipId);
                 }
             }
-            vip = _globoNetworkApi.getVipAPI().getByPk(vip.getId());
+            vip = _globoNetworkApi.getVipAPI().getById(vip.getId());
             vip.setIpv4Id(ip.getId());
 
             // Validate the vip
