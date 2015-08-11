@@ -42,13 +42,17 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     @Column(name="service_down_action")
     private String serviceDownAction;
 
+    @Column(name="health_check_destination")
+    private String healthCheckDestination;
+
     public LoadBalancerOptionsVO() {
     }
 
-    public LoadBalancerOptionsVO(long lbId, String cache, String serviceDownAction) {
+    public LoadBalancerOptionsVO(long lbId, String cache, String serviceDownAction, String healthCheckDestination) {
         this.lbId = lbId;
         this.cache = cache;
         this.serviceDownAction = serviceDownAction;
+        this.healthCheckDestination = healthCheckDestination;
     }
 
     @Override

@@ -43,6 +43,10 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     private String cache;
 
+    private String serviceDownAction;
+
+    private String healthCheckDestination;
+
     private String serviceName;
 
     private LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy;
@@ -50,8 +54,6 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
     private List<String> ports;
 
     private List<GloboNetworkVipResponse.Real> realList;
-
-    private String serviceDownAction;
 
     @Override
     public boolean executeInSequence() {
@@ -164,5 +166,13 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     public String getServiceDownAction() {
         return serviceDownAction;
+    }
+
+    public void setHealthCheckDestination(String healthCheckDestination) {
+        this.healthCheckDestination = healthCheckDestination;
+    }
+
+    public String getHealthCheckDestination() {
+        return healthCheckDestination;
     }
 }
