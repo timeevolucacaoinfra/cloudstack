@@ -14,10 +14,11 @@ pip="${WORKON_HOME}/${virtualenv_name}/bin/pip"
 python="${WORKON_HOME}/${virtualenv_name}/bin/python"
 nosetests="${WORKON_HOME}/${virtualenv_name}/bin/nosetests"
 
-project_basedir='/var/lib/jenkins/jobs/cloudstack-integration-tests/workspace'
+project_basedir=$(pwd)
 globo_test_basedir="${project_basedir}/test/integration/globo"
 maven_log='/tmp/cloudstack.log'
 
+cloudstack_deploy_dir='/var/lib/jenkins/cloudstack-deploy'
 export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.65.x86_64
 export PATH="$JAVA_HOME/bin:$PATH"
 
@@ -138,8 +139,7 @@ PrintLog INFO "last git commit: ${last_commit}"
 
 saved_last_commit=$(cat ${last_commit_file} | head -1)
 
-if [ "${last_commit}" != "${saved_last_commit}" ];
-then
+if [ "${last_commit}" != "${saved_last_commit}" ]; then
 
     PrintLog INFO "Compiling cloudstack..."
 
@@ -160,14 +160,9 @@ then
     mvn -Pdeveloper -pl developer -Ddeploydb-simulator >/dev/null 2>/dev/null
     [[ $? -ne 0 ]] && PrintLog ERROR "Failed to deploy DB simulator" && exit 1
     PrintLog INFO "Doing some required SQL migrations"
-    if [ -d "/var/lib/jenkins/cloudstack-deploy" ];
-    then
-        (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && db-migrate >/dev/null)
-        cd -
-    else
-        echo "OPS... could not find migrate"
-    fi
-
+    [[ ! -d "/var/lib/jenkins/cloudstack-deploy" ]] && git clone https://gitlab.globoi.com/time-evolucao-infra/cloudstack-deploy.git ${cloudstack_deploy_dir}
+    (cd /var/lib/jenkins/cloudstack-deploy/dbmigrate && git checkout master && db-migrate >/dev/null)
+    cd -
     StartJetty
     PrintLog INFO "Creating an advanced zone..."
     ${python} ${project_basedir}/tools/marvin/marvin/deployDataCenter.py -i ${project_basedir}/test/integration/globo/cfg/advanced-globo.cfg
@@ -177,7 +172,6 @@ then
     ShutdownJetty
     PrintLog INFO "Removing log file '${maven_log}'"
     rm -f ${maven_log}
-
 else
     PrintLog INFO "There were no code changes, so we don't need compile!!! yaayyyyyyyy"
 fi
