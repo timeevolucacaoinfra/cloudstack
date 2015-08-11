@@ -40,6 +40,7 @@ public class LoadBalancingRule {
     private String lbProtocol;
     private String cache;
     private String serviceDownAction;
+    private String healthCheckDestination;
     private List<Long> additionalNetworks;
     private List<String> additionalPortMap;
 
@@ -170,6 +171,14 @@ public class LoadBalancingRule {
     public List<String> getAdditionalPortMap() { return additionalPortMap; }
 
     public void setAdditionalPortMap(List<String> additionalPortMap) { this.additionalPortMap = additionalPortMap; }
+
+    public void setHealthCheckDestination(String healthCheckDestination) {
+        this.healthCheckDestination = healthCheckDestination;
+    }
+
+    public String getHealthCheckDestination() {
+        return healthCheckDestination;
+    }
 
     public interface Destination {
         String getIpAddress();

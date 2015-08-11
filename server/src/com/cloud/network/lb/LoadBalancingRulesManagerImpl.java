@@ -1707,7 +1707,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_LOAD_BALANCER_CREATE, eventDescription = "creating load balancer")
     public LoadBalancer createPublicLoadBalancerRule(String xId, String name, String description, int srcPortStart, int srcPortEnd, int defPortStart, int defPortEnd,
-                                                     Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache, String serviceDownAction)
+                                                     Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache, String serviceDownAction, String healthCheckDestination)
             throws NetworkRuleConflictException, InsufficientAddressCapacityException {
         Account lbOwner = _accountMgr.getAccount(lbOwnerId);
 
@@ -1764,7 +1764,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 }
 
                 result = createPublicLoadBalancer(xId, name, description, srcPortStart, defPortStart, ipVO.getId(), protocol, algorithm, openFirewall, CallContext.current(),
-                        lbProtocol, forDisplay, additionalPortMap, cache, serviceDownAction);
+                        lbProtocol, forDisplay, additionalPortMap, cache, serviceDownAction, healthCheckDestination);
             } catch (Exception ex) {
                 s_logger.warn("Failed to create load balancer due to ", ex);
                 if (ex instanceof NetworkRuleConflictException) {
@@ -1793,7 +1793,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @DB
     @Override
     public LoadBalancer createPublicLoadBalancer(final String xId, final String name, final String description, final int srcPort, final int destPort, final long sourceIpId,
-                                                 final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache, final String serviceDownAction)
+                                                 final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache, final String serviceDownAction, final String healthCheckDestination)
             throws NetworkRuleConflictException {
 
         if (!NetUtils.isValidPort(destPort)) {
@@ -1862,6 +1862,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                         new ArrayList<LbHealthCheckPolicy>(), sourceIp, null, lbProtocol);
                 loadBalancing.setCache(cache);
                 loadBalancing.setServiceDownAction(serviceDownAction);
+                loadBalancing.setHealthCheckDestination(healthCheckDestination);
                 loadBalancing.setAdditionalPortMap(additionalPortMap);
                 if (!validateLbRule(loadBalancing)) {
                     throw new InvalidParameterValueException("LB service provider cannot support this rule");
@@ -1917,11 +1918,12 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         }
 
-        // If load balancer rule was created successfully, add cache and service down action options
-        if (lb != null && (cache != null || serviceDownAction != null)) {
+        // If load balancer rule was created successfully, add cache and service down action and health check port options
+        if (lb != null && (cache != null || serviceDownAction != null || healthCheckDestination != null)) {
             String cacheStr = cache != null ? cache.trim() : null; // Remove any white spaces on either side
             String serviceDownActionStr = serviceDownAction != null ? serviceDownAction.trim() : null;
-            _lbOptionsDao.persist(new LoadBalancerOptionsVO(lb.getId(), cacheStr, serviceDownActionStr));
+            String healthCheckDestinationStr = healthCheckDestination != null ? healthCheckDestination.trim() : null;
+            _lbOptionsDao.persist(new LoadBalancerOptionsVO(lb.getId(), cacheStr, serviceDownActionStr, healthCheckDestinationStr));
         }
 
         return lb;

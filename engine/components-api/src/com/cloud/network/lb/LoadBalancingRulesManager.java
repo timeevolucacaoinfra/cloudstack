@@ -35,7 +35,7 @@ import com.cloud.vm.Nic;
 public interface LoadBalancingRulesManager {
 
     LoadBalancer createPublicLoadBalancer(String xId, String name, String description, int srcPort, int destPort, long sourceIpId, String protocol, String algorithm,
-                                          boolean openFirewall, CallContext caller, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache, String serviceDownAction) throws NetworkRuleConflictException;
+                                          boolean openFirewall, CallContext caller, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache, String serviceDownAction, String healthCheckDestination) throws NetworkRuleConflictException;
 
     boolean removeAllLoadBalanacersForIp(long ipId, Account caller, long callerUserId);
 
