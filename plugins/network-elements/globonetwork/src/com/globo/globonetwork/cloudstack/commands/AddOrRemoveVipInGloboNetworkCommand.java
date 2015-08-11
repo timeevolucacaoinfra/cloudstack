@@ -51,6 +51,8 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     private List<GloboNetworkVipResponse.Real> realList;
 
+    private String serviceDownAction;
+
     @Override
     public boolean executeInSequence() {
         return false;
@@ -154,5 +156,13 @@ public class AddOrRemoveVipInGloboNetworkCommand extends Command {
 
     public void setHealthcheckPolicy(LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy) {
         this.healthcheckPolicy = healthcheckPolicy;
+    }
+
+    public void setServiceDownAction(String serviceDownAction) {
+        this.serviceDownAction = serviceDownAction;
+    }
+
+    public String getServiceDownAction() {
+        return serviceDownAction;
     }
 }

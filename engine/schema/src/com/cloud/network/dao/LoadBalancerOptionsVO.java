@@ -39,12 +39,16 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     @Column(name="cache")
     private String cache;
 
+    @Column(name="service_down_action")
+    private String serviceDownAction;
+
     public LoadBalancerOptionsVO() {
     }
 
-    public LoadBalancerOptionsVO(long lbId, String cache) {
+    public LoadBalancerOptionsVO(long lbId, String cache, String serviceDownAction) {
         this.lbId = lbId;
         this.cache = cache;
+        this.serviceDownAction = serviceDownAction;
     }
 
     @Override
@@ -57,4 +61,8 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     }
 
     public String getCache() { return cache; }
+
+    public String getServiceDownAction() {
+        return serviceDownAction;
+    }
 }
