@@ -796,7 +796,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     String poolName = "ACS_POOL_" + cmd.getHost() + "_" + new Date().getTime();
                     Pool pool = _globoNetworkApi.getPoolAPI().save(null, poolName, Integer.valueOf(port.split(":")[1]),
                             vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                            DEFAULT_MAX_CONN, realsIp, equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers);
+                            DEFAULT_MAX_CONN, realsIp, equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination());
                     VipPoolMap vipPoolMap = new VipPoolMap(pool.getId(), Integer.valueOf(port.split(":")[0]));
                     vipPoolMapList.add(vipPoolMap);
                 }
@@ -818,13 +818,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         String poolName = "ACS_POOL_" + cmd.getHost() + "_" + new Date().getTime();
                         pool = _globoNetworkApi.getPoolAPI().save(null, poolName, realPort,
                                 vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                                DEFAULT_MAX_CONN, realsIp, equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers);
+                                DEFAULT_MAX_CONN, realsIp, equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination());
                     } else {
                         // This is the same pool, info should be the same; update it
                         _globoNetworkApi.getPoolAPI().save(pool.getId(), pool.getIdentifier(), realPort,
                                 vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck,
                                 healthcheck, DEFAULT_MAX_CONN, realsIp, equipNames, equipIds, realsPriorities, realsWeights,
-                                realPorts, idPoolMembers); // FIXME idPoolMembers
+                                realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()); // FIXME idPoolMembers
                         poolsList.remove(pool); // poolsList will be used to know if there are pools that need to be removed
                     }
                     VipPoolMap vipPoolMap = new VipPoolMap(null, pool.getId(), vipId, realPort);
@@ -842,7 +842,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     for (Pool pool : poolsList) {
                         _globoNetworkApi.getPoolAPI().save(pool.getId(), pool.getIdentifier(), null, vlan.getEnvironment(),
                                 lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                                DEFAULT_MAX_CONN, null, null, null, null, null, null, null); // Remove reals from pool
+                                DEFAULT_MAX_CONN, null, null, null, null, null, null, null, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()); // Remove reals from pool
                     }
                     _globoNetworkApi.getPoolAPI().delete(poolsToRemove); // Delete from NetworkAPI
                     // Update the VIP to GloboNetwork
