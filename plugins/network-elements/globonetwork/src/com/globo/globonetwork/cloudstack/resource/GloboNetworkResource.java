@@ -648,6 +648,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         try {
             // FIXME Change default values to be class attributes rather than method variables
             Integer DEFAULT_REALS_PRIORITY = 0;
+            Long DEFAULT_REAL_WEIGHT = 0l;
             Integer DEFAULT_MAX_CONN = 0;
             String DEFAULT_HEALTHCHECK_TYPE = "TCP";
             String HEALTHCHECK_HTTP_STRING = "HTTP";
@@ -743,7 +744,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 equipIds.add(equipment.getId());
 
                 idPoolMembers.add(0l);
-                realsWeights.add(0l);
+                realsWeights.add(DEFAULT_REAL_WEIGHT);
 
                 // Making sure there is the same number of reals and reals priorities
                 realsPriorities.add(DEFAULT_REALS_PRIORITY);
@@ -836,29 +837,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                                 vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck,
                                 healthcheck, DEFAULT_MAX_CONN, realsIpList, equipNames, equipIds, realsPriorities, realsWeights,
                                 realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()); // FIXME idPoolMembers
-                        poolsList.remove(pool); // poolsList will be used to know if there are pools that need to be removed
                     }
                     VipPoolMap vipPoolMap = new VipPoolMap(null, pool.getId(), vipId, realPort);
                     vipPoolMapList.add(vipPoolMap);
-                }
-
-                // Remove pools that are left and did not match any port, i.e., no longer in Cloudstack
-                List<Long> poolsToRemove = new ArrayList<Long>();
-                for (Pool pool : poolsList) {
-                    poolsToRemove.add(pool.getId());
-                }
-                    if (!poolsToRemove.isEmpty()) {
-                    _globoNetworkApi.getPoolAPI().remove(poolsToRemove); // Remove from equipment
-
-                    for (Pool pool : poolsList) {
-                        _globoNetworkApi.getPoolAPI().save(pool.getId(), pool.getIdentifier(), null, vlan.getEnvironment(),
-                                lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                                DEFAULT_MAX_CONN, null, null, null, null, null, null, null, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()); // Remove reals from pool
-                    }
-                    _globoNetworkApi.getPoolAPI().delete(poolsToRemove); // Delete from NetworkAPI
-                    // Update the VIP to GloboNetwork
-                    vip = _globoNetworkApi.getVipAPI().save(ip.getId(), null, finality, client, environment, cache,
-                            lbPersistence, DEFAULT_TIMEOUT, host, businessArea, serviceName, l7Filter, vipPoolMapList, null, vipId);
                 }
             }
             vip = _globoNetworkApi.getVipAPI().getById(vip.getId());
