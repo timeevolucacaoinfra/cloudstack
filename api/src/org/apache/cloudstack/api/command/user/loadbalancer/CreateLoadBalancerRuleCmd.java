@@ -130,7 +130,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     private String serviceDownAction;
 
     @Parameter(name = ApiConstants.HEALTHCHECK_DESTINATION, type = CommandType.STRING, description = "Port to be user as health check alternative to the service port (optional)")
-    private String heathCheckDestination;
+    private String healthCheckDestination;
 
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
@@ -241,8 +241,8 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         return serviceDownAction;
     }
 
-    public String getHeathCheckDestination() {
-        return heathCheckDestination;
+    public String getHealthCheckDestination() {
+        return healthCheckDestination;
     }
 
     public Integer getPublicPort() {
@@ -344,7 +344,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
                     getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(),
-                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHeathCheckDestination());
+                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination());
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {
