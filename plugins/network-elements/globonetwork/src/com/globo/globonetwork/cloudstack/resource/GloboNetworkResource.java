@@ -794,7 +794,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     List<Integer> realPorts = new ArrayList<Integer>();
                     realPorts.add(Integer.valueOf(port.split(":")[1]));
                     List<RealIP> realsIpList = new ArrayList<RealIP>();
-                    realsIpList.add(realsIp.get(port));
+                    if (realsIp.get(port) != null) {
+                        realsIpList.add(realsIp.get(port));
+                    }
                     String poolName = "ACS_POOL_" + cmd.getHost() + "_" + new Date().getTime();
 
                     Pool pool = _globoNetworkApi.getPoolAPI().save(null, poolName, Integer.valueOf(port.split(":")[1]),
@@ -817,7 +819,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     List<Integer> realPorts = new ArrayList<Integer>();
                     realPorts.add(Integer.valueOf(port.split(":")[1]));
                     List<RealIP> realsIpList = new ArrayList<RealIP>();
-                    realsIpList.add(realsIp.get(port));
+                    if (realsIp.get(port) != null) {
+                        realsIpList.add(realsIp.get(port));
+                    }
 
                     Pool pool = this.matchPortToPool(realPort, poolsList);
                     if (pool == null) {
@@ -843,7 +847,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 for (Pool pool : poolsList) {
                     poolsToRemove.add(pool.getId());
                 }
-                if (!poolsToRemove.isEmpty()) {
+                    if (!poolsToRemove.isEmpty()) {
                     _globoNetworkApi.getPoolAPI().remove(poolsToRemove); // Remove from equipment
 
                     for (Pool pool : poolsList) {
