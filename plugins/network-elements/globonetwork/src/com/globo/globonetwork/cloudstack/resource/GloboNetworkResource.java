@@ -16,6 +16,7 @@
 */
 package com.globo.globonetwork.cloudstack.resource;
 
+import com.cloud.exception.InvalidParameterValueException;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -83,6 +84,7 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
+import org.omg.CORBA.DynAnyPackage.Invalid;
 
 public class GloboNetworkResource extends ManagerBase implements ServerResource {
     private String _zoneId;
@@ -716,7 +718,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             } else if ("Source-ip with persistence between ports".equals(cmd.getPersistencePolicy().getMethodName())) {
                 lbPersistence = "source-ip com persist. entre portas";
             } else {
-                return new Answer(cmd, false, "Invalid persistence policy provided.");
+                throw new InvalidParameterValueException("Invalid persistence policy provided.");
             }
 
             String healthcheckType;
@@ -755,11 +757,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         s_logger.warn("There's an inconsistency. Real with IP " + real.getIp() + " was not found in GloboNetwork.");
                         continue;
                     } else {
-                        return new Answer(cmd, false, "Could not get real IP information: " + real.getIp());
+                        throw new InvalidParameterValueException("Could not get real IP information: " + real.getIp());
                     }
                 }
                 if (real.getPorts() == null) {
-                    return new Answer(cmd, false, "You need to specify a port for the real");
+                    throw new InvalidParameterValueException("You need to specify a port for the real");
                 }
 
                 Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(real.getVmName());
@@ -789,7 +791,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             // Search for a VIP environment to get its info (needed for finality, client and environment)
             VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
             if (environmentVip == null) {
-                return new Answer(cmd, false, "Could not find VIP environment " + cmd.getVipEnvironmentId());
+                throw new InvalidParameterValueException("Could not find VIP environment " + cmd.getVipEnvironmentId());
             }
             String finality = environmentVip.getFinality();
             String client = environmentVip.getClient();
@@ -798,15 +800,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
             Ip ip = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), cmd.getVipEnvironmentId(), false);
             if (ip == null) {
-                return new Answer(cmd, false, "IP " + cmd.getIpv4() + " doesn't exist in VIP environment " + cmd.getVipEnvironmentId());
+                throw new InvalidParameterValueException("IP " + cmd.getIpv4() + " doesn't exist in VIP environment " + cmd.getVipEnvironmentId());
             }
             Network network = _globoNetworkApi.getNetworkAPI().getNetwork(ip.getNetworkId(), false);
             if (network == null) {
-                return new Answer(cmd, false, "Network " + ip.getNetworkId() + " was not found in GloboNetwork");
+                throw new InvalidParameterValueException("Network " + ip.getNetworkId() + " was not found in GloboNetwork");
             }
             Vlan vlan = _globoNetworkApi.getVlanAPI().getById(network.getVlanId());
             if (vlan == null) {
-                return new Answer(cmd, false, "Vlan " + network.getVlanId() + " was not found in GloboNetwork");
+                throw new InvalidParameterValueException("Vlan " + network.getVlanId() + " was not found in GloboNetwork");
             }
 
             if (vip == null) {
@@ -880,6 +882,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return this.createVipResponse(vip, cmd);
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
+        } catch (InvalidParameterValueException e){
+            return new Answer(cmd, false, e.getMessage());
         }
     }
 
