@@ -33,8 +33,11 @@ import javax.naming.ConfigurationException;
 
 import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBCacheGroupsCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolOptionsCmd;
 import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsCommand;
+import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -984,6 +987,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(ListGloboNetworkEnvironmentsCmd.class);
         cmdList.add(ListGloboNetworkLBEnvironmentsCmd.class);
         cmdList.add(ListGloboNetworkRealsCmd.class);
+        cmdList.add(ListGloboNetworkPoolOptionsCmd.class);
         cmdList.add(ListGloboNetworkVipsCmd.class);
         cmdList.add(RemoveGloboNetworkEnvironmentCmd.class);
         cmdList.add(RemoveGloboNetworkLBEnvironmentCmd.class);
@@ -2457,5 +2461,30 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
         return allowedDomains;
+    }
+
+    @Override
+    public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long globoNetworkEnvironmentId, Long networkId, String type) {
+        if (globoNetworkEnvironmentId == null) {
+            throw new InvalidParameterValueException("Invalid Network Environment ID");
+        }
+
+        GloboNetworkEnvironmentVO globonetworkNetworkEnv = _globoNetworkEnvironmentDao.findById(globoNetworkEnvironmentId);
+        if (globonetworkNetworkEnv == null) {
+            throw new InvalidParameterValueException("Could not find mapping to network environment " + globoNetworkEnvironmentId);
+        }
+
+        if (networkId == null) {
+            throw new InvalidParameterValueException("Invalid Network ID");
+        }
+
+        Network network = _networkManager.getNetwork(networkId);
+        if (network == null) {
+            throw new InvalidParameterValueException("Cannot find network with ID : " + networkId);
+        }
+
+        Answer answer = callCommand(new ListPoolOptionsCommand(globoNetworkEnvironmentId, type), network.getDataCenterId());
+
+        return ((GloboNetworkPoolOptionResponse)answer).getPoolOptions();
     }
 }

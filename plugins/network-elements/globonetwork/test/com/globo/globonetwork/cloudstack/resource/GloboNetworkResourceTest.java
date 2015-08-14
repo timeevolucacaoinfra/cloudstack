@@ -16,6 +16,7 @@
 */
 package com.globo.globonetwork.cloudstack.resource;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -35,6 +36,7 @@ import com.globo.globonetwork.client.api.PoolAPI;
 import com.globo.globonetwork.client.model.IPv4Network;
 import com.globo.globonetwork.client.model.Network;
 import com.globo.globonetwork.client.model.Pool;
+import com.globo.globonetwork.client.model.PoolOption;
 import com.globo.globonetwork.client.model.VipJson;
 import com.globo.globonetwork.client.model.VipPoolMap;
 import com.globo.globonetwork.client.model.VipXml;
@@ -47,6 +49,9 @@ import java.util.List;
 import java.util.Map;
 import javax.naming.ConfigurationException;
 
+import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
+import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -649,7 +654,36 @@ public class GloboNetworkResourceTest {
         assertEquals(2, answer.getReals().get(0).getPorts().size());
     }
 
+    @Test
+    public void testListPoolOptions() throws IOException, GloboNetworkException {
+        List<PoolOption> options = Arrays.asList(new PoolOption(1L, "reset"));
+        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(45L, "ServiceDownAction")).thenReturn(options);
+        GloboNetworkPoolOptionResponse answer = (GloboNetworkPoolOptionResponse) _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
+        assertFalse(answer.getPoolOptions().isEmpty());
+        assertEquals(new Long(1L), answer.getPoolOptions().get(0).getId());
+    }
 
+    @Test
+    public void testListPoolOptionsGivenNoPoolsReturned() throws IOException, GloboNetworkException {
+        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(45L, "ServiceDownAction")).thenReturn(new ArrayList<PoolOption>());
+        GloboNetworkPoolOptionResponse answer = (GloboNetworkPoolOptionResponse) _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
+        assertTrue(answer.getPoolOptions().isEmpty());
+    }
+
+    @Test
+    public void testListPoolOptionsGivenGloboNetworkException(){
+        when(_resource._globoNetworkApi.getPoolAPI()).thenThrow(new GloboNetworkException("Netapi failed"));
+        Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
+        assertFalse(answer.getResult());
+        assertEquals("Netapi failed", answer.getDetails());
+    }
+
+    @Test
+    public void testListPoolOptionsGivenIOException(){
+        when(_resource._globoNetworkApi.getPoolAPI()).thenThrow(new IOException());
+        Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
+        assertFalse(answer.getResult());
+    }
 
     private Pool mockPoolSave(Pool pool, RealIP realIp) throws GloboNetworkException {
 

@@ -764,6 +764,7 @@ listAllEnvironmentsFromGloboNetwork=15
 listGloboNetworkEnvironments=15
 deleteNetworkInGloboNetwork=15
 listGloboNetworkReals=15
+listGloboNetworkPoolOptions=15
 listGloboNetworkLBEnvironments=15
 listGloboNetworkVips=15
 removeGloboNetworkEnvironment=1

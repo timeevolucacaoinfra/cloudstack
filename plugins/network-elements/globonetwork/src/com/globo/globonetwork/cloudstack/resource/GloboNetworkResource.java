@@ -17,6 +17,7 @@
 package com.globo.globonetwork.cloudstack.resource;
 
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,9 +28,12 @@ import javax.naming.ConfigurationException;
 
 import com.globo.globonetwork.client.model.OptionVip;
 import com.globo.globonetwork.client.model.Pool;
+import com.globo.globonetwork.client.model.PoolOption;
 import com.globo.globonetwork.client.model.VipPoolMap;
 import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsCommand;
+import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.IAgentControl;
@@ -258,8 +262,27 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((GetNetworkFromGloboNetworkCommand)cmd);
         } else if (cmd instanceof ListGloboNetworkLBCacheGroupsCommand) {
             return execute((ListGloboNetworkLBCacheGroupsCommand) cmd);
+        }else if (cmd instanceof ListPoolOptionsCommand){
+            return execute((ListPoolOptionsCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
+    }
+
+    private Answer execute(ListPoolOptionsCommand cmd) {
+        try {
+            List<PoolOption> poolOptions = _globoNetworkApi.getPoolAPI().listPoolOptions(cmd.getGloboNetworkEnvironmentId(), cmd.getType());
+
+            List<GloboNetworkPoolOptionResponse.PoolOption> options = new ArrayList<>();
+            for(PoolOption option : poolOptions){
+                options.add(new GloboNetworkPoolOptionResponse.PoolOption(option.getId(), option.getName()));
+            }
+            return new GloboNetworkPoolOptionResponse(cmd, options);
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        } catch (IOException e) {
+            s_logger.error("Generic error accessing GloboNetwork", e);
+            return new Answer(cmd, false, e.getMessage());
+        }
     }
 
     private Answer execute(ListGloboNetworkLBCacheGroupsCommand cmd) {

@@ -17,7 +17,9 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -36,7 +38,13 @@ import java.util.List;
 
 import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.cloud.network.dao.LoadBalancerVO;
+import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.utils.exception.CloudRuntimeException;
+import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
+import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
+import com.globo.globonetwork.cloudstack.exception.CloudstackGloboNetworkException;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -136,6 +144,9 @@ public class GloboNetworkManagerTest {
     GloboNetworkEnvironmentDao _globoNetworkEnvironmentDao;
 
     @Mock
+    NetworkModel _networkManager;
+
+    @Mock
     HostDao _hostDao;
 
     @Mock
@@ -171,6 +182,7 @@ public class GloboNetworkManagerTest {
         _globoNetworkService._dcDao = _dcDao;
         _globoNetworkService._physicalNetworkDao = _physicalNetworkDao;
         _globoNetworkService._globoNetworkEnvironmentDao = _globoNetworkEnvironmentDao;
+        _globoNetworkService._networkManager = _networkManager;
         _globoNetworkService._hostDao = _hostDao;
         _globoNetworkService._configDao = _configDao;
         _globoNetworkService._agentMgr = _agentMgr;
@@ -375,6 +387,97 @@ public class GloboNetworkManagerTest {
 
         globoNetworkManager.validatePortMaps(loadBalancingRule);
         fail();
+    }
+
+
+    @Test
+    public void testListPoolOptions(){
+        GloboNetworkPoolOptionResponse.PoolOption option = new GloboNetworkPoolOptionResponse.PoolOption(1L, "reset");
+        when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkEnvironmentVO());
+        when(_globoNetworkService._networkManager.getNetwork(1L)).thenReturn(new NetworkVO());
+        when(_globoNetworkService._hostDao.findByTypeNameAndZoneId(anyLong(), eq(Provider.GloboNetwork.getName()), eq(Host.Type.L2Networking))).thenReturn(new HostVO("guid"));
+        when(_globoNetworkService._agentMgr.easySend(anyLong(), any(ListPoolOptionsCommand.class))).thenReturn(new GloboNetworkPoolOptionResponse(null, Arrays.asList(option)));
+        List<GloboNetworkPoolOptionResponse.PoolOption> poolOptions = _globoNetworkService.listPoolOptions(45L, 1L, "ServiceDownAction");
+        assertEquals(1, poolOptions.size());
+        assertEquals(new Long(1L), poolOptions.get(0).getId());
+        assertEquals("reset", poolOptions.get(0).getName());
+    }
+
+    @Test
+    public void testListPoolOptionsGivenEmptyList(){
+        when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkEnvironmentVO());
+        when(_globoNetworkService._networkManager.getNetwork(1L)).thenReturn(new NetworkVO());
+        when(_globoNetworkService._hostDao.findByTypeNameAndZoneId(anyLong(), eq(Provider.GloboNetwork.getName()), eq(Host.Type.L2Networking))).thenReturn(new HostVO("guid"));
+        when(_globoNetworkService._agentMgr.easySend(anyLong(), any(ListPoolOptionsCommand.class))).thenReturn(new GloboNetworkPoolOptionResponse(null, new ArrayList<GloboNetworkPoolOptionResponse.PoolOption>()));
+        List<GloboNetworkPoolOptionResponse.PoolOption> poolOptions = _globoNetworkService.listPoolOptions(45L, 1L, "ServiceDownAction");
+        assertTrue(poolOptions.isEmpty());
+    }
+
+    @Test
+    public void testListPoolOptionsGivenEmptyNetworkId(){
+        try{
+            when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkEnvironmentVO());
+            _globoNetworkService.listPoolOptions(45L, null, "ServiceDownAction");
+        }catch(InvalidParameterValueException e){
+            assertEquals("Invalid Network ID", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testListPoolOptionsGivenInvalidNetworkId(){
+        try{
+            when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkEnvironmentVO());
+            when(_globoNetworkService._networkManager.getNetwork(1L)).thenReturn(null);
+            _globoNetworkService.listPoolOptions(45L, 1L, "ServiceDownAction");
+        }catch(InvalidParameterValueException e){
+            assertEquals("Cannot find network with ID : 1", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testListPoolOptionsGivenEmptyEnvironmentId(){
+        try{
+            _globoNetworkService.listPoolOptions(null, 1L, "ServiceDownAction");
+        }catch(InvalidParameterValueException e){
+            assertEquals("Invalid Network Environment ID", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testListPoolOptionsGivenInvalidEnvironmentId(){
+        try{
+            when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(null);
+            _globoNetworkService.listPoolOptions(45L, 1L, "ServiceDownAction");
+        }catch(InvalidParameterValueException e){
+            assertEquals("Could not find mapping to network environment 45" , e.getMessage());
+        }
+    }
+
+    @Test
+    public void testListPoolOptionsGivenGenericError(){
+        try{
+            when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkEnvironmentVO());
+            when(_globoNetworkService._networkManager.getNetwork(1L)).thenReturn(new NetworkVO());
+            when(_globoNetworkService._hostDao.findByTypeNameAndZoneId(anyLong(), eq(Provider.GloboNetwork.getName()), eq(Host.Type.L2Networking))).thenReturn(new HostVO("guid"));
+            when(_globoNetworkService._agentMgr.easySend(anyLong(), any(ListPoolOptionsCommand.class))).thenReturn(new Answer(new ListPoolOptionsCommand(1L, "ServiceDownAction"), false, "Error"));
+            _globoNetworkService.listPoolOptions(45L, 1L, "ServiceDownAction");
+        }catch(CloudRuntimeException e){
+            assertEquals("Error" , e.getMessage());
+        }
+    }
+
+    @Test
+    public void testListPoolOptionsGivenNetworkApiError(){
+        try{
+            when(_globoNetworkService._globoNetworkEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkEnvironmentVO());
+            when(_globoNetworkService._networkManager.getNetwork(1L)).thenReturn(new NetworkVO());
+            when(_globoNetworkService._hostDao.findByTypeNameAndZoneId(anyLong(), eq(Provider.GloboNetwork.getName()), eq(Host.Type.L2Networking))).thenReturn(new HostVO("guid"));
+            when(_globoNetworkService._agentMgr.easySend(anyLong(), any(ListPoolOptionsCommand.class))).thenReturn(new GloboNetworkErrorAnswer(new ListPoolOptionsCommand(1L, "ServiceDownAction"), 404, "Error"));
+            _globoNetworkService.listPoolOptions(45L, 1L, "ServiceDownAction");
+        }catch(CloudstackGloboNetworkException e){
+            assertEquals("Error" , e.getNapiDescription());
+            assertEquals(404 , e.getNapiCode());
+        }
     }
 
     protected LoadBalancingRule createLoadBalancerRule() {

@@ -20,6 +20,7 @@ import java.util.List;
 
 import javax.naming.ConfigurationException;
 
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 
 import com.cloud.dc.DataCenter;
@@ -263,4 +264,6 @@ public interface GloboNetworkService {
     public LoadBalancer importGloboNetworkLoadBalancer(Long lbId, Long networkId, Long projectId);
 
     public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentId, Long networkId);
+
+    public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long environmentId, Long networkId, String type);
 }
