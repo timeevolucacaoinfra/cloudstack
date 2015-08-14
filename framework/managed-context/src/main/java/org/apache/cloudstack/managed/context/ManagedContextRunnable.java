@@ -44,7 +44,7 @@ public abstract class ManagedContextRunnable implements Runnable {
     }
 
     @Override
-    @Trace
+    @Trace(dispatcher=true)
     public void run() {
         NewRelic.setTransactionName(null, "/job/" + this.getClass().getName());
 
