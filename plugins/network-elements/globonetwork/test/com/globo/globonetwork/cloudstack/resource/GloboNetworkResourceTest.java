@@ -41,6 +41,8 @@ import com.globo.globonetwork.client.model.VipJson;
 import com.globo.globonetwork.client.model.VipPoolMap;
 import com.globo.globonetwork.client.model.VipXml;
 import com.globo.globonetwork.client.model.Vlan;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -671,16 +673,16 @@ public class GloboNetworkResourceTest {
     }
 
     @Test
-    public void testListPoolOptionsGivenGloboNetworkException(){
-        when(_resource._globoNetworkApi.getPoolAPI()).thenThrow(new GloboNetworkException("Netapi failed"));
+    public void testListPoolOptionsGivenGloboNetworkException() throws IOException, GloboNetworkException {
+        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(45L, "ServiceDownAction")).thenThrow(new GloboNetworkException("Netapi failed"));
         Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertFalse(answer.getResult());
         assertEquals("Netapi failed", answer.getDetails());
     }
 
     @Test
-    public void testListPoolOptionsGivenIOException(){
-        when(_resource._globoNetworkApi.getPoolAPI()).thenThrow(new IOException());
+    public void testListPoolOptionsGivenIOException() throws IOException, GloboNetworkException {
+        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(45L, "ServiceDownAction")).thenThrow(new IOException());
         Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertFalse(answer.getResult());
     }
