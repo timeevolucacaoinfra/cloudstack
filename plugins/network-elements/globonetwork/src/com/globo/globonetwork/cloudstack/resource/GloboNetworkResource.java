@@ -86,7 +86,6 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
-import org.omg.CORBA.DynAnyPackage.Invalid;
 
 public class GloboNetworkResource extends ManagerBase implements ServerResource {
     private String _zoneId;
