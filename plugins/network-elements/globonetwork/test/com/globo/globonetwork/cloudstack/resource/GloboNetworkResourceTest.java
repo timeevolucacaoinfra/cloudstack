@@ -20,9 +20,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
@@ -45,13 +42,10 @@ import com.globo.globonetwork.client.model.Vlan;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
-import java.util.Map;
 import javax.naming.ConfigurationException;
 
-import com.globo.globonetwork.cloudstack.commands.GloboNetworkErrorAnswer;
 import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.junit.Before;
@@ -75,11 +69,12 @@ import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.VipEnvironment;
 import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
-import org.mockito.internal.stubbing.answers.ThrowsExceptionClass;
 
 public class GloboNetworkResourceTest {
+
     GloboNetworkResource _resource;
     Ipv4 vipIp;
+
     @Before
     public void setUp() throws ConfigurationException {
         _resource = new GloboNetworkResource();
@@ -96,6 +91,67 @@ public class GloboNetworkResourceTest {
 
     static long s_ipSequence = 100;
 
+    @Test
+    public void testTryToRemoveNullVIP(){
+        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setIpv4("192.168.1.2");
+        Answer answer = _resource.removeVIP(cmd, null);
+        assertTrue(answer.getResult());
+        assertEquals("VIP 192.168.1.2 already removed from GloboNetwork", answer.getDetails());
+    }
+
+    @Test
+    public void testTryToRemoveAlreadyRemovedVIP() throws GloboNetworkException {
+        Vip vip = new VipXml();
+        vip.setId(1L);
+        when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(null);
+
+        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        assertTrue(answer.getResult());
+        assertEquals("Vip request 1 was previously removed from GloboNetwork", answer.getDetails());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
+    }
+
+    @Test
+    public void testTryToRemoveCreatedVIP() throws GloboNetworkException {
+        Vip vip = new VipXml();
+        vip.setId(1L);
+        vip.setCreated(true);
+
+        when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenReturn(vip);
+
+        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        assertTrue(answer.getResult());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).removeScriptVip(vip.getId());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).removeVip(vip.getId(), true);
+    }
+
+    @Test
+    public void testTryToRemoveNotCreatedCreatedVIP() throws GloboNetworkException {
+        Vip vip = new VipXml();
+        vip.setId(1L);
+        vip.setCreated(false);
+
+        when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenReturn(vip);
+
+        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        assertTrue(answer.getResult());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(0)).removeScriptVip(vip.getId());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).removeVip(vip.getId(), true);
+    }
+
+    @Test
+    public void testTryToRemoveVipWithNetworkApiError() throws GloboNetworkException {
+        Vip vip = new VipXml();
+        vip.setId(1L);
+
+        when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenThrow(GloboNetworkException.class);
+
+        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        assertFalse(answer.getResult());
+    }
     @Test
     public void testAddVipDefaultValuesResultSuccess() throws Exception {
 

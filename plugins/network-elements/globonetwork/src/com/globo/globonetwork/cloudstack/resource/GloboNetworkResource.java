@@ -27,6 +27,7 @@ import java.util.Map;
 
 import javax.naming.ConfigurationException;
 
+import com.globo.globonetwork.client.api.VipAPI;
 import com.globo.globonetwork.client.model.OptionVip;
 import com.globo.globonetwork.client.model.Pool;
 import com.globo.globonetwork.client.model.PoolOption;
@@ -420,8 +421,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
         try {
+            VipAPI vipAPI = _globoNetworkApi.getVipAPI();
 
-            Vip vip = _globoNetworkApi.getVipAPI().getById(vipId);
+            Vip vip = vipAPI.getById(vipId);
 
             if (vip == null) {
                 return new Answer(cmd, true, "Vip request " + vipId + " was previously removed from GloboNetwork");
@@ -430,12 +432,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             // remove VIP from network device
             if (vip.getCreated()) {
                 s_logger.info("Requesting GloboNetwork to remove vip from network device vip_id=" + vip.getId());
-                _globoNetworkApi.getVipAPI().removeScriptVip(vipId);
+                vipAPI.removeScriptVip(vipId);
             }
 
             // remove VIP from GloboNetwork DB
             s_logger.info("Requesting GloboNetwork to remove vip from GloboNetwork DB vip_id=" + vip.getId() + " keepIp=" + keepIp);
-            _globoNetworkApi.getVipAPI().removeVip(vipId, keepIp);
+            vipAPI.removeVip(vipId, keepIp);
 
             return new Answer(cmd);
         } catch (GloboNetworkException e) {
@@ -690,13 +692,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             }
 
             if (cmd.getRuleState() == FirewallRule.State.Revoke) {
-                if (vip == null) {
-                    s_logger.warn("VIP already removed from GloboNetwork");
-                    return new Answer(cmd, true, "VIP " + cmd.getIpv4() + " already removed from GloboNetwork");
-                } else {
-                    // Delete VIP
-                    return this.removeVipFromGloboNetwork(cmd, vip.getId(), true);
-                }
+                return removeVIP(cmd, vip);
             }
 
             LbAlgorithm lbAlgorithm;
@@ -884,6 +880,16 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return handleGloboNetworkException(cmd, e);
         } catch (InvalidParameterValueException e){
             return new Answer(cmd, false, e.getMessage());
+        }
+    }
+
+    protected Answer removeVIP(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip) {
+        if (vip == null) {
+            s_logger.warn("VIP already removed from GloboNetwork");
+            return new Answer(cmd, true, "VIP " + cmd.getIpv4() + " already removed from GloboNetwork");
+        } else {
+            // Delete VIP
+            return this.removeVipFromGloboNetwork(cmd, vip.getId(), true);
         }
     }
 
