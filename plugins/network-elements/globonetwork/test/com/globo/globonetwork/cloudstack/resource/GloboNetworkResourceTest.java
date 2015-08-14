@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.cloud.exception.InvalidParameterValueException;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import com.globo.globonetwork.client.api.NetworkAPI;
 import com.globo.globonetwork.client.api.PoolAPI;
@@ -152,6 +153,48 @@ public class GloboNetworkResourceTest {
         Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
         assertFalse(answer.getResult());
     }
+
+    @Test
+    public void testGetBalancingAlgorithmGivenRoundRobin(){
+        assertEquals(GloboNetworkResource.LbAlgorithm.RoundRobin, _resource.getBalancingAlgorithm("roundrobin"));
+    }
+
+    @Test
+    public void testGetBalancingAlgorithmGivenLeastConn(){
+        assertEquals(GloboNetworkResource.LbAlgorithm.LeastConn, _resource.getBalancingAlgorithm("leastconn"));
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testGetBalancingAlgorithmGivenInvalid(){
+        _resource.getBalancingAlgorithm("random");
+    }
+
+    @Test
+    public void testGetPersistenceMethodNone(){
+        assertEquals("(nenhum)", _resource.getPersistenceMethod(new LbStickinessPolicy("None", null)));
+        assertEquals("(nenhum)", _resource.getPersistenceMethod(null));
+    }
+
+    @Test
+    public void testGetPersistenceMethodGivenCookie(){
+        assertEquals("cookie", _resource.getPersistenceMethod(new LbStickinessPolicy("Cookie", null)));
+    }
+
+    @Test
+    public void testGetPersistenceMethodGivenSourceIp(){
+        assertEquals("source-ip", _resource.getPersistenceMethod(new LbStickinessPolicy("Source-ip", null)));
+    }
+
+    @Test
+    public void testGetPersistenceMethodGivenSourceIpWithPersistence(){
+        assertEquals("source-ip com persist. entre portas", _resource.getPersistenceMethod(new LbStickinessPolicy("Source-ip with persistence between ports", null)));
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testGetPersistenceMethodGivenInvalidPersistence(){
+        _resource.getPersistenceMethod(new LbStickinessPolicy("jsession", null));
+    }
+
     @Test
     public void testAddVipDefaultValuesResultSuccess() throws Exception {
 

@@ -17,6 +17,7 @@
 package com.globo.globonetwork.cloudstack.resource;
 
 import com.cloud.exception.InvalidParameterValueException;
+import com.cloud.network.lb.LoadBalancingRule;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -108,7 +109,23 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private static final Long EQUIPMENT_TYPE = 10L;
 
-    private enum LbAlgorithm {
+    private static final Integer DEFAULT_REALS_PRIORITY = 0;
+
+    private static final Long DEFAULT_REAL_WEIGHT = 0l;
+
+    private static final Integer DEFAULT_MAX_CONN = 0;
+
+    private static final String DEFAULT_HEALTHCHECK_TYPE = "TCP";
+
+    private static final String HEALTHCHECK_HTTP_STRING = "HTTP";
+
+    private static final String DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK = "WORKING";
+
+    private static final Integer DEFAULT_TIMEOUT = 5;
+
+    private static final String DEFAULT_CACHE = "(nenhum)";
+
+    protected enum LbAlgorithm {
         RoundRobin("round-robin"), LeastConn("least-conn");
 
         String globoNetworkBalMethod;
@@ -673,49 +690,14 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
         try {
-            // FIXME Change default values to be class attributes rather than method variables
-            Integer DEFAULT_REALS_PRIORITY = 0;
-            Long DEFAULT_REAL_WEIGHT = 0l;
-            Integer DEFAULT_MAX_CONN = 0;
-            String DEFAULT_HEALTHCHECK_TYPE = "TCP";
-            String HEALTHCHECK_HTTP_STRING = "HTTP";
-            String DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK = "WORKING";
-            Integer DEFAULT_TIMEOUT = 5;
-            String DEFAULT_CACHE = "(nenhum)";
-
-            // FIXME! These parameters will always be null?
-            String l7Filter = null;
-
-            Vip vip = null;
-            if (cmd.getVipId() != null) {
-                vip = _globoNetworkApi.getVipAPI().getByPk(cmd.getVipId());
-            }
+            Vip vip = cmd.getVipId() != null ? _globoNetworkApi.getVipAPI().getByPk(cmd.getVipId()) : null;
 
             if (cmd.getRuleState() == FirewallRule.State.Revoke) {
                 return removeVIP(cmd, vip);
             }
 
-            LbAlgorithm lbAlgorithm;
-            if ("roundrobin".equals(cmd.getMethodBal())) {
-                lbAlgorithm = LbAlgorithm.RoundRobin;
-            } else if ("leastconn".equals(cmd.getMethodBal())) {
-                lbAlgorithm = LbAlgorithm.LeastConn;
-            } else {
-                return new Answer(cmd, false, "Invalid balancing method provided.");
-            }
-
-            String lbPersistence;
-            if (cmd.getPersistencePolicy() == null || "None".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = "(nenhum)";
-            } else if ("Cookie".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = "cookie";
-            } else if ("Source-ip".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = "source-ip";
-            } else if ("Source-ip with persistence between ports".equals(cmd.getPersistencePolicy().getMethodName())) {
-                lbPersistence = "source-ip com persist. entre portas";
-            } else {
-                throw new InvalidParameterValueException("Invalid persistence policy provided.");
-            }
+            LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
+            String lbPersistence = getPersistenceMethod(cmd.getPersistencePolicy());
 
             String healthcheckType;
             String healthcheck;
@@ -830,7 +812,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
                 // Actually add the VIP to GloboNetwork
                 vip = _globoNetworkApi.getVipAPI().save(ip.getId(), null, finality, client, environment, cache,
-                        lbPersistence, DEFAULT_TIMEOUT, host, businessArea, serviceName, l7Filter, vipPoolMapList, null, null);
+                        lbPersistence, DEFAULT_TIMEOUT, host, businessArea, serviceName, null, vipPoolMapList, null, null);
             } else {
                 // Vip already exists, let's update it
                 Long vipId = vip.getId();
@@ -881,6 +863,34 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         } catch (InvalidParameterValueException e){
             return new Answer(cmd, false, e.getMessage());
         }
+    }
+
+    protected String getPersistenceMethod(LoadBalancingRule.LbStickinessPolicy persistencePolicy) {
+        String lbPersistence;
+        if (persistencePolicy == null || "None".equals(persistencePolicy.getMethodName())) {
+            lbPersistence = "(nenhum)";
+        } else if ("Cookie".equals(persistencePolicy.getMethodName())) {
+            lbPersistence = "cookie";
+        } else if ("Source-ip".equals(persistencePolicy.getMethodName())) {
+            lbPersistence = "source-ip";
+        } else if ("Source-ip with persistence between ports".equals(persistencePolicy.getMethodName())) {
+            lbPersistence = "source-ip com persist. entre portas";
+        } else {
+            throw new InvalidParameterValueException("Invalid persistence policy provided.");
+        }
+        return lbPersistence;
+    }
+
+    protected LbAlgorithm getBalancingAlgorithm(String methodBal) {
+        LbAlgorithm lbAlgorithm;
+        if ("roundrobin".equals(methodBal)) {
+            lbAlgorithm = LbAlgorithm.RoundRobin;
+        } else if ("leastconn".equals(methodBal)) {
+            lbAlgorithm = LbAlgorithm.LeastConn;
+        } else {
+            throw new InvalidParameterValueException("Invalid balancing method provided.");
+        }
+        return lbAlgorithm;
     }
 
     protected Answer removeVIP(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip) {
