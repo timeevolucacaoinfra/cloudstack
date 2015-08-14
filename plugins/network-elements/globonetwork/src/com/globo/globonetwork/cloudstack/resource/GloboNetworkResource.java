@@ -719,7 +719,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             List<String> ports = cmd.getPorts();
 
             // Process IPs and set RealIP objects to create VIP
-            Map<String, RealIP> realsIp = new HashMap<String, RealIP>();
+            Map<String, List<RealIP>> realsIp = new HashMap<String, List<RealIP>>();
             List<Integer> realsPriorities = new ArrayList<Integer>();
             List<String> equipNames = new ArrayList<String>();
             List<Long> equipIds = new ArrayList<Long>();
@@ -761,7 +761,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     realIP.setVipPort(Integer.valueOf(port.split(":")[0]));
                     realIP.setRealPort(Integer.valueOf(port.split(":")[1]));
                     realIP.setIpId(ip.getId());
-                    realsIp.put(port, realIP);
+                    List<RealIP> realIpList = realsIp.get(port);
+                    if (realIpList == null) {
+                        realIpList = new ArrayList<RealIP>();
+                        realsIp.put(port, realIpList);
+                    }
+                    realIpList.add(realIP);
                 }
             }
 
@@ -795,17 +800,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 List<VipPoolMap> vipPoolMapList = new ArrayList<VipPoolMap>();
                 for (String port : ports) {
                     // Add pool for each port
+                    Integer realPort = Integer.valueOf(port.split(":")[1]);
                     List<Integer> realPorts = new ArrayList<Integer>();
-                    realPorts.add(Integer.valueOf(port.split(":")[1]));
-                    List<RealIP> realsIpList = new ArrayList<RealIP>();
-                    if (realsIp.get(port) != null) {
-                        realsIpList.add(realsIp.get(port));
+                    if (realsIp.get(port) == null) {
+                        realsIp.put(port, new ArrayList<RealIP>());
+                    }
+                    for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                        realPorts.add(realPort);
                     }
                     String poolName = "ACS_POOL_" + cmd.getHost() + "_" + new Date().getTime();
 
                     Pool pool = _globoNetworkApi.getPoolAPI().save(null, poolName, Integer.valueOf(port.split(":")[1]),
                             vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                            DEFAULT_MAX_CONN, realsIpList, equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination());
+                            DEFAULT_MAX_CONN, realsIp.get(port), equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination());
                     VipPoolMap vipPoolMap = new VipPoolMap(pool.getId(), Integer.valueOf(port.split(":")[0]));
                     vipPoolMapList.add(vipPoolMap);
                 }
@@ -821,24 +828,24 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 for(String port : ports) {
                     Integer realPort = Integer.valueOf(port.split(":")[1]);
                     List<Integer> realPorts = new ArrayList<Integer>();
-                    realPorts.add(Integer.valueOf(port.split(":")[1]));
-                    List<RealIP> realsIpList = new ArrayList<RealIP>();
-                    if (realsIp.get(port) != null) {
-                        realsIpList.add(realsIp.get(port));
+                    if (realsIp.get(port) == null) {
+                        realsIp.put(port, new ArrayList<RealIP>());
                     }
-
+                    for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
+                        realPorts.add(realPort);
+                    }
                     Pool pool = this.matchPortToPool(realPort, poolsList);
                     if (pool == null) {
                         // No pool with port 'port' found, so create new pool
                         String poolName = "ACS_POOL_" + cmd.getHost() + "_" + new Date().getTime();
                         pool = _globoNetworkApi.getPoolAPI().save(null, poolName, realPort,
                                 vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck, healthcheck,
-                                DEFAULT_MAX_CONN, realsIpList, equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination());
+                                DEFAULT_MAX_CONN, realsIp.get(port), equipNames, equipIds, realsPriorities, realsWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination());
                     } else {
                         // This is the same pool, info should be the same; update it
                         _globoNetworkApi.getPoolAPI().save(pool.getId(), pool.getIdentifier(), realPort,
                                 vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckType, expectedHealthcheck,
-                                healthcheck, DEFAULT_MAX_CONN, realsIpList, equipNames, equipIds, realsPriorities, realsWeights,
+                                healthcheck, DEFAULT_MAX_CONN, realsIp.get(port), equipNames, equipIds, realsPriorities, realsWeights,
                                 realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()); // FIXME idPoolMembers
                     }
                     VipPoolMap vipPoolMap = new VipPoolMap(null, pool.getId(), vipId, realPort);
