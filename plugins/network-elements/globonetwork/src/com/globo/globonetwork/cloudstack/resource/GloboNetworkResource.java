@@ -805,7 +805,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         realsIp.put(port, new ArrayList<RealIP>());
                     }
                     for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
-                        realPorts.add(realPort);
+                        if (!real.isRevoked()) {
+                            realPorts.add(realPort);
+                        }
                     }
                     String poolName = "ACS_POOL_" + cmd.getHost() + "_" + new Date().getTime();
 
@@ -831,7 +833,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                         realsIp.put(port, new ArrayList<RealIP>());
                     }
                     for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
-                        realPorts.add(realPort);
+                        if (!real.isRevoked()) {
+                            realPorts.add(realPort);
+                        }
                     }
                     Pool pool = this.matchPortToPool(realPort, poolsList);
                     if (pool == null) {
