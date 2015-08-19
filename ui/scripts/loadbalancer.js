@@ -55,7 +55,7 @@
 
             // sometimes, command must be skipped
             if (command.data === false) {
-                process_success(last_result, null);
+                process_success(false, null);
                 return;
             }
 
@@ -770,37 +770,98 @@
                     },
                 },
                 actions: {
-                    editHealthcheck: {
-                        label: 'Edit Healthcheck',
+                    editLoadBalancer: {
+                        label: 'Edit Load Balancer',
                         custom: {
                             buttonLabel: 'label.configure'
                         },
                         action: function(args) {
-                            var pingpath1;
+                            var oldStickiness;
+                            var oldHealthcheck;
 
-                            var lbruleid = args.context.loadbalancers[0].id;
+                            var lb = args.context.loadbalancers[0];
 
                             $.ajax({
                                 url: createURL('listLBHealthCheckPolicies'),
                                 data: {
-                                    lbruleid: lbruleid
+                                    lbruleid: lb.id
                                 },
                                 async: false,
                                 success: function(json) {
                                     if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
                                         policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
-                                        pingpath1 = policyObj.pingpath; //API bug: API doesn't return it
+                                        oldHealthcheck = policyObj.pingpath;
+                                    }
+                                }
+                            });
+
+                            $.ajax({
+                                url: createURL('listLBStickinessPolicies'),
+                                data: {
+                                    lbruleid: lb.id
+                                },
+                                async: false,
+                                success: function(json) {
+                                    var response = json.listlbstickinesspoliciesresponse.stickinesspolicies[0];
+                                    if (!response || !response.stickinesspolicy ||
+                                        !response.stickinesspolicy[0] || !response.stickinesspolicy[0].name) {
+                                        oldStickiness = "None";
+                                    } else {
+                                        oldStickiness = response.stickinesspolicy[0].name;
                                     }
                                 }
                             });
 
                             cloudStack.dialog.createForm({
                                 form: {
-                                    title: 'Editing Healthcheck',
+                                    title: 'Edit Load Balancer',
                                     fields: {
                                         healthcheck: {
                                             label: 'Healthcheck',
-                                            defaultValue: pingpath1
+                                            defaultValue: oldHealthcheck
+                                        },
+                                        stickiness: {
+                                            label: 'label.stickiness',
+                                            defaultValue: oldStickiness,
+                                            select: function(args) {
+                                                var network;
+                                                $.ajax({
+                                                    url: createURL("listNetworks"),
+                                                    data: {
+                                                        id: lb.networkid
+                                                    },
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(json) {
+                                                        network = json.listnetworksresponse.network[0];
+                                                    },
+                                                    error: function(json) {
+                                                        args.response.error(parseXMLHttpResponse(json));
+                                                    }
+                                                });
+
+                                                var lbService = $.grep(network.service, function(service) {
+                                                    return service.name == 'Lb';
+                                                })[0];
+
+                                                var stickinessCapabilities = $.grep(
+                                                    lbService.capability,
+                                                    function(capability) {
+                                                        return capability.name == 'SupportedStickinessMethods';
+                                                    }
+                                                )[0];
+
+                                                var stickinessMethods = jQuery.parseJSON(stickinessCapabilities.value);
+                                                var data = [];
+                                                // Default None value
+                                                data.push({id: 'None', name: 'None', description: 'None'});
+                                                $(stickinessMethods).each(function() {
+                                                    data.push({id: this.methodname, name: this.methodname, description: this.methodname});
+                                                });
+                                                args.response.success({
+                                                    data: data
+                                                });
+                                            }
                                         }
                                     }
                                 },
@@ -814,7 +875,7 @@
                                                 $.ajax({
                                                     url: createURL("listLoadBalancerRules"),
                                                     data: {
-                                                        id: lbruleid
+                                                        id: lb.id
                                                     },
                                                     dataType: "json",
                                                     async: false,
@@ -840,13 +901,16 @@
                                         commands: [
                                             {
                                                 name: 'listLBHealthCheckPolicies',
-                                                data: { lbruleid: lbruleid }
+                                                data: { lbruleid: lb.id }
                                             },
                                             {
                                                 name: 'deleteLBHealthCheckPolicy',
                                                 data: function(last_result) {
-                                                    if (last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies &&
-                                                        last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy.length>0) {
+                                                    // If healthcheck existed before and new value is different than old value
+                                                    listLbHealthcheckResult = last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies;
+                                                    if (listLbHealthcheckResult &&
+                                                        listLbHealthcheckResult[0].healthcheckpolicy.length > 0 &&
+                                                        listLbHealthcheckResult[0].healthcheckpolicy[0].pingpath != args2.data.healthcheck.trim()) {
                                                         return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
                                                     }
                                                     // skip this command
@@ -856,13 +920,44 @@
                                             {
                                                 name: 'createLBHealthCheckPolicy',
                                                 data: function() {
-                                                    if (args2.data.healthcheck.trim() === '') {
-                                                        return false;
+                                                    if (args2.data.healthcheck.trim() !== '' && args2.data.healthcheck.trim() != oldHealthcheck) {
+                                                        return {
+                                                            lbruleid: lb.id,
+                                                            pingpath: args2.data.healthcheck.trim()
+                                                        };
                                                     }
-                                                    return {
-                                                        lbruleid: lbruleid,
-                                                        pingpath: args2.data.healthcheck.trim()
-                                                    };
+                                                    return false;
+                                                }
+                                            },
+                                            {
+                                                name: 'listLBStickinessPolicies',
+                                                data: { lbruleid: lb.id }
+                                            },
+                                            {
+                                                name: 'deleteLBStickinessPolicy',
+                                                data: function(last_result) {
+                                                    // If stickiness existed before and new value is different than old value
+                                                    listLbStickinessResult = last_result.listlbstickinesspoliciesresponse.stickinesspolicies;
+                                                    if (listLbStickinessResult &&
+                                                        listLbStickinessResult[0].stickinesspolicy.length > 0 &&
+                                                        listLbStickinessResult[0].stickinesspolicy.name != args2.data.stickiness.valueOf()) {
+                                                        return { id: last_result.listlbstickinesspoliciesresponse.stickinesspolicies[0].stickinesspolicy[0].id };
+                                                    }
+                                                    // skip this command
+                                                    return false;
+                                                }
+                                            },
+                                            {
+                                                name: 'createLBStickinessPolicy',
+                                                data: function () {
+                                                    if (args2.data.stickiness.valueOf() != 'None' && args2.data.stickiness.valueOf() != oldStickiness) {
+                                                        return {
+                                                            lbruleid: lb.id,
+                                                            name: args2.data.stickiness.valueOf(),
+                                                            methodname: args2.data.stickiness.valueOf()
+                                                        };
+                                                    }
+                                                    return false;
                                                 }
                                             }
                                         ],
@@ -875,14 +970,16 @@
                                         }
                                     });
                                 }
-                            }).find('.cancel').bind("click", function( event, ui ) {
+                            });
+
+                            $('.create-form').find('.cancel').bind("click", function( event, ui ) {
                                 $('.loading-overlay').remove();
                                 return true;
                             });
                         },
                         messages: {
                             notification: function() {
-                                return 'Update Healthcheck';
+                                return 'Update Load Balancer';
                             }
                         },
                         notification: {
@@ -1177,7 +1274,7 @@
                             },
                             isLbAdvanced: {
                                 label: 'label.show.advanced.settings',
-                                dependsOn: ['network'],  
+                                dependsOn: ['network'],
                                 isBoolean: true,
                                 defaultValue: false,
                                 isChecked: false,
