@@ -129,7 +129,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.SERVICE_DOWN_ACTION, type = CommandType.STRING, description = "ID of the action to be executed when service is down")
     private String serviceDownAction;
 
-    @Parameter(name = ApiConstants.HEALTHCHECK_DESTINATION, type = CommandType.STRING, description = "Port to be user as health check alternative to the service port (optional)")
+    @Parameter(name = ApiConstants.HEALTHCHECK_DESTINATION, type = CommandType.STRING, description = "Port to be used as health check alternative to the service port (optional)")
     private String healthCheckDestination;
 
     /////////////////////////////////////////////////////

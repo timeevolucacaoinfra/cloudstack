@@ -111,6 +111,14 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
     @Param(description = "cache group associated with load balancing rule")
     private String cache;
 
+    @SerializedName(ApiConstants.HEALTHCHECK_DESTINATION)
+    @Param(description = "Port to be used as health check alternative to the service port (optional)")
+    private String healthCheckDestination;
+
+    @SerializedName(ApiConstants.SERVICE_DOWN_ACTION)
+    @Param(description = "ID of the action to be executed when service is down")
+    private String serviceDownAction;
+
     @SerializedName(ApiConstants.TAGS)
     @Param(description = "the list of resource tags associated with load balancer", responseObject = ResourceTagResponse.class)
     private List<ResourceTagResponse> tags;
@@ -207,6 +215,14 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
     public void setAdditionalPortMap(List<String> additionalPortMap) { this.additionalPortMap = additionalPortMap; }
 
     public void setCache(String cache) { this.cache = cache; }
+
+    public void setHealthCheckDestination(String healthCheckDestination) {
+        this.healthCheckDestination = healthCheckDestination;
+    }
+
+    public void setServiceDownAction(String serviceDownAction) {
+        this.serviceDownAction = serviceDownAction;
+    }
 
     public void setForDisplay(Boolean forDisplay) {
         this.forDisplay = forDisplay;
