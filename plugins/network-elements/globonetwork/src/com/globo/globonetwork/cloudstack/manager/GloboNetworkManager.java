@@ -2483,7 +2483,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Cannot find network with ID : " + networkId);
         }
 
-        Answer answer = callCommand(new ListPoolOptionsCommand(globoNetworkEnvironmentId, type), network.getDataCenterId());
+        Answer answer = callCommand(new ListPoolOptionsCommand(globonetworkNetworkEnv.getGloboNetworkEnvironmentId(), type), network.getDataCenterId());
 
         return ((GloboNetworkPoolOptionResponse)answer).getPoolOptions();
     }
