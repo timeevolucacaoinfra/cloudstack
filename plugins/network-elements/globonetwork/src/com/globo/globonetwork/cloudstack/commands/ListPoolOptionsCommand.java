@@ -21,12 +21,12 @@ import com.cloud.agent.api.Command;
 
 public class ListPoolOptionsCommand extends Command{
 
-    private Long globoNetworkEnvironmentId;
+    private Long globoNetworkLBEnvironmentId;
 
     private String type;
 
     public ListPoolOptionsCommand(Long environmentId, String type) {
-        this.globoNetworkEnvironmentId = environmentId;
+        this.globoNetworkLBEnvironmentId = environmentId;
         this.type = type;
     }
 
@@ -35,8 +35,8 @@ public class ListPoolOptionsCommand extends Command{
         return false;
     }
 
-    public Long getGloboNetworkEnvironmentId() {
-        return globoNetworkEnvironmentId;
+    public Long getGloboNetworkLBEnvironmentId() {
+        return globoNetworkLBEnvironmentId;
     }
 
     public String getType() {

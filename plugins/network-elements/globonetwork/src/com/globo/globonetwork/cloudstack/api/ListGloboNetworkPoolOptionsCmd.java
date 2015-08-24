@@ -51,8 +51,8 @@ public class ListGloboNetworkPoolOptionsCmd extends BaseCmd {
     @Inject
     GloboNetworkService _globoNetworkService;
 
-    @Parameter(name = "networkapienvironmentid", type = CommandType.LONG, required = true, description = "The Id of network environment in GloboNetwork")
-    private Long globoNetworkEnvironmentId;
+    @Parameter(name = "lbenvironmentid", type = CommandType.LONG, entityType = GloboNetworkLBEnvironmentResponse.class, description = "Globo Network LB Environment Id", required = true)
+    private Long globoNetworkLBEnvironmentId;
 
     @Parameter(name = ApiConstants.NETWORK_ID, type = CommandType.UUID, entityType = NetworkResponse.class, required = true, description = "The network ID")
     private Long networkId;
@@ -63,7 +63,7 @@ public class ListGloboNetworkPoolOptionsCmd extends BaseCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException, NetworkRuleConflictException {
         try {
-            List<PoolOption> poolOptions = _globoNetworkService.listPoolOptions(this.globoNetworkEnvironmentId, this.networkId, this.type);
+            List<PoolOption> poolOptions = _globoNetworkService.listPoolOptions(this.globoNetworkLBEnvironmentId, this.networkId, this.type);
 
             List<GloboNetworkPoolOptionExternalResponse> responseList = new ArrayList<GloboNetworkPoolOptionExternalResponse>();
 

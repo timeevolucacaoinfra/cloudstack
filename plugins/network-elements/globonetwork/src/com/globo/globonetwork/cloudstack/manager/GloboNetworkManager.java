@@ -2464,14 +2464,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long globoNetworkEnvironmentId, Long networkId, String type) {
-        if (globoNetworkEnvironmentId == null) {
-            throw new InvalidParameterValueException("Invalid Network Environment ID");
+    public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long lbEnvironmentId, Long networkId, String type) {
+        if (lbEnvironmentId == null) {
+            throw new InvalidParameterValueException("Invalid LB Environment ID");
         }
 
-        GloboNetworkEnvironmentVO globonetworkNetworkEnv = _globoNetworkEnvironmentDao.findById(globoNetworkEnvironmentId);
-        if (globonetworkNetworkEnv == null) {
-            throw new InvalidParameterValueException("Could not find mapping to network environment " + globoNetworkEnvironmentId);
+        GloboNetworkLoadBalancerEnvironment lbEnvironment = _globoNetworkLBEnvironmentDao.findById(lbEnvironmentId);
+        if (lbEnvironment == null) {
+            throw new InvalidParameterValueException("Could not find mapping to LB environment " + lbEnvironmentId);
         }
 
         if (networkId == null) {
@@ -2483,7 +2483,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new InvalidParameterValueException("Cannot find network with ID : " + networkId);
         }
 
-        Answer answer = callCommand(new ListPoolOptionsCommand(globonetworkNetworkEnv.getGloboNetworkEnvironmentId(), type), network.getDataCenterId());
+        Answer answer = callCommand(new ListPoolOptionsCommand(lbEnvironment.getGloboNetworkLoadBalancerEnvironmentId(), type), network.getDataCenterId());
 
         return ((GloboNetworkPoolOptionResponse)answer).getPoolOptions();
     }
