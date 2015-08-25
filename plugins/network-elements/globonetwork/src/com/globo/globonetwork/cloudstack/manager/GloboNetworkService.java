@@ -265,5 +265,5 @@ public interface GloboNetworkService {
 
     public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentId, Long networkId);
 
-    public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long environmentId, Long networkId, String type);
+    public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long lbEnvironmentId, Long networkId, String type);
 }

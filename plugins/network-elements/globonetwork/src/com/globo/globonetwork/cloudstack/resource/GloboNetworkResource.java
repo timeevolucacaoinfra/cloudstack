@@ -289,7 +289,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private Answer execute(ListPoolOptionsCommand cmd) {
         try {
-            List<PoolOption> poolOptions = _globoNetworkApi.getPoolAPI().listPoolOptions(cmd.getGloboNetworkEnvironmentId(), cmd.getType());
+            Network network = _globoNetworkApi.getNetworkJsonAPI().listVipNetworks(cmd.getGloboNetworkLBEnvironmentId(), false).get(0);
+            Vlan vlan = _globoNetworkApi.getVlanAPI().getById(network.getVlanId());
+            List<PoolOption> poolOptions = _globoNetworkApi.getPoolAPI().listPoolOptions(vlan.getEnvironment(), cmd.getType());
 
             List<GloboNetworkPoolOptionResponse.PoolOption> options = new ArrayList<>();
             for(PoolOption option : poolOptions){
