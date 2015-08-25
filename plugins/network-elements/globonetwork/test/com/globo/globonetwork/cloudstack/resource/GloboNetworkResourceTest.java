@@ -371,10 +371,10 @@ public class GloboNetworkResourceTest {
         assertNotNull(vipPoolMap);
         assertEquals(new Integer(80), vipPoolMap.getPort());
         verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(
-            isNull(Long.class), anyString(), eq(8080),
-            isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
-            anyList(), anyList(), isNull(String.class), isNull(String.class)
+                isNull(Long.class), anyString(), eq(8080),
+                isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
+                eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                anyList(), anyList(), isNull(String.class), isNull(String.class)
         );
     }
 
@@ -515,6 +515,43 @@ public class GloboNetworkResourceTest {
             eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
             anyList(), anyList(), isNull(String.class), isNull(String.class)
         );
+    }
+
+    @Test
+    public void testUpdateCreatedVIPPersistence() throws Exception {
+        VipJson createdVip = buildFakeVipValidatedAndCreated(123L, 546L, 345L);
+        String persistenceCS = "Cookie";
+        String persistenceNetApi = "cookie";
+
+        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        cmd.setVipId(createdVip.getId());
+        cmd.setHost(createdVip.getHost());
+        cmd.setIpv4(createdVip.getIps().get(0));
+        cmd.setVipEnvironmentId(123L);
+        cmd.setPorts(Arrays.asList("80:8080", "443:8443"));
+        cmd.setBusinessArea(createdVip.getBusinessArea());
+        cmd.setServiceName(createdVip.getServiceName());
+        cmd.setMethodBal("roundrobin");
+        cmd.setPersistencePolicy(new LbStickinessPolicy(persistenceCS, null));
+        cmd.setRealList(new ArrayList<GloboNetworkVipResponse.Real>());
+
+        when(_resource._globoNetworkApi.getVipAPI().getByPk(createdVip.getId())).thenReturn(createdVip);
+        when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(vipIp.getNetworkId(), false)).thenReturn(new IPv4Network());
+        when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
+
+        when(_resource._globoNetworkApi.getPoolAPI().save(
+                        anyLong(), anyString(), anyInt(),
+                        isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
+                        eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                        anyList(), anyList(), isNull(String.class), isNull(String.class))
+        ).thenReturn(new Pool());
+
+        when(_resource._globoNetworkApi.getVipAPI().getById(createdVip.getId())).thenReturn(fromVipJsonToVipXml(createdVip));
+
+        Answer answer = _resource.execute(cmd);
+
+        assertTrue(answer.getResult());
+        verify(_resource._globoNetworkApi.getVipAPI(), times(1)).alterPersistence(createdVip.getId(), persistenceNetApi);
     }
 
     @Test
