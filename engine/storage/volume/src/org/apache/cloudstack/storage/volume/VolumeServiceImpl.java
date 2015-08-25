@@ -1019,6 +1019,11 @@ public class VolumeServiceImpl implements VolumeService {
                 AsyncCallFuture<VolumeApiResult> destroyFuture = expungeVolumeAsync(destVolume);
                 destroyFuture.get();
                 future.complete(res);
+
+                if (canVolumeBeRemoved(destVolume.getId())) {
+                    volDao.remove(destVolume.getId());
+                }
+
                 return null;
             }
             srcVolume.processEvent(Event.OperationSuccessed);
