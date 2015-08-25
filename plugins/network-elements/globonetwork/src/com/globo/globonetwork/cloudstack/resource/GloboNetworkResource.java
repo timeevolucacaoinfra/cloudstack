@@ -753,6 +753,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
             if (vip == null) {
                 vip = createVip(cmd, cmd.getHost(), environmentVip, vipIp, vipPoolMapping);
+            } else {
+                vip = updateVip(cmd, vip, vipIp, vipPoolMapping);
             }
 
             vip = validate(vip, vipIp);
@@ -790,6 +792,22 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             ip.getId(), null, finality, client, environment, cache,
             lbPersistence, DEFAULT_TIMEOUT, host, cmd.getBusinessArea(),
             cmd.getServiceName(), null, vipPoolMapping, null, null
+        );
+    }
+
+    protected Vip updateVip(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip, Ip ip, List<VipPoolMap> vipPoolMapping) throws GloboNetworkException {
+        String lbPersistence = getPersistenceMethod(cmd.getPersistencePolicy());
+
+        if (vip.getCreated()) {
+            if (lbPersistence != vip.getPersistence()) {
+                _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
+            }
+            return vip;
+        }
+        return _globoNetworkApi.getVipAPI().save(
+                ip.getId(), null, vip.getFinality(), vip.getClient(), vip.getEnvironment(), vip.getCache(),
+                lbPersistence, DEFAULT_TIMEOUT, vip.getHost(), cmd.getBusinessArea(),
+                cmd.getServiceName(), null, vipPoolMapping, null, null
         );
     }
 
