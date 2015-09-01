@@ -175,12 +175,11 @@ public class GloboDnsElementTest {
         verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(RemoveRecordCommand.class));
     }
 
-    @Test
+    @Test(expected=InvalidParameterValueException.class)
     public void testUnderscoreInLoadBalancerNameNotAllowed() {
         String lbDomain = "lb.globo.com";
         String lbRecord = "test_underscore";
         String lbRecordContent = "10.0.0.1";
         boolean result = _globodnsElement.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, lbRecordContent, zoneId);
-        assertFalse(result);
     }
 }
