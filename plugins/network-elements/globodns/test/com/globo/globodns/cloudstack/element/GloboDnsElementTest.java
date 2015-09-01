@@ -1,6 +1,7 @@
 package com.globo.globodns.cloudstack.element;
 
 import static junit.framework.TestCase.assertTrue;
+import static junit.framework.TestCase.assertFalse;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -172,5 +173,14 @@ public class GloboDnsElementTest {
         boolean result = _globodnsElement.release(network, nic, vm, context);
         assertTrue(result);
         verify(_agentMgr, times(1)).easySend(eq(globoDnsHostId), isA(RemoveRecordCommand.class));
+    }
+
+    @Test
+    public void testUnderscoreInLoadBalancerNameNotAllowed() {
+        String lbDomain = "lb.globo.com";
+        String lbRecord = "test_underscore";
+        String lbRecordContent = "10.0.0.1";
+        boolean result = _globodnsElement.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, lbRecordContent, zoneId);
+        assertFalse(result);
     }
 }
