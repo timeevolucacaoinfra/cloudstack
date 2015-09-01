@@ -17,6 +17,8 @@
 
 package com.cloud.network.router;
 
+import com.cloud.server.ResourceTag;
+import com.cloud.tags.dao.ResourceTagDao;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -402,6 +404,9 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     MonitoringServiceDao _monitorServiceDao;
     @Inject
     AsyncJobManager _asyncMgr;
+    @Inject
+    ResourceTagDao _resourceTagDao;
+
     @Inject
     protected ApiAsyncJobDispatcher _asyncDispatcher;
     @Inject
@@ -876,6 +881,8 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         } else {
             setVmInstanceId(vmUuid, cmd);
         }
+
+        setVmTags(cmd, vmId);
         cmd.addVmData("metadata", "public-keys", publicKey);
 
         String cloudIdentifier = _configDao.getValue("cloud.identifier");
@@ -887,6 +894,24 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         cmd.addVmData("metadata", "cloud-identifier", cloudIdentifier);
 
         return cmd;
+    }
+
+    protected void setVmTags(VmDataCommand cmd, long vmId) {
+        List<? extends ResourceTag> resourceTags = _resourceTagDao.listBy(vmId, ResourceTag.ResourceObjectType.UserVm);
+
+        String tagKeys = "";
+
+        for (ResourceTag resourceTag : resourceTags) {
+            String key = resourceTag.getKey();
+            if (key != null && !key.isEmpty()){
+                String value = resourceTag.getValue() != null ? resourceTag.getValue() : "";
+                cmd.addVmData("metadata", "TAG_" + key, value);
+                tagKeys += key + " ";
+            }
+        }
+
+        tagKeys = tagKeys.trim().replaceAll(" ",  ",");
+        cmd.addVmData("metadata", "TAG_KEYS", tagKeys);
     }
 
     private void setVmInstanceId(final String vmUuid, final VmDataCommand cmd) {
