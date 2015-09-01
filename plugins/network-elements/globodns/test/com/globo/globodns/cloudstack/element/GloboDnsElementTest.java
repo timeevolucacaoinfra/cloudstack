@@ -1,7 +1,6 @@
 package com.globo.globodns.cloudstack.element;
 
 import static junit.framework.TestCase.assertTrue;
-import static junit.framework.TestCase.assertFalse;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
