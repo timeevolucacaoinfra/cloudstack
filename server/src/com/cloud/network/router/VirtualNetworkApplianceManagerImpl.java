@@ -906,12 +906,12 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             if (key != null && !key.isEmpty()){
                 String value = resourceTag.getValue() != null ? resourceTag.getValue() : "";
                 cmd.addVmData("metadata", "TAG_" + key, value);
-                tagKeys += key + " ";
+                tagKeys += key.trim() + " ";
             }
         }
 
         tagKeys = tagKeys.trim().replaceAll(" ",  ",");
-        cmd.addVmData("metadata", "TAG_KEYS", tagKeys);
+        cmd.addVmData("metadata", "TAGKEYS", tagKeys);
     }
 
     private void setVmInstanceId(final String vmUuid, final VmDataCommand cmd) {

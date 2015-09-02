@@ -16,11 +16,14 @@
 // under the License.
 package com.cloud.tags;
 
+import com.cloud.vm.UserVmManager;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import java.util.Set;
 import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
@@ -144,7 +147,8 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
     DomainManager _domainMgr;
     @Inject
     AccountDao _accountDao;
-
+    @Inject
+    UserVmManager _userVmManager;
 
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
@@ -232,6 +236,8 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
 
         final List<ResourceTag> resourceTags = new ArrayList<ResourceTag>(tags.size());
 
+        final Set<Long> vmIds = new HashSet<Long>();
+
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {
@@ -270,12 +276,28 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                         ResourceTagVO resourceTag = new ResourceTagVO(key, value, accountDomainPair.first(), accountDomainPair.second(), id, resourceType, customer, resourceUuid);
                         resourceTag = _resourceTagDao.persist(resourceTag);
                         resourceTags.add(resourceTag);
+
+                        if (resourceType == ResourceObjectType.UserVm) {
+                            vmIds.add(id);
+                        }
                     }
                 }
             }
         });
 
+        updateVmsData(vmIds);
+
         return resourceTags;
+    }
+
+    private void updateVmsData(Set<Long> vmIds) {
+        try {
+            for (Long id : vmIds){
+                _userVmManager.updateVMdata(id);
+            }
+        }catch (Exception e) {
+            throw new CloudRuntimeException("Error trying to update metadata and userdata.", e);
+        }
     }
 
     @Override
@@ -312,8 +334,9 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
         sc.setParameters("resourceType", resourceType);
 
         List<? extends ResourceTag> resourceTags = _resourceTagDao.search(sc, null);
-        ;
+
         final List<ResourceTag> tagsToRemove = new ArrayList<ResourceTag>();
+        final Set<Long> userVmsIdsToUpdate = new HashSet<Long>();
 
         // Finalize which tags should be removed
         for (ResourceTag resourceTag : resourceTags) {
@@ -335,12 +358,19 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                         }
                         if (canBeRemoved) {
                             tagsToRemove.add(resourceTag);
+                            if (ResourceObjectType.UserVm == resourceTag.getResourceType() ) {
+                                userVmsIdsToUpdate.add(resourceTag.getResourceId());
+                            }
                             break;
                         }
                     }
                 }
             } else {
                 tagsToRemove.add(resourceTag);
+
+                if (ResourceObjectType.UserVm == resourceTag.getResourceType() ) {
+                    userVmsIdsToUpdate.add(resourceTag.getResourceId());
+                }
             }
         }
 
@@ -358,6 +388,8 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                 }
             }
         });
+
+        updateVmsData(userVmsIdsToUpdate);
 
         return true;
     }

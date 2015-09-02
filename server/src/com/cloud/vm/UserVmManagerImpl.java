@@ -2022,15 +2022,28 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         _vmDao.updateVM(id, displayName, ha, osTypeId, userData, isDisplayVmEnabled, isDynamicallyScalable, customId, hostName);
 
         if (updateUserdata) {
-            boolean result = updateUserDataInternal(_vmDao.findById(id));
-            if (result) {
-                s_logger.debug("User data successfully updated for vm id=" + id);
-            } else {
-                throw new CloudRuntimeException("Failed to reset userdata for the virtual machine ");
-            }
+            updateVMdata(id);
         }
 
         return _vmDao.findById(id);
+    }
+
+    @Override
+    public UserVm updateVMdata(long userVMId) throws InsufficientCapacityException, ResourceUnavailableException {
+        UserVmVO userVM = _vmDao.findById(userVMId);
+
+        if (userVM == null) {
+            throw new CloudRuntimeException("UserVm " + userVMId + " do not exists!");
+        }
+
+        boolean result = updateUserDataInternal(userVM);
+        if (result) {
+            s_logger.debug("User data successfully updated for vm id=" + userVMId);
+        } else {
+            throw new CloudRuntimeException("Failed to reset userdata for the virtual machine ");
+        }
+
+        return userVM;
     }
 
     private boolean updateUserDataInternal(UserVm vm) throws ResourceUnavailableException, InsufficientCapacityException {
