@@ -123,6 +123,10 @@
         return allowedActions;
     };
 
+    $.validator.addMethod("noUnderscore", function(value, element) {
+        return !/[_]/.test(value);
+    }, "Do not use underscore");
+
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
         id: 'loadbalancer',
@@ -1095,7 +1099,8 @@
                             name: {
                                 label: 'label.name',
                                 validation: {
-                                    required: true
+                                    required: true,
+                                    noUnderscore : true
                                 }
                             },
                             lbdomain: {
@@ -1373,6 +1378,10 @@
                         },
                     },
                     action: function(args) {
+                        if (args.data.name.indexOf("_")) {
+                            args.response.error("Underscore(_) is not allowed in Load Balancer names");
+                            return;
+                        }
                         var network;
                         $.ajax({
                             url: createURL("listNetworks"),

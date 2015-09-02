@@ -398,6 +398,9 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     @Override
     public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbRecordContent, Long zoneId) {
         s_logger.debug("Validating LB DNS record " + lbRecord + " in domain " + lbDomain);
+        if (lbRecord.contains("_")) {
+            throw new InvalidParameterValueException("Underscore(_) is not allowed for load balancer name");
+        }
         DataCenter zone = _dcDao.findById(zoneId);
         if (zone == null) {
             throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
