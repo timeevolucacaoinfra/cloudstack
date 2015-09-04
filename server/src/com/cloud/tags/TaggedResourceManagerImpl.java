@@ -16,14 +16,17 @@
 // under the License.
 package com.cloud.tags;
 
+import com.cloud.network.NetworkModel;
+import com.cloud.network.dao.NetworkDao;
+import com.cloud.storage.dao.VMTemplateDao;
 import com.cloud.vm.UserVmManager;
+import com.cloud.vm.dao.NicDao;
+import com.cloud.vm.dao.UserVmDao;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import java.util.Set;
 import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
@@ -150,6 +153,21 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
     @Inject
     UserVmManager _userVmManager;
 
+    @Inject
+    protected VMTemplateDao _templateDao = null;
+
+    @Inject
+    protected UserVmDao _vmDao = null;
+
+    @Inject
+    protected NicDao _nicDao;
+
+    @Inject
+    protected NetworkModel _networkModel = null;
+
+    @Inject
+    protected NetworkDao _networkDao;
+
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
         return true;
@@ -236,7 +254,7 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
 
         final List<ResourceTag> resourceTags = new ArrayList<ResourceTag>(tags.size());
 
-        final Set<Long> vmIds = new HashSet<Long>();
+        final Map<Long, Map<String, String>> vmsIdResourceTagToCreate = new HashMap<Long, Map<String, String>>();
 
         Transaction.execute(new TransactionCallbackNoReturn() {
             @Override
@@ -277,28 +295,21 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                         resourceTag = _resourceTagDao.persist(resourceTag);
                         resourceTags.add(resourceTag);
 
-                        if (resourceType == ResourceObjectType.UserVm) {
-                            vmIds.add(id);
-                        }
+                        addTagToVMMetadata(vmsIdResourceTagToCreate,
+                                            resourceTag.getResourceId(),
+                                            resourceTag.getKey(),
+                                            resourceTag.getValue(),
+                                            resourceType);
                     }
                 }
             }
         });
 
-        updateVmsData(vmIds);
+        updateVMMetaData(vmsIdResourceTagToCreate);
 
         return resourceTags;
     }
 
-    private void updateVmsData(Set<Long> vmIds) {
-        try {
-            for (Long id : vmIds){
-                _userVmManager.updateVMdata(id);
-            }
-        }catch (Exception e) {
-            throw new CloudRuntimeException("Error trying to update metadata and userdata.", e);
-        }
-    }
 
     @Override
     public String getUuid(String resourceId, ResourceObjectType resourceType) {
@@ -311,10 +322,10 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
         Object entity = _entityMgr.findById(clazz, resourceId);
         if (entity != null && entity instanceof Identity) {
             return ((Identity)entity).getUuid();
-       }
+        }
 
-           return resourceId;
-       }
+        return resourceId;
+    }
 
     @Override
     @DB
@@ -336,7 +347,6 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
         List<? extends ResourceTag> resourceTags = _resourceTagDao.search(sc, null);
 
         final List<ResourceTag> tagsToRemove = new ArrayList<ResourceTag>();
-        final Set<Long> userVmsIdsToUpdate = new HashSet<Long>();
 
         // Finalize which tags should be removed
         for (ResourceTag resourceTag : resourceTags) {
@@ -358,25 +368,23 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                         }
                         if (canBeRemoved) {
                             tagsToRemove.add(resourceTag);
-                            if (ResourceObjectType.UserVm == resourceTag.getResourceType() ) {
-                                userVmsIdsToUpdate.add(resourceTag.getResourceId());
-                            }
                             break;
                         }
                     }
                 }
             } else {
                 tagsToRemove.add(resourceTag);
-
-                if (ResourceObjectType.UserVm == resourceTag.getResourceType() ) {
-                    userVmsIdsToUpdate.add(resourceTag.getResourceId());
-                }
             }
         }
 
         if (tagsToRemove.isEmpty()) {
             throw new InvalidParameterValueException("Unable to find tags by parameters specified");
         }
+
+
+        final Map<Long, Map<String, String>> vmsIdResourceTagToRemove = new HashMap<Long, Map<String, String>>();
+        final Map<Long, TagKeysBuilder> vmsIdsTagKeysBuilder = new HashMap<Long, TagKeysBuilder>();
+
 
         //Remove the tags
         Transaction.execute(new TransactionCallbackNoReturn() {
@@ -385,17 +393,69 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                 for (ResourceTag tagToRemove : tagsToRemove) {
                     _resourceTagDao.remove(tagToRemove.getId());
                     s_logger.debug("Removed the tag " + tagToRemove);
+
+                    addTagToVMMetadata(vmsIdResourceTagToRemove,
+                                        tagToRemove.getResourceId(),
+                                        tagToRemove.getKey(),
+                                        "",
+                                        tagToRemove.getResourceType());
                 }
             }
         });
 
-        updateVmsData(userVmsIdsToUpdate);
+        updateVMMetaData(vmsIdResourceTagToRemove);
 
         return true;
     }
+
+    protected void updateVMMetaData(Map<Long, Map<String, String>> vmsIdResourceTagToRemove) {
+        boolean success = true;
+        List<Long> userVmsIdsErros = new ArrayList<Long>();
+
+        for (Long userVmId : vmsIdResourceTagToRemove.keySet() ) {
+            try {
+                Map<String, String> tagsR = vmsIdResourceTagToRemove.get(userVmId);
+
+                List<ResourceTag> tags = (List<ResourceTag>)_resourceTagDao.listBy(userVmId, ResourceObjectType.UserVm);
+                tagsR.put(TagKeysBuilder.TAGKEYS_METADATA_KEY, TagKeysBuilder.buildTagKeys(tags));
+
+                s_logger.debug("[TAG_METADATA] Update userVm metadata with tags and values: " + tagsR.toString());
+                _userVmManager.updateVMData(userVmId, tagsR);
+            }catch (Exception e ) {
+                //catch exception because it should try to update other resources
+                s_logger.error("[TAG_METADATA] Error try to update VmMetaData removing tags. userVmId:  " +  userVmId, e);
+                userVmsIdsErros.add(userVmId);
+                success = false;
+            }
+        }
+
+        if (!success) {
+            throw new CloudRuntimeException("Error when try to remove userVm tags. userVmsIds: "+ userVmsIdsErros);
+        }
+    }
+
+
+
+    protected void addTagToVMMetadata(Map<Long, Map<String, String>> vmsIdResourceTagToRemove,
+                                      Long vmUserId, String key,
+                                      String value, ResourceObjectType type) {
+        if (ResourceObjectType.UserVm == type){
+            Map<String, String> tags = vmsIdResourceTagToRemove.get(vmUserId);
+            if ( tags == null ){
+                tags = new HashMap<String, String>();
+                vmsIdResourceTagToRemove.put(vmUserId, tags);
+            }
+
+            String keyMetadata = TagKeysBuilder.getKeyMetadata(key);
+            tags.put(keyMetadata, value != null ? value : "");
+
+        }
+    }
+
 
     @Override
     public List<? extends ResourceTag> listByResourceTypeAndId(ResourceObjectType type, long resourceId) {
         return _resourceTagDao.listBy(resourceId, type);
     }
+
 }

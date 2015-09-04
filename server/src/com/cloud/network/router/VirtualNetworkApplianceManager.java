@@ -139,4 +139,7 @@ public interface VirtualNetworkApplianceManager extends Manager, VirtualNetworkA
     public boolean completeAggregatedExecution(Network network, List<DomainRouterVO> routers) throws AgentUnavailableException;
 
     public boolean cleanupAggregatedExecution(Network network, List<DomainRouterVO> routers) throws AgentUnavailableException;
+
+    public boolean saveVmMetadataToRouter(final Network network, final NicProfile nic, final VirtualMachineProfile profile, final List<? extends VirtualRouter> routers, Map<String, String> metaData) throws ResourceUnavailableException ;
+
 }

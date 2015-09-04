@@ -2046,32 +2046,36 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         return userVM;
     }
 
+    @Override
+    public void updateVMData(long userVmId, final Map<String, String> vmData) throws InsufficientCapacityException, ResourceUnavailableException {
+        UserVmVO vm = _vmDao.findById(userVmId);
+
+        if (vm == null) {
+            throw new CloudRuntimeException("UserVm " + userVmId + " do not exists!");
+        }
+
+        VmDataUpdater vmDataUpdater = new VmDataUpdater(){
+
+            @Override
+            public boolean execute(Network network, NicProfile nic, VirtualMachineProfile vmProfile, UserDataServiceProvider element) throws ResourceUnavailableException {
+                return element.saveUserVMData(network, nic, vmProfile, vmData);
+            }
+        };
+         vmDataUpdater.run(vm);
+    }
+
+
+
     private boolean updateUserDataInternal(UserVm vm) throws ResourceUnavailableException, InsufficientCapacityException {
-        VMTemplateVO template = _templateDao.findByIdIncludingRemoved(vm.getTemplateId());
+        VmDataUpdater vmDataUpdater = new VmDataUpdater(){
 
-        List<? extends Nic> nics = _nicDao.listByVmId(vm.getId());
-        if (nics == null || nics.isEmpty()) {
-           s_logger.error("unable to find any nics for vm " + vm.getUuid());
-           return false;
-        }
+            @Override
+            public boolean execute(Network network, NicProfile nicProfile, VirtualMachineProfile vmProfile, UserDataServiceProvider element) throws ResourceUnavailableException {
+                return element.saveUserData(network, nicProfile, vmProfile);
+            }
+        };
 
-        for (Nic nic : nics) {
-             Network network = _networkDao.findById(nic.getNetworkId());
-            NicProfile nicProfile = new NicProfile(nic, network, null, null, null, _networkModel.isSecurityGroupSupportedInNetwork(network), _networkModel.getNetworkTag(
-                    template.getHypervisorType(), network));
-
-             VirtualMachineProfile vmProfile = new VirtualMachineProfileImpl(vm);
-
-             UserDataServiceProvider element = _networkModel.getUserDataUpdateProvider(network);
-             if (element == null) {
-                 throw new CloudRuntimeException("Can't find network element for " + Service.UserData.getName() + " provider needed for UserData update");
-             }
-             boolean result = element.saveUserData(network, nicProfile, vmProfile);
-             if (!result) {
-                 s_logger.error("Failed to update userdata for vm " + vm + " and nic " + nic);
-             }
-        }
-
+        vmDataUpdater.run(vm);
         return true;
     }
 
@@ -4896,5 +4900,41 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         }
 
         return true; // no info then default to true
+    }
+
+
+    abstract class VmDataUpdater {
+        public boolean run(UserVm vm) throws ResourceUnavailableException {
+
+            VMTemplateVO template = _templateDao.findByIdIncludingRemoved(vm.getTemplateId());
+
+            List<? extends Nic> nics = _nicDao.listByVmId(vm.getId());
+            if (nics == null || nics.isEmpty()) {
+                s_logger.error("unable to find any nics for vm " + vm.getUuid());
+                throw new CloudRuntimeException("unable to find any nics for vm " + vm.getUuid());
+            }
+            boolean success = true;
+            for (Nic nic : nics) {
+                Network network = _networkDao.findById(nic.getNetworkId());
+                NicProfile nicProfile = new NicProfile(nic, network, null, null, null, _networkModel.isSecurityGroupSupportedInNetwork(network), _networkModel.getNetworkTag(
+                        template.getHypervisorType(), network));
+
+                VirtualMachineProfile vmProfile = new VirtualMachineProfileImpl(vm);
+
+                UserDataServiceProvider element = _networkModel.getUserDataUpdateProvider(network);
+                if (element == null) {
+                    throw new CloudRuntimeException("Can't find network element for " + Service.UserData.getName() + " provider needed for UserData update");
+                }
+                boolean result = execute(network, nicProfile, vmProfile, element);
+                if (!result) {
+                    s_logger.error("Failed to update userdata for vm " + vm + " and nic " + nic);
+                }
+                success = result & success;
+
+            }
+            return success;
+        }
+
+        public abstract boolean execute(Network network, NicProfile nic, VirtualMachineProfile vmProfile, UserDataServiceProvider element) throws ResourceUnavailableException;
     }
 }

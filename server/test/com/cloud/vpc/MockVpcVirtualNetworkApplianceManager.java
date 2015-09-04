@@ -434,6 +434,11 @@ public class MockVpcVirtualNetworkApplianceManager extends ManagerBase implement
     }
 
     @Override
+    public boolean saveVmMetadataToRouter(Network network, NicProfile nic, VirtualMachineProfile profile, List<? extends VirtualRouter> routers, Map<String, String> metaData) throws ResourceUnavailableException {
+        return true;
+    }
+
+    @Override
     public boolean startRemoteAccessVpn(RemoteAccessVpn vpn, VirtualRouter router) throws ResourceUnavailableException {
         // TODO Auto-generated method stub
         return false;

@@ -113,4 +113,6 @@ public interface UserVmManager extends UserVmService {
     void generateUsageEvent(VirtualMachine vm, boolean isDisplay, String eventType);
 
     public UserVm updateVMdata(long userVmId) throws InsufficientCapacityException, ResourceUnavailableException;
+
+    public void updateVMData(long userVmId, Map<String, String> vmData) throws InsufficientCapacityException, ResourceUnavailableException;
 }

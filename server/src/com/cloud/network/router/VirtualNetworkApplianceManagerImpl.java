@@ -18,6 +18,7 @@
 package com.cloud.network.router;
 
 import com.cloud.server.ResourceTag;
+import com.cloud.tags.TagKeysBuilder;
 import com.cloud.tags.dao.ResourceTagDao;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -590,6 +591,45 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     @Override
+    public boolean saveVmMetadataToRouter(final Network network,
+                                        final NicProfile nic,
+                                        final VirtualMachineProfile profile,
+                                        final List<? extends VirtualRouter> routers,
+                                        final Map<String, String> metadatas)
+
+            throws ResourceUnavailableException {
+
+        final UserVmVO vm = _userVmDao.findById(profile.getVirtualMachine().getId());
+        _userVmDao.loadDetails(vm);
+
+        return applyRules(network, routers, "save userdata entry", false, null, false, new RuleApplier() {
+            @Override
+            public boolean execute(final Network network, final VirtualRouter router) throws ResourceUnavailableException {
+                // for basic zone, send vm data/password information only to the router in the same pod
+                final Commands cmds = new Commands(Command.OnError.Stop);
+                final NicVO nicVo = _nicDao.findById(nic.getId());
+
+                final VmDataCommand cmd = new VmDataCommand(nicVo.getIp4Address(), vm.getInstanceName(), _networkModel.getExecuteInSeqNtwkElmtCmd());
+
+                cmd.setAccessDetail(NetworkElementCommand.ROUTER_IP, getRouterControlIp(router.getId()));
+                cmd.setAccessDetail(NetworkElementCommand.ROUTER_GUEST_IP, getRouterIpInNetwork(nic.getNetworkId(), router.getId()));
+                cmd.setAccessDetail(NetworkElementCommand.ROUTER_NAME, router.getInstanceName());
+
+                final DataCenterVO dcVo = _dcDao.findById(router.getDataCenterId());
+                cmd.setAccessDetail(NetworkElementCommand.ZONE_NETWORK_TYPE, dcVo.getNetworkType().toString());
+
+                for (String key : metadatas.keySet()) {
+                    String value = metadatas.get(key);
+                    cmd.addVmData("metadata", key, value);
+                }
+
+                cmds.addCommand("vmdata", cmd);
+                return sendCommandsToRouter(router, cmds);
+            }
+        });
+    }
+
+    @Override
     @ActionEvent(eventType = EventTypes.EVENT_ROUTER_STOP, eventDescription = "stopping router Vm", async = true)
     public VirtualRouter stopRouter(final long routerId, final boolean forced) throws ResourceUnavailableException, ConcurrentOperationException {
         final CallContext context = CallContext.current();
@@ -882,7 +922,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             setVmInstanceId(vmUuid, cmd);
         }
 
-        setVmTags(cmd, vmId);
+        buildTagMetadata(cmd, vmId);
         cmd.addVmData("metadata", "public-keys", publicKey);
 
         String cloudIdentifier = _configDao.getValue("cloud.identifier");
@@ -896,22 +936,22 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         return cmd;
     }
 
-    protected void setVmTags(VmDataCommand cmd, long vmId) {
+    protected void buildTagMetadata(VmDataCommand cmd, long vmId) {
         List<? extends ResourceTag> resourceTags = _resourceTagDao.listBy(vmId, ResourceTag.ResourceObjectType.UserVm);
 
-        String tagKeys = "";
-
+        TagKeysBuilder tagKeysBuilder = new TagKeysBuilder();
         for (ResourceTag resourceTag : resourceTags) {
             String key = resourceTag.getKey();
             if (key != null && !key.isEmpty()){
                 String value = resourceTag.getValue() != null ? resourceTag.getValue() : "";
-                cmd.addVmData("metadata", "TAG_" + key, value);
-                tagKeys += key.trim() + " ";
+
+                String metadataKey = TagKeysBuilder.getKeyMetadata(key);
+                cmd.addVmData("metadata", metadataKey, value);
+                tagKeysBuilder.add(metadataKey);
             }
         }
 
-        tagKeys = tagKeys.trim().replaceAll(" ",  ",");
-        cmd.addVmData("metadata", "TAGKEYS", tagKeys);
+        cmd.addVmData("metadata", TagKeysBuilder.TAGKEYS_METADATA_KEY, tagKeysBuilder.value());
     }
 
     private void setVmInstanceId(final String vmUuid, final VmDataCommand cmd) {
