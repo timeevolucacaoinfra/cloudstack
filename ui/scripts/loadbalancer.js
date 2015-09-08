@@ -1378,7 +1378,7 @@
                         },
                     },
                     action: function(args) {
-                        if (args.data.name.indexOf("_")) {
+                        if (args.data.name.indexOf("_") > 0) {
                             args.response.error("Underscore(_) is not allowed in Load Balancer names");
                             return;
                         }
