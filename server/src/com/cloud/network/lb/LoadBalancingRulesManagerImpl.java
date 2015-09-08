@@ -1765,6 +1765,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
 
                 result = createPublicLoadBalancer(xId, name, description, srcPortStart, defPortStart, ipVO.getId(), protocol, algorithm, openFirewall, CallContext.current(),
                         lbProtocol, forDisplay, additionalPortMap, cache, serviceDownAction, healthCheckDestination);
+            } catch (CloudRuntimeException e) {
+               throw  e;
             } catch (Exception ex) {
                 s_logger.warn("Failed to create load balancer due to ", ex);
                 if (ex instanceof NetworkRuleConflictException) {
