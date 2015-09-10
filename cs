@@ -1,5 +1,65 @@
 #!/bin/bash
 
+virtualenv_file='/usr/local/bin/virtualenvwrapper.sh'
+
+gen_tag(){
+    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
+    tag_version=$(date +%Y%m%d%H%M)
+    git tag $cs_version-$tag_version
+    git push --tags
+    echo "RELEASE/TAG: $cs_version-$tag_version"
+}
+
+
+gen_package(){
+    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
+    tag=$1
+    REPOPATH=$2
+
+    # export some shell environments variables
+    export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
+    export M2_HOME=/opt/apache-maven-3.0.5
+    export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
+    export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.3.x86_64/jre
+    export CATALINA_HOME=/usr/share/tomcat6/
+    export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
+    [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && exit 1
+    source ${virtualenv_file}
+
+    git checkout ${tag}
+    (cd packaging/centos63; ./package.sh -t ${tag})
+    if [[ $? -eq 0 ]]; then
+      if [[ -d $REPOPATH ]];then
+          BUILDDIR='dist/rpmbuild'
+          echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm to $REPOPATH..."
+          mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm $REPOPATH
+          echo "done"
+          createrepo -v $REPOPATH
+      else
+          echo "The directory $REPOPATH does not exist... exiting."
+      fi
+    else
+      echo "Please, fix errors."
+      exit 1
+    fi
+}
+
+continuos_delivery(){
+    # Gen tag
+    echo "Creating a new tag..."
+    TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
+    # Build package
+    echo "Building tag ${TAG}"
+    gen_package ${TAG} $1
+    # keep last 3 builds
+    echo "Removing old packages from yum repo ${1}"
+    rpms='agent awsapi baremetal-agent cli common management usage'
+    for f in ${rpms}; do rm -f $(ls -1t cloudstack-${f}* 2>/dev/null | awk 'NR>5 {print}') ; done
+    # Create yum repo
+    echo "Creating yum repo..."
+    sudo createrepo -q ${1}
+}
+
 case "$1" in
   run)
     rm -f *.log
@@ -37,41 +97,17 @@ case "$1" in
     (cd setup/dbmigrate && db-migrate --env=localhost)
     ;;
   tag)
-    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
-    tag_version=$(date +%Y%m%d%H%M)
-    git tag $cs_version-$tag_version
-    git push --tags
-    echo "RELEASE/TAG: $cs_version-$tag_version"
+    gen_tag
     ;;
   package)
-    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
-    [[ $# -ne 3 ]] && echo "You need to provide the tag from git and yum repo path. eg: $0 package 4.2.0-201402262000 /path/to/your/yum/repo" && exit 1
-    # export some shell environments variables
-    export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
-    export M2_HOME=/opt/apache-maven-3.0.5
-    export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
-    export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.3.x86_64/jre
-    export CATALINA_HOME=/usr/share/tomcat6/
-    export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
-    source /usr/local/bin/virtualenvwrapper.sh
-
-    REPOPATH=$3
-    git checkout $2
-    (cd packaging/centos63; ./package.sh -t $2)
-    if [[ $? -eq 0 ]]; then
-      if [[ -d $REPOPATH ]];then
-          BUILDDIR='dist/rpmbuild'
-          echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm to $REPOPATH..."
-          mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm $REPOPATH
-          echo "done"
-          createrepo -v $REPOPATH
-      else
-          echo "The directory $REPOPATH does not exist... exiting."
-      fi
-    else
-      echo "Please, fix the errors."
-      exit 1
-    fi
+    [[ $# -ne 3 ]] && echo "Use: $0 package <TAG> <path_to_your_yum_repo>" && exit 1
+    tag=$2
+    repopath=$3
+    gen_package ${tag} ${repopath}
+    ;;
+  cd)
+    repo_path=$2
+    continuos_delivery ${repo_path}
     ;;
   *)
     echo "Usage: $0 [action]
@@ -94,6 +130,7 @@ DB
 
     tag               Create a git TAG
     package           Build RPM packages for cloudstack (management, usage, awsapi, common, etc) and create yum repo
+    cd                tag + package + create yum repo
 "
     exit 2
     ;;
