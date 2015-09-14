@@ -1,6 +1,13 @@
 #!/bin/bash
 
-virtualenv_file='/usr/local/bin/virtualenvwrapper.sh'
+# virtualenv_file='/usr/local/bin/virtualenvwrapper.sh'
+
+pkg_path(){
+    package=${1}
+    package_name=$(rpm -qa | grep ${package})
+    [[ -z ${package_name} ]] && echo "${1} not found! Please install it before continue!" >&2 && return 1
+    echo $(rpm -ql ${package_name} | grep \/bin$ | sed 's/\/bin//g')
+}
 
 gen_tag(){
     cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
@@ -14,36 +21,40 @@ gen_tag(){
 
 
 gen_package(){
-    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
     tag=$1
     REPOPATH=$2
 
+    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && return 1
+    [[ ! -d $REPOPATH ]] && echo "The directory $REPOPATH does not exist... exiting." && return 1
+
     # export some shell environments variables
     export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
-    export M2_HOME=/opt/apache-maven-3.0.5
-    export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
-    export JAVA_HOME=/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.3.x86_64/jre
+    export M2_HOME=$(pkg_path apache-maven) || exit 1
+    export JAVA_HOME=$(pkg_path java-1.7.0-openjdk-1.7) || exit 1
     export CATALINA_HOME=/usr/share/tomcat6/
+    export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
-    [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && exit 1
-    source ${virtualenv_file}
+    # [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && retun 1
+    # source ${virtualenv_file}
 
     git checkout ${tag}
     (cd packaging/centos63; ./package.sh -t ${tag})
-    if [[ $? -eq 0 ]]; then
-      if [[ -d $REPOPATH ]];then
-          BUILDDIR='dist/rpmbuild'
-          echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm to $REPOPATH..."
-          mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${2}.el6.x86_64.rpm $REPOPATH
-          echo "done"
-          createrepo -v $REPOPATH
-      else
-          echo "The directory $REPOPATH does not exist... exiting."
-      fi
-    else
-      echo "Please, fix errors."
-      exit 1
-    fi
+
+    [[ $? -ne 0 ]] && echo "Failed to compile package. Please, fix errors." && return 1
+
+    # keep last 3 builds
+    echo "Removing old packages from yum repo ${REPOPATH}"
+    rpms='agent awsapi baremetal-agent cli common management usage'
+    for f in ${rpms}; do rm -f $(ls -1t cloudstack-${f}* 2>/dev/null | awk 'NR>5 {print}') ; done
+
+    BUILDDIR='dist/rpmbuild'
+    echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH..."
+    mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH
+    echo "done"
+    # Create yum repo
+    echo "Creating yum repo..."
+    whoami=$(whoami)
+    [[ ${whoami} == 'root' ]] && createrepo -q ${REPOPATH} || sudo createrepo -q ${REPOPATH}
 }
 
 continuos_delivery(){
@@ -52,14 +63,7 @@ continuos_delivery(){
     TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
     # Build package
     echo "Building tag ${TAG}"
-    gen_package ${TAG} $1
-    # keep last 3 builds
-    echo "Removing old packages from yum repo ${1}"
-    rpms='agent awsapi baremetal-agent cli common management usage'
-    for f in ${rpms}; do rm -f $(ls -1t cloudstack-${f}* 2>/dev/null | awk 'NR>5 {print}') ; done
-    # Create yum repo
-    echo "Creating yum repo..."
-    sudo createrepo -q ${1}
+    gen_package ${TAG} ${1}
 }
 
 case "$1" in
@@ -108,6 +112,7 @@ case "$1" in
     gen_package ${tag} ${repopath}
     ;;
   cd)
+    [[ $# -ne 2 ]] && echo "Use: $0 cd <path_to_your_yum_repo>" && exit 1
     repo_path=$2
     continuos_delivery ${repo_path}
     ;;
