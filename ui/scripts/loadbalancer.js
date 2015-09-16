@@ -576,9 +576,13 @@
                             fields: {
                                 name: { label: 'label.name' },
                                 port: { label: 'label.port' },
+                                lbmethod: { label: 'label.globo.network.lbmethod' },
                             },
                             dataProvider: function(args) {
-                                var data = {};
+                                var data = {
+                                    lbruleid: args.context.loadbalancers[0].id,
+                                    zoneid: args.context.loadbalancers[0].zoneid
+                                };
                                 listViewDataProvider(args, data);
 
                                 $.ajax({
@@ -586,7 +590,7 @@
                                     data: data,
                                     dataType: "json",
                                     success: function(data) {
-                                        var lbPools = data.listloadbalancerpoolsresponse.loadbalancerpool;
+                                        var lbPools = data.listglobonetworkpoolresponse.globonetworkpool;
                                         args.response.success({ data: lbPools });
                                     },
                                     error: function(errorMessage) {

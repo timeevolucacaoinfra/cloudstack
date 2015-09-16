@@ -381,7 +381,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         return true;
     }
 
-    private Ip getSourceIp(LoadBalancer lb) {
+    @Override
+    public Ip getSourceIp(LoadBalancer lb) {
         Ip sourceIp = null;
         if (lb.getScheme() == Scheme.Public) {
             sourceIp = _networkModel.getPublicIpAddress(lb.getSourceIpAddressId()).getAddress();

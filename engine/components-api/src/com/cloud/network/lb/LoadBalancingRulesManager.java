@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.network.lb;
 
+import com.cloud.utils.net.Ip;
 import java.util.List;
 
 import org.apache.cloudstack.context.CallContext;
@@ -72,4 +73,6 @@ public interface LoadBalancingRulesManager {
 
     void isLbServiceSupportedInNetwork(long networkId, Scheme scheme);
     Nic getLbInstanceNic(long lbid, long vmid);
+
+    public Ip getSourceIp(LoadBalancer lb);
 }

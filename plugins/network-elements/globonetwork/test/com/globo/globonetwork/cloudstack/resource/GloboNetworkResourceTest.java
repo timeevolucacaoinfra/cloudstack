@@ -47,6 +47,8 @@ import com.globo.globonetwork.client.model.VipPoolMap;
 import com.globo.globonetwork.client.model.VipXml;
 import com.globo.globonetwork.client.model.Vlan;
 
+import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -664,6 +666,46 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenThrow(new IOException());
         Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertFalse(answer.getResult());
+    }
+
+    @Test
+    public void testListPoolExecute() throws GloboNetworkException {
+
+        Vip vip = new VipJson();
+
+        List<Pool> poolsNetworkApi = new ArrayList<Pool>();
+        Pool pool1 = new Pool();
+        pool1.setId(33l);
+        pool1.setIdentifier("my_pool");
+        pool1.setLbMethod("leastcon");
+        pool1.setDefaultPort(80);
+        poolsNetworkApi.add(pool1);
+
+        Pool pool2 = new Pool();
+        pool2.setId(22l);
+        pool2.setIdentifier("my_pool_2");
+        pool2.setLbMethod("round");
+        pool2.setDefaultPort(8091);
+        poolsNetworkApi.add(pool1);
+
+
+        vip.setPools(poolsNetworkApi);
+        when(_resource._globoNetworkApi.getVipAPI().getByPk(123l)).thenReturn(vip);
+
+        ListPoolLBCommand cmd = new ListPoolLBCommand(123l);
+        Answer answer = _resource.executeRequest((ListPoolLBCommand) cmd);
+
+        List<GloboNetworkListPoolResponse.Pool> pools = ((GloboNetworkListPoolResponse)answer).getPools();
+
+        assertEquals(2, pools.size());
+
+        GloboNetworkListPoolResponse.Pool pool = pools.get(0);
+        assertEquals((Long)33l, pool.getId());
+        assertEquals("my_pool", pool.getIdentifier());
+        assertEquals("leastcon", pool.getLbMethod());
+        assertEquals((Integer) 80, pool.getPort());
+
+
     }
 
     private long getNewIpID() {

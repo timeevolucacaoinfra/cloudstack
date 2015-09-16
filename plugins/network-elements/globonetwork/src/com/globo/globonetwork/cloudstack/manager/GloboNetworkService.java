@@ -16,6 +16,7 @@
 */
 package com.globo.globonetwork.cloudstack.manager;
 
+import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
 import java.util.List;
 
 import javax.naming.ConfigurationException;
@@ -266,4 +267,6 @@ public interface GloboNetworkService {
     public List<String> listGloboNetworkLBCacheGroups(Long lbEnvironmentId, Long networkId);
 
     public List<GloboNetworkPoolOptionResponse.PoolOption> listPoolOptions(Long lbEnvironmentId, Long networkId, String type);
+
+    public List<GloboNetworkListPoolResponse.Pool> listAllPoolByVipId(Long id, Long zoneUuid);
 }

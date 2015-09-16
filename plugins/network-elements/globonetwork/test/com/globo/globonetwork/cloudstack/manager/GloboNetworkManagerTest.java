@@ -30,6 +30,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.cloud.host.Status;
+import com.cloud.network.dao.IPAddressVO;
+import com.cloud.network.rules.LoadBalancer;
+import com.cloud.utils.net.Ip;
+import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
+import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -482,6 +489,100 @@ public class GloboNetworkManagerTest {
             assertEquals("Error" , e.getNapiDescription());
             assertEquals(404 , e.getNapiCode());
         }
+    }
+
+    @Test
+    public void testListAllPoolByVipId() {
+        GloboNetworkManager manager = new GloboNetworkManager();
+
+        HostDao mock = mock(HostDao.class);
+        HostVO host = createMockHost();
+        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
+        manager._hostDao = mock;
+
+
+        LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
+        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
+
+        when(lbServiceMock.findById(123l)).thenReturn(lb);
+        manager._lbService = lbServiceMock;
+
+        mockGetNetworkApiVipIp(lb, manager, 10001l);
+
+        AgentManager mockAgent = mock(AgentManager.class);
+
+
+        List<GloboNetworkListPoolResponse.Pool> lbResponses = mockPools();
+        GloboNetworkListPoolResponse poolResponseAnswer = new GloboNetworkListPoolResponse(lbResponses);
+
+
+        when(mockAgent.easySend(eq(host.getId()), any(ListPoolLBCommand.class))).thenReturn(poolResponseAnswer);
+        manager._agentMgr = mockAgent;
+
+        List<GloboNetworkListPoolResponse.Pool> poolResponses = manager.listAllPoolByVipId(123l, 10l);
+
+        assertEquals(2, poolResponses.size());
+        GloboNetworkListPoolResponse.Pool pool = poolResponses.get(0);
+        assertEquals((Long)123l, pool.getId());
+        assertEquals("my_pool", pool.getIdentifier());
+        assertEquals("leastcon", pool.getLbMethod());
+        assertEquals((Integer)80, pool.getPort());
+
+        pool = poolResponses.get(1);
+        assertEquals((Long)123l, pool.getId());
+        assertEquals("my_pool_2", pool.getIdentifier());
+        assertEquals("round", pool.getLbMethod());
+        assertEquals((Integer)8090, pool.getPort());
+
+
+    }
+
+    private void mockGetNetworkApiVipIp(LoadBalancer lb, GloboNetworkManager manager, Long networkVipId) {
+
+        LoadBalancingRulesManager lbMgrMock = mock(LoadBalancingRulesManager.class);
+        Ip ip = new Ip("75.75.75.75");
+        when(lbMgrMock.getSourceIp(lb)).thenReturn(ip);
+        manager._lbMgr = lbMgrMock;
+
+        IPAddressDao ipAddrMock  = mock(IPAddressDao.class);
+        IPAddressVO ipV0 = new IPAddressVO(ip, 0l, 0l, 0l, true);
+        when(ipAddrMock.findByIpAndNetworkId(lb.getNetworkId(), ip.addr())).thenReturn(ipV0);
+        manager._ipAddrDao = ipAddrMock;
+
+        GloboNetworkIpDetailDao _globoNetworkIpDetailMock = mock(GloboNetworkIpDetailDao.class);
+        GloboNetworkIpDetailVO detail = new GloboNetworkIpDetailVO();
+        detail.setGloboNetworkVipId(networkVipId);
+        when(_globoNetworkIpDetailMock.findByIp(anyLong())).thenReturn(detail);
+        manager._globoNetworkIpDetailDao = _globoNetworkIpDetailMock;
+
+    }
+
+    private List<GloboNetworkListPoolResponse.Pool> mockPools() {
+        ArrayList<GloboNetworkListPoolResponse.Pool> pools = new ArrayList<>();
+        GloboNetworkListPoolResponse.Pool pool1 = new GloboNetworkListPoolResponse.Pool();
+        pool1.setId(123l);
+        pool1.setIdentifier("my_pool");
+        pool1.setLbMethod("leastcon");
+        pool1.setPort(80);
+        pools.add(pool1);
+
+
+        GloboNetworkListPoolResponse.Pool pool2 = new GloboNetworkListPoolResponse.Pool();
+        pool2.setId(123l);
+        pool2.setIdentifier("my_pool_2");
+        pool2.setLbMethod("round");
+        pool2.setPort(8090);
+        pools.add(pool2);
+
+        return pools;
+
+    }
+
+    private HostVO createMockHost() {
+        return new HostVO(10L, "Host-1", Host.Type.Routing, null,
+                "10.0.0.0", null, null, null, null, null, null, null, null,
+                Status.Up, null, null, null, 10L, 10L, 30L, 10233, null, null,
+                null, 0, null);
     }
 
     protected LoadBalancingRule createLoadBalancerRule() {

@@ -19,6 +19,8 @@ package com.globo.globonetwork.cloudstack.resource;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
+import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -283,8 +285,41 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((ListGloboNetworkLBCacheGroupsCommand) cmd);
         }else if (cmd instanceof ListPoolOptionsCommand){
             return execute((ListPoolOptionsCommand) cmd);
+        }else if (cmd instanceof ListPoolLBCommand) {
+            return execute((ListPoolLBCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
+    }
+
+    private Answer execute(ListPoolLBCommand cmd) {
+        try {
+            Vip vip = _globoNetworkApi.getVipAPI().getByPk(cmd.getVipId());
+
+            List<GloboNetworkListPoolResponse.Pool> pools = new ArrayList<GloboNetworkListPoolResponse.Pool>();
+            for (Pool pool : vip.getPools()) {
+                GloboNetworkListPoolResponse.Pool poolCS = poolFromNetworkApi(pool);
+                pools.add(poolCS);
+            }
+
+            GloboNetworkListPoolResponse answer = new GloboNetworkListPoolResponse(cmd, true, "", pools);
+            return answer;
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        } catch (Exception e) {
+            s_logger.error("Generic error accessing GloboNetwork", e);
+            return new Answer(cmd, false, e.getMessage());
+        }
+    }
+
+    private static GloboNetworkListPoolResponse.Pool poolFromNetworkApi(Pool poolNetworkApi) {
+        GloboNetworkListPoolResponse.Pool pool = new GloboNetworkListPoolResponse.Pool();
+
+        pool.setId(poolNetworkApi.getId());
+        pool.setIdentifier(poolNetworkApi.getIdentifier());
+        pool.setPort(poolNetworkApi.getDefaultPort());
+        pool.setLbMethod(poolNetworkApi.getLbMethod());
+
+        return pool;
     }
 
     private Answer execute(ListPoolOptionsCommand cmd) {
