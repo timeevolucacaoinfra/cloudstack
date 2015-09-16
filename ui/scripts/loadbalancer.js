@@ -566,7 +566,119 @@
                                         poll: pollAsyncJobResult
                                     }
                                 }
+                            }
+                        }
+                    },
+                    pools: {
+                        title: 'Pools',
+                        listView: {
+                            id: 'pools',
+                            fields: {
+                                name: { label: 'label.name' },
+                                port: { label: 'label.port' },
                             },
+                            dataProvider: function(args) {
+                                var data = {};
+                                listViewDataProvider(args, data);
+
+                                $.ajax({
+                                    url: createURL("listGloboNetworkPools"),
+                                    data: data,
+                                    dataType: "json",
+                                    success: function(data) {
+                                        var lbPools = data.listloadbalancerpoolsresponse.loadbalancerpool;
+                                        args.response.success({ data: lbPools });
+                                    },
+                                    error: function(errorMessage) {
+                                        args.response.error(errorMessage);
+                                    }
+                                });
+                            },
+                            detailView: {
+                                name: 'Pool Details',
+                                isMaximized: true,
+                                noCompact: true,
+                                tabs: {
+                                    details: {
+                                        title: 'label.details',
+                                        fields: [{
+                                            name: {
+                                                label: 'label.fqdn'
+                                            },
+                                            port: {
+                                                label: 'label.port'
+                                            },
+                                            algorithm: {
+                                                label: 'label.algorithm'
+                                            },
+                                            cache: {
+                                                label: 'Cache'
+                                            },
+                                            stickiness: {
+                                                label: 'label.stickiness'
+                                            },
+                                            healthchecktype: {
+                                                label: 'Healthcheck Type'
+                                            },
+                                            healthcheck: {
+                                                label: 'Healthcheck'
+                                            },
+                                        }],
+                                        dataProvider: function(args) {
+                                            if (!args.jsonObj) {
+                                                args.jsonObj = args.context.pools[0];
+                                            }
+                                            args.response.success({
+                                                data: args.jsonObj
+                                            });
+                                        }
+                                    }
+                                }
+                            },
+                            // actions: {
+                            //     remove: {
+                            //         label: 'label.delete',
+                            //         messages: {
+                            //             confirm: function(args) {
+                            //                 return 'Are you sure you want to remove pool ' + args.context.pools[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
+                            //             },
+                            //             notification: function(args) {
+                            //                 return 'label.remove.pool.from.lb';
+                            //             }
+                            //         },
+                            //         action: function(args) {
+                            //             // TODO
+                            //             alert('Pool removed!');
+                            //         },
+                            //         notification: {
+                            //             poll: pollAsyncJobResult
+                            //         }
+                            //     },
+                            //     add: {
+                            //         label: 'Add Pool to Load Balancer',
+                            //         createForm: {
+                            //             title: 'Add Pool to Load Balancer',
+                            //             fields: {
+                            //                 name: {
+                            //                     label: 'label.name',
+                            //                     validation: { required: true }
+                            //                 }
+                            //             },
+                            //         },
+                            //         action: function(args) {
+                            //             // TODO
+                            //             alert('Pool added!');
+                            //         },
+                            //         messages: {
+                            //             notification: function(args) {
+                            //                 return 'label.add.pools.to.lb';
+                            //             }
+                            //         },
+                            //         notification: {
+                            //             poll: pollAsyncJobResult
+                            //         }
+                            //     }
+                            // }
                         }
                     },
                     autoscale: {
