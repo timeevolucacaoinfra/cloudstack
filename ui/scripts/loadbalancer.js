@@ -608,7 +608,7 @@
                                         title: 'label.details',
                                         fields: [{
                                             name: {
-                                                label: 'label.fqdn'
+                                                label: 'label.name'
                                             },
                                             port: {
                                                 label: 'label.port'

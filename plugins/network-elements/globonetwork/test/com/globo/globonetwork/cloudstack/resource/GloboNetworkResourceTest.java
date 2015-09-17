@@ -671,8 +671,6 @@ public class GloboNetworkResourceTest {
     @Test
     public void testListPoolExecute() throws GloboNetworkException {
 
-        Vip vip = new VipJson();
-
         List<Pool> poolsNetworkApi = new ArrayList<Pool>();
         Pool pool1 = new Pool();
         pool1.setId(33l);
@@ -688,9 +686,7 @@ public class GloboNetworkResourceTest {
         pool2.setDefaultPort(8091);
         poolsNetworkApi.add(pool1);
 
-
-        vip.setPools(poolsNetworkApi);
-        when(_resource._globoNetworkApi.getVipAPI().getByPk(123l)).thenReturn(vip);
+        when(_resource._globoNetworkApi.getPoolAPI().listAllByReqVip(123l)).thenReturn(poolsNetworkApi);
 
         ListPoolLBCommand cmd = new ListPoolLBCommand(123l);
         Answer answer = _resource.executeRequest((ListPoolLBCommand) cmd);
@@ -776,7 +772,9 @@ public class GloboNetworkResourceTest {
             pool.setDefaultPort(new Integer(servicePort.split(":")[1]));
             pool.setIdentifier("POOL_" + servicePort.split(":")[1]);
             pool.setDefaultLimit(0);
-            pool.setEnvironment(120l);
+            Pool.Environment env = new Pool.Environment();
+            env.setId(120l);
+            pool.setEnvironment(env);
 
             vip.getPools().add(pool);
         }

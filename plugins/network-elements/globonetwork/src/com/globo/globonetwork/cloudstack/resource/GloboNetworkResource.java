@@ -293,11 +293,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private Answer execute(ListPoolLBCommand cmd) {
         try {
-            Vip vip = _globoNetworkApi.getVipAPI().getByPk(cmd.getVipId());
+            List<Pool> poolsNetworkApi= _globoNetworkApi.getPoolAPI().listAllByReqVip(cmd.getVipId());
 
             List<GloboNetworkListPoolResponse.Pool> pools = new ArrayList<GloboNetworkListPoolResponse.Pool>();
-            for (Pool pool : vip.getPools()) {
-                GloboNetworkListPoolResponse.Pool poolCS = poolFromNetworkApi(pool);
+            for (Pool pool : poolsNetworkApi) {
+                GloboNetworkListPoolResponse.Pool poolCS = poolFromNetworkApi(pool,_globoNetworkApi);
                 pools.add(poolCS);
             }
 
@@ -311,13 +311,21 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    private static GloboNetworkListPoolResponse.Pool poolFromNetworkApi(Pool poolNetworkApi) {
+    private static GloboNetworkListPoolResponse.Pool poolFromNetworkApi(Pool poolNetworkApi, GloboNetworkAPI networkApi) throws GloboNetworkException {
         GloboNetworkListPoolResponse.Pool pool = new GloboNetworkListPoolResponse.Pool();
 
         pool.setId(poolNetworkApi.getId());
         pool.setIdentifier(poolNetworkApi.getIdentifier());
         pool.setPort(poolNetworkApi.getDefaultPort());
         pool.setLbMethod(poolNetworkApi.getLbMethod());
+        pool.setMaxconn(poolNetworkApi.getMaxconn());
+
+        Pool.Healthcheck healthcheck = poolNetworkApi.getHealthcheck();
+
+        pool.setHealthcheck(healthcheck.getHealthcheckRequest());
+        pool.setHealthcheckType(healthcheck.getHealthcheckType());
+        pool.setExpectedHealthcheck(healthcheck.getExpectedHealthcheck());
+
 
         return pool;
     }

@@ -23,6 +23,54 @@ public class PoolResponse extends BaseResponse {
     @Param(description = "the Pool Port")
     private Integer port;
 
+    @SerializedName("maxconn")
+    @Param(description = "the max connections")
+    private Integer maxconn;
+
+
+    @SerializedName("healthchecktype")
+    @Param(description = "Healthcheck type")
+    private String healthcheckType;
+
+    @SerializedName("healthcheck")
+    @Param(description = "Healthcheck")
+    private String healthcheck;
+
+    @SerializedName("healthcheckexpect")
+    @Param(description = "Expected healthcheck")
+    private String expectedHealthcheck;
+
+    public String getHealthcheckType() {
+        return healthcheckType;
+    }
+
+    public Integer getMaxconn() {
+        return maxconn;
+    }
+
+    public void setMaxconn(Integer maxconn) {
+        this.maxconn = maxconn;
+    }
+
+    public void setHealthcheckType(String healthcheckType) {
+        this.healthcheckType = healthcheckType;
+    }
+
+    public String getHealthcheck() {
+        return healthcheck;
+    }
+
+    public void setHealthcheck(String healthcheck) {
+        this.healthcheck = healthcheck;
+    }
+
+    public String getExpectedHealthcheck() {
+        return expectedHealthcheck;
+    }
+
+    public void setExpectedHealthcheck(String expectedHealthcheck) {
+        this.expectedHealthcheck = expectedHealthcheck;
+    }
 
     public Long getId() {
         return id;

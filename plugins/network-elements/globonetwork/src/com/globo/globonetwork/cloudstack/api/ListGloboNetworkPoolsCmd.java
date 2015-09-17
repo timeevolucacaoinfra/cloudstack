@@ -97,6 +97,12 @@ public class ListGloboNetworkPoolsCmd extends BaseCmd {
             poolResp.setName(pool.getIdentifier());
             poolResp.setLbMethod(pool.getLbMethod());
             poolResp.setPort(pool.getPort());
+            poolResp.setHealthcheckType(pool.getHealthcheckType());
+            poolResp.setHealthcheck(pool.getHealthcheck());
+            poolResp.setExpectedHealthcheck(pool.getExpectedHealthcheck());
+            poolResp.setMaxconn(pool.getMaxconn());
+
+
             poolResp.setObjectName("globonetworkpool");
             lbResponses.add(poolResp);
 

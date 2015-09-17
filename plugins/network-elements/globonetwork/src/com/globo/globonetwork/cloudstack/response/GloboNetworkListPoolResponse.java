@@ -30,7 +30,34 @@ public class GloboNetworkListPoolResponse extends Answer{
         private String identifier;
         private String lbMethod;
         private Integer port;
+        private String healthcheckType;
+        private String expectedHealthcheck;
+        private String healthcheck;
+        private Integer maxconn;
 
+        public String getHealthcheckType() {
+            return healthcheckType;
+        }
+
+        public void setHealthcheckType(String healthcheckType) {
+            this.healthcheckType = healthcheckType;
+        }
+
+        public String getExpectedHealthcheck() {
+            return expectedHealthcheck;
+        }
+
+        public void setExpectedHealthcheck(String expectedHealthcheck) {
+            this.expectedHealthcheck = expectedHealthcheck;
+        }
+
+        public String getHealthcheck() {
+            return healthcheck;
+        }
+
+        public void setHealthcheck(String healthcheck) {
+            this.healthcheck = healthcheck;
+        }
 
         public Long getId() {
             return id;
@@ -65,5 +92,11 @@ public class GloboNetworkListPoolResponse extends Answer{
         }
 
 
+        public Integer getMaxconn() {
+            return maxconn;
+        }
+        public void setMaxconn(Integer maxconn) {
+            this.maxconn = maxconn;
+        }
     }
 }
