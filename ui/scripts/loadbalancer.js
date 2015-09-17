@@ -576,7 +576,8 @@
                             fields: {
                                 name: { label: 'label.name' },
                                 port: { label: 'label.port' },
-                                lbmethod: { label: 'label.globo.network.lbmethod' },
+                                lbmethod: { label: 'label.algorithm' },
+                                healthchecktype: { label: 'Healthcheck Type' }
                             },
                             dataProvider: function(args) {
                                 var data = {
@@ -612,7 +613,7 @@
                                             port: {
                                                 label: 'label.port'
                                             },
-                                            algorithm: {
+                                            lbmethod: {
                                                 label: 'label.algorithm'
                                             },
                                             cache: {
