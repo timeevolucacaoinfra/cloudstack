@@ -207,12 +207,12 @@
                             stickiness: {
                                 label: 'label.stickiness'
                             },
-                            healthchecktype: {
-                                label: 'Healthcheck Type'
-                            },
-                            healthcheck: {
-                                label: 'Healthcheck'
-                            },
+                            // healthchecktype: {
+                            //     label: 'Healthcheck Type'
+                            // },
+                            // healthcheck: {
+                            //     label: 'Healthcheck'
+                            // },
                         }],
                         dataProvider: function(args) {
                             if (!args.jsonObj) {
@@ -241,28 +241,28 @@
                                 }
                             });
 
-                            $.ajax({
-                                url: createURL("listLBHealthCheckPolicies"),
-                                data: {
-                                    lbruleid: args.jsonObj.id
-                                },
-                                dataType: "json",
-                                async: false,
-                                success: function(json) {
-                                    var healthcheck = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy;
-                                    // This logic is for GloboNetwork!
-                                    if (!healthcheck || !healthcheck[0] || !healthcheck[0].pingpath || healthcheck[0].pingpath === "") {
-                                        // This means it's TCP
-                                        args.jsonObj.healthchecktype = "TCP";
-                                    } else {
-                                        args.jsonObj.healthchecktype = "HTTP";
-                                        args.jsonObj.healthcheck = healthcheck[0].pingpath;
-                                    }
-                                },
-                                error: function (errorMessage) {
-                                    args.response.error(errorMessage);
-                                }
-                            });
+                            // $.ajax({
+                            //     url: createURL("listLBHealthCheckPolicies"),
+                            //     data: {
+                            //         lbruleid: args.jsonObj.id
+                            //     },
+                            //     dataType: "json",
+                            //     async: false,
+                            //     success: function(json) {
+                            //         var healthcheck = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy;
+                            //         // This logic is for GloboNetwork!
+                            //         if (!healthcheck || !healthcheck[0] || !healthcheck[0].pingpath || healthcheck[0].pingpath === "") {
+                            //             // This means it's TCP
+                            //             args.jsonObj.healthchecktype = "TCP";
+                            //         } else {
+                            //             args.jsonObj.healthchecktype = "HTTP";
+                            //             args.jsonObj.healthcheck = healthcheck[0].pingpath;
+                            //         }
+                            //     },
+                            //     error: function (errorMessage) {
+                            //         args.response.error(errorMessage);
+                            //     }
+                            // });
 
                             args.response.success({
                                 data: args.jsonObj
@@ -574,7 +574,7 @@
                         listView: {
                             id: 'pools',
                             fields: {
-                                name: { label: 'label.name' },
+                                name: { label: 'label.name', truncate: true },
                                 port: { label: 'label.port' },
                                 lbmethod: { label: 'label.algorithm' },
                                 healthchecktype: { label: 'Healthcheck Type' }
@@ -602,7 +602,7 @@
                             detailView: {
                                 name: 'Pool Details',
                                 isMaximized: true,
-                                noCompact: true,
+                                //noCompact: true,
                                 tabs: {
                                     details: {
                                         title: 'label.details',
@@ -616,17 +616,17 @@
                                             lbmethod: {
                                                 label: 'label.algorithm'
                                             },
-                                            cache: {
-                                                label: 'Cache'
-                                            },
-                                            stickiness: {
-                                                label: 'label.stickiness'
+                                            maxconn: {
+                                                label: 'Max Connections'
                                             },
                                             healthchecktype: {
                                                 label: 'Healthcheck Type'
                                             },
                                             healthcheck: {
                                                 label: 'Healthcheck'
+                                            },
+                                            healthcheckexpect: {
+                                                label: 'Expected Healthcheck'
                                             },
                                         }],
                                         dataProvider: function(args) {
@@ -898,23 +898,23 @@
                         },
                         action: function(args) {
                             var oldStickiness;
-                            var oldHealthcheck;
+                            // var oldHealthcheck;
 
                             var lb = args.context.loadbalancers[0];
 
-                            $.ajax({
-                                url: createURL('listLBHealthCheckPolicies'),
-                                data: {
-                                    lbruleid: lb.id
-                                },
-                                async: false,
-                                success: function(json) {
-                                    if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
-                                        policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
-                                        oldHealthcheck = policyObj.pingpath;
-                                    }
-                                }
-                            });
+                            // $.ajax({
+                            //     url: createURL('listLBHealthCheckPolicies'),
+                            //     data: {
+                            //         lbruleid: lb.id
+                            //     },
+                            //     async: false,
+                            //     success: function(json) {
+                            //         if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
+                            //             policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
+                            //             oldHealthcheck = policyObj.pingpath;
+                            //         }
+                            //     }
+                            // });
 
                             $.ajax({
                                 url: createURL('listLBStickinessPolicies'),
@@ -937,10 +937,10 @@
                                 form: {
                                     title: 'Edit Load Balancer',
                                     fields: {
-                                        healthcheck: {
-                                            label: 'Healthcheck',
-                                            defaultValue: oldHealthcheck
-                                        },
+                                        // healthcheck: {
+                                        //     label: 'Healthcheck',
+                                        //     defaultValue: oldHealthcheck
+                                        // },
                                         stickiness: {
                                             label: 'label.stickiness',
                                             defaultValue: oldStickiness,
@@ -1020,36 +1020,36 @@
 
                                     cascadeAsyncCmds({
                                         commands: [
-                                            {
-                                                name: 'listLBHealthCheckPolicies',
-                                                data: { lbruleid: lb.id }
-                                            },
-                                            {
-                                                name: 'deleteLBHealthCheckPolicy',
-                                                data: function(last_result) {
-                                                    // If healthcheck existed before and new value is different than old value
-                                                    listLbHealthcheckResult = last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies;
-                                                    if (listLbHealthcheckResult &&
-                                                        listLbHealthcheckResult[0].healthcheckpolicy.length > 0 &&
-                                                        listLbHealthcheckResult[0].healthcheckpolicy[0].pingpath != args2.data.healthcheck.trim()) {
-                                                        return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
-                                                    }
-                                                    // skip this command
-                                                    return false;
-                                                }
-                                            },
-                                            {
-                                                name: 'createLBHealthCheckPolicy',
-                                                data: function() {
-                                                    if (args2.data.healthcheck.trim() !== '' && args2.data.healthcheck.trim() != oldHealthcheck) {
-                                                        return {
-                                                            lbruleid: lb.id,
-                                                            pingpath: args2.data.healthcheck.trim()
-                                                        };
-                                                    }
-                                                    return false;
-                                                }
-                                            },
+                                            // {
+                                            //     name: 'listLBHealthCheckPolicies',
+                                            //     data: { lbruleid: lb.id }
+                                            // },
+                                            // {
+                                            //     name: 'deleteLBHealthCheckPolicy',
+                                            //     data: function(last_result) {
+                                            //         // If healthcheck existed before and new value is different than old value
+                                            //         listLbHealthcheckResult = last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies;
+                                            //         if (listLbHealthcheckResult &&
+                                            //             listLbHealthcheckResult[0].healthcheckpolicy.length > 0 &&
+                                            //             listLbHealthcheckResult[0].healthcheckpolicy[0].pingpath != args2.data.healthcheck.trim()) {
+                                            //             return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
+                                            //         }
+                                            //         // skip this command
+                                            //         return false;
+                                            //     }
+                                            // },
+                                            // {
+                                            //     name: 'createLBHealthCheckPolicy',
+                                            //     data: function() {
+                                            //         if (args2.data.healthcheck.trim() !== '' && args2.data.healthcheck.trim() != oldHealthcheck) {
+                                            //             return {
+                                            //                 lbruleid: lb.id,
+                                            //                 pingpath: args2.data.healthcheck.trim()
+                                            //             };
+                                            //         }
+                                            //         return false;
+                                            //     }
+                                            // },
                                             {
                                                 name: 'listLBStickinessPolicies',
                                                 data: { lbruleid: lb.id }
