@@ -29,18 +29,18 @@ import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
-@APICommand(name = "getGloboNetworkPools", description = "Get pool by Id.", responseObject = PoolResponse.class,
+@APICommand(name = "getGloboNetworkPool", description = "Get pool from globonetwork.", responseObject = PoolResponse.class,
         requestHasSensitiveInfo = false, responseHasSensitiveInfo = false)
-public class GetGloboNetworkPoolByIdCmd extends BaseCmd {
-    public static final Logger s_logger = Logger.getLogger(GetGloboNetworkPoolByIdCmd.class.getName());
+public class GetGloboNetworkPoolCmd extends BaseCmd {
+    public static final Logger s_logger = Logger.getLogger(GetGloboNetworkPoolCmd.class.getName());
 
-    private static final String s_name = "getglobonetworkpoolbyidresponse";
+    private static final String s_name = "getglobonetworkpoolresponse";
 
     // ///////////////////////////////////////////////////
     // ////////////// API parameters /////////////////////
     // ///////////////////////////////////////////////////
 
-    @Parameter(name= "poolid", type = CommandType.UUID, entityType = FirewallRuleResponse.class, description = "the ID of the pool load balancer rule")
+    @Parameter(name= "poolid", type = CommandType.LONG, entityType = PoolResponse.class, description = "the ID of the pool load balancer rule")
     private Long poolId;
 
     @Parameter(name= ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, description = "the ID of the zone")

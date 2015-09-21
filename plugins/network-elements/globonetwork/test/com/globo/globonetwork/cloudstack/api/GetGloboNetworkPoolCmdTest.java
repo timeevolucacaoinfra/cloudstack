@@ -10,10 +10,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.powermock.api.mockito.PowerMockito.when;
 
-public class GetGloboNetworkPoolByIdCmdTest extends TestCase {
+public class GetGloboNetworkPoolCmdTest extends TestCase {
 
     public void testExecute() throws Exception {
-        GetGloboNetworkPoolByIdCmd cmd = new GetGloboNetworkPoolByIdCmd();
+        GetGloboNetworkPoolCmd cmd = new GetGloboNetworkPoolCmd();
 
         GloboNetworkPoolResponse.Pool pool1 = new GloboNetworkPoolResponse.Pool();
         pool1.setId(123l);

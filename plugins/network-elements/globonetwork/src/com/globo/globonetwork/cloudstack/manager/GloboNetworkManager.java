@@ -18,7 +18,7 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import com.cloud.utils.net.Ip;
-import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolByIdCmd;
+import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
@@ -1000,7 +1000,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(RemoveGloboNetworkVipCmd.class);
         cmdList.add(ListGloboNetworkLBCacheGroupsCmd.class);
         cmdList.add(ListGloboNetworkPoolsCmd.class);
-        cmdList.add(GetGloboNetworkPoolByIdCmd.class);
+        cmdList.add(GetGloboNetworkPoolCmd.class);
         return cmdList;
     }
 
