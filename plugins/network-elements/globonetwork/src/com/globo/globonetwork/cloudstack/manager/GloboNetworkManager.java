@@ -2381,7 +2381,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         _globoNetworkIpDetailDao.persist(gnIpDetail);
 
                         // Create LB
-                        LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
+                        LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName().toLowerCase(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
                                 Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, additionalPortMapList, cache, null, null);
 
                         // If healthcheck is TCP, do nothing; otherwise, create the healthcheck policy
