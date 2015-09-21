@@ -573,11 +573,13 @@
                         title: 'Pools',
                         listView: {
                             id: 'pools',
+                            hideSearchBar: true,
                             fields: {
                                 name: { label: 'label.name', truncate: true },
                                 port: { label: 'label.port' },
-                                lbmethod: { label: 'label.algorithm' },
-                                healthchecktype: { label: 'Healthcheck Type' }
+                                // lbmethod: { label: 'label.algorithm' },
+                                healthchecktype: { label: 'Healthcheck Type' },
+                                healthcheck: { label: 'Healthcheck', truncate: true }
                             },
                             dataProvider: function(args) {
                                 var data = {
@@ -602,7 +604,7 @@
                             detailView: {
                                 name: 'Pool Details',
                                 isMaximized: true,
-                                //noCompact: true,
+                                noCompact: true,
                                 tabs: {
                                     details: {
                                         title: 'label.details',
@@ -638,52 +640,161 @@
                                             });
                                         }
                                     }
+                                },
+                                actions: {
+                                    editPool: {
+                                        label: 'Edit Pool',
+                                        custom: {
+                                            buttonLabel: 'label.configure'
+                                        },
+                                        action: function(args) {
+                                            var pool = args.context.pools[0];
+                                            var lb = args.context.loadbalancers[0];
+
+                                            // $.ajax({
+                                            //     url: createURL('listLBHealthCheckPolicies'),
+                                            //     data: {
+                                            //         lbruleid: lb.id
+                                            //     },
+                                            //     async: false,
+                                            //     success: function(json) {
+                                            //         if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
+                                            //             policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
+                                            //             oldHealthcheck = policyObj.pingpath;
+                                            //         }
+                                            //     }
+                                            // });
+
+                                            cloudStack.dialog.createForm({
+                                                form: {
+                                                    title: 'Edit Pool',
+                                                    fields: {
+                                                        healthcheck: {
+                                                            label: 'Healthcheck',
+                                                            defaultValue: pool.healthcheck
+                                                        }
+                                                    }
+                                                },
+                                                after: function(args2) {
+                                                    var lastJobId;
+                                                    args.response.success({
+                                                        _custom: {
+                                                            getLastJobId: function() { return lastJobId; },
+                                                            getUpdatedItem: function() {
+                                                                var loadbalancer = null;
+                                                                $.ajax({
+                                                                    url: createURL("getGloboNetworkPool"),
+                                                                    data: {
+                                                                        id: pool.id,
+                                                                        zoneid: lb.zoneid
+                                                                    },
+                                                                    dataType: "json",
+                                                                    async: false,
+                                                                    success: function(data) {
+                                                                        var lbPool = data.getglobonetworkpoolresponse.globonetworkpool[0];
+                                                                    }
+                                                                });
+                                                                return lbpool;
+                                                            }
+                                                        }
+                                                    });
+
+                                                    cascadeAsyncCmds({
+                                                        commands: [
+                                                            // {
+                                                            //     name: 'listLBHealthCheckPolicies',
+                                                            //     data: { lbruleid: lb.id }
+                                                            // },
+                                                            // {
+                                                            //     name: 'deleteLBHealthCheckPolicy',
+                                                            //     data: function(last_result) {
+                                                            //         // If healthcheck existed before and new value is different than old value
+                                                            //         listLbHealthcheckResult = last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies;
+                                                            //         if (listLbHealthcheckResult &&
+                                                            //             listLbHealthcheckResult[0].healthcheckpolicy.length > 0 &&
+                                                            //             listLbHealthcheckResult[0].healthcheckpolicy[0].pingpath != args2.data.healthcheck.trim()) {
+                                                            //             return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
+                                                            //         }
+                                                            //         // skip this command
+                                                            //         return false;
+                                                            //     }
+                                                            // },
+                                                            // {
+                                                            //     name: 'createLBHealthCheckPolicy',
+                                                            //     data: function() {
+                                                            //         if (args2.data.healthcheck.trim() !== '' && args2.data.healthcheck.trim() != oldHealthcheck) {
+                                                            //             return {
+                                                            //                 lbruleid: lb.id,
+                                                            //                 pingpath: args2.data.healthcheck.trim()
+                                                            //             };
+                                                            //         }
+                                                            //         return false;
+                                                            //     }
+                                                            // },
+                                                        ],
+                                                        success: function(data, jobId) {
+                                                            lastJobId = jobId;
+                                                        },
+                                                        error: function(message) {
+                                                            lastJobId = -1;
+                                                            args.response.error(message);
+                                                        }
+                                                    });
+                                                }
+                                            });
+
+                                            $('.create-form').find('.cancel').bind("click", function( event, ui ) {
+                                                $('.loading-overlay').remove();
+                                                return true;
+                                            });
+                                        },
+                                        messages: {
+                                            notification: function() {
+                                                return 'Update Pool';
+                                            }
+                                        },
+                                        notification: {
+                                            poll: function(args) {
+                                                var lastJobId = args._custom.getLastJobId();
+                                                if (lastJobId === undefined) {
+                                                    return;
+                                                } else if (lastJobId === null) {
+                                                    args.complete({
+                                                        data: args._custom.getUpdatedItem()
+                                                    });
+                                                    return;
+                                                }
+                                                args._custom.jobId = lastJobId;
+                                                return pollAsyncJobResult(args);
+                                            }
+                                        }
+                                    }
                                 }
                             },
-                            // actions: {
-                            //     remove: {
-                            //         label: 'label.delete',
-                            //         messages: {
-                            //             confirm: function(args) {
-                            //                 return 'Are you sure you want to remove pool ' + args.context.pools[0].name + ' from load balancer ' + args.context.loadbalancers[0].name + '?';
-                            //             },
-                            //             notification: function(args) {
-                            //                 return 'label.remove.pool.from.lb';
-                            //             }
-                            //         },
-                            //         action: function(args) {
-                            //             // TODO
-                            //             alert('Pool removed!');
-                            //         },
-                            //         notification: {
-                            //             poll: pollAsyncJobResult
-                            //         }
-                            //     },
-                            //     add: {
-                            //         label: 'Add Pool to Load Balancer',
-                            //         createForm: {
-                            //             title: 'Add Pool to Load Balancer',
-                            //             fields: {
-                            //                 name: {
-                            //                     label: 'label.name',
-                            //                     validation: { required: true }
-                            //                 }
-                            //             },
-                            //         },
-                            //         action: function(args) {
-                            //             // TODO
-                            //             alert('Pool added!');
-                            //         },
-                            //         messages: {
-                            //             notification: function(args) {
-                            //                 return 'label.add.pools.to.lb';
-                            //             }
-                            //         },
-                            //         notification: {
-                            //             poll: pollAsyncJobResult
-                            //         }
-                            //     }
-                            // }
+                            actions: {
+                                add: {
+                                    label: 'Edit All Pools',
+                                    createForm: {
+                                        fields: {
+                                            healthcheck: {
+                                                label: 'Healthcheck',
+                                                docID: 'helpHealthcheck',
+                                            },
+                                        },
+                                    },
+                                    action: function(args) {
+                                        var lb = args.context.loadbalancers[0];
+                                    },
+                                    messages: {
+                                        notification: function() {
+                                            return 'Edit All Pools';
+                                        }
+                                    },
+                                    notification: {
+                                        poll: pollAsyncJobResult
+                                    },
+                                }
+                            }
                         }
                     },
                     autoscale: {
