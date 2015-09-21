@@ -18,9 +18,11 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import com.cloud.utils.net.Ip;
+import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolByIdCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
+import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
-import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -998,6 +1000,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(RemoveGloboNetworkVipCmd.class);
         cmdList.add(ListGloboNetworkLBCacheGroupsCmd.class);
         cmdList.add(ListGloboNetworkPoolsCmd.class);
+        cmdList.add(GetGloboNetworkPoolByIdCmd.class);
         return cmdList;
     }
 
@@ -2494,7 +2497,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public List<GloboNetworkListPoolResponse.Pool> listAllPoolByVipId(Long lbId, Long zoneId) {
+    public List<GloboNetworkPoolResponse.Pool> listAllPoolByVipId(Long lbId, Long zoneId) {
         if (lbId == null) {
             throw new InvalidParameterValueException("Invalid LB ID");
         }
@@ -2503,13 +2506,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GloboNetworkIpDetailVO networkDetail = getNetworkApiVipIp(lb);
         //if the lb is not created in networkApi the networkDetail is not created yet
         if ( networkDetail == null || networkDetail.getGloboNetworkVipId() == null) {
-            return new ArrayList<GloboNetworkListPoolResponse.Pool>();
+            return new ArrayList<GloboNetworkPoolResponse.Pool>();
         }
 
         ListPoolLBCommand command = new ListPoolLBCommand(networkDetail.getGloboNetworkVipId());
 
 
-        Answer answer =  callCommand(command, zoneId );
+        Answer answer =  callCommand(command, zoneId);
 
         //error
         if ( answer == null || !answer.getResult() ) {
@@ -2517,7 +2520,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException(msg);
         }
 
-        GloboNetworkListPoolResponse poolResponse = (GloboNetworkListPoolResponse) answer;
+        GloboNetworkPoolResponse poolResponse = (GloboNetworkPoolResponse) answer;
 
 
         return poolResponse.getPools();
@@ -2536,5 +2539,28 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipVO.getId());
 
         return gnIpDetail;
+    }
+
+    public GloboNetworkPoolResponse.Pool getPoolById(Long poolId, Long zoneId) {
+        if (poolId == null) {
+            throw new InvalidParameterValueException("Invalid Pool ID: " + poolId);
+        }
+        if (zoneId == null) {
+            throw new InvalidParameterValueException("Invalid Zone ID: " + zoneId);
+        }
+
+        GetPoolLBByIdCommand command = new GetPoolLBByIdCommand(poolId);
+
+        Answer answer =  callCommand(command, zoneId);
+
+        //error
+        if ( answer == null || !answer.getResult() ) {
+            String msg = answer == null ? "Coud not get pool by id: " + poolId + " in zone: " + zoneId + "from networkApi" : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+
+        GloboNetworkPoolResponse response = (GloboNetworkPoolResponse)answer;
+
+        return response.getPool();
     }
 }

@@ -1,7 +1,7 @@
 package com.globo.globonetwork.cloudstack.api;
 
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkManager;
-import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.util.ArrayList;
 import java.util.List;
 import junit.framework.TestCase;
@@ -17,8 +17,8 @@ public class ListGloboNetworkPoolsCmdTest extends TestCase {
     public void testExecute() throws Exception {
         ListGloboNetworkPoolsCmd cmd = new ListGloboNetworkPoolsCmd();
 
-        List<GloboNetworkListPoolResponse.Pool> lbResponses = new ArrayList<GloboNetworkListPoolResponse.Pool>();
-        GloboNetworkListPoolResponse.Pool pool1 = new GloboNetworkListPoolResponse.Pool();
+        List<GloboNetworkPoolResponse.Pool> lbResponses = new ArrayList<GloboNetworkPoolResponse.Pool>();
+        GloboNetworkPoolResponse.Pool pool1 = new GloboNetworkPoolResponse.Pool();
         pool1.setId(123l);
         pool1.setIdentifier("my_pool");
         pool1.setLbMethod("leastcon");
@@ -26,7 +26,7 @@ public class ListGloboNetworkPoolsCmdTest extends TestCase {
         lbResponses.add(pool1);
 
 
-        GloboNetworkListPoolResponse.Pool pool2 = new GloboNetworkListPoolResponse.Pool();
+        GloboNetworkPoolResponse.Pool pool2 = new GloboNetworkPoolResponse.Pool();
         pool2.setId(124l);
         pool2.setIdentifier("my_pool_2");
         pool2.setLbMethod("round");

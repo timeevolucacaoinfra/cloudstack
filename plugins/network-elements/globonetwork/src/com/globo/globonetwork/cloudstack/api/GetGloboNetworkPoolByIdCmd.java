@@ -18,33 +18,30 @@ package com.globo.globonetwork.cloudstack.api;
 
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkManager;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
-import java.util.ArrayList;
-import java.util.List;
 import javax.inject.Inject;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.BaseCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.response.FirewallRuleResponse;
-import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.PoolResponse;
 import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
-@APICommand(name = "listGloboNetworkPools", description = "Lists pools .", responseObject = PoolResponse.class,
+@APICommand(name = "getGloboNetworkPools", description = "Get pool by Id.", responseObject = PoolResponse.class,
         requestHasSensitiveInfo = false, responseHasSensitiveInfo = false)
-public class ListGloboNetworkPoolsCmd extends BaseCmd {
-    public static final Logger s_logger = Logger.getLogger(ListGloboNetworkPoolsCmd.class.getName());
+public class GetGloboNetworkPoolByIdCmd extends BaseCmd {
+    public static final Logger s_logger = Logger.getLogger(GetGloboNetworkPoolByIdCmd.class.getName());
 
-    private static final String s_name = "listglobonetworkpoolresponse";
+    private static final String s_name = "getglobonetworkpoolbyidresponse";
 
     // ///////////////////////////////////////////////////
     // ////////////// API parameters /////////////////////
     // ///////////////////////////////////////////////////
 
-    @Parameter(name= ApiConstants.LBID, type = CommandType.UUID, entityType = FirewallRuleResponse.class, description = "the ID of the load balancer rule")
-    private Long lbId;
+    @Parameter(name= "poolid", type = CommandType.UUID, entityType = FirewallRuleResponse.class, description = "the ID of the pool load balancer rule")
+    private Long poolId;
 
     @Parameter(name= ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, description = "the ID of the zone")
     private Long zoneId;
@@ -55,15 +52,13 @@ public class ListGloboNetworkPoolsCmd extends BaseCmd {
     // ///////////////////////////////////////////////////
 
 
-    public Long getLbId() {
-        return lbId;
+    public Long getPoolId() {
+        return poolId;
     }
 
-
-    public Long getZoneId() {
-        return zoneId;
+    public void setPoolId(Long poolId) {
+        this.poolId = poolId;
     }
-
 
     @Inject
     GloboNetworkManager _globoNetworkService;
@@ -84,41 +79,29 @@ public class ListGloboNetworkPoolsCmd extends BaseCmd {
 
     @Override
     public void execute() {
-        ListResponse<PoolResponse> response = new ListResponse<PoolResponse>();
+        GloboNetworkPoolResponse.Pool pool = _globoNetworkService.getPoolById(getPoolId(), getZoneId());
 
-        List<GloboNetworkPoolResponse.Pool> pools = _globoNetworkService.listAllPoolByVipId(getLbId(), getZoneId());
+        PoolResponse poolResp = new PoolResponse();
+        poolResp.setId(pool.getId());
+        poolResp.setName(pool.getIdentifier());
+        poolResp.setLbMethod(pool.getLbMethod());
+        poolResp.setPort(pool.getPort());
+        poolResp.setHealthcheckType(pool.getHealthcheckType());
+        poolResp.setHealthcheck(pool.getHealthcheck());
+        poolResp.setExpectedHealthcheck(pool.getExpectedHealthcheck());
+        poolResp.setMaxconn(pool.getMaxconn());
 
-        List<PoolResponse> lbResponses = new ArrayList<>();
+        poolResp.setObjectName("globonetworkpool");
 
-        for ( GloboNetworkPoolResponse.Pool pool : pools) {
-
-            PoolResponse poolResp = new PoolResponse();
-            poolResp.setId(pool.getId());
-            poolResp.setName(pool.getIdentifier());
-            poolResp.setLbMethod(pool.getLbMethod());
-            poolResp.setPort(pool.getPort());
-            poolResp.setHealthcheckType(pool.getHealthcheckType());
-            poolResp.setHealthcheck(pool.getHealthcheck());
-            poolResp.setExpectedHealthcheck(pool.getExpectedHealthcheck());
-            poolResp.setMaxconn(pool.getMaxconn());
-
-
-            poolResp.setObjectName("globonetworkpool");
-            lbResponses.add(poolResp);
-
-        }
-
-        response.setResponses(lbResponses);
-        response.setResponseName(getCommandName());
-        this.setResponseObject(response);
+        this.setResponseObject(poolResp);
     }
 
+    private Long getZoneId() {
 
-    public void setZoneId(Long zoneId) {
+        return zoneId;
+    }
+
+    public void setZoneId(long zoneId) {
         this.zoneId = zoneId;
-    }
-
-    public void setLbId(Long lbId) {
-        this.lbId = lbId;
     }
 }

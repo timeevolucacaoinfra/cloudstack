@@ -48,7 +48,7 @@ import com.globo.globonetwork.client.model.VipXml;
 import com.globo.globonetwork.client.model.Vlan;
 
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
-import com.globo.globonetwork.cloudstack.response.GloboNetworkListPoolResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -691,11 +691,11 @@ public class GloboNetworkResourceTest {
         ListPoolLBCommand cmd = new ListPoolLBCommand(123l);
         Answer answer = _resource.executeRequest((ListPoolLBCommand) cmd);
 
-        List<GloboNetworkListPoolResponse.Pool> pools = ((GloboNetworkListPoolResponse)answer).getPools();
+        List<GloboNetworkPoolResponse.Pool> pools = ((GloboNetworkPoolResponse)answer).getPools();
 
         assertEquals(2, pools.size());
 
-        GloboNetworkListPoolResponse.Pool pool = pools.get(0);
+        GloboNetworkPoolResponse.Pool pool = pools.get(0);
         assertEquals((Long)33l, pool.getId());
         assertEquals("my_pool", pool.getIdentifier());
         assertEquals("leastcon", pool.getLbMethod());

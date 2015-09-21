@@ -4,25 +4,41 @@ import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
 import java.util.List;
 
-public class GloboNetworkListPoolResponse extends Answer{
+public class GloboNetworkPoolResponse extends Answer{
 
-    public GloboNetworkListPoolResponse(Command command, boolean success, String details, List<Pool> pools) {
+    public GloboNetworkPoolResponse(Command command, boolean success, String details, List<Pool> pools) {
         super(command, success, details);
         this.pools = pools;
     }
+    public GloboNetworkPoolResponse(Command command, boolean success, String details, Pool pool) {
+        super(command, success, details);
+        this.pool = pool;
+    }
 
-    public GloboNetworkListPoolResponse(List<Pool> pools) {
+    public GloboNetworkPoolResponse(List<Pool> pools) {
         this.pools = pools;
+    }
+    public GloboNetworkPoolResponse(Pool pool) {
+        this.pool = pool;
     }
 
     private List<Pool> pools;
+    private Pool pool;
 
     public List<Pool> getPools() {
         return pools;
     }
 
+    public Pool getPool() {
+        return pool;
+    }
+
     public void setPools(List<Pool> pools) {
         this.pools = pools;
+    }
+
+    public void setPool(Pool pool) {
+        this.pool = pool;
     }
 
     public static class Pool {
