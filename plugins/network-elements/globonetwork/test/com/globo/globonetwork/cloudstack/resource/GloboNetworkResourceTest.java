@@ -734,7 +734,7 @@ public class GloboNetworkResourceTest {
             pool.setDefaultPort(new Integer(servicePort.split(":")[1]));
             pool.setIdentifier("POOL_" + servicePort.split(":")[1]);
             pool.setDefaultLimit(0);
-            pool.setEnvironment(120l);
+            pool.setEnvironment(new Pool.Environment());
 
             vip.getPools().add(pool);
         }

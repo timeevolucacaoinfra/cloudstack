@@ -251,6 +251,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
     private static final ConfigKey<String> GloboNetworkLBAllowedSuffixes = new ConfigKey<String>("Network", String.class, "globonetwork.lb.allowed.suffixes", "",
             "Allowed domain suffixes for load balancers created with GloboNetwork. List of domain names separated by commas", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Boolean> GloboNetworkUseNewNetworkAPI = new ConfigKey<>("Network", Boolean.class, "globonetwork.use.newnetworkapi", "true",
+            "Set to true to use the new network creation resource", true, ConfigKey.Scope.Global);
 
     // DAOs
     @Inject
@@ -742,6 +744,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         if (!vlanResponse.isActive()) {
             // Create network in equipment
             ActivateNetworkCommand activateCmd = new ActivateNetworkCommand(vlanId, networkId, vlanResponse.isv6());
+            //temporary global setting to be used while new network service is not stable
+            activateCmd.setUseNewNetworkApi(GloboNetworkUseNewNetworkAPI.value());
             Answer cmdAnswer = callCommand(activateCmd, network.getDataCenterId());
             if (cmdAnswer == null || !cmdAnswer.getResult()) {
                 throw new CloudRuntimeException("Unable to create network in GloboNetwork: VlanId " + vlanId + " networkId " + networkId);
@@ -1699,7 +1703,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, GloboNetworkConnectionTimeout, GloboNetworkLBLockTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries,
                 GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm,
                 GloboNetworkModelVmElasticIpVm, GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal,
-                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes};
+                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes, GloboNetworkUseNewNetworkAPI};
     }
 
     protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,
