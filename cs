@@ -3,36 +3,40 @@
 # virtualenv_file='/usr/local/bin/virtualenvwrapper.sh'
 
 pkg_path(){
+    [ -f /etc/redhat-release ] || return 1
     package=${1}
     package_name=$(rpm -qa | grep ${package})
     [[ -z ${package_name} ]] && echo "${1} not found! Please install it before continue!" >&2 && return 1
     echo $(rpm -ql ${package_name} | grep \/bin$ | sed 's/\/bin//g')
 }
 
+export M2_HOME=$(pkg_path apache-maven) || exit 1
+export JAVA_HOME=$(pkg_path java-1.7.0-openjdk-1.7) || exit 1
+export CATALINA_HOME=/usr/share/tomcat6/
+export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
+
 gen_tag(){
+    git checkout -q develop
+    git pull -q
     cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
     tag_version=$(date +%Y%m%d%H%M)
-    git tag $cs_version-$tag_version
+    git tag ${cs_version}-${tag_version}
     remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
-    git push $remote --tags
+    git push ${remote} --tags
     git push --tags
-    echo "RELEASE/TAG: $cs_version-$tag_version"
+    echo "RELEASE/TAG: ${cs_version}-${tag_version}"
 }
 
 
 gen_package(){
-    tag=$1
-    REPOPATH=$2
+    tag=${1}
+    REPOPATH=${2}
 
     [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && return 1
-    [[ ! -d $REPOPATH ]] && echo "The directory $REPOPATH does not exist... exiting." && return 1
+    [[ ! -d ${REPOPATH} ]] && echo "The directory ${REPOPATH} does not exist... exiting." && return 1
 
     # export some shell environments variables
     export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
-    export M2_HOME=$(pkg_path apache-maven) || exit 1
-    export JAVA_HOME=$(pkg_path java-1.7.0-openjdk-1.7) || exit 1
-    export CATALINA_HOME=/usr/share/tomcat6/
-    export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
     # [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && retun 1
     # source ${virtualenv_file}
@@ -59,11 +63,12 @@ gen_package(){
 
 continuos_delivery(){
     # Gen tag
+    repo_path=${1}
     echo "Creating a new tag..."
     TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
     # Build package
     echo "Building tag ${TAG}"
-    gen_package ${TAG} ${1}
+    gen_package ${TAG} ${repo_path}
 }
 
 case "$1" in
