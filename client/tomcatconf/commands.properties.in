@@ -775,3 +775,4 @@ removeGloboNetworkVip=15
 listGloboNetworkLBCacheGroups=15
 listGloboNetworkPools=15
 getGloboNetworkPools=15
+updateGloboNetworkPool=15

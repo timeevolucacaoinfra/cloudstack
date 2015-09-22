@@ -20,6 +20,7 @@ package com.globo.globonetwork.cloudstack.manager;
 import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
+import com.globo.globonetwork.cloudstack.api.UpdateGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
@@ -1001,6 +1002,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(ListGloboNetworkLBCacheGroupsCmd.class);
         cmdList.add(ListGloboNetworkPoolsCmd.class);
         cmdList.add(GetGloboNetworkPoolCmd.class);
+        cmdList.add(UpdateGloboNetworkPoolCmd.class);
         return cmdList;
     }
 
@@ -2527,6 +2529,22 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     }
 
+    @Override
+    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds, Long vipId, Long zoneId, String healthcheckType, String healthcheck, String expectedHealthcheck) {
+        List<GloboNetworkPoolResponse.Pool> pools = new ArrayList<GloboNetworkPoolResponse.Pool>();
+
+        for (Long id : poolIds) {
+            GloboNetworkPoolResponse.Pool pool = new GloboNetworkPoolResponse.Pool();
+            pool.setId(id);
+            pool.setHealthcheckType(healthcheckType);
+            pool.setHealthcheck(healthcheck);
+            pool.setExpectedHealthcheck(expectedHealthcheck);
+            pools.add(pool);
+        }
+
+        return pools;
+    }
+
 
     public GloboNetworkIpDetailVO getNetworkApiVipIp(LoadBalancer lb) {
         Ip sourceIp = _lbMgr.getSourceIp(lb);
@@ -2541,6 +2559,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return gnIpDetail;
     }
 
+    @Override
     public GloboNetworkPoolResponse.Pool getPoolById(Long poolId, Long zoneId) {
         if (poolId == null) {
             throw new InvalidParameterValueException("Invalid Pool ID: " + poolId);
@@ -2563,4 +2582,5 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         return response.getPool();
     }
+
 }
