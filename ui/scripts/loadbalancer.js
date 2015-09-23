@@ -651,93 +651,82 @@
                                             var pool = args.context.pools[0];
                                             var lb = args.context.loadbalancers[0];
 
-                                            // $.ajax({
-                                            //     url: createURL('listLBHealthCheckPolicies'),
-                                            //     data: {
-                                            //         lbruleid: lb.id
-                                            //     },
-                                            //     async: false,
-                                            //     success: function(json) {
-                                            //         if (json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0] !== undefined) {
-                                            //             policyObj = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0];
-                                            //             oldHealthcheck = policyObj.pingpath;
-                                            //         }
-                                            //     }
-                                            // });
-
                                             cloudStack.dialog.createForm({
                                                 form: {
                                                     title: 'Edit Pool',
                                                     fields: {
+                                                        // healthchecktype: {
+                                                        //     label: 'Healthcheck Type',
+                                                        //     defaultValue: pool.healthchecktype,
+                                                        //     select: function(args) {
+                                                        //         var healthchecktypes = [];
+                                                        //         healthchecktypes.push({id: 'TCP', name: 'TCP', description: 'TCP'});
+                                                        //         healthchecktypes.push({id: 'HTTP', name: 'HTTP', description: 'HTTP'});
+                                                        //         args.response.success({
+                                                        //             data: healthchecktypes
+                                                        //         });
+                                                        //     }
+                                                        // },
                                                         healthcheck: {
                                                             label: 'Healthcheck',
-                                                            defaultValue: pool.healthcheck
+                                                            defaultValue: pool.healthcheck,
+                                                            docID: 'helpHealthcheck',
                                                         }
                                                     }
                                                 },
                                                 after: function(args2) {
-                                                    var lastJobId;
-                                                    args.response.success({
-                                                        _custom: {
-                                                            getLastJobId: function() { return lastJobId; },
-                                                            getUpdatedItem: function() {
-                                                                var loadbalancer = null;
-                                                                $.ajax({
-                                                                    url: createURL("getGloboNetworkPool"),
-                                                                    data: {
-                                                                        id: pool.id,
-                                                                        zoneid: lb.zoneid
-                                                                    },
-                                                                    dataType: "json",
-                                                                    async: false,
-                                                                    success: function(data) {
-                                                                        var lbPool = data.getglobonetworkpoolresponse.globonetworkpool[0];
-                                                                    }
-                                                                });
-                                                                return lbpool;
-                                                            }
-                                                        }
-                                                    });
-
-                                                    cascadeAsyncCmds({
-                                                        commands: [
-                                                            // {
-                                                            //     name: 'listLBHealthCheckPolicies',
-                                                            //     data: { lbruleid: lb.id }
-                                                            // },
-                                                            // {
-                                                            //     name: 'deleteLBHealthCheckPolicy',
-                                                            //     data: function(last_result) {
-                                                            //         // If healthcheck existed before and new value is different than old value
-                                                            //         listLbHealthcheckResult = last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies;
-                                                            //         if (listLbHealthcheckResult &&
-                                                            //             listLbHealthcheckResult[0].healthcheckpolicy.length > 0 &&
-                                                            //             listLbHealthcheckResult[0].healthcheckpolicy[0].pingpath != args2.data.healthcheck.trim()) {
-                                                            //             return { id: last_result.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy[0].id };
-                                                            //         }
-                                                            //         // skip this command
-                                                            //         return false;
-                                                            //     }
-                                                            // },
-                                                            // {
-                                                            //     name: 'createLBHealthCheckPolicy',
-                                                            //     data: function() {
-                                                            //         if (args2.data.healthcheck.trim() !== '' && args2.data.healthcheck.trim() != oldHealthcheck) {
-                                                            //             return {
-                                                            //                 lbruleid: lb.id,
-                                                            //                 pingpath: args2.data.healthcheck.trim()
-                                                            //             };
-                                                            //         }
-                                                            //         return false;
-                                                            //     }
-                                                            // },
-                                                        ],
-                                                        success: function(data, jobId) {
-                                                            lastJobId = jobId;
+                                                    var healthcheckexpect;
+                                                    var healthchecktype;
+                                                    if (args2.data.healthcheck === '') { // Empty healthcheck means TCP
+                                                        healthchecktype = 'TCP';
+                                                        healthcheckexpect = ''; // expecthealthcheck is for HTTP only
+                                                    } else {
+                                                        healthchecktype = 'HTTP';
+                                                        healthcheckexpect = pool.healthcheckexpect; // We don't let them edit this just yet
+                                                    }
+                                                    $.ajax({
+                                                        url: createURL('updateGloboNetworkPool'),
+                                                        dataType: 'json',
+                                                        async: true,
+                                                        data: {
+                                                            poolids: pool.id.toString(),
+                                                            lbruleid: lb.id,
+                                                            zoneid: lb.zoneid,
+                                                            healthchecktype: healthchecktype,
+                                                            healthcheck: args2.data.healthcheck,
+                                                            expectedhealthcheck: healthcheckexpect
                                                         },
-                                                        error: function(message) {
-                                                            lastJobId = -1;
-                                                            args.response.error(message);
+                                                        success: function(json) {
+                                                            var jid = json.updateglobonetworkpoolresponse.jobid;
+                                                            args.response.success({
+                                                                _custom: {
+                                                                    jobId: jid,
+                                                                    getUpdatedItem: function(json) {
+                                                                        var lbpool;
+                                                                        $.ajax({
+                                                                            url: createURL("getGloboNetworkPool"),
+                                                                            data: {
+                                                                                poolid: pool.id,
+                                                                                zoneid: lb.zoneid
+                                                                            },
+                                                                            dataType: "json",
+                                                                            async: false,
+                                                                            success: function(data) {
+                                                                                var lbPool = data.getglobonetworkpoolresponse.globonetworkpool[0];
+                                                                                if (lbPool) {
+                                                                                    lbpool = lbPool;
+                                                                                    // args.context.pools[0] = lbPool;
+                                                                                    // $(window).trigger('cloudStack.fullRefresh');
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                        return lbpool;
+                                                                    }
+                                                                }
+                                                            });
+                                                        },
+                                                        error: function(errorMessage) {
+                                                            args.response.error(errorMessage);
                                                         }
                                                     });
                                                 }
@@ -754,19 +743,7 @@
                                             }
                                         },
                                         notification: {
-                                            poll: function(args) {
-                                                var lastJobId = args._custom.getLastJobId();
-                                                if (lastJobId === undefined) {
-                                                    return;
-                                                } else if (lastJobId === null) {
-                                                    args.complete({
-                                                        data: args._custom.getUpdatedItem()
-                                                    });
-                                                    return;
-                                                }
-                                                args._custom.jobId = lastJobId;
-                                                return pollAsyncJobResult(args);
-                                            }
+                                            poll: pollAsyncJobResult
                                         }
                                     }
                                 }
@@ -783,7 +760,73 @@
                                         },
                                     },
                                     action: function(args) {
-                                        var lb = args.context.loadbalancers[0];
+                                        cloudStack.dialog.confirm({
+                                            message: 'Are you sure you want to edit ALL pools?',
+                                            action: function() { // "Yes"
+                                                var poolsList = [];
+                                                $.ajax({
+                                                    url: createURL("listGloboNetworkPools"),
+                                                    data: {
+                                                        lbruleid: args.context.loadbalancers[0].id,
+                                                        zoneid: args.context.loadbalancers[0].zoneid
+                                                    },
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(data) {
+                                                        poolsList = data.listglobonetworkpoolresponse.globonetworkpool;
+                                                    },
+                                                    error: function(errorMessage) {
+                                                        args.response.error(errorMessage);
+                                                    }
+                                                });
+
+                                                var lb = args.context.loadbalancers[0];
+                                                var healthcheckexpect;
+                                                var healthchecktype;
+                                                if (args.data.healthcheck === '') { // Empty healthcheck means TCP
+                                                    healthchecktype = 'TCP';
+                                                    healthcheckexpect = ''; // expecthealthcheck is for HTTP only
+                                                } else {
+                                                    healthchecktype = 'HTTP';
+                                                    healthcheckexpect = pool.healthcheckexpect; // We don't let them edit this just yet
+                                                }
+                                                var poolIds = [];
+                                                $(poolsList).each(function() {
+                                                    poolIds.push(this.id);
+                                                });
+                                                $.ajax({
+                                                    url: createURL('updateGloboNetworkPool'),
+                                                    dataType: 'json',
+                                                    async: true,
+                                                    data: {
+                                                        poolids: poolIds.join(','),
+                                                        lbruleid: lb.id,
+                                                        zoneid: lb.zoneid,
+                                                        healthchecktype: healthchecktype,
+                                                        healthcheck: args.data.healthcheck,
+                                                        expectedhealthcheck: healthcheckexpect
+                                                    },
+                                                    success: function(json) {
+                                                        var jid = json.updateglobonetworkpoolresponse.jobid;
+                                                        args.response.success({
+                                                            _custom: {
+                                                                jobId: jid,
+                                                                getUpdatedItem: function(json) {
+                                                                    $(window).trigger('cloudStack.fullRefresh');
+                                                                }
+                                                            }
+                                                        });
+                                                    },
+                                                    error: function(errorMessage) {
+                                                        args.response.error(errorMessage);
+                                                    }
+                                                });
+                                            },
+                                            cancelAction: function() { // "Cancel"
+                                                $(window).trigger('cloudStack.fullRefresh');
+                                            }
+                                        });
+                                        return;
                                     },
                                     messages: {
                                         notification: function() {
