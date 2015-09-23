@@ -41,7 +41,7 @@ gen_package(){
     # [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && retun 1
     # source ${virtualenv_file}
 
-    git checkout ${tag}
+    # git checkout ${tag}
     (cd packaging/centos63; ./package.sh -t ${tag})
 
     [[ $? -ne 0 ]] && echo "Failed to compile package. Please, fix errors." && return 1

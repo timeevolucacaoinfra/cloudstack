@@ -29,15 +29,15 @@ function usage() {
 function packaging() {
 	tag_from_arg=$1
 	
-	echo "Getting last commits from git..."
-	if git checkout master; then
-		if ! git pull ; then
-			echo "Git pull failed, please check it!"
-			exit 1
-		fi
-	else
-		exit 1
-	fi
+    # echo "Getting last commits from git..."
+    # if git checkout master; then
+    #   if ! git pull ; then
+    #       echo "Git pull failed, please check it!"
+    #       exit 1
+    #   fi
+    # else
+    #   exit 1
+    # fi
 
 	
 	echo "Cheking out to tag: ${tag_from_arg}"
