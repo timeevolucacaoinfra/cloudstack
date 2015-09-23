@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Level;
 import javax.naming.ConfigurationException;
 
 import com.globo.globonetwork.client.api.VipAPI;
@@ -218,24 +216,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     @Override
     public StartupCommand[] initialize() {
-        System.out.println("Init");
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
-//
-//        URL url = MainTester.class.getClassLoader().getResource("config.properties");
-//        System.setProperty("java.util.logging.config.file", url.getFile());
-//            System.setProperty("java.util.logging.config.file", "/Users/lucas.castro/projects/globoNetworkAPI/globoNetworkAPI-tester/src/main/resources/config.properties");
-
-        ConsoleHandler logHandler = new ConsoleHandler();
-        logHandler.setLevel(Level.CONFIG);
-        java.util.logging.Logger httpLogger = java.util.logging.Logger.getLogger("com.google.api.client.http");
-        httpLogger.setLevel(Level.CONFIG);
-        httpLogger.addHandler(logHandler);
-
-        httpLogger = java.util.logging.Logger.getLogger("com.globocom.globoNetwork.client");
-        httpLogger.setLevel(Level.CONFIG);
-        httpLogger.addHandler(logHandler);
-
-
         StartupCommand cmd = new StartupCommand(getType());
         cmd.setName(_name);
         cmd.setGuid(_guid);
@@ -337,7 +317,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 healthcheck.setHealthcheckType(cmd.getHealthcheckType());
                 healthcheck.setHealthcheckRequest(cmd.getHealthcheck());
 
-                savePool(pool, poolResponse.getPoolMembers(),  poolAPI);
+                pool = savePool(pool, poolResponse.getPoolMembers(),  poolAPI);
 
                 pools.add(poolFromNetworkApi(pool));
             }
