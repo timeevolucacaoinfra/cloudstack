@@ -632,11 +632,20 @@
                                             },
                                         }],
                                         dataProvider: function(args) {
-                                            if (!args.jsonObj) {
-                                                args.jsonObj = args.context.pools[0];
-                                            }
-                                            args.response.success({
-                                                data: args.jsonObj
+                                            $.ajax({
+                                                url: createURL("getGloboNetworkPool"),
+                                                data: {
+                                                    poolid: args.context.pools[0].id,
+                                                    zoneid: args.context.loadbalancers[0].zoneid
+                                                },
+                                                dataType: "json",
+                                                async: false,
+                                                success: function(data) {
+                                                    args.context.pools[0] = data.getglobonetworkpoolresponse.globonetworkpool;
+                                                    args.response.success({
+                                                        data: data.getglobonetworkpoolresponse.globonetworkpool
+                                                    });
+                                                }
                                             });
                                         }
                                     }
@@ -682,7 +691,7 @@
                                                         healthcheckexpect = ''; // expecthealthcheck is for HTTP only
                                                     } else {
                                                         healthchecktype = 'HTTP';
-                                                        healthcheckexpect = "WORKING"; // We don't let them edit this just yet
+                                                        healthcheckexpect = "WORKING"; // Fixed value
                                                     }
                                                     $.ajax({
                                                         url: createURL('updateGloboNetworkPool'),
@@ -702,25 +711,7 @@
                                                                 _custom: {
                                                                     jobId: jid,
                                                                     getUpdatedItem: function(json) {
-                                                                        var lbpool;
-                                                                        $.ajax({
-                                                                            url: createURL("getGloboNetworkPool"),
-                                                                            data: {
-                                                                                poolid: pool.id,
-                                                                                zoneid: lb.zoneid
-                                                                            },
-                                                                            dataType: "json",
-                                                                            async: false,
-                                                                            success: function(data) {
-                                                                                var lbPool = data.getglobonetworkpoolresponse.globonetworkpool[0];
-                                                                                if (lbPool) {
-                                                                                    lbpool = lbPool;
-                                                                                    // args.context.pools[0] = lbPool;
-                                                                                    // $(window).trigger('cloudStack.fullRefresh');
-                                                                                }
-                                                                            }
-                                                                        });
-                                                                        return lbpool;
+                                                                        return;
                                                                     }
                                                                 }
                                                             });
@@ -788,7 +779,7 @@
                                                     healthcheckexpect = ''; // expecthealthcheck is for HTTP only
                                                 } else  {
                                                     healthchecktype = 'HTTP';
-                                                    healthcheckexpect = "WORKING"; //fixed value
+                                                    healthcheckexpect = "WORKING"; // Fixed value
                                                 }
                                                 var poolIds = [];
                                                 $(poolsList).each(function() {

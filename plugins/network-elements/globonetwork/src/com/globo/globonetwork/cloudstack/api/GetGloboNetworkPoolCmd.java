@@ -91,7 +91,7 @@ public class GetGloboNetworkPoolCmd extends BaseCmd {
         poolResp.setMaxconn(pool.getMaxconn());
 
         poolResp.setObjectName("globonetworkpool");
-
+        poolResp.setResponseName(getCommandName());
         this.setResponseObject(poolResp);
     }
 
