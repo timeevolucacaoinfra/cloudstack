@@ -18,9 +18,12 @@ package com.globo.globonetwork.cloudstack.resource;
 
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
+import com.globo.globonetwork.client.api.PoolAPI;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
 import javax.naming.ConfigurationException;
 
 import com.globo.globonetwork.client.api.VipAPI;
@@ -213,6 +218,24 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     @Override
     public StartupCommand[] initialize() {
+        System.out.println("Init");
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
+//
+//        URL url = MainTester.class.getClassLoader().getResource("config.properties");
+//        System.setProperty("java.util.logging.config.file", url.getFile());
+//            System.setProperty("java.util.logging.config.file", "/Users/lucas.castro/projects/globoNetworkAPI/globoNetworkAPI-tester/src/main/resources/config.properties");
+
+        ConsoleHandler logHandler = new ConsoleHandler();
+        logHandler.setLevel(Level.CONFIG);
+        java.util.logging.Logger httpLogger = java.util.logging.Logger.getLogger("com.google.api.client.http");
+        httpLogger.setLevel(Level.CONFIG);
+        httpLogger.addHandler(logHandler);
+
+        httpLogger = java.util.logging.Logger.getLogger("com.globocom.globoNetwork.client");
+        httpLogger.setLevel(Level.CONFIG);
+        httpLogger.addHandler(logHandler);
+
+
         StartupCommand cmd = new StartupCommand(getType());
         cmd.setName(_name);
         cmd.setGuid(_guid);
@@ -290,21 +313,126 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((ListPoolLBCommand) cmd);
         }else if (cmd instanceof GetPoolLBByIdCommand) {
             return execute((GetPoolLBByIdCommand) cmd);
+        }else if (cmd instanceof UpdatePoolCommand) {
+            return execute((UpdatePoolCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
     }
 
-    private Answer execute(GetPoolLBByIdCommand cmd) {
+    private Answer execute(UpdatePoolCommand cmd) {
         try {
-            Pool poolNetwrokAPI = _globoNetworkApi.getPoolAPI().getByPk(cmd.getPoolId());
+            PoolAPI poolAPI = _globoNetworkApi.getPoolAPI();
 
-            GloboNetworkPoolResponse.Pool poolCS = poolFromNetworkApi(poolNetwrokAPI, _globoNetworkApi);
-            GloboNetworkPoolResponse answer = new GloboNetworkPoolResponse(cmd, true, "", poolCS);
+            List<GloboNetworkPoolResponse.Pool> pools = new ArrayList<GloboNetworkPoolResponse.Pool>();
+
+            for (Long poolId : cmd.getPoolIds()) {
+                Pool.PoolResponse poolResponse = poolAPI.getByPk(poolId);
+                Pool pool = poolResponse.getPool();
+                if (pool == null) {
+                    throw new CloudRuntimeException("Could not find pool " + poolId);
+                }
+
+                Pool.Healthcheck healthcheck = pool.getHealthcheck();
+                healthcheck.setExpectedHealthcheck(cmd.getExpectedHealthcheck());
+                healthcheck.setHealthcheckType(cmd.getHealthcheckType());
+                healthcheck.setHealthcheckRequest(cmd.getHealthcheck());
+
+                savePool(pool, poolResponse.getPoolMembers(),  poolAPI);
+
+                pools.add(poolFromNetworkApi(pool));
+            }
+
+
+            GloboNetworkPoolResponse answer = new GloboNetworkPoolResponse(cmd, pools, true, "");
+
             return answer;
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         } catch (Exception e) {
-            s_logger.error("Generic error accessing GloboNetwork", e);
+            s_logger.error("Generic error accessing GloboNetwork while update pool", e);
+            return new Answer(cmd, false, e.getMessage());
+        }
+    }
+
+    protected Pool savePool(Pool pool, List<Pool.PoolMember> poolMembers, PoolAPI poolAPI) throws GloboNetworkException {
+        Long id = pool.getId();
+        Long envId = pool.getEnvironment().getId();
+
+        String idetifier = pool.getIdentifier();
+        String lbmethod = pool.getLbMethod();
+
+        Integer port = pool.getDefaultPort();
+        Integer maxconn = pool.getMaxconn();
+
+        String healthcheckType = pool.getHealthcheck().getHealthcheckType();
+        String expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
+        String healthcheck = pool.getHealthcheck().getHealthcheckRequest();
+        String healthcheckDestination = pool.getHealthcheck().getDestination();
+
+        List<RealIP> realIps = new ArrayList<>();
+        List<Integer> realPorts = new ArrayList<Integer>();
+
+        List<String> equipNames = new ArrayList<String>();
+        List<Long> idEquips = new ArrayList<Long>();
+
+        List<Integer> priorities = new ArrayList<Integer>();
+        List<Long> weights =  new ArrayList<Long>();
+        List<Long> idPoolMembers = new ArrayList<Long>();
+        String serviceDownAction = pool.getServiceDownAction().getName();
+
+        if ( poolMembers != null ) {
+            for (Pool.PoolMember poolMember : poolMembers) {
+                //real
+                RealIP realIp = new RealIP();
+                realIp.setIpId(poolMember.getIpId());
+                realIp.setRealIp(poolMember.getIpFormated());
+                realIps.add(realIp);
+
+                //equipment
+                equipNames.add(poolMember.getEquipmentName());
+                idEquips.add(poolMember.getEquipmentId());
+
+                // real properties
+                realPorts.add(poolMember.getPortReal());
+                idPoolMembers.add(poolMember.getId());
+                priorities.add(poolMember.getPriority());
+                weights.add(Long.valueOf(poolMember.getWeight()));
+            }
+        }
+
+        pool = poolAPI.save(id,
+                            idetifier,
+                            port,
+                            envId,
+                            lbmethod,
+                            healthcheckType,
+                            expectedHealthcheck,
+                            healthcheck,
+                            maxconn,
+                            realIps,
+                            equipNames,
+                            idEquips,
+                            priorities,
+                            weights,
+                            realPorts,
+                            idPoolMembers,
+                            serviceDownAction,
+                            healthcheckDestination );
+        return pool;
+    }
+
+    private Answer execute(GetPoolLBByIdCommand cmd) {
+        try {
+            Pool.PoolResponse poolResponse = _globoNetworkApi.getPoolAPI().getByPk(cmd.getPoolId());
+
+            GloboNetworkPoolResponse.Pool poolCS = poolFromNetworkApi(poolResponse.getPool());
+            GloboNetworkPoolResponse answer = new GloboNetworkPoolResponse(cmd, true, "", poolCS);
+
+            return answer;
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        } catch (Exception e) {
+            s_logger.error("Generic error accessing GloboNetwork while getPoolById", e);
             return new Answer(cmd, false, e.getMessage());
         }
     }
@@ -315,7 +443,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
             List<GloboNetworkPoolResponse.Pool> pools = new ArrayList<GloboNetworkPoolResponse.Pool>();
             for (Pool pool : poolsNetworkApi) {
-                GloboNetworkPoolResponse.Pool poolCS = poolFromNetworkApi(pool,_globoNetworkApi);
+                GloboNetworkPoolResponse.Pool poolCS = poolFromNetworkApi(pool);
                 pools.add(poolCS);
             }
 
@@ -329,7 +457,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    private static GloboNetworkPoolResponse.Pool poolFromNetworkApi(Pool poolNetworkApi, GloboNetworkAPI networkApi) throws GloboNetworkException {
+    private static GloboNetworkPoolResponse.Pool poolFromNetworkApi(Pool poolNetworkApi) throws GloboNetworkException {
         GloboNetworkPoolResponse.Pool pool = new GloboNetworkPoolResponse.Pool();
 
         pool.setId(poolNetworkApi.getId());
@@ -341,10 +469,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
         Pool.Healthcheck healthcheck = poolNetworkApi.getHealthcheck();
 
-        pool.setHealthcheck(healthcheck.getHealthcheckRequest());
-        pool.setHealthcheckType(healthcheck.getHealthcheckType());
-        pool.setExpectedHealthcheck(healthcheck.getExpectedHealthcheck());
-
+        if ( healthcheck != null ) {
+            pool.setHealthcheck(healthcheck.getHealthcheckRequest());
+            pool.setHealthcheckType(healthcheck.getHealthcheckType());
+            pool.setExpectedHealthcheck(healthcheck.getExpectedHealthcheck());
+        }
 
         return pool;
     }

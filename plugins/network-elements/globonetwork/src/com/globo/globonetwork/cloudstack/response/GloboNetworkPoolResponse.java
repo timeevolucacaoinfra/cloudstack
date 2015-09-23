@@ -18,6 +18,12 @@ public class GloboNetworkPoolResponse extends Answer{
     public GloboNetworkPoolResponse(List<Pool> pools) {
         this.pools = pools;
     }
+
+    public GloboNetworkPoolResponse(Command command,List<Pool> pools, boolean success, String details) {
+        super(command, success, details);
+        this.pools = pools;
+    }
+
     public GloboNetworkPoolResponse(Pool pool) {
         this.pool = pool;
     }

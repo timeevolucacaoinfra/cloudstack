@@ -23,6 +23,7 @@ import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
 import com.globo.globonetwork.cloudstack.api.UpdateGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.math.BigInteger;
 import java.net.URI;
@@ -2518,7 +2519,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         //error
         if ( answer == null || !answer.getResult() ) {
-            String msg = answer == null ? "Coud not list pools lb from networkApi" : answer.getDetails();
+            String msg = answer == null ? "Could not list pools lb from networkApi" : answer.getDetails();
             throw new CloudRuntimeException(msg);
         }
 
@@ -2530,21 +2531,43 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds, Long vipId, Long zoneId, String healthcheckType, String healthcheck, String expectedHealthcheck) {
-        List<GloboNetworkPoolResponse.Pool> pools = new ArrayList<GloboNetworkPoolResponse.Pool>();
+    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds,
+                                                           Long lbId, Long zoneId, String healthcheckType, String healthcheck, String expectedHealthcheck) {
+        validateUpdatePool(poolIds, lbId, zoneId, healthcheckType );
 
-        for (Long id : poolIds) {
-            GloboNetworkPoolResponse.Pool pool = new GloboNetworkPoolResponse.Pool();
-            pool.setId(id);
-            pool.setHealthcheckType(healthcheckType);
-            pool.setHealthcheck(healthcheck);
-            pool.setExpectedHealthcheck(expectedHealthcheck);
-            pools.add(pool);
-        }
+        UpdatePoolCommand command = new UpdatePoolCommand(poolIds, healthcheckType, healthcheck, expectedHealthcheck);
 
-        return pools;
+        Answer answer =  callCommand(command, zoneId);
+        handleAnswerIfFail(answer, "Could not update pools " + poolIds);
+
+        GloboNetworkPoolResponse poolResponse = (GloboNetworkPoolResponse)answer;
+
+        return poolResponse.getPools();
     }
 
+    private void validateUpdatePool(List<Long> poolIds, Long lbId, Long zoneId, String healthcheckType) {
+        if (lbId == null) {
+            throw new InvalidParameterValueException("Invalid LB ID: " + lbId);
+        }
+        if (zoneId == null) {
+            throw new InvalidParameterValueException("Invalid zone ID: " + zoneId);
+        }
+        if (healthcheckType == null) {
+            throw new InvalidParameterValueException("Invalid healthcheckType: " + healthcheckType);
+        }
+
+        if (poolIds == null || poolIds.isEmpty()) {
+            throw new InvalidParameterValueException("Invalid pools ID. poolIds: " + poolIds);
+        }
+    }
+
+    private void handleAnswerIfFail(Answer answer, String genericMsg) {
+        //error
+        if ( answer == null || !answer.getResult() ) {
+            String msg = answer == null ? genericMsg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+    }
 
     public GloboNetworkIpDetailVO getNetworkApiVipIp(LoadBalancer lb) {
         Ip sourceIp = _lbMgr.getSourceIp(lb);

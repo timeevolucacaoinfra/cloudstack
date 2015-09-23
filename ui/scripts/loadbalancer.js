@@ -682,7 +682,7 @@
                                                         healthcheckexpect = ''; // expecthealthcheck is for HTTP only
                                                     } else {
                                                         healthchecktype = 'HTTP';
-                                                        healthcheckexpect = pool.healthcheckexpect; // We don't let them edit this just yet
+                                                        healthcheckexpect = "WORKING"; // We don't let them edit this just yet
                                                     }
                                                     $.ajax({
                                                         url: createURL('updateGloboNetworkPool'),
@@ -786,9 +786,9 @@
                                                 if (args.data.healthcheck === '') { // Empty healthcheck means TCP
                                                     healthchecktype = 'TCP';
                                                     healthcheckexpect = ''; // expecthealthcheck is for HTTP only
-                                                } else {
+                                                } else  {
                                                     healthchecktype = 'HTTP';
-                                                    healthcheckexpect = pool.healthcheckexpect; // We don't let them edit this just yet
+                                                    healthcheckexpect = "WORKING"; //fixed value
                                                 }
                                                 var poolIds = [];
                                                 $(poolsList).each(function() {

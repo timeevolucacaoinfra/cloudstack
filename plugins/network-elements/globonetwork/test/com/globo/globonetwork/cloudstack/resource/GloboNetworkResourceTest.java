@@ -48,6 +48,7 @@ import com.globo.globonetwork.client.model.VipXml;
 import com.globo.globonetwork.client.model.Vlan;
 
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -702,6 +703,134 @@ public class GloboNetworkResourceTest {
         assertEquals((Integer) 80, pool.getPort());
 
 
+    }
+
+
+    @Test
+    public void testExecuteUpdatePool() throws GloboNetworkException {
+        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK");
+
+
+        Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "*:*", 10, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 5, 8080);
+        when(_resource._globoNetworkApi.getPoolAPI().getByPk(12l)).thenReturn(poolResponse);
+
+        poolResponse = mockPoolResponse(13l, "MY_POOL_3", 8080, "leastcon", "http", "/heal.html", "OK", "*:*", 11, "EQUIP_NAME_2", 113l, "10.1.1.3", 10113l, 93, 53, 8080);
+        when(_resource._globoNetworkApi.getPoolAPI().getByPk(13l)).thenReturn(poolResponse);
+
+
+        Answer answer = _resource.executeRequest((UpdatePoolCommand) cmd);
+
+        List<GloboNetworkPoolResponse.Pool> pools = ((GloboNetworkPoolResponse)answer).getPools();
+
+        assertEquals(2, pools.size());
+
+        GloboNetworkPoolResponse.Pool pool = pools.get(0);
+        assertEquals((Long)12l, pool.getId());
+        assertEquals("MY_POOL", pool.getIdentifier());
+        assertEquals("least", pool.getLbMethod());
+        assertEquals((Integer) 80, pool.getPort());
+
+
+        pool = pools.get(1);
+        assertEquals((Long)13l, pool.getId());
+        assertEquals("MY_POOL_3", pool.getIdentifier());
+        assertEquals("leastcon", pool.getLbMethod());
+        assertEquals((Integer) 8080, pool.getPort());
+    }
+
+
+    @Test
+    public void testSavePool() throws GloboNetworkException {
+
+        Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "**:*", 911, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 52, 8080);
+
+        ArrayList<RealIP> realIPs = new ArrayList<>();
+        RealIP realIp = new RealIP();
+        realIp.setIpId(10112l);
+        realIp.setRealIp("10.1.1.2");
+        realIPs.add(realIp);
+
+        PoolAPI poolAPI = _resource._globoNetworkApi.getPoolAPI();
+        when(poolAPI.save(12l,
+                          "MY_POOL",
+                          80,
+                          4000l,
+                          "least",
+                          "http",
+                          "OK",
+                          "/heal.html",
+                          911,
+                          realIPs,
+                          Arrays.asList("EQUIP_NAME_2"), //equipNames
+                          Arrays.asList(112l), //equipIds
+                          Arrays.asList(52), //priorities,
+                          Arrays.asList(92l), //weights
+                          Arrays.asList(8080), // realPorts
+                          Arrays.asList(333l), // idPoolMembers,
+                         "none",
+                         "**:*" )).thenReturn(new Pool(12l));
+
+        Pool pool = _resource.savePool(poolResponse.getPool(), poolResponse.getPoolMembers(), poolAPI);
+
+        assertNotNull(pool);
+        assertEquals((Long) 12l, pool.getId());
+
+    }
+
+    private Pool mockPool(Long poolId, String identifier, int port, String lbmethod, String healthheckType, String healthcheck, String expectedHealthcheck, String destination, Integer maxconn) {
+
+        Pool pool = new Pool();
+        pool.setId(poolId);
+        pool.setIdentifier(identifier);
+        pool.setDefaultPort(port);
+        pool.setLbMethod(lbmethod);
+        pool.setMaxconn(maxconn);
+
+        Pool.Healthcheck healthchecker = new Pool.Healthcheck();
+        healthchecker.setHealthcheckType(healthheckType);
+        healthchecker.setHealthcheckRequest(healthcheck);
+        healthchecker.setExpectedHealthcheck(expectedHealthcheck);
+        healthchecker.setDestination(destination);
+        pool.setHealthcheck(healthchecker);
+
+        Pool.ServiceDownAction action = new Pool.ServiceDownAction();
+        action.setId(3333l);
+        action.setName("none");
+        action.setType("ServiceDownAction");
+        pool.setServiceDownAction(action);
+
+        Pool.Environment env = new Pool.Environment();
+        env.setId(4000l);
+        pool.setEnvironment(env);
+
+        return pool;
+    }
+
+
+    private Pool.PoolResponse mockPoolResponse(Long poolId, String identifier, int port, String lbmethod,
+                                               String healthheckType, String healthcheck, String expectedHealthcheck, String destination, Integer maxconn,
+                                               String realEquName, Long realEquipId, String realIp, Long realIpId, Integer realWeight, Integer realPriority, Integer realPort) {
+        Pool.PoolResponse response = new Pool.PoolResponse();
+
+        Pool pool = mockPool(poolId, identifier, port, lbmethod, healthheckType, healthcheck, expectedHealthcheck, destination, maxconn);
+        response.setPool(pool);
+
+        Pool.PoolMember member = new Pool.PoolMember();
+        member.setId(333l);
+        member.setEquipmentName(realEquName);
+        member.setWeight(realWeight);
+        member.setPriority(realPriority);
+        member.setEquipmentId(realEquipId);
+        member.setPortReal(realPort);
+
+        Pool.Ip ip = new Pool.Ip();
+        ip.setId(realIpId);
+        ip.setIpFormated(realIp);
+        member.setIp(ip);
+
+        response.setPoolMembers(Arrays.asList(member));
+
+        return response;
     }
 
     private long getNewIpID() {

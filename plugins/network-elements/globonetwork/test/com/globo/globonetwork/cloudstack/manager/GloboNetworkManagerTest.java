@@ -38,6 +38,7 @@ import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -596,6 +597,49 @@ public class GloboNetworkManagerTest {
         when(_globoNetworkIpDetailMock.findByIp(anyLong())).thenReturn(detail);
         manager._globoNetworkIpDetailDao = _globoNetworkIpDetailMock;
 
+    }
+
+    @Test
+    public void testUpdatePool() {
+        GloboNetworkManager manager = new GloboNetworkManager();
+
+        HostDao mock = mock(HostDao.class);
+        HostVO host = createMockHost();
+        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
+        manager._hostDao = mock;
+
+
+        LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
+        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
+
+        when(lbServiceMock.findById(123l)).thenReturn(lb);
+        manager._lbService = lbServiceMock;
+
+        mockGetNetworkApiVipIp(lb, manager, 10001l);
+
+        AgentManager mockAgent = mock(AgentManager.class);
+
+
+        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 12l, "HTTP");
+        GloboNetworkPoolResponse.Pool pool2 = mockPool("pool2", "round", 8080, 13l, "HTTP");
+
+        GloboNetworkPoolResponse poolResponseAnswer = new GloboNetworkPoolResponse(Arrays.asList(pool1, pool2));
+        when(mockAgent.easySend(eq(host.getId()), any(UpdatePoolCommand.class))).thenReturn(poolResponseAnswer);
+        manager._agentMgr = mockAgent;
+
+        List<GloboNetworkPoolResponse.Pool> pools = manager.updatePools(Arrays.asList(12l, 13l), 123l, 10l, "HTTP", "", "");
+
+        GloboNetworkPoolResponse.Pool pool = pools.get(0);
+
+        assertEquals((Long) 12l, pool.getId());
+        assertEquals("HTTP", pool.getHealthcheckType());
+
+        GloboNetworkPoolResponse.Pool pool22 = pools.get(1);
+        assertEquals((Long) 13l, pool22.getId());
+        assertEquals("HTTP", pool22.getHealthcheckType());
+
+
+        verify(mockAgent, times(1)).easySend(eq(host.getId()), any(UpdatePoolCommand.class));
     }
 
     private List<GloboNetworkPoolResponse.Pool> mockPools() {

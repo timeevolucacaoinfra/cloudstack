@@ -129,6 +129,9 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
 
         return zoneId;
     }
+    public void setLbId(Long lbId) {
+        this.lbId = lbId;
+    }
 
     public void setZoneId(long zoneId) {
         this.zoneId = zoneId;
