@@ -16,13 +16,14 @@ export PATH=${PATH}:${M2_HOME}/bin
 gen_tag(){
     branch=${1}
     [[ -z ${branch} ]] && branch='develop'
+    echo "Changing to branch '${branch}'"
     git checkout -q ${branch}
+    echo "Getting last changes from git..."
     git pull -q
     cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
     tag_version=$(date +%Y%m%d%H%M)
     git tag ${cs_version}-${tag_version}
     remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
-    # git push ${remote} --tags
     git push --tags
     echo "RELEASE/TAG: ${cs_version}-${tag_version}"
 }
@@ -116,7 +117,9 @@ case "$1" in
   cd)
     [[ $# -ne 2 ]] && echo "Use: $0 cd <path_to_your_yum_repo>" && exit 1
     repo_path=$2
+    starttime=$(date +%s)
     continuos_delivery ${repo_path}
+    echo "Building package and yum repo in $(($(date +%s)-starttime)) seconds."
     ;;
   *)
     echo "Usage: $0 [action]

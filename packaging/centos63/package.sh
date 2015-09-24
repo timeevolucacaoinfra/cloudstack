@@ -46,7 +46,7 @@ function activateVirtualEnv() {
 
 function packaging() {
 	tag_from_arg=$1
-	echo "git pull..."
+	echo "Getting last changes from git..."
 	git pull
 	
 	echo "Cheking out to tag: ${tag_from_arg}"
