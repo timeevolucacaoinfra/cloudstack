@@ -496,10 +496,10 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
 
         when(_resource._globoNetworkApi.getPoolAPI().save(
-            isNull(Long.class), anyString(), anyInt(),
-            isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
-            anyList(), anyList(), isNull(String.class), isNull(String.class))
+                        isNull(Long.class), anyString(), anyInt(),
+                        isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
+                        eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                        anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
         when(_resource._globoNetworkApi.getVipAPI().getById(vipToBeCreated.getId())).thenReturn(fromVipJsonToVipXml(vipToBeCreated));
@@ -514,9 +514,9 @@ public class GloboNetworkResourceTest {
 
         assertTrue(answer.getResult());
         verify(_resource._globoNetworkApi.getPoolAPI(), times(2)).save(isNull(Long.class), anyString(), anyInt(),
-            isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
-            anyList(), anyList(), isNull(String.class), isNull(String.class)
+                isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
+                eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                anyList(), anyList(), isNull(String.class), isNull(String.class)
         );
     }
 
@@ -711,14 +711,63 @@ public class GloboNetworkResourceTest {
         UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK");
 
 
-        Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "*:*", 10, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 5, 8080);
+        Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "*:*", 10, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 52, 8080);
         when(_resource._globoNetworkApi.getPoolAPI().getByPk(12l)).thenReturn(poolResponse);
 
         poolResponse = mockPoolResponse(13l, "MY_POOL_3", 8080, "leastcon", "http", "/heal.html", "OK", "*:*", 11, "EQUIP_NAME_2", 113l, "10.1.1.3", 10113l, 93, 53, 8080);
         when(_resource._globoNetworkApi.getPoolAPI().getByPk(13l)).thenReturn(poolResponse);
 
+        ArrayList<RealIP> realIPs = new ArrayList<>();
+        RealIP realIp = new RealIP();
+        realIp.setIpId(10112l);
+        realIp.setRealIp("10.1.1.2");
+        realIPs.add(realIp);
 
-        Answer answer = _resource.executeRequest((UpdatePoolCommand) cmd);
+        when(_resource._globoNetworkApi.getPoolAPI().save(12l,
+                "MY_POOL",
+                80,
+                4000l,
+                "least",
+                "HTTP",
+                "OK",
+                "/heal",
+                10,
+                realIPs,
+                Arrays.asList("EQUIP_NAME_2"), //equipNames
+                Arrays.asList(112l), //equipIds
+                Arrays.asList(52), //priorities,
+                Arrays.asList(92l), //weights
+                Arrays.asList(8080), // realPorts
+                Arrays.asList(333l), // idPoolMembers,
+                "none",
+                "*:*")).thenReturn(new Pool(12l));
+
+        ArrayList<RealIP> realIPsNew = new ArrayList<>();
+        RealIP realIpNew = new RealIP();
+        realIpNew.setIpId(10113l);
+        realIpNew.setRealIp("10.1.1.3");
+        realIPsNew.add(realIpNew);
+
+        when(_resource._globoNetworkApi.getPoolAPI().save(13l,
+                "MY_POOL_3",
+                8080,
+                4000l,
+                "leastcon",
+                "HTTP",
+                "OK",
+                "/heal",
+                11,
+                realIPsNew,
+                Arrays.asList("EQUIP_NAME_2"), //equipNames
+                Arrays.asList(113l), //equipIds
+                Arrays.asList(53), //priorities,
+                Arrays.asList(93l), //weights
+                Arrays.asList(8080), // realPorts
+                Arrays.asList(333l), // idPoolMembers,
+                "none",
+                "*:*")).thenReturn(new Pool(13l));
+
+        Answer answer = _resource.executeRequest(cmd);
 
         List<GloboNetworkPoolResponse.Pool> pools = ((GloboNetworkPoolResponse)answer).getPools();
 
@@ -726,16 +775,9 @@ public class GloboNetworkResourceTest {
 
         GloboNetworkPoolResponse.Pool pool = pools.get(0);
         assertEquals((Long)12l, pool.getId());
-        assertEquals("MY_POOL", pool.getIdentifier());
-        assertEquals("least", pool.getLbMethod());
-        assertEquals((Integer) 80, pool.getPort());
-
 
         pool = pools.get(1);
-        assertEquals((Long)13l, pool.getId());
-        assertEquals("MY_POOL_3", pool.getIdentifier());
-        assertEquals("leastcon", pool.getLbMethod());
-        assertEquals((Integer) 8080, pool.getPort());
+        assertEquals((Long) 13l, pool.getId());
     }
 
 
@@ -752,23 +794,23 @@ public class GloboNetworkResourceTest {
 
         PoolAPI poolAPI = _resource._globoNetworkApi.getPoolAPI();
         when(poolAPI.save(12l,
-                          "MY_POOL",
-                          80,
-                          4000l,
-                          "least",
-                          "http",
-                          "OK",
-                          "/heal.html",
-                          911,
-                          realIPs,
-                          Arrays.asList("EQUIP_NAME_2"), //equipNames
-                          Arrays.asList(112l), //equipIds
-                          Arrays.asList(52), //priorities,
-                          Arrays.asList(92l), //weights
-                          Arrays.asList(8080), // realPorts
-                          Arrays.asList(333l), // idPoolMembers,
-                         "none",
-                         "**:*" )).thenReturn(new Pool(12l));
+                "MY_POOL",
+                80,
+                4000l,
+                "least",
+                "http",
+                "OK",
+                "/heal.html",
+                911,
+                realIPs,
+                Arrays.asList("EQUIP_NAME_2"), //equipNames
+                Arrays.asList(112l), //equipIds
+                Arrays.asList(52), //priorities,
+                Arrays.asList(92l), //weights
+                Arrays.asList(8080), // realPorts
+                Arrays.asList(333l), // idPoolMembers,
+                "none",
+                "**:*")).thenReturn(new Pool(12l));
 
         Pool pool = _resource.savePool(poolResponse.getPool(), poolResponse.getPoolMembers(), poolAPI);
 
