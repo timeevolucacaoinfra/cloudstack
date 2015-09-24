@@ -41,8 +41,6 @@ function activateVirtualEnv() {
     export VIRTUALENVWRAPPER_PYTHON=/opt/generic/python27/bin/python2.7
     [[ ! -d $WORKON_HOME/${virtualenv_name} ]] && mkvirtualenv -p /opt/generic/python27/bin/python2.7 ${virtualenv_name}
     source $WORKON_HOME/${virtualenv_name}/bin/activate
-
-    pip freeze | grep -q cloudmonkey || pip install cloudmonkey --trusted-host artifactory.globoi.com --index-url=http://artifactory.globoi.com/artifactory/api/pypi/pypi-all/simple
 }
 
 function packaging() {
