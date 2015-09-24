@@ -14,6 +14,8 @@ pkg_path(){
 export PATH=${PATH}:${M2_HOME}/bin
 
 gen_tag(){
+    branch=${1}
+    [[ -z ${branch} ]] && ${branch}=`develop`
     git checkout -q develop
     git pull -q
     cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
@@ -106,7 +108,7 @@ case "$1" in
     (cd setup/dbmigrate && db-migrate --env=localhost)
     ;;
   tag)
-    gen_tag
+    gen_tag ${2}
     ;;
   package)
     [[ $# -ne 3 ]] && echo "Use: $0 package <TAG> <path_to_your_yum_repo>" && exit 1
