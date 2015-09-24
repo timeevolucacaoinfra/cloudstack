@@ -26,6 +26,9 @@ import com.cloud.agent.api.Command;
 public class RemoveNetworkInGloboNetworkCommand extends Command {
 
     private Long vlanId;
+    private Long networkId;
+    private boolean isIpv6;
+    private Boolean useNewNetworkApi;
 
     @Override
     public boolean executeInSequence() {
@@ -40,4 +43,31 @@ public class RemoveNetworkInGloboNetworkCommand extends Command {
         this.vlanId = vlanId;
     }
 
+    public void setNetworkId(Long networkId) {
+        this.networkId = networkId;
+    }
+
+    public Long getNetworkId() {
+        return networkId;
+    }
+
+    public void setIsIpv6(boolean isIpv6) {
+        this.isIpv6 = isIpv6;
+    }
+
+    public boolean isIpv6() {
+        return isIpv6;
+    }
+
+    public void setIpv6(boolean isIpv6) {
+        this.isIpv6 = isIpv6;
+    }
+
+    public void setUseNewNetworkApi(Boolean useNewNetworkApi) {
+        this.useNewNetworkApi = useNewNetworkApi;
+    }
+
+    public Boolean isUseNewNetworkApi() {
+        return useNewNetworkApi;
+    }
 }

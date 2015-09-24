@@ -29,23 +29,12 @@ function usage() {
 function packaging() {
 	tag_from_arg=$1
 	
-	echo "Getting last commits from git..."
-	if git checkout master; then
-		if ! git pull ; then
-			echo "Git pull failed, please check it!"
-			exit 1
-		fi
-	else
-		exit 1
-	fi
-
-	
 	echo "Cheking out to tag: ${tag_from_arg}"
 	git checkout $tag_from_arg > /dev/null 2>&1
 	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
 	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
-	source ~/.virtualenvs/cloudstack/bin/activate
+    # source ~/.virtualenvs/cloudstack/bin/activate
 
 	echo "Getting version..."
 	VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`

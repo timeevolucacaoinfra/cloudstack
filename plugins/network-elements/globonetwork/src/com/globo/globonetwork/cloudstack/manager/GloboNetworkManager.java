@@ -259,6 +259,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
     private static final ConfigKey<String> GloboNetworkLBAllowedSuffixes = new ConfigKey<String>("Network", String.class, "globonetwork.lb.allowed.suffixes", "",
             "Allowed domain suffixes for load balancers created with GloboNetwork. List of domain names separated by commas", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Boolean> GloboNetworkUseNewNetworkAPI = new ConfigKey<>("Network", Boolean.class, "globonetwork.use.newnetworkapi", "true",
+            "Set to true to use the new network creation resource", true, ConfigKey.Scope.Global);
 
     // DAOs
     @Inject
@@ -740,23 +742,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException("Inconsistency. Network " + network.getName() + " there is not relation with GloboNetwork");
         }
 
-        GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
-        cmd.setVlanId(vlanId);
-
-        Answer answer = callCommand(cmd, network.getDataCenterId());
-
-        GloboNetworkVlanResponse vlanResponse = (GloboNetworkVlanResponse)answer;
-        Long networkId = vlanResponse.getNetworkId();
+        GloboNetworkVlanResponse vlanResponse = getVlanFromGloboNetwork(network, vlanId);
         if (!vlanResponse.isActive()) {
             // Create network in equipment
-            ActivateNetworkCommand activateCmd = new ActivateNetworkCommand(vlanId, networkId, vlanResponse.isv6());
+            ActivateNetworkCommand activateCmd = new ActivateNetworkCommand(vlanId, vlanResponse.getNetworkId(), vlanResponse.isv6());
+            //temporary global setting to be used while new network service is not stable
+            activateCmd.setUseNewNetworkApi(GloboNetworkUseNewNetworkAPI.value());
             Answer cmdAnswer = callCommand(activateCmd, network.getDataCenterId());
             if (cmdAnswer == null || !cmdAnswer.getResult()) {
-                throw new CloudRuntimeException("Unable to create network in GloboNetwork: VlanId " + vlanId + " networkId " + networkId);
+                throw new CloudRuntimeException("Unable to create network in GloboNetwork: VlanId " + vlanId + " networkId " + vlanResponse.getNetworkId());
             }
-            s_logger.info("Network ready to use: VlanId " + vlanId + " networkId " + networkId);
+            s_logger.info("Network ready to use: VlanId " + vlanId + " networkId " + vlanResponse.getNetworkId());
         } else {
-            s_logger.warn("Network already created in GloboNetwork: VlanId " + vlanId + " networkId " + networkId);
+            s_logger.warn("Network already created in GloboNetwork: VlanId " + vlanId + " networkId " + vlanResponse.getNetworkId());
         }
     }
 
@@ -1101,19 +1099,28 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     @Override
     public void removeNetworkFromGloboNetwork(Network network) {
-
         try {
             // Make sure the VLAN is valid
-            this.getVlanInfoFromGloboNetwork(network);
-
+            Vlan vlan = this.getVlanInfoFromGloboNetwork(network);
+            //Get Network type (ipv4 or ipv6) and network ID from Globo Network API
+            GloboNetworkVlanResponse vlanResponse = getVlanFromGloboNetwork(network, vlan.getId());
             RemoveNetworkInGloboNetworkCommand cmd = new RemoveNetworkInGloboNetworkCommand();
-            Long vlanId = getGloboNetworkVlanId(network.getId());
-            cmd.setVlanId(vlanId);
+            cmd.setVlanId(vlan.getId());
+            cmd.setNetworkId(vlanResponse.getNetworkId());
+            cmd.setIsIpv6(vlanResponse.isv6());
+            //temporary global setting to be used while new network service is not stable
+            cmd.setUseNewNetworkApi(GloboNetworkUseNewNetworkAPI.value());
 
             this.callCommand(cmd, network.getDataCenterId());
         } catch (CloudstackGloboNetworkException e) {
             handleNetworkUnavailableError(e);
         }
+    }
+
+    protected GloboNetworkVlanResponse getVlanFromGloboNetwork(Network network, Long vlanId) {
+        GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
+        cmd.setVlanId(vlanId);
+        return (GloboNetworkVlanResponse) callCommand(cmd, network.getDataCenterId());
     }
 
     @Override
@@ -1710,7 +1717,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, GloboNetworkConnectionTimeout, GloboNetworkLBLockTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries,
                 GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm,
                 GloboNetworkModelVmElasticIpVm, GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal,
-                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes};
+                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes, GloboNetworkUseNewNetworkAPI};
     }
 
     protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,

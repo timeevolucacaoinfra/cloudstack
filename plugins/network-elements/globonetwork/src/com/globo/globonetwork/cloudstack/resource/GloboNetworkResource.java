@@ -667,7 +667,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(ActivateNetworkCommand cmd) {
         try {
-            _globoNetworkApi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId(), cmd.isv6());
+            if(cmd.isUseNewNetworkApi()){
+                _globoNetworkApi.getNetworkJsonAPI().createNetworks(cmd.getNetworkId(), cmd.isv6());
+            }else{
+                _globoNetworkApi.getNetworkAPI().createNetworks(cmd.getNetworkId(), cmd.getVlanId(), cmd.isv6());
+            }
             return new Answer(cmd, true, "Network created");
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
@@ -696,8 +700,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(RemoveNetworkInGloboNetworkCommand cmd) {
         try {
-            _globoNetworkApi.getVlanAPI().remove(cmd.getVlanId());
-
+            if(cmd.isUseNewNetworkApi()) {
+                _globoNetworkApi.getNetworkJsonAPI().removeNetwork(cmd.getNetworkId(), cmd.isIpv6());
+            }else{
+                _globoNetworkApi.getVlanAPI().remove(cmd.getVlanId());
+            }
             return new Answer(cmd, true, "Network removed");
         } catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);

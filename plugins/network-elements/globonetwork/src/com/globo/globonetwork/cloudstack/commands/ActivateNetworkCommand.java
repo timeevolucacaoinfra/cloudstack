@@ -26,6 +26,8 @@ public class ActivateNetworkCommand extends Command {
 
     private boolean isv6;
 
+    private boolean useNewNetworkApi;
+
     public ActivateNetworkCommand(long vlanId, long networkId, boolean isv6) {
         this.vlanId = vlanId;
         this.networkId = networkId;
@@ -47,5 +49,13 @@ public class ActivateNetworkCommand extends Command {
 
     public boolean isv6() {
         return isv6;
+    }
+
+    public void setUseNewNetworkApi(boolean useNewNetworkApi) {
+        this.useNewNetworkApi = useNewNetworkApi;
+    }
+
+    public boolean isUseNewNetworkApi() {
+        return useNewNetworkApi;
     }
 }
