@@ -16,6 +16,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+virtualenv_wrapper_script='/opt/generic/python27/bin/virtualenvwrapper.sh'
+
 function usage() {
  echo ""
  echo "usage: ./package.sh [-t|--tag] [-h|--help] [ARGS]"
@@ -25,6 +27,23 @@ function usage() {
  exit 1
 }
 
+function activateVirtualEnv() {
+    virtualenv_name=${1}
+    log INFO "Switching to '${virtualenv_name}' virtualenv"
+    if [ -f ${virtualenv_wrapper_script} ]; then
+        log DEBUG "Using ${virtualenv_wrapper_script}"
+        source ${virtualenv_wrapper_script}
+    fi
+    [[ -z ${WORKON_HOME} ]] && WORKON_HOME=~jenkins/.virtualenvs
+    
+    log DEBUG "WORKON_HOME: ${WORKON_HOME}"
+    
+    export VIRTUALENVWRAPPER_PYTHON=/opt/generic/python27/bin/python2.7
+    [[ ! -d $WORKON_HOME/${virtualenv_name} ]] && mkvirtualenv -p /opt/generic/python27/bin/python2.7 ${virtualenv_name}
+    source $WORKON_HOME/${virtualenv_name}/bin/activate
+
+    pip freeze | grep -q cloudmonkey || pip install cloudmonkey --trusted-host artifactory.globoi.com --index-url=http://artifactory.globoi.com/artifactory/api/pypi/pypi-all/simple
+}
 
 function packaging() {
 	tag_from_arg=$1
@@ -34,7 +53,7 @@ function packaging() {
 	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
 	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
-    # source ~/.virtualenvs/cloudstack/bin/activate
+    activateVirtualEnv cloudstack
 
 	echo "Getting version..."
 	VERSION=`(cd ../../; mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version) | grep '^[0-9]\.'`
