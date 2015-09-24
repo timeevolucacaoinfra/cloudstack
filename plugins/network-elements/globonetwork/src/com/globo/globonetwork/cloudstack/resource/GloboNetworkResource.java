@@ -979,7 +979,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         String lbPersistence = getPersistenceMethod(cmd.getPersistencePolicy());
 
         if (vip.getCreated()) {
-            if (lbPersistence != vip.getPersistence()) {
+            if (!lbPersistence.equals(vip.getPersistence())) {
                 _globoNetworkApi.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
             }
             return vip;
