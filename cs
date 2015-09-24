@@ -1,6 +1,23 @@
 #!/bin/bash
 
-# virtualenv_file='/usr/local/bin/virtualenvwrapper.sh'
+virtualenv_name='cloudstack'
+virtualenv_wrapper_script='/opt/generic/python27/bin/virtualenvwrapper.sh'
+
+activateVirtualEnv() {
+    log INFO "Switching to '${virtualenv_name}' virtualenv"
+    if [ -f ${virtualenv_wrapper_script} ]; then
+        log DEBUG "Using ${virtualenv_wrapper_script}"
+        source ${virtualenv_wrapper_script}
+    fi
+    [[ -z ${WORKON_HOME} ]] && WORKON_HOME=~jenkins/.virtualenvs
+    
+    log DEBUG "WORKON_HOME: ${WORKON_HOME}"
+    
+    [[ ! -d $WORKON_HOME/${virtualenv_name} ]] && mkvirtualenv -p /opt/generic/python27/bin/python ${virtualenv_name}
+    source $WORKON_HOME/${virtualenv_name}/bin/activate
+
+    pip freeze | grep -q cloudmonkey || pip install cloudmonkey --trusted-host artifactory.globoi.com --index-url=http://artifactory.globoi.com/artifactory/api/pypi/pypi-all/simple
+}
 
 pkg_path(){
     [ -f /etc/redhat-release ] || return 1
@@ -10,10 +27,10 @@ pkg_path(){
     echo $(rpm -ql ${package_name} | grep \/bin$ | sed 's/\/bin//g')
 }
 
-export M2_HOME=$(pkg_path apache-maven) || exit 1
-export JAVA_HOME=$(pkg_path java-1.7.0-openjdk-1.7) || exit 1
-export CATALINA_HOME=/usr/share/tomcat6/
-export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
+[[ -z $JAVA_HOME ]] && export M2_HOME=$(pkg_path apache-maven) || exit 1
+[[ -z $JAVA_HOME ]] && export JAVA_HOME=$(pkg_path java-1.7.0-openjdk-1.7) || exit 1
+[[ -z $JAVA_HOME ]] && export CATALINA_HOME=/usr/share/tomcat6/
+[[ -z $JAVA_HOME ]] && export PATH=${M2_HOME}/bin:${PATH}:/mnt/utils/bin
 
 gen_tag(){
     git checkout -q develop
@@ -36,7 +53,7 @@ gen_package(){
     [[ ! -d ${REPOPATH} ]] && echo "The directory ${REPOPATH} does not exist... exiting." && return 1
 
     # export some shell environments variables
-    export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
+    # export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
     # [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && retun 1
     # source ${virtualenv_file}
