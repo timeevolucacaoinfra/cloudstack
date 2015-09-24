@@ -15,14 +15,14 @@ export PATH=${PATH}:${M2_HOME}/bin
 
 gen_tag(){
     branch=${1}
-    [[ -z ${branch} ]] && ${branch}=`develop`
+    [[ -z ${branch} ]] && branch='develop'
     git checkout -q ${branch}
     git pull -q
     cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
     tag_version=$(date +%Y%m%d%H%M)
     git tag ${cs_version}-${tag_version}
     remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
-    git push ${remote} --tags
+    # git push ${remote} --tags
     git push --tags
     echo "RELEASE/TAG: ${cs_version}-${tag_version}"
 }
@@ -36,10 +36,7 @@ gen_package(){
     [[ ! -d ${REPOPATH} ]] && echo "The directory ${REPOPATH} does not exist... exiting." && return 1
 
     # export some shell environments variables
-    # export VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python2.7
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
-    # [[ ! -f ${virtualenv_file} ]] && echo "File ${virtualenv_file} does not exist!" && retun 1
-    # source ${virtualenv_file}
 
     # git checkout ${tag}
     (cd packaging/centos63; ./package.sh -t ${tag})
