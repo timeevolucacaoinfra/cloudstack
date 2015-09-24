@@ -17,6 +17,7 @@
 # under the License.
 
 virtualenv_wrapper_script='/opt/generic/python27/bin/virtualenvwrapper.sh'
+virtualenv_python='/opt/generic/python27/bin/python2.7'
 
 function usage() {
  echo ""
@@ -29,22 +30,24 @@ function usage() {
 
 function activateVirtualEnv() {
     virtualenv_name=${1}
-    log INFO "Switching to '${virtualenv_name}' virtualenv"
+    echo "Switching to '${virtualenv_name}' virtualenv"
     if [ -f ${virtualenv_wrapper_script} ]; then
-        log DEBUG "Using ${virtualenv_wrapper_script}"
+        echo "Using ${virtualenv_wrapper_script}"
         source ${virtualenv_wrapper_script}
     fi
-    [[ -z ${WORKON_HOME} ]] && WORKON_HOME=~jenkins/.virtualenvs
+    [[ -z ${WORKON_HOME} ]] && WORKON_HOME=~/.virtualenvs
     
-    log DEBUG "WORKON_HOME: ${WORKON_HOME}"
+    echo "WORKON_HOME: ${WORKON_HOME}"
     
-    export VIRTUALENVWRAPPER_PYTHON=/opt/generic/python27/bin/python2.7
-    [[ ! -d $WORKON_HOME/${virtualenv_name} ]] && mkvirtualenv -p /opt/generic/python27/bin/python2.7 ${virtualenv_name}
+    export VIRTUALENVWRAPPER_PYTHON=${virtualenv_python}
+    [[ ! -d $WORKON_HOME/${virtualenv_name} ]] && mkvirtualenv -p ${virtualenv_python} ${virtualenv_name}
     source $WORKON_HOME/${virtualenv_name}/bin/activate
 }
 
 function packaging() {
 	tag_from_arg=$1
+	echo "git pull..."
+	git pull
 	
 	echo "Cheking out to tag: ${tag_from_arg}"
 	git checkout $tag_from_arg > /dev/null 2>&1

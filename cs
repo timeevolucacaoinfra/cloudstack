@@ -137,7 +137,7 @@ DB
     deploydb-simulator Create Required SQL Schema to use with simulator
     db-migrate        SQL migrations
 
-    tag               Create a git TAG
+    tag               Create a git TAG, branch name is optional (develop is default)
     package           Build RPM packages for cloudstack (management, usage, awsapi, common, etc) and create yum repo
     cd                tag + package + create yum repo
 "
