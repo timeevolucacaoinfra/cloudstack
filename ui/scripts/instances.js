@@ -2034,7 +2034,7 @@
                                 header: true
                             },
                             fqdn: {
-                                label: 'Instance FQDN'
+                                label: 'label.fqdn'
                             },
                             networkname: {
                                 label: 'label.network.name'
