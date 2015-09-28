@@ -56,6 +56,7 @@ public class GloboNetworkPoolResponse extends Answer{
         private String expectedHealthcheck;
         private String healthcheck;
         private Integer maxconn;
+        private Integer vipPort;
 
         public String getHealthcheckType() {
             return healthcheckType;
@@ -119,6 +120,13 @@ public class GloboNetworkPoolResponse extends Answer{
         }
         public void setMaxconn(Integer maxconn) {
             this.maxconn = maxconn;
+        }
+
+        public Integer getVipPort() {
+            return vipPort;
+        }
+        public void setVipPort(Integer vipPort) {
+            this.vipPort = vipPort;
         }
     }
 }

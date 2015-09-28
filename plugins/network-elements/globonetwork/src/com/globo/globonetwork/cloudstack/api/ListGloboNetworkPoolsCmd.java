@@ -101,6 +101,7 @@ public class ListGloboNetworkPoolsCmd extends BaseCmd {
             poolResp.setHealthcheck(pool.getHealthcheck());
             poolResp.setExpectedHealthcheck(pool.getExpectedHealthcheck());
             poolResp.setMaxconn(pool.getMaxconn());
+            poolResp.setVipPort(pool.getVipPort());
 
 
             poolResp.setObjectName("globonetworkpool");

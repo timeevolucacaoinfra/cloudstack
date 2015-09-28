@@ -23,6 +23,10 @@ public class PoolResponse extends BaseResponse {
     @Param(description = "the Pool Port")
     private Integer port;
 
+    @SerializedName("vipport")
+    @Param(description = "the Vip Port")
+    private Integer vipPort;
+
     @SerializedName("maxconn")
     @Param(description = "the max connections")
     private Integer maxconn;
@@ -102,5 +106,13 @@ public class PoolResponse extends BaseResponse {
 
     public void setPort(Integer port) {
         this.port = port;
+    }
+
+    public Integer getVipPort() {
+        return vipPort;
+    }
+
+    public void setVipPort(Integer vipPort) {
+        this.vipPort = vipPort;
     }
 }

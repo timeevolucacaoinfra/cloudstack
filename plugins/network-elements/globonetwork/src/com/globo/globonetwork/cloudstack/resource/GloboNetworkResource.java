@@ -446,6 +446,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         pool.setPort(poolNetworkApi.getDefaultPort());
         pool.setLbMethod(poolNetworkApi.getLbMethod());
         pool.setMaxconn(poolNetworkApi.getMaxconn());
+        pool.setVipPort(poolNetworkApi.getVipPort());
 
 
         Pool.Healthcheck healthcheck = poolNetworkApi.getHealthcheck();
