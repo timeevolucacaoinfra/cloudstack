@@ -577,7 +577,6 @@
                             fields: {
                                 name: { label: 'label.name', truncate: true },
                                 ports: { label: 'label.port' },
-                                // lbmethod: { label: 'label.algorithm' },
                                 healthchecktype: { label: 'Healthcheck Type' },
                                 healthcheck: { label: 'Healthcheck', truncate: true }
                             },
@@ -594,16 +593,10 @@
                                     dataType: "json",
                                     success: function(data) {
                                         var lbPools = data.listglobonetworkpoolresponse.globonetworkpool;
-
                                         $(lbPools).each(function() {
                                             this.ports = this.vipport + ':' + this.port;
                                         });
                                         args.response.success({ data: lbPools });
-
-
-
-
-
                                     },
                                     error: function(errorMessage) {
                                         args.response.error(errorMessage);
