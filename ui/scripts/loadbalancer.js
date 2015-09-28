@@ -680,6 +680,10 @@
                                                             label: 'Healthcheck',
                                                             defaultValue: pool.healthcheck,
                                                             docID: 'helpHealthcheck',
+                                                        },
+                                                        maxconn: {
+                                                            label: 'Max Connections',
+                                                            defaultValue: pool.maxconn
                                                         }
                                                     }
                                                 },
@@ -703,7 +707,8 @@
                                                             zoneid: lb.zoneid,
                                                             healthchecktype: healthchecktype,
                                                             healthcheck: args2.data.healthcheck,
-                                                            expectedhealthcheck: healthcheckexpect
+                                                            expectedhealthcheck: healthcheckexpect,
+                                                            maxconn: args2.data.maxconn,
                                                         },
                                                         success: function(json) {
                                                             var jid = json.updateglobonetworkpoolresponse.jobid;
@@ -748,6 +753,9 @@
                                                 label: 'Healthcheck',
                                                 docID: 'helpHealthcheck',
                                             },
+                                            maxconn: {
+                                                label: 'Max Connections'
+                                            }
                                         },
                                     },
                                     action: function(args) {
@@ -795,7 +803,8 @@
                                                         zoneid: lb.zoneid,
                                                         healthchecktype: healthchecktype,
                                                         healthcheck: args.data.healthcheck,
-                                                        expectedhealthcheck: healthcheckexpect
+                                                        expectedhealthcheck: healthcheckexpect,
+                                                        maxconn: args.data.maxconn,
                                                     },
                                                     success: function(json) {
                                                         var jid = json.updateglobonetworkpoolresponse.jobid;

@@ -2538,11 +2538,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds,
-                                                           Long lbId, Long zoneId, String healthcheckType, String healthcheck, String expectedHealthcheck) {
-        validateUpdatePool(poolIds, lbId, zoneId, healthcheckType );
+    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds, Long lbId, Long zoneId, String healthcheckType,
+                                                           String healthcheck, String expectedHealthcheck, Integer maxConn) {
+        validateUpdatePool(poolIds, lbId, zoneId, healthcheckType, maxConn );
 
-        UpdatePoolCommand command = new UpdatePoolCommand(poolIds, healthcheckType, healthcheck, expectedHealthcheck);
+        UpdatePoolCommand command = new UpdatePoolCommand(poolIds, healthcheckType, healthcheck, expectedHealthcheck, maxConn);
 
         Answer answer =  callCommand(command, zoneId);
         handleAnswerIfFail(answer, "Could not update pools " + poolIds);
@@ -2552,7 +2552,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return poolResponse.getPools();
     }
 
-    private void validateUpdatePool(List<Long> poolIds, Long lbId, Long zoneId, String healthcheckType) {
+    private void validateUpdatePool(List<Long> poolIds, Long lbId, Long zoneId, String healthcheckType, Integer maxConn) {
         if (lbId == null) {
             throw new InvalidParameterValueException("Invalid LB ID: " + lbId);
         }
@@ -2561,6 +2561,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
         if (healthcheckType == null) {
             throw new InvalidParameterValueException("Invalid healthcheckType: " + healthcheckType);
+        }
+        if (maxConn == null) {
+            throw new InvalidParameterValueException("Invalid maxconn: " + maxConn);
         }
 
         if (poolIds == null || poolIds.isEmpty()) {

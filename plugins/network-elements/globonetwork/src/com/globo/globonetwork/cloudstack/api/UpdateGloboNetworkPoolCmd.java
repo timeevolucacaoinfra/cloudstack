@@ -43,6 +43,9 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     @Parameter(name = "expectedhealthcheck", type = CommandType.STRING, required = true, description = "Expected healthcheck.")
     private String expectedHealthcheck;
 
+    @Parameter(name = "maxconn", type = CommandType.INTEGER, required = true, description = "Max number of connections")
+    private Integer maxConn;
+
     @Inject
     GloboNetworkManager _globoNetworkService;
 
@@ -64,7 +67,8 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     public void execute() {
         ListResponse<PoolResponse> response = new ListResponse<PoolResponse>();
 
-        List<GloboNetworkPoolResponse.Pool> pools = _globoNetworkService.updatePools(getPoolIds(), getLbId(), getZoneId(), getHealthcheckType(), getHealthcheck(), getExpectedHealthcheck());
+        List<GloboNetworkPoolResponse.Pool> pools = _globoNetworkService.updatePools(getPoolIds(), getLbId(), getZoneId(),
+                getHealthcheckType(), getHealthcheck(), getExpectedHealthcheck(), getMaxConn());
 
         List<PoolResponse> lbResponses = new ArrayList<>();
 
@@ -124,6 +128,10 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     public void setExpectedHealthcheck(String expectedHealthcheck) {
         this.expectedHealthcheck = expectedHealthcheck;
     }
+
+    public Integer getMaxConn() { return maxConn; }
+
+    public void setMaxConn(Integer maxConn) { this.maxConn = maxConn; }
 
     private Long getZoneId() {
 

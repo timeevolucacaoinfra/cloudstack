@@ -692,7 +692,7 @@ public class GloboNetworkManagerTest {
         when(mockAgent.easySend(eq(host.getId()), any(UpdatePoolCommand.class))).thenReturn(poolResponseAnswer);
         manager._agentMgr = mockAgent;
 
-        List<GloboNetworkPoolResponse.Pool> pools = manager.updatePools(Arrays.asList(12l, 13l), 123l, 10l, "HTTP", "", "");
+        List<GloboNetworkPoolResponse.Pool> pools = manager.updatePools(Arrays.asList(12l, 13l), 123l, 10l, "HTTP", "", "", 10);
 
         GloboNetworkPoolResponse.Pool pool = pools.get(0);
 

@@ -38,7 +38,7 @@ public class UpdateGloboNetworkPoolCmdTest extends TestCase {
         ids.add(13l);
 
         GloboNetworkManager mock = mock(GloboNetworkManager.class);
-        when(mock.updatePools(ids, 123l, 10l, "HTTP", "/heal.html", "OK")).thenReturn(lbResponses);
+        when(mock.updatePools(ids, 123l, 10l, "HTTP", "/heal.html", "OK", 10)).thenReturn(lbResponses);
         cmd._globoNetworkService = mock;
 
 
@@ -48,6 +48,7 @@ public class UpdateGloboNetworkPoolCmdTest extends TestCase {
         cmd.setHealthcheckType("HTTP");
         cmd.setHealthcheck("/heal.html");
         cmd.setExpectedHealthcheck("OK");
+        cmd.setMaxConn(10);
         cmd.execute();
 
         ListResponse list = (ListResponse) cmd.getResponseObject();

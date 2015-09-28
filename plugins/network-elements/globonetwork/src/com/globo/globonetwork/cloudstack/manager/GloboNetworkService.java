@@ -272,5 +272,6 @@ public interface GloboNetworkService {
 
     public GloboNetworkPoolResponse.Pool getPoolById(Long poolId, Long zoneId);
 
-    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds, Long vipId, Long zoneId, String healthcheckType, String healthcheck, String expectedHealthcheck);
+    public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds, Long vipId, Long zoneId, String healthcheckType,
+                                                           String healthcheck, String expectedHealthcheck, Integer maxConn);
 }
