@@ -749,6 +749,16 @@
                             actions: {
                                 add: {
                                     label: 'Edit All Pools',
+                                    preAction: function(args) {
+                                        if (args.context.pools.length === 0 || args.context.pools[0] === undefined) {
+                                            // No pools
+                                            cloudStack.dialog.notice({
+                                                message: 'There are no pools. Please add a VM to this Load Balancer first.'
+                                            });
+                                            return false;
+                                        }
+                                        return true;
+                                    },
                                     createForm: {
                                         fields: {
                                             healthcheck: {
@@ -1804,7 +1814,13 @@
                                             _custom: {
                                                 jobId: jobID,
                                                 getUpdatedItem: function(json) {
-                                                    return json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                    var lb = json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                                    lb.ports = lb.publicport + ':' + lb.privateport + ', ';
+                                                    $(lb.additionalportmap).each(function() {
+                                                        lb.ports += this + ', ';
+                                                    });
+                                                    lb.ports = lb.ports.substring(0, lb.ports.length - 2); // remove last ', '
+                                                    return lb;
                                                 }
                                             }
                                         });
