@@ -708,7 +708,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testExecuteUpdatePool() throws GloboNetworkException {
-        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK", 10);
+        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK", 5);
 
 
         Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "*:*", 10, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 52, 8080);
@@ -731,7 +731,7 @@ public class GloboNetworkResourceTest {
                 "HTTP",
                 "OK",
                 "/heal",
-                10,
+                5,
                 realIPs,
                 Arrays.asList("EQUIP_NAME_2"), //equipNames
                 Arrays.asList(112l), //equipIds
@@ -756,7 +756,7 @@ public class GloboNetworkResourceTest {
                 "HTTP",
                 "OK",
                 "/heal",
-                11,
+                5,
                 realIPsNew,
                 Arrays.asList("EQUIP_NAME_2"), //equipNames
                 Arrays.asList(113l), //equipIds
@@ -827,6 +827,7 @@ public class GloboNetworkResourceTest {
         pool.setDefaultPort(port);
         pool.setLbMethod(lbmethod);
         pool.setMaxconn(maxconn);
+        pool.setVipPort(80);
 
         Pool.Healthcheck healthchecker = new Pool.Healthcheck();
         healthchecker.setHealthcheckType(healthheckType);
