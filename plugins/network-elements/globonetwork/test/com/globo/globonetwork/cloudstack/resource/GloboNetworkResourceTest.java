@@ -105,9 +105,9 @@ public class GloboNetworkResourceTest {
     public void testTryToRemoveNullVIP(){
         AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
         cmd.setIpv4("192.168.1.2");
-        Answer answer = _resource.removeVIP(cmd, null);
+        Answer answer = _resource.removeVipFromGloboNetwork(cmd, null, true);
         assertTrue(answer.getResult());
-        assertEquals("VIP 192.168.1.2 already removed from GloboNetwork", answer.getDetails());
+        assertEquals("Vip request was previously removed from GloboNetwork", answer.getDetails());
     }
 
     @Test
@@ -116,7 +116,7 @@ public class GloboNetworkResourceTest {
         vip.setId(1L);
         when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(null);
 
-        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
         assertTrue(answer.getResult());
         assertEquals("Vip request 1 was previously removed from GloboNetwork", answer.getDetails());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
@@ -130,7 +130,7 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenReturn(vip);
 
-        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
         assertTrue(answer.getResult());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).removeScriptVip(vip.getId());
@@ -145,7 +145,7 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenReturn(vip);
 
-        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
         assertTrue(answer.getResult());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
         verify(_resource._globoNetworkApi.getVipAPI(), times(0)).removeScriptVip(vip.getId());
@@ -159,7 +159,7 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenThrow(GloboNetworkException.class);
 
-        Answer answer = _resource.removeVIP(new AddOrRemoveVipInGloboNetworkCommand(), vip);
+        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
         assertFalse(answer.getResult());
     }
 
