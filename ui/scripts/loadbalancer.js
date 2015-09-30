@@ -591,6 +591,7 @@
                                     url: createURL("listGloboNetworkPools"),
                                     data: data,
                                     dataType: "json",
+                                    async: false,
                                     success: function(data) {
                                         var lbPools = data.listglobonetworkpoolresponse.globonetworkpool;
                                         $(lbPools).each(function() {
@@ -750,7 +751,26 @@
                                 add: {
                                     label: 'Edit All Pools',
                                     preAction: function(args) {
-                                        if (args.context.pools.length === 0 || args.context.pools[0] === undefined) {
+                                        var data = {
+                                            lbruleid: args.context.loadbalancers[0].id,
+                                            zoneid: args.context.loadbalancers[0].zoneid
+                                        };
+
+                                        var pools = [];
+                                        $.ajax({
+                                            url: createURL("listGloboNetworkPools"),
+                                            data: data,
+                                            dataType: "json",
+                                            async: false,
+                                            success: function(data) {
+                                                pools = data.listglobonetworkpoolresponse.globonetworkpool;
+                                            },
+                                            error: function(errorMessage) {
+                                                args.response.error(errorMessage);
+                                            }
+                                        });
+
+                                        if (pools.length === 0) {
                                             // No pools
                                             cloudStack.dialog.notice({
                                                 message: 'There are no pools. Please add a VM to this Load Balancer first.'

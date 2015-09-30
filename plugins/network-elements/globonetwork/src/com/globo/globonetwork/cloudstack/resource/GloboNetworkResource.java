@@ -1034,14 +1034,27 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         Pool pool = findPoolByPort(realPort, vip);
         String poolName = pool != null ? pool.getIdentifier() : buildPoolName(host);
         Long poolId = pool != null ? pool.getId() :  null;
-        HealthCheck healthCheck = new HealthCheck(cmd, host).build();
+        Integer maxConn = pool != null ? pool.getMaxconn() : DEFAULT_MAX_CONN;
+
+        boolean poolHasHealthcheck = (pool != null) && (pool.getHealthcheck().getId() != null);
+        HealthCheck healthcheckObj = new HealthCheck(cmd, host);
+        String healthcheckType = null;
+        String healthcheck = null;
+        String expectedHealthcheck = null;
+        if (poolHasHealthcheck) {
+            pool = _globoNetworkApi.getPoolAPI().getByPk(pool.getId()).getPool(); // Update pool info from API
+            healthcheckType = pool.getHealthcheck().getHealthcheckType();
+            healthcheck = pool.getHealthcheck().getHealthcheckRequest();
+            expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
+        }
+        healthcheckObj = healthcheckObj.build(healthcheckType, healthcheck, expectedHealthcheck);
         LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
 
-        s_logger.info("Creating pool name: " + poolName  + " port: " + realPort);
+        s_logger.info("Saving pool name: " + poolName  + " port: " + realPort);
 
         pool = _globoNetworkApi.getPoolAPI().save(
-            poolId, poolName, realPort, vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthCheck.getHealthCheckType(),
-            healthCheck.getExpectedHealthCheck(), healthCheck.getHealthCheck(), DEFAULT_MAX_CONN, realIps.get(port), equipNames,
+            poolId, poolName, realPort, vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckObj.getHealthCheckType(),
+                healthcheckObj.getExpectedHealthCheck(), healthcheckObj.getHealthCheck(), maxConn, realIps.get(port), equipNames,
             equipIds, realPriorities, realWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()
         );
 
@@ -1233,21 +1246,23 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return expectedHealthCheck;
         }
 
-        public HealthCheck build() {
-            healthCheckType = DEFAULT_HEALTHCHECK_TYPE;
-            healthCheck = this.buildHealthCheckString(null, null);
-            expectedHealthCheck = null;
-
-            if (cmd.getHealthcheckPolicy() != null && !cmd.getHealthcheckPolicy().isRevoked()) {
-                healthCheckType = HEALTHCHECK_HTTP_STRING;
-                healthCheck = this.buildHealthCheckString(cmd.getHealthcheckPolicy().getpingpath(), host);
-                expectedHealthCheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
+        public HealthCheck build(String healthcheckType, String healthcheck, String expectedHealthcheck) {
+            healthCheckType = healthcheckType != null ? healthcheckType : DEFAULT_HEALTHCHECK_TYPE;
+            healthCheck = this.buildHealthCheckString(healthcheck, host);
+            if (expectedHealthcheck == null) {
+                if (healthCheckType.equals(DEFAULT_HEALTHCHECK_TYPE)) {
+                    expectedHealthCheck = null; // TCP healthcheck has no expect value
+                } else {
+                    expectedHealthCheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
+                }
+            } else {
+                expectedHealthCheck = expectedHealthcheck;
             }
             return this;
         }
 
         protected String buildHealthCheckString(String path, String host) {
-            if (path == null || host == null) {
+            if (path == null || path.equals("") || host == null) {
                 return "";
             }
             if (path.startsWith("GET") || path.startsWith("POST")) {
