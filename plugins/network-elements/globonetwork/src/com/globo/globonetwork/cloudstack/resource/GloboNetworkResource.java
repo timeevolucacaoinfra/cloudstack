@@ -610,7 +610,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), false);
     }
 
-    private Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
+    protected Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
+        if (vipId == null) {
+            return new Answer(cmd, true, "Vip request was previously removed from GloboNetwork");
+        }
         try {
             VipAPI vipAPI = _globoNetworkApi.getVipAPI();
 
@@ -871,11 +874,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
         try {
-            Vip vip = getVipById(cmd.getVipId());
-
             if (cmd.getRuleState() == FirewallRule.State.Revoke) {
-                return removeVIP(cmd, vip);
+                return this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), true);
             }
+
+            Vip vip = getVipById(cmd.getVipId());
 
             VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
             if (environmentVip == null) {
@@ -1091,15 +1094,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             throw new InvalidParameterValueException("Invalid balancing method provided.");
         }
         return lbAlgorithm;
-    }
-
-    protected Answer removeVIP(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip) {
-        if (vip == null) {
-            s_logger.warn("VIP already removed from GloboNetwork");
-            return new Answer(cmd, true, "VIP " + cmd.getIpv4() + " already removed from GloboNetwork");
-        } else {
-            return this.removeVipFromGloboNetwork(cmd, vip.getId(), true);
-        }
     }
 
     protected Pool findPoolByPort(Integer port, Vip vip) {

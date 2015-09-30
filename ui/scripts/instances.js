@@ -1701,10 +1701,7 @@
                         fields: [{
                             id: {
                                 label: 'label.id'
-                            },
-                            fqdn: {
-                                label: 'label.fqdn'
-                            },
+                            }
                         }, {
                             displayname: {
                                 label: 'label.display.name',
@@ -1886,25 +1883,6 @@
                                         cloudStack.dr.sharedFunctions.addExtraProperties(jsonObj, "UserVM");
                                     }
 
-                                    if (jsonObj.nic) {
-                                        // Set full FQDN for virtual machine based on default NIC
-                                        $(jsonObj.nic).each(function() {
-                                            if (this.isdefault) {
-                                                var that = this;
-                                                $.ajax({
-                                                    url: createURL('listNetworks'),
-                                                    async: false,
-                                                    data: {
-                                                        id: that.networkid
-                                                    },
-                                                    success: function(json) {
-                                                        jsonObj.fqdn = jsonObj.name + '.' + json.listnetworksresponse.network[0].networkdomain;
-                                                    }
-                                                });
-                                            }
-                                        });
-                                    }
-
                                     args.response.success({
                                         actionFilter: vmActionfilter,
                                         data: jsonObj
@@ -2055,6 +2033,9 @@
                                 label: 'label.name',
                                 header: true
                             },
+                            fqdn: {
+                                label: 'label.fqdn'
+                            },
                             networkname: {
                                 label: 'label.network.name'
                             },
@@ -2105,6 +2086,29 @@
                                 async: true,
                                 success: function(json) {
                                     // Handling the display of network name for a VM under the NICS tabs
+                                    // Plus FQDN
+                                    $(json.listvirtualmachinesresponse.virtualmachine[0].nic).each(function(index, nic) {
+                                        var fqdn = args.context.instances[0].name + '.';
+                                        var name = 'NIC ' + (index + 1);
+                                        if (nic.isdefault) {
+                                            name += ' (' + _l('label.default') + ')';
+                                        }
+                                        $.ajax({
+                                            url: createURL('listNetworks'),
+                                            async: false,
+                                            data: {
+                                                id: nic.networkid
+                                            },
+                                            success: function(json2) {
+                                                fqdn += json2.listnetworksresponse.network[0].networkdomain;
+                                            }
+                                        });
+                                        $.extend(json.listvirtualmachinesresponse.virtualmachine[0].nic[index], {
+                                            name: name,
+                                            fqdn: fqdn
+                                        });
+                                    });
+
                                     args.response.success({
                                         actionFilter: function(args) {
                                             if (args.context.item.isdefault) {
@@ -2113,15 +2117,7 @@
                                                 return ['remove', 'makeDefault'];
                                             }
                                         },
-                                        data: $.map(json.listvirtualmachinesresponse.virtualmachine[0].nic, function(nic, index) {
-                                            var name = 'NIC ' + (index + 1);
-                                            if (nic.isdefault) {
-                                                name += ' (' + _l('label.default') + ')';
-                                            }
-                                            return $.extend(nic, {
-                                                name: name
-                                            });
-                                        })
+                                        data: json.listvirtualmachinesresponse.virtualmachine[0].nic
                                     });
                                 }
                             });
