@@ -1049,6 +1049,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             healthcheckType = pool.getHealthcheck().getHealthcheckType();
             healthcheck = pool.getHealthcheck().getHealthcheckRequest();
             expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
+        } else if (vip == null && cmd.getHealthcheckPolicy() != null && !cmd.getHealthcheckPolicy().isRevoked()) {
+            // Creating new VIP and healthcheck was set
+            healthcheckType = HEALTHCHECK_HTTP_STRING;
+            healthcheck = cmd.getHealthcheckPolicy().getpingpath();
+            expectedHealthcheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
         }
         healthcheckObj = healthcheckObj.build(healthcheckType, healthcheck, expectedHealthcheck);
         LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
