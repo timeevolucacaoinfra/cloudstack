@@ -786,13 +786,31 @@
                                                 docID: 'helpHealthcheck',
                                             },
                                             maxconn: {
-                                                label: 'Max Connections'
+                                                label: 'Max Connections',
+                                                defaultValue: "0",
+                                                validation: {
+                                                    required: true 
+                                                }
                                             }
                                         },
                                     },
                                     action: function(args) {
+                                        var healthcheckexpect;
+                                        var healthchecktype;
+                                        if (args.data.healthcheck === '') { // Empty healthcheck means TCP
+                                            healthchecktype = 'TCP';
+                                            healthcheckexpect = ''; // expecthealthcheck is for HTTP only
+                                        } else  {
+                                            healthchecktype = 'HTTP';
+                                            healthcheckexpect = "WORKING"; // Fixed value
+                                        }
+
+                                        
+                                        var msg = "Are you sure you want to apply these configurations to ALL pools?<br/><br/>";
+                                        msg += "Healthcheck: <span style='font-weight: bold'>" + healthchecktype + " " + args.data.healthcheck + "</span><br/>";
+                                        msg += "Maxconn: <span style='font-weight: bold'>" + args.data.maxconn + "</span>";
                                         cloudStack.dialog.confirm({
-                                            message: 'Are you sure you want to edit ALL pools?',
+                                            message: msg,
                                             action: function() { // "Yes"
                                                 var poolsList = [];
                                                 $.ajax({
@@ -812,15 +830,7 @@
                                                 });
 
                                                 var lb = args.context.loadbalancers[0];
-                                                var healthcheckexpect;
-                                                var healthchecktype;
-                                                if (args.data.healthcheck === '') { // Empty healthcheck means TCP
-                                                    healthchecktype = 'TCP';
-                                                    healthcheckexpect = ''; // expecthealthcheck is for HTTP only
-                                                } else  {
-                                                    healthchecktype = 'HTTP';
-                                                    healthcheckexpect = "WORKING"; // Fixed value
-                                                }
+                                                
                                                 var poolIds = [];
                                                 $(poolsList).each(function() {
                                                     poolIds.push(this.id);

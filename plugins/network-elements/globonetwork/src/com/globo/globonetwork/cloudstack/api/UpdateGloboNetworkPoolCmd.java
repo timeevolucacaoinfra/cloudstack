@@ -43,7 +43,7 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     @Parameter(name = "expectedhealthcheck", type = CommandType.STRING, required = true, description = "Expected healthcheck.")
     private String expectedHealthcheck;
 
-    @Parameter(name = "maxconn", type = CommandType.INTEGER, required = false, description = "Max number of connections")
+    @Parameter(name = "maxconn", type = CommandType.INTEGER, required = true, description = "Max number of connections")
     private Integer maxConn;
 
     @Inject
