@@ -217,6 +217,10 @@
                             //     label: 'Healthcheck'
                             // },
                         }],
+                        tags: cloudStack.api.tags({
+                            resourceType: 'LoadBalancer',
+                            contextId: 'loadbalancers'
+                        }),
                         dataProvider: function(args) {
                             if (!args.jsonObj) {
                                 args.jsonObj = args.context.loadbalancers[0];
