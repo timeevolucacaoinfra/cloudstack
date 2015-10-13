@@ -2562,7 +2562,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         if (healthcheckType == null) {
             throw new InvalidParameterValueException("Invalid healthcheckType: " + healthcheckType);
         }
-        if (maxConn == null) {
+        if (maxConn == null || maxConn < 0) {
             throw new InvalidParameterValueException("Invalid maxconn: " + maxConn);
         }
 

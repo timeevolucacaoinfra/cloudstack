@@ -126,6 +126,9 @@
     $.validator.addMethod("noUnderscore", function(value, element) {
         return !/[_]/.test(value);
     }, "Do not use underscore");
+    $.validator.addMethod("positiveNumber", function(value, element) {
+        return (/^[0-9]+/).test(value);
+    }, "Use positive numbers only");
 
     cloudStack.sections.loadbalancer = {
         title: 'label.load.balancer',
@@ -686,7 +689,11 @@
                                                         },
                                                         maxconn: {
                                                             label: 'Max Connections',
-                                                            defaultValue: pool.maxconn
+                                                            defaultValue: pool.maxconn,
+                                                            validation: {
+                                                                required: true,
+                                                                positiveNumber: true
+                                                            }
                                                         }
                                                     }
                                                 },
@@ -789,7 +796,8 @@
                                                 label: 'Max Connections',
                                                 defaultValue: "0",
                                                 validation: {
-                                                    required: true 
+                                                    required: true,
+                                                    positiveNumber: true
                                                 }
                                             }
                                         },
