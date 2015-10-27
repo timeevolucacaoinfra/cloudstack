@@ -19,7 +19,6 @@ package org.apache.cloudstack.api.command.user.firewall;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.cloud.utils.exception.CloudRuntimeException;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.RoleType;
@@ -56,16 +55,16 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
     // ///////////////////////////////////////////////////
 
     @Parameter(name = ApiConstants.IP_ADDRESS_ID,
-               type = CommandType.UUID,
-               entityType = IPAddressResponse.class,
-               required = true,
-               description = "the IP address id of the port forwarding rule")
+            type = CommandType.UUID,
+            entityType = IPAddressResponse.class,
+            required = true,
+            description = "the IP address id of the port forwarding rule")
     private Long ipAddressId;
 
     @Parameter(name = ApiConstants.PROTOCOL,
-               type = CommandType.STRING,
-               required = true,
-               description = "the protocol for the firewall rule. Valid values are TCP/UDP/ICMP.")
+            type = CommandType.STRING,
+            required = true,
+            description = "the protocol for the firewall rule. Valid values are TCP/UDP/ICMP.")
     private String protocol;
 
     @Parameter(name = ApiConstants.START_PORT, type = CommandType.INTEGER, description = "the starting port of firewall rule")
@@ -145,10 +144,6 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
                 setResponseObject(fwResponse);
             }
             fwResponse.setResponseName(getCommandName());
-        }catch(CloudRuntimeException e){
-            success = true;
-            _firewallService.revokeIngressFwRule(getEntityId(), true);
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage());
         } finally {
             if (!success || rule == null) {
                 _firewallService.revokeIngressFwRule(getEntityId(), true);
@@ -314,7 +309,7 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
         if (icmpType != null) {
             return icmpType;
         } else if (protocol.equalsIgnoreCase(NetUtils.ICMP_PROTO)) {
-                return -1;
+            return -1;
 
         }
         return null;
