@@ -48,6 +48,7 @@ public interface ExternalNetworkDeviceManager extends Manager {
         public static final NetworkDevice GloboDns = new NetworkDevice("GloboDns", Network.Provider.GloboDns.getName());
         public static final NetworkDevice OpenDaylightController = new NetworkDevice("OpenDaylightController", Network.Provider.Opendaylight.getName());
         public static final NetworkDevice GloboNetwork = new NetworkDevice("GloboNetwork", Network.Provider.GloboNetwork.getName());
+        public static final NetworkDevice GloboAclAPI = new NetworkDevice("GloboACLAPI", Network.Provider.GloboAclApi.getName());
 
         public NetworkDevice(String deviceName, String ntwkServiceprovider) {
             _name = deviceName;

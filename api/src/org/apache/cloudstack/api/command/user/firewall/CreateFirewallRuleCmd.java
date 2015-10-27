@@ -19,6 +19,7 @@ package org.apache.cloudstack.api.command.user.firewall;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.cloud.utils.exception.CloudRuntimeException;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.RoleType;
@@ -144,6 +145,10 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
                 setResponseObject(fwResponse);
             }
             fwResponse.setResponseName(getCommandName());
+        }catch(CloudRuntimeException e){
+            success = true;
+            _firewallService.revokeIngressFwRule(getEntityId(), true);
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage());
         } finally {
             if (!success || rule == null) {
                 _firewallService.revokeIngressFwRule(getEntityId(), true);

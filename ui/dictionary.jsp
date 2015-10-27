@@ -1890,7 +1890,9 @@ dictionary = {
 'label.add.intermediate.certificate': '<fmt:message key="label.add.intermediate.certificate" />',
 'label.globo.dns': '<fmt:message key="label.globo.dns" />',
 'label.add.globo.dns': '<fmt:message key="label.add.globo.dns" />',
-'label.globo.dns.configuration': '<fmt:message key="label.globo.dns.configuration" />'
-
+'label.globo.dns.configuration': '<fmt:message key="label.globo.dns.configuration" />',
+'label.globo.aclapi': '<fmt:message key="label.globo.aclapi" />',
+'label.globo.aclapi.configuration': '<fmt:message key="label.globo.aclapi.configuration" />',
+'label.add.globo.aclapi': '<fmt:message key="label.add.globo.aclapi" />'
 };
 </script>

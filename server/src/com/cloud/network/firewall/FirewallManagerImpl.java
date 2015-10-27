@@ -540,7 +540,9 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
                             if (rule.getSourceIpAddressId() != null) {
                                 //if the rule is the last one for the ip address assigned to VPC, unassign it from the network
                                 IpAddress ip = _ipAddressDao.findById(rule.getSourceIpAddressId());
-                                _vpcMgr.unassignIPFromVpcNetwork(ip.getId(), rule.getNetworkId());
+                                if(ip != null) {
+                                    _vpcMgr.unassignIPFromVpcNetwork(ip.getId(), rule.getNetworkId());
+                                }
                             }
                         }
                     } else if (rule.getState() == FirewallRule.State.Add) {
