@@ -1677,9 +1677,6 @@
                                                         }, {
                                                             name: 'icmp',
                                                             description: 'ICMP'
-                                                        }, {
-                                                            name: 'all',
-                                                            description: 'All'
                                                         }]
                                                     });
                                                 }
@@ -1745,7 +1742,7 @@
                                                                 jobId: jobId
                                                             },
                                                             notification: {
-                                                                label: 'label.add.firewall.rule',
+                                                                label: 'label.add.ACL',
                                                                 poll: pollAsyncJobResult
                                                             }
                                                         });
@@ -1775,7 +1772,7 @@
                                                                     jobId: jobID
                                                                 },
                                                                 notification: {
-                                                                    label: 'label.remove.firewall.rule',
+                                                                    label: 'label.remove.ACL',
                                                                     poll: pollAsyncJobResult
                                                                 }
                                                             });
