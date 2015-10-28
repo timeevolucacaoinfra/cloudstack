@@ -19,7 +19,9 @@ package org.apache.cloudstack.api.command.user.firewall;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.cloud.network.Network;
 import com.cloud.utils.exception.CloudRuntimeException;
+import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.RoleType;
@@ -61,6 +63,13 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
             required = false,
             description = "the IP address id of the port forwarding rule")
     private Long ipAddressId;
+
+    @Parameter(name = ApiConstants.NETWORK_ID,
+            type = CommandType.UUID,
+            entityType = NetworkResponse.class,
+            required = true,
+            description = "the network id of the port forwarding rule")
+    private Long networkId;
 
     @Parameter(name = ApiConstants.PROTOCOL,
             type = CommandType.STRING,
@@ -135,7 +144,7 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
         FirewallRule rule = _entityMgr.findById(FirewallRule.class, getEntityId());
         try {
             CallContext.current().setEventDetails("Rule Id: " + getEntityId());
-            success = _firewallService.applyIngressFwRules(rule.getSourceIpAddressId(), callerContext.getCallingAccount());
+            success = _firewallService.applyIngressFwRules(rule, callerContext.getCallingAccount());
 
             // State is different after the rule is applied, so get new object here
             rule = _entityMgr.findById(FirewallRule.class, getEntityId());
@@ -212,6 +221,10 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public long getNetworkId() {
+        if(networkId != null){
+            return networkId;
+        }
+
         IpAddress ip = _entityMgr.findById(IpAddress.class, getIpAddressId());
         Long ntwkId = null;
 
@@ -239,8 +252,13 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public long getDomainId() {
-        IpAddress ip = _networkService.getIp(ipAddressId);
-        return ip.getDomainId();
+        if(networkId != null) {
+            Network network = getNetwork();
+            return network.getDomainId();
+        }else{
+            IpAddress ip = _networkService.getIp(ipAddressId);
+            return ip.getDomainId();
+        }
     }
 
     @Override
@@ -271,14 +289,24 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public String getEventDescription() {
-        IpAddress ip = _networkService.getIp(ipAddressId);
-        return ("Creating firewall rule for Ip: " + ip.getAddress() + " for protocol:" + getProtocol());
+        if(networkId != null){
+            Network network = getNetwork();
+            return ("Creating firewall rule for network: " + network + " for protocol:" + getProtocol());
+        }else {
+            IpAddress ip = _networkService.getIp(ipAddressId);
+            return ("Creating firewall rule for Ip: " + ip.getAddress() + " for protocol:" + getProtocol());
+        }
     }
 
     @Override
     public long getAccountId() {
-        IpAddress ip = _networkService.getIp(ipAddressId);
-        return ip.getAccountId();
+        if(networkId != null) {
+            Network network = getNetwork();
+            return network.getAccountId();
+        }else {
+            IpAddress ip = _networkService.getIp(ipAddressId);
+            return ip.getAccountId();
+        }
     }
 
     @Override
@@ -288,7 +316,11 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public Long getSyncObjId() {
-        return getIp().getAssociatedWithNetworkId();
+        if(networkId != null){
+            return networkId;
+        }else {
+            return getIp().getAssociatedWithNetworkId();
+        }
     }
 
     private IpAddress getIp() {
@@ -297,6 +329,10 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
             throw new InvalidParameterValueException("Unable to find ip address by id " + ipAddressId);
         }
         return ip;
+    }
+
+    private Network getNetwork() {
+        return _networkService.getNetwork(networkId);
     }
 
     @Override

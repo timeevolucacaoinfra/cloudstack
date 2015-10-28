@@ -1182,10 +1182,6 @@
                                 hiddenTabs.push('egressRules');
                             }
 
-                            if (!hasGloboACL) {
-                                hiddenTabs.push("globoACL");
-                            }
-
                             return hiddenTabs;
                         },
 

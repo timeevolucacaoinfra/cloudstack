@@ -17,6 +17,7 @@
 package com.cloud.network.firewall;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -616,8 +617,8 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_FIREWALL_OPEN, eventDescription = "creating firewall rule", async = true)
-    public boolean applyIngressFwRules(long ipId, Account caller) throws ResourceUnavailableException {
-        return applyIngressFirewallRules(ipId, caller);
+    public boolean applyIngressFwRules(FirewallRule rule, Account caller) throws ResourceUnavailableException {
+        return applyFirewallRules(Arrays.asList((FirewallRuleVO) rule), false, caller);
     }
 
     @Override
