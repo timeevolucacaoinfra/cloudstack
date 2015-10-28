@@ -1144,14 +1144,12 @@
                                 }
 
                                 if (thisService.name == 'Firewall') {
+                                    hasGloboACL = true;
+
                                     $(thisService.provider).each(function() {
                                         if (this.name == 'JuniperSRX') {
                                             hasSRXFirewall = true;
 
-                                            return false;
-                                        }
-                                        if (this.name == 'GloboACLAPI') {
-                                            hasGloboACL = true;
                                             return false;
                                         }
 
@@ -1176,6 +1174,10 @@
 
                             if (!networkHavingELB) {
                                 hiddenTabs.push("addloadBalancer");
+                            }
+
+                            if(!hasGloboACL){
+                                hiddenTabs.push("globoACL");
                             }
 
                             if (isVPC || isAdvancedSGZone || isSharedNetwork) {
