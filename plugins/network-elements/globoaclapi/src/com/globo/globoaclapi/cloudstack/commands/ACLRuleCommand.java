@@ -38,6 +38,8 @@ public abstract class ACLRuleCommand extends Command {
 
     private Long environmentId;
 
+    private String aclOwner;
+
     public String getDestinationCidr() {
         return destinationCidr;
     }
@@ -130,4 +132,11 @@ public abstract class ACLRuleCommand extends Command {
                 '}';
     }
 
+    public void setAclOwner(String aclOwner) {
+        this.aclOwner = aclOwner;
+    }
+
+    public String getAclOwner() {
+        return aclOwner;
+    }
 }

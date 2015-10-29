@@ -59,6 +59,7 @@ import com.globo.globoaclapi.cloudstack.commands.RemoveACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.resource.GloboAclApiResource;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
+import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -163,10 +164,15 @@ public class GloboAclApiElement extends AdapterBase implements FirewallServicePr
             cmd.setIcmpType(rule.getIcmpType());
             cmd.setVlanNumber(getVlanNumber(network));
             cmd.setEnvironmentId(getEnvironmentId(network));
+            cmd.setAclOwner(getCallingUser());
             return cmd;
         } catch (InstantiationException | IllegalAccessException ex) {
             return null;
         }
+    }
+
+    protected String getCallingUser() {
+        return CallContext.current().getCallingUser().getUsername();
     }
 
     private Long getVlanNumber(Network network) {

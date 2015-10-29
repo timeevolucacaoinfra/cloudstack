@@ -36,6 +36,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -49,6 +50,7 @@ public class GloboAclApiElementTest {
     @Before
     public void setUp() throws Exception {
         element = spy(new GloboAclApiElement());
+        doReturn("user").when(element).getCallingUser();
         mockFindZone();
         mockCheckACLProvider();
     }

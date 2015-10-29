@@ -118,7 +118,7 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
 
     private Answer execute(CreateACLRuleCommand cmd) {
         try{
-            Rule rule = _aclApiClient.getAclAPI().saveSync(cmd.getEnvironmentId(), cmd.getVlanNumber(), createRule(cmd));
+            Rule rule = _aclApiClient.getAclAPI().saveSync(cmd.getEnvironmentId(), cmd.getVlanNumber(), createRule(cmd), cmd.getAclOwner());
             return new Answer(cmd, true, "ACL Rule " + rule.getId() + " successfully created.");
         }catch(AclAPIException e){
             s_logger.error("Error while creating ACL Rule: " + cmd.getAclRuleDescription(), e);
@@ -130,7 +130,7 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
         try {
             Long ruleId = getRuleId(cmd);
             if(ruleId != null){
-                _aclApiClient.getAclAPI().removeSync(cmd.getEnvironmentId(), cmd.getVlanNumber(), ruleId);
+                _aclApiClient.getAclAPI().removeSync(cmd.getEnvironmentId(), cmd.getVlanNumber(), ruleId, cmd.getAclOwner());
             }
             return new Answer(cmd, true, "ACL Rule " + ruleId + " successfully removed.");
         }catch(AclAPIException e){

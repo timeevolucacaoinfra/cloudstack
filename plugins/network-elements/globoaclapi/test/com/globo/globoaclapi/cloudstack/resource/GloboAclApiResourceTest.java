@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -132,7 +133,7 @@ public class GloboAclApiResourceTest {
         Answer answer = globoAclApiResource.executeRequest(createCreateCmd());
         assertFalse(answer.getResult());
         assertEquals("error", answer.getDetails());
-        verify(ruleAPI, times(1)).saveSync(eq(1L), eq(1L), any(Rule.class));
+        verify(ruleAPI, times(1)).saveSync(eq(1L), eq(1L), any(Rule.class), anyString());
     }
 
     @Test
@@ -141,7 +142,7 @@ public class GloboAclApiResourceTest {
 
         Answer answer = globoAclApiResource.executeRequest(createCreateCmd());
         assertTrue(answer.getResult());
-        verify(ruleAPI, times(1)).saveSync(eq(1L), eq(1L), any(Rule.class));
+        verify(ruleAPI, times(1)).saveSync(eq(1L), eq(1L), any(Rule.class), anyString());
     }
 
     @Test
@@ -152,7 +153,7 @@ public class GloboAclApiResourceTest {
         Answer answer = globoAclApiResource.executeRequest(cmd);
         assertFalse(answer.getResult());
         assertEquals("error", answer.getDetails());
-        verify(ruleAPI, times(1)).removeSync(eq(1L), eq(1L), any(Long.class));
+        verify(ruleAPI, times(1)).removeSync(eq(1L), eq(1L), any(Long.class), anyString());
     }
 
     @Test
@@ -163,7 +164,7 @@ public class GloboAclApiResourceTest {
         Answer answer = globoAclApiResource.executeRequest(cmd);
         assertTrue(answer.getResult());
         verify(ruleAPI, times(1)).listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
-        verify(ruleAPI, times(1)).removeSync(eq(1L), eq(1L), eq(1L));
+        verify(ruleAPI, times(1)).removeSync(eq(1L), eq(1L), eq(1L), anyString());
     }
 
     private RuleAPI mockACLClientApiRemoveSync(Object response, RemoveACLRuleCommand cmd) {
@@ -171,7 +172,7 @@ public class GloboAclApiResourceTest {
         RuleAPI ruleAPI = mock(RuleAPI.class);
         when(aclAPI.getAclAPI()).thenReturn(ruleAPI);
         if(response instanceof AclAPIException) {
-            doThrow((AclAPIException)response).when(ruleAPI).removeSync(anyLong(), anyLong(), any(Long.class));
+            doThrow((AclAPIException)response).when(ruleAPI).removeSync(anyLong(), anyLong(), any(Long.class), anyString());
         }
         if(cmd != null) {
             Rule rule = globoAclApiResource.createRule(cmd);
@@ -187,9 +188,9 @@ public class GloboAclApiResourceTest {
         RuleAPI ruleAPI = mock(RuleAPI.class);
         when(aclAPI.getAclAPI()).thenReturn(ruleAPI);
         if(response instanceof Rule) {
-            when(ruleAPI.saveSync(anyLong(), anyLong(), any(Rule.class))).thenReturn((Rule) response);
+            when(ruleAPI.saveSync(anyLong(), anyLong(), any(Rule.class), anyString())).thenReturn((Rule) response);
         }else{
-            when(ruleAPI.saveSync(anyLong(), anyLong(), any(Rule.class))).thenThrow((AclAPIException) response);
+            when(ruleAPI.saveSync(anyLong(), anyLong(), any(Rule.class), anyString())).thenThrow((AclAPIException) response);
         }
         globoAclApiResource._aclApiClient = aclAPI;
         return ruleAPI;
