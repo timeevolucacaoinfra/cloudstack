@@ -618,7 +618,11 @@ public class VirtualMachineManagerImpl extends ManagerBase implements VirtualMac
         } catch (InsufficientCapacityException e) {
             throw new CloudRuntimeException("Unable to start a VM due to insufficient capacity", e).add(VirtualMachine.class, vmUuid);
         } catch (ResourceUnavailableException e) {
-            throw new CloudRuntimeException("Unable to start a VM due to concurrent operation", e).add(VirtualMachine.class, vmUuid);
+            String msg = "Unable to start a VM due to concurrent operation";
+            if ( e instanceof AgentUnavailableException) {
+                msg = e.getMessage();
+            }
+            throw new CloudRuntimeException(msg, e).add(VirtualMachine.class, vmUuid);
         }
     }
 

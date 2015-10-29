@@ -187,14 +187,19 @@
                             success: function(json) {
                                 var zones = json.listzonesresponse.zone ? json.listzonesresponse.zone : [];
 
-                                args.response.success({
-                                    data: $.map(zones, function(zone) {
-                                        return {
-                                            id: zone.id,
-                                            description: zone.name
-                                        };
-                                    })
-                                });
+                                var zoneMap = {
+                                    data: $.map(zones,
+                                        function(zone) {
+                                            return {
+                                                id: zone.id,
+                                                description: zone.name
+                                            };
+                                        }
+                                    )
+                                }
+                                zoneMap.data.unshift({ id: null, description: 'All zones'})
+
+                                args.response.success(zoneMap);
                             }
                         });
                     }
