@@ -259,8 +259,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             "GloboNetwork Loadbalancer lock timeout (in seconds). This option avoid concurrent operations.", true, ConfigKey.Scope.Global);
     private static final ConfigKey<String> GloboNetworkLBAllowedSuffixes = new ConfigKey<String>("Network", String.class, "globonetwork.lb.allowed.suffixes", "",
             "Allowed domain suffixes for load balancers created with GloboNetwork. List of domain names separated by commas", true, ConfigKey.Scope.Global);
-    private static final ConfigKey<Boolean> GloboNetworkUseNewNetworkAPI = new ConfigKey<>("Network", Boolean.class, "globonetwork.use.newnetworkapi", "true",
-            "Set to true to use the new network creation resource", true, ConfigKey.Scope.Global);
 
     // DAOs
     @Inject
@@ -745,9 +743,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GloboNetworkVlanResponse vlanResponse = getVlanFromGloboNetwork(network, vlanId);
         if (!vlanResponse.isActive()) {
             // Create network in equipment
-            ActivateNetworkCommand activateCmd = new ActivateNetworkCommand(vlanId, vlanResponse.getNetworkId(), vlanResponse.isv6());
-            //temporary global setting to be used while new network service is not stable
-            activateCmd.setUseNewNetworkApi(GloboNetworkUseNewNetworkAPI.value());
+            ActivateNetworkCommand activateCmd = new ActivateNetworkCommand(vlanResponse.getNetworkId(), vlanResponse.isv6());
             Answer cmdAnswer = callCommand(activateCmd, network.getDataCenterId());
             if (cmdAnswer == null || !cmdAnswer.getResult()) {
                 throw new CloudRuntimeException("Unable to create network in GloboNetwork: VlanId " + vlanId + " networkId " + vlanResponse.getNetworkId());
@@ -1105,11 +1101,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             //Get Network type (ipv4 or ipv6) and network ID from Globo Network API
             GloboNetworkVlanResponse vlanResponse = getVlanFromGloboNetwork(network, vlan.getId());
             RemoveNetworkInGloboNetworkCommand cmd = new RemoveNetworkInGloboNetworkCommand();
-            cmd.setVlanId(vlan.getId());
             cmd.setNetworkId(vlanResponse.getNetworkId());
             cmd.setIsIpv6(vlanResponse.isv6());
-            //temporary global setting to be used while new network service is not stable
-            cmd.setUseNewNetworkApi(GloboNetworkUseNewNetworkAPI.value());
 
             this.callCommand(cmd, network.getDataCenterId());
         } catch (CloudstackGloboNetworkException e) {
@@ -1717,7 +1710,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, GloboNetworkConnectionTimeout, GloboNetworkLBLockTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries,
                 GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm,
                 GloboNetworkModelVmElasticIpVm, GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal,
-                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes, GloboNetworkUseNewNetworkAPI};
+                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes};
     }
 
     protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,
