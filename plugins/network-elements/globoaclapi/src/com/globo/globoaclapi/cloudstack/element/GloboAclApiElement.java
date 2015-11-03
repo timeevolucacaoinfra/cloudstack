@@ -60,6 +60,8 @@ import com.globo.globoaclapi.cloudstack.resource.GloboAclApiResource;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -74,7 +76,7 @@ import java.util.Set;
 
 @Component
 @Local(NetworkElement.class)
-public class GloboAclApiElement extends AdapterBase implements FirewallServiceProvider, ResourceStateAdapter, GloboAclApiElementService{
+public class GloboAclApiElement extends AdapterBase implements FirewallServiceProvider, ResourceStateAdapter, GloboAclApiElementService, Configurable{
 
     @Inject
     protected NetworkModel _networkManager;
@@ -95,6 +97,11 @@ public class GloboAclApiElement extends AdapterBase implements FirewallServicePr
 
     private static final Map<Network.Service, Map<Network.Capability, String>> capabilities = setCapabilities();
     private static final Logger s_logger = Logger.getLogger(GloboAclApiElement.class);
+
+    private static final ConfigKey<Boolean> GloboAclTrustSSL = new ConfigKey<>("ACL", Boolean.class, "globoaclapi.trust.ssl", "true",
+            "Set true to trust ACL API SSL certificate", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Integer> GloboAclTimeout = new ConfigKey<>("ACL", Integer.class, "globoaclapi.timeout", "60000",
+            "Globo ACL API connection timeout in", true, ConfigKey.Scope.Global);
 
     @Override
     public boolean applyFWRules(Network network, List<? extends FirewallRule> rules) throws ResourceUnavailableException {
@@ -326,6 +333,8 @@ public class GloboAclApiElement extends AdapterBase implements FirewallServicePr
         params.put("url", url);
         params.put("username", username);
         params.put("password", password);
+        params.put("trustssl", GloboAclTrustSSL.value().toString());
+        params.put("timeout", GloboAclTimeout.value().toString());
 
         final Map<String, Object> hostDetails = new HashMap<>();
         hostDetails.putAll(params);
@@ -379,5 +388,15 @@ public class GloboAclApiElement extends AdapterBase implements FirewallServicePr
         List<Class<?>> cmdList = new ArrayList<>();
         cmdList.add(AddGloboAclApiHostCmd.class);
         return cmdList;
+    }
+
+    @Override
+    public String getConfigComponentName() {
+        return this.getClass().getName();
+    }
+
+    @Override
+    public ConfigKey<?>[] getConfigKeys() {
+        return new ConfigKey<?>[]{ GloboAclTrustSSL, GloboAclTimeout };
     }
 }

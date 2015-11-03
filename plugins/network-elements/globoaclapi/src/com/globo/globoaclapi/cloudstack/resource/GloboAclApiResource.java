@@ -178,7 +178,11 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
 
     private ClientAclAPI createAclApiClient(Map<String, Object> params) {
         if(_aclApiClient == null){
-            return ClientAclAPI.buildHttpAPI((String) params.get("url"), (String) params.get("username"), (String) params.get("password"));
+            return ClientAclAPI.buildHttpAPI((String) params.get("url"),
+                                            (String) params.get("username"),
+                                            (String) params.get("password"),
+                                            new Integer((String) params.get("timeout")),
+                                            params.get("trustssl").equals("true"));
         }
         return _aclApiClient;
     }
