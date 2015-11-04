@@ -27,6 +27,7 @@ import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -43,6 +44,7 @@ import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsC
 import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.IAgentControl;
@@ -887,7 +889,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             List<Long> realWeights = new ArrayList<>();
             List<String> equipNames = new ArrayList<>();
             List<Long> equipIds = new ArrayList<>();
-            List<Long> idPoolMembers = new ArrayList<>();
 
             for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
                 if (real.isRevoked()) {
@@ -907,7 +908,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 equipIds.add(equipment.getId());
                 realWeights.add(DEFAULT_REAL_WEIGHT);
                 realPriorities.add(DEFAULT_REALS_PRIORITY); // Making sure there is the same number of reals and reals priorities
-                idPoolMembers.add(0l);
 
                 // GloboNetwork considers a different RealIP object if there are multiple ports
                 // even though IP and name info are the same
@@ -924,7 +924,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
             List<VipPoolMap> vipPoolMapping = new ArrayList<>();
             for (String port : cmd.getPorts()) {
-                VipPoolMap pool = createPool(cmd, vip, cmd.getHost(), vipIp, realIps, realPriorities, equipNames, equipIds, idPoolMembers, realWeights, port);
+                VipPoolMap pool = createPool(cmd, vip, cmd.getHost(), vipIp, realIps, realPriorities, equipNames, equipIds, realWeights, port);
                 vipPoolMapping.add(pool);
             }
 
@@ -1003,7 +1003,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return vip;
     }
 
-    protected VipPoolMap createPool(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip, String host, Ip ip, Map<String, List<RealIP>> realIps, List<Integer> realPriorities, List<String> equipNames, List<Long> equipIds, List<Long> idPoolMembers, List<Long> realWeights, String port) throws GloboNetworkException {
+    protected VipPoolMap createPool(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip, String host, Ip ip, Map<String, List<RealIP>> realIps, List<Integer> realPriorities, List<String> equipNames, List<Long> equipIds, List<Long> realWeights, String port) throws GloboNetworkException {
         Network network = _globoNetworkApi.getNetworkAPI().getNetwork(ip.getNetworkId(), false);
         if (network == null) {
             throw new InvalidParameterValueException("Network " + ip.getNetworkId() + " was not found in GloboNetwork");
@@ -1016,6 +1016,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         Integer realPort = Integer.valueOf(port.split(":")[1]);
         Integer vipPort = Integer.valueOf(port.split(":")[0]);
         List<Integer> realPorts = new ArrayList<>();
+        List<String> csRealIps = new ArrayList<>();
         if (realIps.get(port) == null) {
             realIps.put(port, new ArrayList<RealIP>());
         }
@@ -1023,21 +1024,38 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
             if (!real.isRevoked()) {
                 realPorts.add(realPort);
+                csRealIps.add(real.getIp());
             }
         }
 
         Pool pool = findPoolByPort(realPort, vip);
+        Pool.PoolResponse poolResponse = null;
+        if (pool != null) {
+            poolResponse = _globoNetworkApi.getPoolAPI().getByPk(pool.getId());
+        }
         String poolName = pool != null ? pool.getIdentifier() : buildPoolName(host);
         Long poolId = pool != null ? pool.getId() :  null;
         Integer maxConn = pool != null ? pool.getMaxconn() : DEFAULT_MAX_CONN;
 
-        boolean poolHasHealthcheck = (pool != null) && (pool.getHealthcheck().getId() != null);
+        long[] idPoolMembers = new long[equipIds.size()]; // Lists must have the same size and default value is 0
+        if (poolResponse != null) {
+            for (int i = 0; i < csRealIps.size(); i++) {
+                for (Pool.PoolMember poolMember : poolResponse.getPoolMembers()) {
+                    if (csRealIps.get(i).equals(poolMember.getIp().getIpFormated())) {
+                        idPoolMembers[i] = poolMember.getId();
+                        break;
+                    }
+                }
+            }
+        }
+
+        boolean poolHasHealthcheck = (poolResponse != null) && (poolResponse.getPool() != null) && (pool.getHealthcheck().getId() != null);
         HealthCheck healthcheckObj = new HealthCheck(cmd, host);
         String healthcheckType = null;
         String healthcheck = null;
         String expectedHealthcheck = null;
         if (poolHasHealthcheck) {
-            pool = _globoNetworkApi.getPoolAPI().getByPk(pool.getId()).getPool(); // Update pool info from API
+            pool = poolResponse.getPool(); // Update pool info from API
             healthcheckType = pool.getHealthcheck().getHealthcheckType();
             healthcheck = pool.getHealthcheck().getHealthcheckRequest();
             expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
@@ -1055,7 +1073,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         pool = _globoNetworkApi.getPoolAPI().save(
             poolId, poolName, realPort, vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckObj.getHealthCheckType(),
                 healthcheckObj.getExpectedHealthCheck(), healthcheckObj.getHealthCheck(), maxConn, realIps.get(port), equipNames,
-            equipIds, realPriorities, realWeights, realPorts, idPoolMembers, cmd.getServiceDownAction(), cmd.getHealthCheckDestination()
+            equipIds, realPriorities, realWeights, realPorts, Arrays.asList(ArrayUtils.toObject(idPoolMembers)), cmd.getServiceDownAction(), cmd.getHealthCheckDestination()
         );
 
         return new VipPoolMap(pool.getId(), vipPort);
