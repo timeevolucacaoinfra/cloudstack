@@ -56,7 +56,6 @@ import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.host.Host;
 import com.cloud.host.Host.Type;
-import com.cloud.network.rules.FirewallRule;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.globonetwork.client.exception.GloboNetworkErrorCodeException;
@@ -72,7 +71,7 @@ import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
@@ -281,8 +280,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((AcquireNewIpForLbCommand)cmd);
         } else if (cmd instanceof ReleaseIpFromGloboNetworkCommand) {
             return execute((ReleaseIpFromGloboNetworkCommand)cmd);
-        } else if (cmd instanceof AddOrRemoveVipInGloboNetworkCommand) {
-            return execute((AddOrRemoveVipInGloboNetworkCommand)cmd);
+        } else if (cmd instanceof AddVipInGloboNetworkCommand) {
+            return execute((AddVipInGloboNetworkCommand)cmd);
         } else if (cmd instanceof GetNetworkFromGloboNetworkCommand) {
             return execute((GetNetworkFromGloboNetworkCommand)cmd);
         } else if (cmd instanceof ListGloboNetworkLBCacheGroupsCommand) {
@@ -607,7 +606,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     }
 
     private Answer execute(RemoveVipFromGloboNetworkCommand cmd) {
-        return this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), false);
+        return this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), cmd.isKeepIp());
     }
 
     protected Answer removeVipFromGloboNetwork(Command cmd, Long vipId, boolean keepIp) {
@@ -864,12 +863,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    public Answer execute(AddOrRemoveVipInGloboNetworkCommand cmd) {
+    public Answer execute(AddVipInGloboNetworkCommand cmd) {
         try {
-            if (cmd.getRuleState() == FirewallRule.State.Revoke) {
-                return this.removeVipFromGloboNetwork(cmd, cmd.getVipId(), true);
-            }
-
             Vip vip = getVipById(cmd.getVipId());
 
             VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
@@ -958,7 +953,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return realIP;
     }
 
-    protected Vip createVip(AddOrRemoveVipInGloboNetworkCommand cmd, String host, VipEnvironment vipEnvironment, Ip ip, List<VipPoolMap> vipPoolMapping) throws GloboNetworkException {
+    protected Vip createVip(AddVipInGloboNetworkCommand cmd, String host, VipEnvironment vipEnvironment, Ip ip, List<VipPoolMap> vipPoolMapping) throws GloboNetworkException {
         String finality = vipEnvironment.getFinality();
         String client = vipEnvironment.getClient();
         String environment = vipEnvironment.getEnvironmentName();
@@ -972,7 +967,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         );
     }
 
-    protected Vip updateVip(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip, Ip ip, List<VipPoolMap> vipPoolMapping) throws GloboNetworkException {
+    protected Vip updateVip(AddVipInGloboNetworkCommand cmd, Vip vip, Ip ip, List<VipPoolMap> vipPoolMapping) throws GloboNetworkException {
         String lbPersistence = getPersistenceMethod(cmd.getPersistencePolicy());
 
         if (vip.getCreated()) {
@@ -1003,7 +998,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return vip;
     }
 
-    protected VipPoolMap createPool(AddOrRemoveVipInGloboNetworkCommand cmd, Vip vip, String host, Ip ip, Map<String, List<RealIP>> realIps, List<Integer> realPriorities, List<String> equipNames, List<Long> equipIds, List<Long> idPoolMembers, List<Long> realWeights, String port) throws GloboNetworkException {
+    protected VipPoolMap createPool(AddVipInGloboNetworkCommand cmd, Vip vip, String host, Ip ip, Map<String, List<RealIP>> realIps, List<Integer> realPriorities, List<String> equipNames, List<Long> equipIds, List<Long> idPoolMembers, List<Long> realWeights, String port) throws GloboNetworkException {
         Network network = _globoNetworkApi.getNetworkAPI().getNetwork(ip.getNetworkId(), false);
         if (network == null) {
             throw new InvalidParameterValueException("Network " + ip.getNetworkId() + " was not found in GloboNetwork");
@@ -1214,13 +1209,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     protected static class HealthCheck {
 
-        private AddOrRemoveVipInGloboNetworkCommand cmd;
+        private AddVipInGloboNetworkCommand cmd;
         private String host;
         private String healthCheckType;
         private String healthCheck;
         private String expectedHealthCheck;
 
-        public HealthCheck(AddOrRemoveVipInGloboNetworkCommand cmd, String host) {
+        public HealthCheck(AddVipInGloboNetworkCommand cmd, String host) {
             this.cmd = cmd;
             this.host = host;
         }
