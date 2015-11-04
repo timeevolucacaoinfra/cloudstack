@@ -186,7 +186,7 @@ import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
@@ -1620,6 +1620,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(napiVipId);
+        cmd.setKeepIp(false);
 
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
 
@@ -2000,42 +2001,49 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 }
             }
 
-            final AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
-            // Vip Id null means new vip, otherwise vip will be updated.
-            cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
-            // VIP infos
-            cmd.setHost(rule.getName());
-            cmd.setCache(rule.getCache());
-            cmd.setServiceDownAction(rule.getServiceDownAction());
-            cmd.setHealthCheckDestination(rule.getHealthCheckDestination());
-            cmd.setIpv4(rule.getSourceIp().addr());
-            cmd.setVipEnvironmentId(gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
-            cmd.setPorts(ports);
-            cmd.setBusinessArea(account.getAccountName());
-            cmd.setServiceName(rule.getName());
+            if(rule.getState().equals(FirewallRule.State.Revoke)){
+                final RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
+                cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
+                cmd.setKeepIp(true);
 
-            // Options and parameters
-            cmd.setMethodBal(rule.getAlgorithm());
-            cmd.setPersistencePolicy(rule.getStickinessPolicies() == null || rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
-            cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
-            cmd.setRuleState(rule.getState());
+                this.callCommand(cmd, network.getDataCenterId());
 
-            // Reals infos
-            cmd.setRealList(realList);
-
-            Answer answer = GloboNetworkManager.this.callCommand(cmd, network.getDataCenterId());
-
-            if (gnIpDetail.getGloboNetworkVipId() == null && !FirewallRule.State.Revoke.equals(rule.getState())) {
-                // persist vip id information if not set
-                GloboNetworkVipResponse vipResponse = (GloboNetworkVipResponse)answer;
-
-                gnIpDetail.setGloboNetworkVipId(vipResponse.getId());
-                _globoNetworkIpDetailDao.persist(gnIpDetail);
-            } else if (gnIpDetail.getGloboNetworkVipId() != null && FirewallRule.State.Revoke.equals(rule.getState())) {
                 gnIpDetail.setGloboNetworkVipId(null);
                 _globoNetworkIpDetailDao.persist(gnIpDetail);
-            }
+            }else{
+                final AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+                // Vip Id null means new vip, otherwise vip will be updated.
+                cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
+                // VIP infos
+                cmd.setHost(rule.getName());
+                cmd.setCache(rule.getCache());
+                cmd.setServiceDownAction(rule.getServiceDownAction());
+                cmd.setHealthCheckDestination(rule.getHealthCheckDestination());
+                cmd.setIpv4(rule.getSourceIp().addr());
+                cmd.setVipEnvironmentId(gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
+                cmd.setPorts(ports);
+                cmd.setBusinessArea(account.getAccountName());
+                cmd.setServiceName(rule.getName());
 
+                // Options and parameters
+                cmd.setMethodBal(rule.getAlgorithm());
+                cmd.setPersistencePolicy(rule.getStickinessPolicies() == null || rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
+                cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
+                cmd.setRuleState(rule.getState());
+
+                // Reals infos
+                cmd.setRealList(realList);
+
+                Answer answer = this.callCommand(cmd, network.getDataCenterId());
+
+                if (gnIpDetail.getGloboNetworkVipId() == null) {
+                    // persist vip id information if not set
+                    GloboNetworkVipResponse vipResponse = (GloboNetworkVipResponse) answer;
+
+                    gnIpDetail.setGloboNetworkVipId(vipResponse.getId());
+                    _globoNetworkIpDetailDao.persist(gnIpDetail);
+                }
+            }
         } catch (Exception e) {
             // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions
             // only show 'error'

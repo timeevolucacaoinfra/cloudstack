@@ -26,6 +26,8 @@ public class RemoveVipFromGloboNetworkCommand extends Command {
 
     private Long vipId;
 
+    private boolean keepIp;
+
     @Override
     public boolean executeInSequence() {
         return true;
@@ -39,4 +41,11 @@ public class RemoveVipFromGloboNetworkCommand extends Command {
         this.vipId = vipId;
     }
 
+    public boolean isKeepIp() {
+        return keepIp;
+    }
+
+    public void setKeepIp(boolean keepIp) {
+        this.keepIp = keepIp;
+    }
 }

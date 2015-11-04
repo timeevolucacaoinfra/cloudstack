@@ -48,6 +48,7 @@ import com.globo.globonetwork.client.model.VipXml;
 import com.globo.globonetwork.client.model.Vlan;
 
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
+import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
@@ -79,7 +80,7 @@ import com.globo.globonetwork.client.model.Ipv4;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.VipEnvironment;
-import com.globo.globonetwork.cloudstack.commands.AddOrRemoveVipInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 public class GloboNetworkResourceTest {
@@ -106,8 +107,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testTryToRemoveNullVIP(){
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
-        cmd.setIpv4("192.168.1.2");
+        RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         Answer answer = _resource.removeVipFromGloboNetwork(cmd, null, true);
         assertTrue(answer.getResult());
         assertEquals("Vip request was previously removed from GloboNetwork", answer.getDetails());
@@ -119,7 +119,7 @@ public class GloboNetworkResourceTest {
         vip.setId(1L);
         when(_resource._globoNetworkApi.getVipAPI().getById(vip.getId())).thenReturn(null);
 
-        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
+        Answer answer = _resource.removeVipFromGloboNetwork(new RemoveVipFromGloboNetworkCommand(), vip.getId(), true);
         assertTrue(answer.getResult());
         assertEquals("Vip request 1 was previously removed from GloboNetwork", answer.getDetails());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
@@ -133,7 +133,7 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenReturn(vip);
 
-        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
+        Answer answer = _resource.removeVipFromGloboNetwork(new RemoveVipFromGloboNetworkCommand(), vip.getId(), true);
         assertTrue(answer.getResult());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).removeScriptVip(vip.getId());
@@ -148,7 +148,7 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenReturn(vip);
 
-        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
+        Answer answer = _resource.removeVipFromGloboNetwork(new RemoveVipFromGloboNetworkCommand(), vip.getId(), true);
         assertTrue(answer.getResult());
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).getById(vip.getId());
         verify(_resource._globoNetworkApi.getVipAPI(), times(0)).removeScriptVip(vip.getId());
@@ -162,7 +162,7 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getVipAPI().getById(1L)).thenThrow(GloboNetworkException.class);
 
-        Answer answer = _resource.removeVipFromGloboNetwork(new AddOrRemoveVipInGloboNetworkCommand(), vip.getId(), true);
+        Answer answer = _resource.removeVipFromGloboNetwork(new RemoveVipFromGloboNetworkCommand(), vip.getId(), true);
         assertFalse(answer.getResult());
     }
 
@@ -220,7 +220,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testCreateVip() throws GloboNetworkException {
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setBusinessArea("businessarea");
         cmd.setServiceName("servicename");
         String host = "vip";
@@ -312,7 +312,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testCreateEmptyPool() throws GloboNetworkException {
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
         cmd.setMethodBal("roundrobin");
 
@@ -343,7 +343,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testCreatePoolWithOneReal() throws GloboNetworkException {
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
         cmd.setMethodBal("roundrobin");
 
@@ -381,7 +381,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testAddRealToExistingPool() throws GloboNetworkException {
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         GloboNetworkVipResponse.Real real1 = new GloboNetworkVipResponse.Real();
         real1.setIp("192.268.0.4");
         GloboNetworkVipResponse.Real real2 = new GloboNetworkVipResponse.Real();
@@ -438,24 +438,24 @@ public class GloboNetworkResourceTest {
     }
 
     @Test
-    public void testCreatePoolGivenInvalidNetwork() throws GloboNetworkException {
+    public void testCreatePoolGivenInvalidVlan() throws GloboNetworkException {
         Ipv4 ip = new Ipv4();
         ip.setNetworkId(1L);
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
         when(_resource._globoNetworkApi.getVlanAPI().getById(999L)).thenReturn(new Vlan());
         try{
-            _resource.createPool(new AddOrRemoveVipInGloboNetworkCommand(), null, "host", ip, null, null, null, null, null, "80:8080");
+            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "host", ip, null, null, null, null, null, "80:8080");
         }catch(InvalidParameterValueException e){
             assertEquals("Vlan " + null + " was not found in GloboNetwork", e.getMessage());
         }
     }
 
     @Test
-    public void testCreatePoolGivenInvalidVlan() throws GloboNetworkException {
+    public void testCreatePoolGivenInvalidNetwork() throws GloboNetworkException {
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
         try{
-            _resource.createPool(new AddOrRemoveVipInGloboNetworkCommand(), null, "host", new Ipv4(), null, null, null, null, null, "80:8080");
+            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "host", new Ipv4(), null, null, null, null, null, "80:8080");
         }catch(InvalidParameterValueException e){
             assertEquals("Network " + null + " was not found in GloboNetwork", e.getMessage());
         }
@@ -466,7 +466,7 @@ public class GloboNetworkResourceTest {
         VipJson vipToBeCreated = buildFakeVipValidatedAndCreated(123L, 546L, 345L);
         vipToBeCreated.setCreated(false);
 
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setVipId(null);
         cmd.setHost(vipToBeCreated.getHost());
         cmd.setIpv4(vipToBeCreated.getIps().get(0));
@@ -536,7 +536,7 @@ public class GloboNetworkResourceTest {
         VipJson vipToBeCreated = buildFakeVipValidatedAndCreated(123L, 546L, 345L);
         vipToBeCreated.setCreated(false);
 
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setVipId(null);
         cmd.setHost(vipToBeCreated.getHost());
         cmd.setIpv4(vipToBeCreated.getIps().get(0));
@@ -582,7 +582,7 @@ public class GloboNetworkResourceTest {
         String persistenceCS = "Cookie";
         String persistenceNetApi = "cookie";
 
-        AddOrRemoveVipInGloboNetworkCommand cmd = new AddOrRemoveVipInGloboNetworkCommand();
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setVipId(createdVip.getId());
         cmd.setHost(createdVip.getHost());
         cmd.setIpv4(createdVip.getIps().get(0));
@@ -622,7 +622,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddOrRemoveVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddVipInGloboNetworkCommand());
 
         assertTrue(answer.getResult());
         assertEquals(1, answer.getReals().size());
@@ -648,7 +648,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddOrRemoveVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddVipInGloboNetworkCommand());
 
         assertTrue(answer.getResult());
         assertEquals(1, answer.getReals().size());
@@ -664,7 +664,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddOrRemoveVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddVipInGloboNetworkCommand());
 
         assertTrue(answer.getResult());
         assertEquals(2, answer.getReals().size());
