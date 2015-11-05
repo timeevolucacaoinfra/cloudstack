@@ -947,11 +947,11 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
                 String metadataKey = TagKeysBuilder.getKeyMetadata(key);
                 cmd.addVmData("metadata", metadataKey, value);
-                tagKeysBuilder.add(metadataKey);
+
             }
         }
 
-        cmd.addVmData("metadata", TagKeysBuilder.TAGKEYS_METADATA_KEY, tagKeysBuilder.value());
+        cmd.addVmData("metadata", TagKeysBuilder.TAGKEYS_METADATA_KEY, tagKeysBuilder.buildTagKeys((List<ResourceTag>)resourceTags));
     }
 
     private void setVmInstanceId(final String vmUuid, final VmDataCommand cmd) {
