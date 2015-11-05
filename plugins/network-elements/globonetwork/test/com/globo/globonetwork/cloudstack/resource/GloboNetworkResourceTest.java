@@ -324,7 +324,6 @@ public class GloboNetworkResourceTest {
         List<Integer> realPriorities = new ArrayList<>();
         List<String> equipNames = new ArrayList<>();
         List<Long> equipIds = new ArrayList<>();
-        List<Long> idPoolMembers = new ArrayList<>();
         List<Long> realWeights = new ArrayList<>();
 
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
@@ -336,7 +335,7 @@ public class GloboNetworkResourceTest {
             anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
-        VipPoolMap vipPoolMap = _resource.createPool(cmd, vip, "host", ip, realIps, realPriorities, equipNames, equipIds, idPoolMembers, realWeights, "80:8080");
+        VipPoolMap vipPoolMap = _resource.createPool(cmd, vip, "host", ip, realIps, realPriorities, equipNames, equipIds, realWeights, "80:8080");
 
         assertNotNull(vipPoolMap);
         assertEquals(new Integer(80), vipPoolMap.getPort());
@@ -357,7 +356,6 @@ public class GloboNetworkResourceTest {
         List<Integer> realPriorities = Arrays.asList(0);
         List<String> equipNames = Arrays.asList("vm-01");
         List<Long> equipIds = Arrays.asList(1L);
-        List<Long> idPoolMembers = Arrays.asList(0L);
         List<Long> realWeights = Arrays.asList(0L);
 
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
@@ -369,7 +367,7 @@ public class GloboNetworkResourceTest {
             anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
-        VipPoolMap vipPoolMap = _resource.createPool(cmd, vip, "host", ip, realIps, realPriorities, equipNames, equipIds, idPoolMembers, realWeights, "80:8080");
+        VipPoolMap vipPoolMap = _resource.createPool(cmd, vip, "host", ip, realIps, realPriorities, equipNames, equipIds, realWeights, "80:8080");
 
         assertNotNull(vipPoolMap);
         assertEquals(new Integer(80), vipPoolMap.getPort());
@@ -382,24 +380,82 @@ public class GloboNetworkResourceTest {
     }
 
     @Test
-    public void testCreatePoolGivenInvalidNetwork() throws GloboNetworkException {
+    public void testAddRealToExistingPool() throws GloboNetworkException {
+        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        GloboNetworkVipResponse.Real real1 = new GloboNetworkVipResponse.Real();
+        real1.setIp("192.268.0.4");
+        GloboNetworkVipResponse.Real real2 = new GloboNetworkVipResponse.Real();
+        real2.setIp("192.168.0.5");
+        cmd.setRealList(Arrays.asList(real1, real2)); // 2 reals; 1 old, 1 new
+        cmd.setMethodBal("roundrobin");
+
+        VipJson vip = new VipJson();
+        Pool pool = new Pool();
+        pool.setDefaultPort(8080);
+        pool.setId(12L);
+        pool.setMaxconn(0);
+        vip.setPools(Arrays.asList(pool));
+        Ipv4 ip = new Ipv4();
+        ip.setNetworkId(1L);
+
+        Map<String, List<RealIP>> realIps = new HashMap<>();
+        List<RealIP> realIpsList = Arrays.asList(new RealIP(1L, 80, "192.268.0.4", 8080), new RealIP(2L, 80, "192.168.0.5", 8080));
+        realIps.put("80:8080", realIpsList);
+        List<Integer> realPriorities = Arrays.asList(0, 0);
+        List<String> equipNames = Arrays.asList("vm-01", "vm-02");
+        List<Long> equipIds = Arrays.asList(1L, 2L);
+        List<Long> realWeights = Arrays.asList(0L, 0L);
+
+        Pool.PoolMember poolMember = new Pool.PoolMember();
+        poolMember.setEquipmentId(1L);
+        poolMember.setId(200L);
+        Pool.Ip memberIp = new Pool.Ip();
+        memberIp.setIpFormated("192.268.0.4");
+        poolMember.setIp(memberIp);
+        Pool.PoolResponse poolResponse = new Pool.PoolResponse();
+        poolResponse.setPool(pool);
+        poolResponse.setPoolMembers(Arrays.asList(poolMember));
+        when(_resource._globoNetworkApi.getPoolAPI().getByPk(pool.getId())).thenReturn(poolResponse);
+        when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
+        when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
+        when(_resource._globoNetworkApi.getPoolAPI().save(
+                        eq(pool.getId()), anyString(), eq(8080),
+                        isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
+                        eq(""), eq(0), eq(realIpsList), eq(equipNames), eq(equipIds), eq(realPriorities), eq(realWeights),
+                        eq(Arrays.asList(8080, 8080)), eq(Arrays.asList(200L, 0L)), isNull(String.class), isNull(String.class))
+        ).thenReturn(pool);
+
+        VipPoolMap vipPoolMap = _resource.createPool(cmd, vip, "host", ip, realIps, realPriorities, equipNames, equipIds, realWeights, "80:8080");
+
+        assertNotNull(vipPoolMap);
+        assertEquals(new Integer(80), vipPoolMap.getPort());
+        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(
+                eq(pool.getId()), anyString(), eq(8080),
+                isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
+                eq(""), eq(0), eq(realIpsList), eq(equipNames), eq(equipIds), eq(realPriorities), eq(realWeights),
+                eq(Arrays.asList(8080, 8080)), eq(Arrays.asList(200L, 0L)), isNull(String.class), isNull(String.class)
+        );
+    }
+
+    @Test
+    public void testCreatePoolGivenInvalidVlan() throws GloboNetworkException {
         Ipv4 ip = new Ipv4();
         ip.setNetworkId(1L);
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
         when(_resource._globoNetworkApi.getVlanAPI().getById(999L)).thenReturn(new Vlan());
         try{
-            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "host", ip, null, null, null, null, null, null, "80:8080");
+            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "host", ip, null, null, null, null, null, "80:8080");
         }catch(InvalidParameterValueException e){
             assertEquals("Vlan " + null + " was not found in GloboNetwork", e.getMessage());
         }
     }
 
     @Test
-    public void testCreatePoolGivenInvalidVlan() throws GloboNetworkException {
+    public void testCreatePoolGivenInvalidNetwork() throws GloboNetworkException {
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
         try{
-            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "host", new Ipv4(), null, null, null, null, null, null, "80:8080");
+            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "host", new Ipv4(), null, null, null, null, null, "80:8080");
         }catch(InvalidParameterValueException e){
             assertEquals("Network " + null + " was not found in GloboNetwork", e.getMessage());
         }
