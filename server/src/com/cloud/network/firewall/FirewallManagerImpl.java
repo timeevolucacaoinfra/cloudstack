@@ -717,7 +717,7 @@ public class FirewallManagerImpl extends ManagerBase implements FirewallService,
             return applyFirewallRules(rules, false, caller);
                 //egress firewall rule
             } else if (networkId != null) {
-                List<FirewallRuleVO> rules = _firewallDao.listByNetworkPurposeTrafficType(rule.getNetworkId(), Purpose.Firewall, FirewallRule.TrafficType.Egress);
+                List<FirewallRuleVO> rules = _firewallDao.listByNetworkAndPurpose(rule.getNetworkId(), Purpose.Firewall);
                 return applyFirewallRules(rules, false, caller);
             }
         } else {
