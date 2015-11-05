@@ -57,6 +57,24 @@ public class GloboAclApiResourceTest {
     }
 
     @Test
+    public void testCreateTcpACLRuleWithEqualStartAndEndPorts(){
+        CreateACLRuleCommand cmd = new CreateACLRuleCommand();
+        cmd.setProtocol("tcp");
+        cmd.setDestinationCidr("10.1.1.0/24");
+        cmd.setSourceCidr("192.168.1.0/24");
+        cmd.setStartPort(80);
+        cmd.setEndPort(80);
+
+        Rule rule = globoAclApiResource.createRule(cmd);
+
+        assertEquals("TCP", rule.getProtocol().name());
+        assertEquals("10.1.1.0/24", rule.getDestination());
+        assertEquals("192.168.1.0/24", rule.getSource());
+        assertEquals(new Integer(80), rule.getL4Options().getDestPortStart());
+        assertEquals("eq", rule.getL4Options().getDestPortOperation());
+    }
+
+    @Test
     public void testCreateTcpACLRule(){
         CreateACLRuleCommand cmd = new CreateACLRuleCommand();
         cmd.setProtocol("tcp");

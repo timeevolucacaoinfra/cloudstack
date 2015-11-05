@@ -164,11 +164,11 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
         }else{
             L4Option l4Option = new L4Option();
             l4Option.setDestPortStart(cmd.getStartPort());
-            if(cmd.getEndPort() != null){
+            if(cmd.getEndPort() == null || cmd.getEndPort().equals(cmd.getStartPort())){
+                l4Option.setDestPortOperation("eq");
+            }else{
                 l4Option.setDestPortOperation("range");
                 l4Option.setDestPortEnd(cmd.getEndPort());
-            }else{
-                l4Option.setDestPortOperation("eq");
             }
             rule.setL4Options(l4Option);
         }
