@@ -77,7 +77,7 @@ public class VirtualNetworkApplianceManagerImplTest {
         String[] dataKeys =  vmData.get(3);
         assertEquals("metadata", dataKeys[0]);
         assertEquals("TAGKEYS", dataKeys[1]);
-        assertEquals("TAG_Key_1,TAG_key_2,TAG_KEY_3", dataKeys[2]);
+        assertEquals("Key_1,key_2,KEY_3", dataKeys[2]);
     }
 
 }
