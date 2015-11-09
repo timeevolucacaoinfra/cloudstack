@@ -1631,8 +1631,9 @@
                                         fields: {
                                             'cidrlist': {
                                                 edit: true,
-                                                label: 'label.cidr',
-                                                isOptional: true
+                                                label: 'Destination',
+                                                desc: 'CIDR of destination network',
+                                                placeholder: '0.0.0.0/0',
                                             },
                                             'protocol': {
                                                 label: 'label.protocol',
@@ -1713,6 +1714,11 @@
                                         add: {
                                             label: 'label.add',
                                             action: function(args) {
+                                                validcidr = /^([0-9]{1,3}\.){3}[0-9]{1,3}\/[0-9]{1,2}$/.test(args.data.cidrlist);
+                                                if (!validcidr) {
+                                                    args.response.error("Not a valid CIDR for destination network");
+                                                    return;
+                                                }
                                                 var data = {
                                                     protocol: args.data.protocol,
                                                     cidrlist: args.data.cidrlist,
@@ -1758,6 +1764,14 @@
                                         actions: {
                                             destroy: {
                                                 label: 'label.remove.rule',
+                                                messages: {
+                                                    confirm: function(args) {
+                                                        return 'Are you sure you want to remove this ACL?';
+                                                    },
+                                                    notification: function(args) {
+                                                        return 'Remove ACL';
+                                                    }
+                                                },
                                                 action: function(args) {
                                                     $.ajax({
                                                         url: createURL('deleteFirewallRule'),
