@@ -1924,7 +1924,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         try {
 
             if (!lock.lock(GloboNetworkLBLockTimeout.value())) {
-                throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s" + rule.getUuid()), DataCenter.class, network.getDataCenterId());
+                throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s", rule.getUuid()), DataCenter.class, network.getDataCenterId());
             }
 
             IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
