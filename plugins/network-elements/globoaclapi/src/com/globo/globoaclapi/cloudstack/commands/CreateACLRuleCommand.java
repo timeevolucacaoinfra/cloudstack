@@ -16,4 +16,126 @@
 */
 package com.globo.globoaclapi.cloudstack.commands;
 
-public class CreateACLRuleCommand extends ACLRuleCommand { }
+import com.cloud.agent.api.Command;
+
+public class CreateACLRuleCommand extends Command {
+
+    private String destinationCidr;
+
+    private String sourceCidr;
+
+    private Integer startPort;
+
+    private Integer endPort;
+
+    private String protocol;
+
+    private Integer icmpCode;
+
+    private Integer icmpType;
+
+    private Long vlanNumber;
+
+    private Long environmentId;
+
+    private String aclOwner;
+
+    public String getDestinationCidr() {
+        return destinationCidr;
+    }
+
+    public void setDestinationCidr(String destinationCidr) {
+        this.destinationCidr = destinationCidr;
+    }
+
+    public String getSourceCidr() {
+        return sourceCidr;
+    }
+
+    public void setSourceCidr(String sourceCidr) {
+        this.sourceCidr = sourceCidr;
+    }
+
+    public Integer getStartPort() {
+        return startPort;
+    }
+
+    public void setStartPort(Integer startPort) {
+        this.startPort = startPort;
+    }
+
+    public Integer getEndPort() {
+        return endPort;
+    }
+
+    public void setEndPort(Integer endPort) {
+        this.endPort = endPort;
+    }
+
+    public String getProtocol() {
+        return protocol;
+    }
+
+    public void setProtocol(String protocol) {
+        this.protocol = protocol;
+    }
+
+    public Integer getIcmpCode() {
+        return icmpCode;
+    }
+
+    public void setIcmpCode(Integer icmpCode) {
+        this.icmpCode = icmpCode;
+    }
+
+    public Integer getIcmpType() {
+        return icmpType;
+    }
+
+    public void setIcmpType(Integer icmpType) {
+        this.icmpType = icmpType;
+    }
+
+    public void setVlanNumber(Long vlanNumber) {
+        this.vlanNumber = vlanNumber;
+    }
+
+    public Long getVlanNumber() {
+        return vlanNumber;
+    }
+
+    public void setEnvironmentId(Long environmentId) {
+        this.environmentId = environmentId;
+    }
+
+    public Long getEnvironmentId() {
+        return environmentId;
+    }
+
+    @Override
+    public boolean executeInSequence() {
+        return false;
+    }
+
+    public void setAclOwner(String aclOwner) {
+        this.aclOwner = aclOwner;
+    }
+
+    public String getAclOwner() {
+        return aclOwner;
+    }
+
+    public String getAclRuleDescription() {
+        return "CreateACLRuleCommand{" +
+                "destinationCidr='" + destinationCidr + '\'' +
+                ", sourceCidr='" + sourceCidr + '\'' +
+                ", startPort=" + startPort +
+                ", endPort=" + endPort +
+                ", protocol='" + protocol + '\'' +
+                ", icmpCode=" + icmpCode +
+                ", icmpType=" + icmpType +
+                ", vlanNumber=" + vlanNumber +
+                ", environmentId=" + environmentId +
+                '}';
+    }
+}

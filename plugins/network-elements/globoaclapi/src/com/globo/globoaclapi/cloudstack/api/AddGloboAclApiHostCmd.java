@@ -24,7 +24,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Host;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.globo.globoaclapi.cloudstack.element.GloboAclApiElementService;
+import com.globo.globoaclapi.cloudstack.manager.GloboACLService;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.ApiErrorCode;
@@ -43,7 +43,7 @@ public class AddGloboAclApiHostCmd extends BaseAsyncCmd {
 
     private static final String s_name = "addgloboaclapihostresponse";
     @Inject
-    GloboAclApiElementService _globoAclApiElementService;
+    GloboACLService _globoACLService;
 
     // ///////////////////////////////////////////////////
     // ////////////// API parameters /////////////////////
@@ -68,7 +68,7 @@ public class AddGloboAclApiHostCmd extends BaseAsyncCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException {
         try {
-            Host host = _globoAclApiElementService.addGloboAclApiHost(physicalNetworkId, url, username, password);
+            Host host = _globoACLService.addGloboAclApiHost(physicalNetworkId, url, username, password);
 
             SuccessResponse response = new SuccessResponse(getCommandName());
             response.setSuccess((host != null));

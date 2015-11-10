@@ -18,41 +18,38 @@ package com.globo.globoaclapi.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
 
-public class RemoveACLRuleCommand extends Command {
+public class ListACLRulesCommand extends Command {
 
-    private Long ruleId;
+    protected Long vlanNumber;
 
-    private Long environmentId;
+    protected Long environmentId;
 
-    private Long vlanNumber;
+    private Long networkId;
 
-    private String aclOwner;
-
-    public RemoveACLRuleCommand(Long ruleId, Long environmentId, Long vlanNumber, String aclOwner) {
-        this.ruleId = ruleId;
+    public ListACLRulesCommand(Long environmentId, Long vlanNumber, Long networkId) {
         this.environmentId = environmentId;
         this.vlanNumber = vlanNumber;
-        this.aclOwner = aclOwner;
+        this.networkId = networkId;
     }
 
-    public Long getRuleId() {
-        return ruleId;
-    }
-
-    public Long getEnvironmentId() {
-        return environmentId;
+    @Override
+    public boolean executeInSequence() {
+        return false;
     }
 
     public Long getVlanNumber() {
         return vlanNumber;
     }
 
-    public String getAclOwner() {
-        return aclOwner;
+    public Long getEnvironmentId() {
+        return environmentId;
     }
 
-    @Override
-    public boolean executeInSequence() {
-        return false;
+    public Long getNetworkId() {
+        return networkId;
+    }
+
+    public void setNetworkId(Long networkId) {
+        this.networkId = networkId;
     }
 }

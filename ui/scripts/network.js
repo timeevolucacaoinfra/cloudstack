@@ -1738,12 +1738,12 @@
                                                 }
 
                                                 $.ajax({
-                                                    url: createURL('createFirewallRule'),
+                                                    url: createURL('createGloboACLRule'),
                                                     data: data,
                                                     dataType: 'json',
                                                     async: true,
                                                     success: function(json) {
-                                                        var jobId = json.createfirewallruleresponse.jobid;
+                                                        var jobId = json.creategloboaclrulereponse.jobid;
 
                                                         args.response.success({
                                                             _custom: {
@@ -1774,14 +1774,15 @@
                                                 },
                                                 action: function(args) {
                                                     $.ajax({
-                                                        url: createURL('deleteFirewallRule'),
+                                                        url: createURL('removeGloboACLRule'),
                                                         data: {
-                                                            id: args.context.multiRule[0].id
+                                                            id: args.context.multiRule[0].id,
+                                                            networkid: args.context.networks[0].id
                                                         },
                                                         dataType: 'json',
                                                         async: true,
                                                         success: function(data) {
-                                                            var jobID = data.deletefirewallruleresponse.jobid;
+                                                            var jobID = data.removegloboaclruleresponse.jobid;
 
                                                             args.response.success({
                                                                 _custom: {
@@ -1803,7 +1804,7 @@
                                         ignoreEmptyFields: true,
                                         dataProvider: function(args) {
                                             $.ajax({
-                                                url: createURL('listFirewallRules'),
+                                                url: createURL('listGloboACLRules'),
                                                 data: {
                                                     listAll: true,
                                                     networkid: args.context.networks[0].id
@@ -1811,8 +1812,8 @@
                                                 dataType: 'json',
                                                 async: true,
                                                 success: function(json) {
-                                                    var response = json.listfirewallrulesresponse.firewallrule ?
-                                                        json.listfirewallrulesresponse.firewallrule : [];
+                                                    var response = json.listgloboaclrulesresponse.firewallrule ?
+                                                        json.listgloboaclrulesresponse.firewallrule : [];
 
                                                     args.response.success({
                                                         data: $.map(response, function(rule) {

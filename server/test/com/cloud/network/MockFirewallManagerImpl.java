@@ -102,7 +102,7 @@ public class MockFirewallManagerImpl extends ManagerBase implements FirewallMana
     }
 
     @Override
-    public boolean applyIngressFwRules(FirewallRule rule, Account caller) throws ResourceUnavailableException {
+    public boolean applyIngressFwRules(long ipId, Account caller) throws ResourceUnavailableException {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
 
@@ -143,7 +143,7 @@ public class MockFirewallManagerImpl extends ManagerBase implements FirewallMana
 
     @Override
     public FirewallRule createRuleForAllCidrs(long ipAddrId, Account caller, Integer startPort, Integer endPort, String protocol, Integer icmpCode, Integer icmpType,
-        Long relatedRuleId, long networkId) throws NetworkRuleConflictException {
+                                              Long relatedRuleId, long networkId) throws NetworkRuleConflictException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -179,7 +179,7 @@ public class MockFirewallManagerImpl extends ManagerBase implements FirewallMana
 
     @Override
     public void validateFirewallRule(Account caller, IPAddressVO ipAddress, Integer portStart, Integer portEnd, String proto, Purpose purpose, FirewallRuleType type,
-        Long networkid, TrafficType trafficType) {
+                                     Long networkid, TrafficType trafficType) {
         // TODO Auto-generated method stub
 
     }

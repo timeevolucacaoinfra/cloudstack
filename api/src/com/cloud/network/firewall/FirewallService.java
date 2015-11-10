@@ -54,6 +54,6 @@ public interface FirewallService {
     FirewallRule updateIngressFirewallRule(long ruleId, String customId, Boolean forDisplay);
     FirewallRule updateEgressFirewallRule(long ruleId, String customId, Boolean forDisplay);
 
-    boolean applyIngressFwRules(FirewallRule rule, Account caller) throws ResourceUnavailableException;
+    boolean applyIngressFwRules(long ipId, Account caller) throws ResourceUnavailableException;
     boolean revokeIngressFwRule(long ruleId, boolean apply);
 }
