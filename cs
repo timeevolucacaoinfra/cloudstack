@@ -68,7 +68,7 @@ continuos_delivery(){
     if [ -z ${TAG} ];
     then
         TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
-    fik
+    fi
     # Build package
     echo "Building tag ${TAG}"
     gen_package ${TAG} ${repo_path}
