@@ -52,18 +52,23 @@ gen_package(){
     BUILDDIR='dist/rpmbuild'
     echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH..."
     mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH
+    [[ $? -ne 0 ]] && echo "Failed to copy files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH... Please, fix errors." && return 1
     echo "done"
     # Create yum repo
     echo "Creating yum repo..."
     whoami=$(whoami)
     [[ ${whoami} == 'root' ]] && createrepo -q ${REPOPATH} || sudo createrepo -q ${REPOPATH}
+    [[ $? -ne 0 ]] && echo "Failed to create yum repo... Please, fix errors." && return 1
 }
 
 continuos_delivery(){
     # Gen tag
     repo_path=${1}
-    echo "Creating a new tag..."
-    TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
+    if [ -z "${TAG}" ];
+    then
+        echo "Creating a new tag..."
+        TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
+    fi
     # Build package
     echo "Building tag ${TAG}"
     gen_package ${TAG} ${repo_path}
