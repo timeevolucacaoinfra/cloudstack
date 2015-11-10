@@ -64,9 +64,9 @@ gen_package(){
 continuos_delivery(){
     # Gen tag
     repo_path=${1}
-    echo "Creating a new tag..."
-    if [ -z ${TAG} ];
+    if [ -z "${TAG}" ];
     then
+        echo "Creating a new tag..."
         TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
     fi
     # Build package
