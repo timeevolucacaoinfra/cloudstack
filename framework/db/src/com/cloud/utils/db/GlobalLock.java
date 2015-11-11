@@ -21,6 +21,7 @@ import static java.lang.String.format;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
@@ -53,6 +54,7 @@ public class GlobalLock {
     private long holdingStartTick = 0;
 
     private static Map<String, GlobalLock> s_lockMap = new HashMap<String, GlobalLock>();
+    private static Map<String, ReentrantLock> s_reentrantLockMap = new HashMap<String, ReentrantLock>();
 
     private GlobalLock(String name) {
         this.name = name;
@@ -101,12 +103,37 @@ public class GlobalLock {
         }
     }
 
+    public static ReentrantLock getReentrantLock(String name) {
+        synchronized (s_reentrantLockMap) {
+            if (s_reentrantLockMap.containsKey(name)) {
+                ReentrantLock lock = s_reentrantLockMap.get(name);
+                return lock;
+            } else {
+                ReentrantLock lock = new ReentrantLock(true);
+                s_reentrantLockMap.put(name, lock);
+                return lock;
+            }
+        }
+    }
+
     private static void releaseInternLock(String name) {
         synchronized (s_lockMap) {
             GlobalLock lock = s_lockMap.get(name);
             if (lock != null) {
                 if (lock.referenceCount == 0)
                     s_lockMap.remove(name);
+            } else {
+                s_logger.warn("Releasing " + name + ", but it is already released.");
+            }
+        }
+    }
+
+    public static void releaseReentrantLock(String name) {
+        synchronized (s_reentrantLockMap) {
+            ReentrantLock lock = s_reentrantLockMap.get(name);
+            if (lock != null) {
+                if (lock.getQueueLength() == 0)
+                    s_reentrantLockMap.remove(name);
             } else {
                 s_logger.warn("Releasing " + name + ", but it is already released.");
             }

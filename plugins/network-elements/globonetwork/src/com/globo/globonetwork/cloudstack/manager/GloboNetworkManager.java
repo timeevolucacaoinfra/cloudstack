@@ -34,6 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.ejb.Local;
 import javax.inject.Inject;
@@ -1920,10 +1922,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         boolean revokeAnyVM = false;
 
         // GloboNetwork doesn't allow concurrent call in same load balancer or ip address
-        final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
+        String lockName = "globonetworklb-" + rule.getSourceIp().addr();
+        // final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
+        final ReentrantLock lock = GlobalLock.getReentrantLock(lockName);
         try {
 
-            if (!lock.lock(GloboNetworkLBLockTimeout.value())) {
+            // if (!lock.lock(GloboNetworkLBLockTimeout.value())) {
+            if (!lock.tryLock(GloboNetworkLBLockTimeout.value(), TimeUnit.SECONDS)) {
                 throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s", rule.getUuid()), DataCenter.class, network.getDataCenterId());
             }
 
@@ -2052,6 +2057,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (lock != null) {
                 lock.unlock();
             }
+            // lock.releaseRef();
+            GlobalLock.releaseReentrantLock(lockName);
         }
 
         if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId())
