@@ -26,6 +26,8 @@ import com.cloud.agent.api.ReadyAnswer;
 import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.host.Host;
+import com.cloud.network.rules.FirewallRule;
+import com.cloud.network.rules.FirewallRuleVO;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.aclapi.client.AclAPIException;
@@ -33,18 +35,20 @@ import com.globo.aclapi.client.ClientAclAPI;
 import com.globo.aclapi.client.model.ICMPOption;
 import com.globo.aclapi.client.model.L4Option;
 import com.globo.aclapi.client.model.Rule;
-import com.globo.globoaclapi.cloudstack.commands.ACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.commands.CreateACLRuleCommand;
+import com.globo.globoaclapi.cloudstack.commands.ListACLRulesCommand;
 import com.globo.globoaclapi.cloudstack.commands.RemoveACLRuleCommand;
+import com.globo.globoaclapi.cloudstack.response.GloboACLRulesResponse;
+import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
 import javax.naming.ConfigurationException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 public class GloboAclApiResource extends ManagerBase implements ServerResource {
-
-    private static final Logger s_logger = Logger.getLogger(GloboAclApiResource.class);
 
     private String _zoneId;
 
@@ -53,6 +57,8 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
     private String _name;
 
     protected ClientAclAPI _aclApiClient;
+
+    private static final Logger s_logger = Logger.getLogger(GloboAclApiResource.class);
 
     @Override
     public StartupCommand[] initialize() {
@@ -97,7 +103,7 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
             throw new ConfigurationException("Unable to find password");
         }
 
-        _aclApiClient = createAclApiClient(params);
+        _aclApiClient = createACLApiClient(params);
 
         return true;
     }
@@ -112,8 +118,24 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
             return execute((CreateACLRuleCommand) cmd);
         }else if(cmd instanceof RemoveACLRuleCommand){
             return execute((RemoveACLRuleCommand) cmd);
+        }else if(cmd instanceof ListACLRulesCommand){
+            return execute((ListACLRulesCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
+    }
+
+    private Answer execute(ListACLRulesCommand cmd) {
+        try{
+            List<Rule> rules = _aclApiClient.getAclAPI().listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
+            List<FirewallRule> fwRules = new ArrayList<>();
+            for(Rule rule: rules){
+                fwRules.add(createFirewallRuleVO(cmd.getNetworkId(), rule));
+            }
+            return new GloboACLRulesResponse(fwRules);
+        }catch(AclAPIException e){
+            s_logger.error("Error while listing ACL Rules.", e);
+            return new Answer(cmd, false, e.getMessage());
+        }
     }
 
     private Answer execute(CreateACLRuleCommand cmd) {
@@ -128,31 +150,15 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
 
     private Answer execute(RemoveACLRuleCommand cmd) {
         try {
-            Long ruleId = getRuleId(cmd);
-            if(ruleId != null){
-                _aclApiClient.getAclAPI().removeSync(cmd.getEnvironmentId(), cmd.getVlanNumber(), ruleId, cmd.getAclOwner());
-            }
-            return new Answer(cmd, true, "ACL Rule " + ruleId + " successfully removed.");
+            _aclApiClient.getAclAPI().removeSync(cmd.getEnvironmentId(), cmd.getVlanNumber(), cmd.getRuleId(), cmd.getAclOwner());
+            return new Answer(cmd, true, "ACL Rule " + cmd.getRuleId() + " successfully removed.");
         }catch(AclAPIException e){
-            s_logger.error("Error while removing ACL Rule: " + cmd.getAclRuleDescription(), e);
+            s_logger.error("Error while removing ACL Rule: " + cmd.getRuleId(), e);
             return new Answer(cmd, false, e.getMessage());
         }
     }
 
-    protected Long getRuleId(RemoveACLRuleCommand cmd) {
-        Rule ruleToBeRemoved = createRule(cmd);
-        List<Rule> rules = _aclApiClient.getAclAPI().listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
-        Long ruleId = null;
-        for(Rule rule : rules){
-            if(rule.equals(ruleToBeRemoved)){
-                ruleId = new Long(rule.getId());
-                break;
-            }
-        }
-        return ruleId;
-    }
-
-    protected Rule createRule(ACLRuleCommand cmd) {
+    protected Rule createRule(CreateACLRuleCommand cmd) {
         Rule rule = new Rule();
         rule.setAction(Rule.Action.PERMIT);
         rule.setProtocol(cmd.getProtocol());
@@ -172,17 +178,31 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
             }
             rule.setL4Options(l4Option);
         }
-
         return rule;
     }
 
-    private ClientAclAPI createAclApiClient(Map<String, Object> params) {
+    private FirewallRule createFirewallRuleVO(Long networkId, Rule rule) {
+        Integer destPortStart = rule.getL4Options() != null ? rule.getL4Options().getDestPortStart() : null;
+        Integer destPortEnd = rule.getL4Options() != null ? rule.getL4Options().getDestPortEnd() : null;
+        Integer code = rule.getIcmpOptions() != null ? rule.getIcmpOptions().getCode() : null;
+        Integer type =  rule.getIcmpOptions() != null ? rule.getIcmpOptions().getType() : null;
+
+        return new FirewallRuleVO(
+                rule.getId(), null, destPortStart, destPortEnd, rule.getProtocol().name(), networkId,
+                CallContext.current().getCallingAccountId(), 0L,
+                FirewallRule.Purpose.Firewall, Arrays.asList(rule.getDestination()), code, type, null,
+                FirewallRule.TrafficType.Egress, FirewallRule.FirewallRuleType.User
+        );
+    }
+
+    private ClientAclAPI createACLApiClient(Map<String, Object> params) {
         if(_aclApiClient == null){
-            return ClientAclAPI.buildHttpAPI((String) params.get("url"),
-                                            (String) params.get("username"),
-                                            (String) params.get("password"),
-                                            new Integer((String) params.get("timeout")),
-                                            params.get("trustssl").equals("true"));
+            String url = (String) params.get("url");
+            String username = (String) params.get("username");
+            Integer timeout = new Integer((String) params.get("timeout"));
+            String password = (String) params.get("password");
+            boolean verifySSL = params.get("trustssl").equals("true");
+            return ClientAclAPI.buildHttpAPI(url, username, password, timeout, verifySSL);
         }
         return _aclApiClient;
     }

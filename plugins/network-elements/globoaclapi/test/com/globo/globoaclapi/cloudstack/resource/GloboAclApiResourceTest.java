@@ -1,13 +1,16 @@
 package com.globo.globoaclapi.cloudstack.resource;
 
 import com.cloud.agent.api.Answer;
+import com.cloud.network.rules.FirewallRule;
 import com.globo.aclapi.client.AclAPIException;
 import com.globo.aclapi.client.ClientAclAPI;
 import com.globo.aclapi.client.api.RuleAPI;
 import com.globo.aclapi.client.model.L4Option;
 import com.globo.aclapi.client.model.Rule;
 import com.globo.globoaclapi.cloudstack.commands.CreateACLRuleCommand;
+import com.globo.globoaclapi.cloudstack.commands.ListACLRulesCommand;
 import com.globo.globoaclapi.cloudstack.commands.RemoveACLRuleCommand;
+import com.globo.globoaclapi.cloudstack.response.GloboACLRulesResponse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,7 +20,6 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -112,39 +114,6 @@ public class GloboAclApiResourceTest {
     }
 
     @Test
-    public void testGetRuleIdGivenNoRulesFound(){
-        RuleAPI ruleAPI = mockAclApiClientListByEnvAndVlan(new ArrayList<Rule>());
-        RemoveACLRuleCommand cmd = new RemoveACLRuleCommand();
-        cmd.setProtocol("tcp");
-        cmd.setVlanNumber(1L);
-        cmd.setEnvironmentId(1L);
-
-        assertNull(globoAclApiResource.getRuleId(cmd));
-        verify(ruleAPI, times(1)).listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
-    }
-
-    @Test
-    public void testGetRuleIdGivenMatchingRuleFound(){
-        Rule rule = new Rule();
-        rule.setId("1");
-        rule.setAction(Rule.Action.PERMIT);
-        rule.setProtocol("tcp");
-        rule.setDestination("10.1.1.0/24");
-        rule.setSource("192.168.1.0/24");
-        L4Option l4Options = new L4Option();
-        l4Options.setDestPortStart(80);
-        l4Options.setDestPortEnd(88);
-        l4Options.setDestPortOperation("range");
-        rule.setL4Options(l4Options);
-
-        RuleAPI ruleAPI = mockAclApiClientListByEnvAndVlan(Arrays.asList(rule));
-        RemoveACLRuleCommand cmd = createRemoveCmd();
-
-        assertEquals(new Long(rule.getId()), globoAclApiResource.getRuleId(cmd));
-        verify(ruleAPI, times(1)).listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
-    }
-
-    @Test
     public void testCreateACLGivenApiError(){
         RuleAPI ruleAPI = mockACLClientApiSaveSync(new AclAPIException("error"));
 
@@ -181,8 +150,47 @@ public class GloboAclApiResourceTest {
 
         Answer answer = globoAclApiResource.executeRequest(cmd);
         assertTrue(answer.getResult());
-        verify(ruleAPI, times(1)).listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
         verify(ruleAPI, times(1)).removeSync(eq(1L), eq(1L), eq(1L), anyString());
+    }
+
+    @Test
+    public void testListACLRulesGivenNoRulesFound(){
+        ListACLRulesCommand cmd = new ListACLRulesCommand(1L, 1L, 1L);
+        RuleAPI ruleAPI = mockAclApiClientListByEnvAndVlan(new ArrayList<Rule>());
+
+        GloboACLRulesResponse answer = (GloboACLRulesResponse) globoAclApiResource.executeRequest(cmd);
+
+        verify(ruleAPI).listByEnvAndNumVlan(1L, 1L);
+        assertEquals(0, answer.getRules().size());
+    }
+
+    @Test
+    public void testListACLRules(){
+        Rule rule = new Rule();
+        rule.setId("1");
+        rule.setAction(Rule.Action.PERMIT);
+        rule.setProtocol("tcp");
+        rule.setDestination("10.1.1.0/24");
+        rule.setSource("192.168.1.0/24");
+        L4Option l4Options = new L4Option();
+        l4Options.setDestPortStart(80);
+        l4Options.setDestPortEnd(88);
+        l4Options.setDestPortOperation("range");
+        rule.setL4Options(l4Options);
+
+        RuleAPI ruleAPI = mockAclApiClientListByEnvAndVlan(Arrays.asList(rule));
+
+        ListACLRulesCommand cmd = new ListACLRulesCommand(1L, 1L, 1L);
+        GloboACLRulesResponse answer = (GloboACLRulesResponse) globoAclApiResource.executeRequest(cmd);
+
+        verify(ruleAPI).listByEnvAndNumVlan(1L, 1L);
+        assertEquals(1, answer.getRules().size());
+        FirewallRule fwRule = answer.getRules().get(0);
+        assertEquals(rule.getProtocol().name(), fwRule.getProtocol());
+        assertEquals(rule.getId(), fwRule.getXid());
+        assertEquals(rule.getDestination(), fwRule.getSourceCidrList().get(0));
+        assertEquals(rule.getL4Options().getDestPortStart(), fwRule.getSourcePortStart());
+        assertEquals(rule.getL4Options().getDestPortEnd(), fwRule.getSourcePortEnd());
     }
 
     private RuleAPI mockACLClientApiRemoveSync(Object response, RemoveACLRuleCommand cmd) {
@@ -191,11 +199,6 @@ public class GloboAclApiResourceTest {
         when(aclAPI.getAclAPI()).thenReturn(ruleAPI);
         if(response instanceof AclAPIException) {
             doThrow((AclAPIException)response).when(ruleAPI).removeSync(anyLong(), anyLong(), any(Long.class), anyString());
-        }
-        if(cmd != null) {
-            Rule rule = globoAclApiResource.createRule(cmd);
-            rule.setId("1");
-            when(ruleAPI.listByEnvAndNumVlan(anyLong(), anyLong())).thenReturn(Arrays.asList(rule));
         }
         globoAclApiResource._aclApiClient = aclAPI;
         return ruleAPI;
@@ -236,14 +239,6 @@ public class GloboAclApiResourceTest {
     }
 
     private RemoveACLRuleCommand createRemoveCmd() {
-        RemoveACLRuleCommand cmd = new RemoveACLRuleCommand();
-        cmd.setProtocol("tcp");
-        cmd.setDestinationCidr("10.1.1.0/24");
-        cmd.setSourceCidr("192.168.1.0/24");
-        cmd.setStartPort(80);
-        cmd.setEndPort(88);
-        cmd.setVlanNumber(1L);
-        cmd.setEnvironmentId(1L);
-        return cmd;
+        return new RemoveACLRuleCommand(1L, 1L, 1L, "user");
     }
 }

@@ -75,8 +75,10 @@ function packaging() {
 	  DEFREL="-D_rel $tag_release"
 	fi
 
-    echo Preparing to package Apache CloudStack ${VERSION}
+    echo "Cleaning $RPMDIR just in case..."
+	rm -rf $RPMDIR/* > /dev/null 2>&1
 
+	echo Preparing to package Apache CloudStack ${VERSION}
 	mkdir -p $RPMDIR/SPECS
 	mkdir -p $RPMDIR/BUILD
 	mkdir -p $RPMDIR/SRPMS

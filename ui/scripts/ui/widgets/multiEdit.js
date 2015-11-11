@@ -421,7 +421,19 @@
                                     }
                                 });
                             } else {
-                                performAction();
+                                if (isDestroy && action.messages) {
+                                    cloudStack.dialog.confirm({
+                                        message: action.messages.confirm(),
+                                        action: function() {
+                                            performAction();
+                                        },
+                                        cancelAction: function() {
+                                            $multi.trigger('refresh');
+                                        }
+                                    });
+                                } else {
+                                    performAction();
+                                }
                             }
                         } else {
                             // Get editable fields
@@ -1007,6 +1019,9 @@
                     if (field.defaultValue) {
                         $input.val(field.defaultValue);
                         $input.data('multi-default-value', field.defaultValue);
+                    }
+                    if (field.placeholder) {
+                        $input.attr('placeholder',field.placeholder);
                     }
                 }
             } else if (field.custom) {

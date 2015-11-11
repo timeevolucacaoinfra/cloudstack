@@ -7233,7 +7233,7 @@
                                     preFilter: function(args) {},
                                     fields: {
                                         username: {
-                                            label: 'label.email',
+                                            label: 'label.user',
                                             validation: {
                                                 required: true
                                             }

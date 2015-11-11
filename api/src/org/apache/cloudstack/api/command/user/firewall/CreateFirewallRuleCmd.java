@@ -19,9 +19,6 @@ package org.apache.cloudstack.api.command.user.firewall;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.cloud.network.Network;
-import com.cloud.utils.exception.CloudRuntimeException;
-import org.apache.cloudstack.api.response.NetworkResponse;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.RoleType;
@@ -60,16 +57,9 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
     @Parameter(name = ApiConstants.IP_ADDRESS_ID,
             type = CommandType.UUID,
             entityType = IPAddressResponse.class,
-            required = false,
+            required = true,
             description = "the IP address id of the port forwarding rule")
     private Long ipAddressId;
-
-    @Parameter(name = ApiConstants.NETWORK_ID,
-            type = CommandType.UUID,
-            entityType = NetworkResponse.class,
-            required = true,
-            description = "the network id of the port forwarding rule")
-    private Long networkId;
 
     @Parameter(name = ApiConstants.PROTOCOL,
             type = CommandType.STRING,
@@ -144,7 +134,7 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
         FirewallRule rule = _entityMgr.findById(FirewallRule.class, getEntityId());
         try {
             CallContext.current().setEventDetails("Rule Id: " + getEntityId());
-            success = _firewallService.applyIngressFwRules(rule, callerContext.getCallingAccount());
+            success = _firewallService.applyIngressFwRules(rule.getSourceIpAddressId(), callerContext.getCallingAccount());
 
             // State is different after the rule is applied, so get new object here
             rule = _entityMgr.findById(FirewallRule.class, getEntityId());
@@ -154,10 +144,6 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
                 setResponseObject(fwResponse);
             }
             fwResponse.setResponseName(getCommandName());
-        }catch(CloudRuntimeException e){
-            success = true;
-            _firewallService.revokeIngressFwRule(getEntityId(), true);
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, e.getMessage());
         } finally {
             if (!success || rule == null) {
                 _firewallService.revokeIngressFwRule(getEntityId(), true);
@@ -221,10 +207,6 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public long getNetworkId() {
-        if(networkId != null){
-            return networkId;
-        }
-
         IpAddress ip = _entityMgr.findById(IpAddress.class, getIpAddressId());
         Long ntwkId = null;
 
@@ -252,13 +234,8 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public long getDomainId() {
-        if(networkId != null) {
-            Network network = getNetwork();
-            return network.getDomainId();
-        }else{
-            IpAddress ip = _networkService.getIp(ipAddressId);
-            return ip.getDomainId();
-        }
+        IpAddress ip = _networkService.getIp(ipAddressId);
+        return ip.getDomainId();
     }
 
     @Override
@@ -289,24 +266,14 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public String getEventDescription() {
-        if(networkId != null){
-            Network network = getNetwork();
-            return ("Creating firewall rule for network: " + network + " for protocol:" + getProtocol());
-        }else {
-            IpAddress ip = _networkService.getIp(ipAddressId);
-            return ("Creating firewall rule for Ip: " + ip.getAddress() + " for protocol:" + getProtocol());
-        }
+        IpAddress ip = _networkService.getIp(ipAddressId);
+        return ("Creating firewall rule for Ip: " + ip.getAddress() + " for protocol:" + getProtocol());
     }
 
     @Override
     public long getAccountId() {
-        if(networkId != null) {
-            Network network = getNetwork();
-            return network.getAccountId();
-        }else {
-            IpAddress ip = _networkService.getIp(ipAddressId);
-            return ip.getAccountId();
-        }
+        IpAddress ip = _networkService.getIp(ipAddressId);
+        return ip.getAccountId();
     }
 
     @Override
@@ -316,11 +283,7 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
 
     @Override
     public Long getSyncObjId() {
-        if(networkId != null){
-            return networkId;
-        }else {
-            return getIp().getAssociatedWithNetworkId();
-        }
+        return getIp().getAssociatedWithNetworkId();
     }
 
     private IpAddress getIp() {
@@ -329,10 +292,6 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
             throw new InvalidParameterValueException("Unable to find ip address by id " + ipAddressId);
         }
         return ip;
-    }
-
-    private Network getNetwork() {
-        return _networkService.getNetwork(networkId);
     }
 
     @Override
@@ -350,7 +309,7 @@ public class CreateFirewallRuleCmd extends BaseAsyncCreateCmd implements Firewal
         if (icmpType != null) {
             return icmpType;
         } else if (protocol.equalsIgnoreCase(NetUtils.ICMP_PROTO)) {
-                return -1;
+            return -1;
 
         }
         return null;
