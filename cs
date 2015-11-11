@@ -51,7 +51,13 @@ gen_package(){
 
     BUILDDIR='dist/rpmbuild'
     echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH..."
-    mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH
+    if mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH;
+    then
+        echo "rpm file copied with success"
+    else
+        echo "failed to copy rpm file"
+        exit 1
+    fi
     [[ $? -ne 0 ]] && echo "Failed to copy files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH... Please, fix errors." && return 1
     echo "done"
     # Create yum repo
