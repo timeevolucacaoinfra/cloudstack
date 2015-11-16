@@ -669,6 +669,18 @@
 
             return $loading;
         },
+
+        toggleLoadingData: function($multi){
+            $dataBody = $('.data-body')
+            if($dataBody.find('.loading').length == 0){
+                var $loading = _medit.loadingItem($multi, _l('label.loading') + '...');
+                $dataBody.prepend($loading);
+                _medit.refreshItemWidths($multi);
+            }else{
+                $dataBody.find('.loading').remove()
+            }
+        },
+
         details: function(data, $browser, options) {
             if (!options) options = {};
 
@@ -1239,7 +1251,14 @@
 
                         _medit.refreshItemWidths($multi);
                     },
-                    error: cloudStack.dialog.error
+                    error: cloudStack.dialog.error,
+                    noData: function(args){
+                        _medit.toggleLoadingData()
+                        var label = $('<div>').addClass('label').append($('<span>').text(args.text))
+                        var dataItem = $('<div>').addClass('data-item').addClass('nodata')
+                        dataItem.append(label)
+                        $dataBody.append(dataItem)
+                    }
                 }
             });
         };
@@ -1250,6 +1269,7 @@
 
         // Get existing data
         setTimeout(function() {
+           _medit.toggleLoadingData($multi)
             getData();
         });
 

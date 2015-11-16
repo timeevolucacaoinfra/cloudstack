@@ -1620,7 +1620,7 @@
                             },
 
                             globoACL: {
-                                title: 'ACL',
+                                title: 'ACL Outbound',
                                 custom: function(args) {
                                     var context = args.context;
 
@@ -1815,26 +1815,30 @@
                                                     var response = json.listgloboaclrulesresponse.firewallrule ?
                                                         json.listgloboaclrulesresponse.firewallrule : [];
 
-                                                    args.response.success({
-                                                        data: $.map(response, function(rule) {
-                                                            if (rule.protocol == 'all') {
-                                                                $.extend(rule, {
-                                                                    startport: 'All',
-                                                                    endport: 'All'
-                                                                });
-                                                            } else if (rule.protocol == 'tcp' || rule.protocol == 'udp') {
-                                                                if (!rule.startport) {
-                                                                    rule.startport = ' ';
+                                                    if(response.length == 0){
+                                                        args.response.noData({ text: 'No ACLs found' })
+                                                    }else{
+                                                        args.response.success({
+                                                            data: $.map(response, function(rule) {
+                                                                if (rule.protocol == 'all') {
+                                                                    $.extend(rule, {
+                                                                        startport: 'All',
+                                                                        endport: 'All'
+                                                                    });
+                                                                } else if (rule.protocol == 'tcp' || rule.protocol == 'udp') {
+                                                                    if (!rule.startport) {
+                                                                        rule.startport = ' ';
+                                                                    }
+
+                                                                    if (!rule.endport) {
+                                                                        rule.endport = ' ';
+                                                                    }
                                                                 }
 
-                                                                if (!rule.endport) {
-                                                                    rule.endport = ' ';
-                                                                }
-                                                            }
-
-                                                            return rule;
-                                                        })
-                                                    });
+                                                                return rule;
+                                                            })
+                                                        });
+                                                    }
                                                 }
                                             });
                                         }

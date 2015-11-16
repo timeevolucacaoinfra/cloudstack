@@ -8240,6 +8240,18 @@ div.container div.panel div#details-tab-addloadBalancer.detail-group div.loadBal
   margin: 12px 0 0;
 }
 
+.multi-edit .data .data-body .data-item.nodata {
+  height: 28px;
+  border: 1px solid #DDDDDD;
+}
+
+.multi-edit .data .data-body .data-item.nodata .label {
+  color: #808080;
+  font-size: 12px;
+  text-align: center;
+  margin: 12px 0 0;
+}
+
 .multi-edit .data .data-body .data-item table {
   margin: 0;
   border: none;
