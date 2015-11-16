@@ -34,4 +34,6 @@ public interface ResourceTagDao extends GenericDao<ResourceTagVO, Long> {
 
     List<? extends ResourceTag> listBy(long resourceId, ResourceObjectType resourceType);
 
+    ResourceTag findByResourceIdAndResourceTypeAndKey(long resourceId, ResourceObjectType resourceType, String key);
+
 }

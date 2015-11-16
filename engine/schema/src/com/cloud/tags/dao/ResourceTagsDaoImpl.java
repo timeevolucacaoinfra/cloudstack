@@ -40,6 +40,7 @@ public class ResourceTagsDaoImpl extends GenericDaoBase<ResourceTagVO, Long> imp
         AllFieldsSearch.and("resourceId", AllFieldsSearch.entity().getResourceId(), Op.EQ);
         AllFieldsSearch.and("uuid", AllFieldsSearch.entity().getResourceUuid(), Op.EQ);
         AllFieldsSearch.and("resourceType", AllFieldsSearch.entity().getResourceType(), Op.EQ);
+        AllFieldsSearch.and("key", AllFieldsSearch.entity().getKey(), Op.EQ);
         AllFieldsSearch.done();
     }
 
@@ -58,5 +59,14 @@ public class ResourceTagsDaoImpl extends GenericDaoBase<ResourceTagVO, Long> imp
         sc.setParameters("resourceId", resourceId);
         sc.setParameters("resourceType", resourceType);
         return listBy(sc);
+    }
+
+    @Override
+    public ResourceTag findByResourceIdAndResourceTypeAndKey(long resourceId, ResourceObjectType resourceType, String key) {
+        SearchCriteria<ResourceTagVO> sc = AllFieldsSearch.create();
+        sc.setParameters("resourceId", resourceId);
+        sc.setParameters("resourceType", resourceType);
+        sc.setParameters("key", key);
+        return findOneBy(sc);
     }
 }

@@ -291,6 +291,12 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                             throw new InvalidParameterValueException("Value for the key " + key + " is either null or empty");
                         }
 
+                        ResourceTag tag =  _resourceTagDao.findByResourceIdAndResourceTypeAndKey(id, resourceType, key);
+                        if (tag != null){
+                            throw new CloudRuntimeException("The key '" + key + "' already exist for '" + resourceType + "' with resourceId " + id );
+                        }
+
+
                         ResourceTagVO resourceTag = new ResourceTagVO(key, value, accountDomainPair.first(), accountDomainPair.second(), id, resourceType, customer, resourceUuid);
                         resourceTag = _resourceTagDao.persist(resourceTag);
                         resourceTags.add(resourceTag);
