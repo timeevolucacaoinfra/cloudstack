@@ -37,7 +37,7 @@ gen_tag(){
         remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
         git push --tags
         echo "${TAG} pushed"
-    eles
+    else
         echo "TAG ${TAG} already pushed"
     fi
     echo "${TAG}"
