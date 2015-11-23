@@ -90,6 +90,20 @@ public class GloboACLManagerTest {
     }
 
     @Test
+    public void testListACLsGivenVlanNotActivated(){
+        mockGetGloboNetworkVlanNumber(1L);
+        mockGetGloboNetworkEnvironmentID(1L);
+        mockGetACLapiHost();
+
+        AgentManager agentManager = mockAgentManagerEasySend(new Answer(null, false, GloboACLManager.VLAN_NOT_ACTIVATED_MESSAGE));
+
+        List<FirewallRule> rules = manager.listACLRules(new NetworkVO());
+
+        assertEquals(0, rules.size());
+        verify(agentManager, times(1)).easySend(anyLong(), any(ListACLRulesCommand.class));
+    }
+
+    @Test
     public void testListACLsGivenOneACLFound(){
         mockGetGloboNetworkVlanNumber(1L);
         mockGetGloboNetworkEnvironmentID(1L);

@@ -43,6 +43,7 @@ import com.globo.globoaclapi.cloudstack.commands.ListACLRulesCommand;
 import com.globo.globoaclapi.cloudstack.commands.RemoveACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.resource.GloboAclApiResource;
 import com.globo.globoaclapi.cloudstack.response.GloboACLRulesResponse;
+import com.globo.globonetwork.client.model.Vlan;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import org.apache.cloudstack.context.CallContext;
@@ -76,6 +77,8 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
     @Inject
     protected PhysicalNetworkDao _physicalNetworkDao;
 
+    public static final String VLAN_NOT_ACTIVATED_MESSAGE = "3006:ACL nao cadastrada na ACL::API!";
+
     private static final ConfigKey<Boolean> GloboAclTrustSSL = new ConfigKey<>("ACL", Boolean.class, "globoaclapi.trust.ssl", "true",
             "Set true to trust ACL API SSL certificate", true, ConfigKey.Scope.Global);
     private static final ConfigKey<Integer> GloboAclTimeout = new ConfigKey<>("ACL", Integer.class, "globoaclapi.timeout", "60000",
@@ -86,14 +89,22 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
     @Override
     public List<FirewallRule> listACLRules(Network network) {
         Long environmentId = this.getEnvironmentId(network);
-        Long vlanNumber = this.getVlanNumber(network);
+        Vlan vlan = this.getVlan(network);
 
-        s_logger.debug("Listing ACL rules vlan: " + vlanNumber + " env:" + environmentId);
+        s_logger.debug("Listing ACL rules vlan: " + vlan.getVlanNum() + " env:" + environmentId);
 
-        ListACLRulesCommand cmd = new ListACLRulesCommand(environmentId, vlanNumber, network.getId());
-        GloboACLRulesResponse response = (GloboACLRulesResponse) callCommand(cmd, network.getDataCenterId());
-
-        return response.getRules();
+        List<FirewallRule> rules = new ArrayList<>();
+        try {
+            ListACLRulesCommand cmd = new ListACLRulesCommand(environmentId, vlan.getVlanNum(), network.getId());
+            GloboACLRulesResponse response = (GloboACLRulesResponse) callCommand(cmd, network.getDataCenterId());
+            rules = response.getRules();
+        }catch(CloudRuntimeException ex){
+            // ACL API returns an error when VLAN is inactive
+            if(!VLAN_NOT_ACTIVATED_MESSAGE.equals(ex.getMessage())){
+                throw ex;
+            }
+        }
+        return rules;
     }
 
     @Override
@@ -138,7 +149,7 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
         cmd.setEndPort(rule.getSourcePortEnd());
         cmd.setIcmpCode(rule.getIcmpCode());
         cmd.setIcmpType(rule.getIcmpType());
-        cmd.setVlanNumber(getVlanNumber(network));
+        cmd.setVlanNumber(getVlan(network).getVlanNum());
         cmd.setEnvironmentId(getEnvironmentId(network));
         cmd.setAclOwner(getCallingUser());
         return cmd;
@@ -146,7 +157,7 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
 
     @Override
     public void removeACLRule(Network network, Long ruleId) {
-        RemoveACLRuleCommand cmd = new RemoveACLRuleCommand(ruleId, getEnvironmentId(network), getVlanNumber(network), getCallingUser());
+        RemoveACLRuleCommand cmd = new RemoveACLRuleCommand(ruleId, getEnvironmentId(network), getVlan(network).getVlanNum(), getCallingUser());
         s_logger.debug("Removing ACL rule" + ruleId);
         callCommand(cmd, network.getDataCenterId());
     }
@@ -155,8 +166,8 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
         return CallContext.current().getCallingUser().getUsername();
     }
 
-    private Long getVlanNumber(Network network) {
-        return _globoNetworkService.getVlanInfoFromGloboNetwork(network).getVlanNum();
+    private Vlan getVlan(Network network) {
+        return _globoNetworkService.getVlanInfoFromGloboNetwork(network);
     }
 
     private Long getEnvironmentId(Network network) {
