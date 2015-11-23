@@ -13,6 +13,12 @@ pkg_path(){
 [[ -z $CATALINA_HOME ]] && export CATALINA_HOME=/usr/share/tomcat6/
 export PATH=${PATH}:${M2_HOME}/bin
 
+gen_version(){
+    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
+    tag_version=$(date +%Y%m%d%H%M)
+    echo "${cs_version}-${tag_version}"
+}
+
 gen_tag(){
     branch=${1}
     [[ -z ${branch} ]] && branch='develop'
