@@ -13,12 +13,6 @@ pkg_path(){
 [[ -z $CATALINA_HOME ]] && export CATALINA_HOME=/usr/share/tomcat6/
 export PATH=${PATH}:${M2_HOME}/bin
 
-gen_version(){
-    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
-    tag_version=$(date +%Y%m%d%H%M)
-    echo "${cs_version}-${tag_version}"
-}
-
 gen_tag(){
     branch=${1}
     [[ -z ${branch} ]] && branch='develop'
@@ -26,12 +20,14 @@ gen_tag(){
     git checkout -q ${branch}
     echo "Getting last changes from git..."
     git pull -q
-    TAG=$(gen_version)
-    git tag ${TAG}
+    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
+    tag_version=$(date +%Y%m%d%H%M)
+    git tag ${cs_version}-${tag_version}
     remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
     git push --tags
-    echo "${TAG}"
+    echo "RELEASE/TAG: ${cs_version}-${tag_version}"
 }
+
 
 gen_package(){
     tag=${1}
@@ -77,7 +73,7 @@ continuos_delivery(){
     if [ -z "${TAG}" ];
     then
         echo "Creating a new tag..."
-        TAG=$(gen_tag)
+        TAG=$(gen_tag | awk '/RELEASE\/TAG/ {print $2}')
     fi
     # Build package
     echo "Building tag ${TAG}"
@@ -122,9 +118,6 @@ case "$1" in
     ;;
   tag)
     gen_tag ${2}
-    ;;
-  gen_version)
-    gen_version
     ;;
   package)
     [[ $# -ne 3 ]] && echo "Use: $0 package <TAG> <path_to_your_yum_repo>" && exit 1
