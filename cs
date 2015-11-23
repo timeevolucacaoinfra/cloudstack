@@ -48,8 +48,8 @@ gen_package(){
     tag=${1}
     REPOPATH=${2}
 
-    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && return 1
-    [[ ! -d ${REPOPATH} ]] && echo "The directory ${REPOPATH} does not exist... exiting." && return 1
+    [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && exit 1
+    [[ ! -d ${REPOPATH} ]] && echo "The directory ${REPOPATH} does not exist... exiting." && exit 1
 
     # export some shell environments variables
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
@@ -57,7 +57,7 @@ gen_package(){
     # git checkout ${tag}
     (cd packaging/centos63; ./package.sh -t ${tag})
 
-    [[ $? -ne 0 ]] && echo "Failed to compile package. Please, fix errors." && return 1
+    [[ $? -ne 0 ]] && echo "Failed to compile package. Please, fix errors." && exit 1
 
     # keep last 3 builds
     echo "Removing old packages from yum repo ${REPOPATH}"
