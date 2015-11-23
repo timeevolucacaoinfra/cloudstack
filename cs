@@ -26,11 +26,22 @@ gen_tag(){
     git checkout -q ${branch}
     echo "Getting last changes from git..."
     git pull -q
-    TAG=$(gen_version)
-    git tag ${TAG}
-    remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
-    git push --tags
+    if [ -z "${TAG}" ];
+    then
+        echo "Creating a new tag..."
+        TAG=$(gen_version)
+    fi
+    if ! git tag | grep -v grep | grep "${TAG}" > /dev/null;
+    then
+        git tag "${TAG}"
+        remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
+        git push --tags
+        echo "${TAG} pushed"
+    eles
+        echo "TAG ${TAG} already pushed"
+    fi
     echo "${TAG}"
+
 }
 
 gen_package(){
@@ -74,11 +85,9 @@ gen_package(){
 continuos_delivery(){
     # Gen tag
     repo_path=${1}
-    if [ -z "${TAG}" ];
-    then
-        echo "Creating a new tag..."
-        TAG=$(gen_tag)
-    fi
+
+    TAG=$(gen_tag)
+
     # Build package
     echo "Building tag ${TAG}"
     gen_package ${TAG} ${repo_path}
