@@ -26,12 +26,11 @@ gen_tag(){
     git checkout -q ${branch}
     echo "Getting last changes from git..."
     git pull -q
-    cs_version=$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version | grep '^[0-9]\.')
-    tag_version=$(date +%Y%m%d%H%M)
-    git tag ${cs_version}-${tag_version}
+    tag=$(gen_version)
+    git tag $tag
     remote=$(cat .git/config  | awk -F\" '/\[remote/ {print $2}')
     git push --tags
-    echo "RELEASE/TAG: ${cs_version}-${tag_version}"
+    echo "RELEASE/TAG: ${tag}"
 }
 
 
