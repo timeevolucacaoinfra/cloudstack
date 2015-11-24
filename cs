@@ -125,6 +125,9 @@ case "$1" in
   tag)
     gen_tag ${2}
     ;;
+  gen_version)
+    gen_version
+    ;;
   package)
     [[ $# -ne 3 ]] && echo "Use: $0 package <TAG> <path_to_your_yum_repo>" && exit 1
     tag=$2
