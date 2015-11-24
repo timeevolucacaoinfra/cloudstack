@@ -163,7 +163,7 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
     }
 
     protected String getCallingUser() {
-        return CallContext.current().getCallingUser().getUsername();
+        return CallContext.current().getCallingUser().getUsername().split("@")[0];
     }
 
     private Vlan getVlan(Network network) {
