@@ -28,6 +28,7 @@ import com.cloud.network.Network;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.rules.FirewallRule;
+import com.cloud.network.rules.FirewallRuleVO;
 import com.cloud.resource.ResourceManager;
 import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.Transaction;
@@ -87,13 +88,13 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
     private static final Logger s_logger = Logger.getLogger(GloboACLManager.class);
 
     @Override
-    public List<FirewallRule> listACLRules(Network network) {
+    public List<FirewallRuleVO> listACLRules(Network network) {
         Long environmentId = this.getEnvironmentId(network);
         Vlan vlan = this.getVlan(network);
 
         s_logger.debug("Listing ACL rules vlan: " + vlan.getVlanNum() + " env:" + environmentId);
 
-        List<FirewallRule> rules = new ArrayList<>();
+        List<FirewallRuleVO> rules = new ArrayList<>();
         try {
             ListACLRulesCommand cmd = new ListACLRulesCommand(environmentId, vlan.getVlanNum(), network.getId());
             GloboACLRulesResponse response = (GloboACLRulesResponse) callCommand(cmd, network.getDataCenterId());

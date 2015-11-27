@@ -23,6 +23,7 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.network.Network;
 import com.cloud.network.rules.FirewallRule;
+import com.cloud.network.rules.FirewallRuleVO;
 import com.cloud.utils.StringUtils;
 import com.globo.globoaclapi.cloudstack.manager.GloboACLService;
 import org.apache.cloudstack.api.APICommand;
@@ -62,7 +63,7 @@ public class ListGloboACLRulesCmd extends BaseCmd{
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException, NetworkRuleConflictException {
         Network network = _networkService.getNetwork(networkId);
-        List<? extends FirewallRule> firewallRules = globoACLService.listACLRules(network);
+        List<FirewallRuleVO> firewallRules = globoACLService.listACLRules(network);
         ListResponse<FirewallResponse> response = new ListResponse<FirewallResponse>();
         List<FirewallResponse> fwResponses = new ArrayList<FirewallResponse>();
 

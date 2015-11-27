@@ -127,7 +127,7 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
     private Answer execute(ListACLRulesCommand cmd) {
         try{
             List<Rule> rules = _aclApiClient.getAclAPI().listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
-            List<FirewallRule> fwRules = new ArrayList<>();
+            List<FirewallRuleVO> fwRules = new ArrayList<>();
             for(Rule rule: rules){
                 fwRules.add(createFirewallRuleVO(cmd.getNetworkId(), rule));
             }
@@ -181,7 +181,7 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
         return rule;
     }
 
-    private FirewallRule createFirewallRuleVO(Long networkId, Rule rule) {
+    private FirewallRuleVO createFirewallRuleVO(Long networkId, Rule rule) {
         Integer destPortStart = rule.getL4Options() != null ? rule.getL4Options().getDestPortStart() : null;
         Integer destPortEnd = rule.getL4Options() != null ? rule.getL4Options().getDestPortEnd() : null;
         Integer code = rule.getIcmpOptions() != null ? rule.getIcmpOptions().getCode() : null;

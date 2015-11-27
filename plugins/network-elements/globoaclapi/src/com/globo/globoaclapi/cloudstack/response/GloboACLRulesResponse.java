@@ -17,20 +17,38 @@
 package com.globo.globoaclapi.cloudstack.response;
 
 import com.cloud.agent.api.Answer;
-import com.cloud.network.rules.FirewallRule;
+import com.cloud.network.rules.FirewallRuleVO;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class GloboACLRulesResponse extends Answer {
 
-    protected List<FirewallRule> rules;
+    protected List<FirewallRuleVO> rules;
 
-    public GloboACLRulesResponse(List<FirewallRule> rules) {
-        this.result = true;
-        this.rules = rules;
+    public GloboACLRulesResponse(){
+        super();
     }
 
-    public List<FirewallRule> getRules() {
+    public GloboACLRulesResponse(List<FirewallRuleVO> rules) {
+        this.result = true;
+        this.setRules(rules);
+        if(!rules.isEmpty()) {
+            this.rules = rules;
+        }
+    }
+
+    public void setRules(List<FirewallRuleVO> rules) {
+        List<FirewallRuleVO> r = new ArrayList<>();
+        for(FirewallRuleVO rule: rules){
+            if(rule != null){
+                r.add(rule);
+            }
+        }
+        this.rules = r;
+    }
+
+    public List<FirewallRuleVO> getRules() {
         return rules;
     }
 }

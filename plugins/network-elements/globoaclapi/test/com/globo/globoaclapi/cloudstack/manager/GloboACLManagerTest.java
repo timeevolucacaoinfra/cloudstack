@@ -64,9 +64,9 @@ public class GloboACLManagerTest {
         mockGetGloboNetworkEnvironmentID(1L);
         mockGetACLapiHost();
 
-        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(new ArrayList<FirewallRule>()));
+        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(new ArrayList<FirewallRuleVO>()));
 
-        List<FirewallRule> rules = manager.listACLRules(new NetworkVO());
+        List<FirewallRuleVO> rules = manager.listACLRules(new NetworkVO());
 
         assertTrue(rules.isEmpty());
         verify(agentManager, times(1)).easySend(anyLong(), any(ListACLRulesCommand.class));
@@ -97,7 +97,7 @@ public class GloboACLManagerTest {
 
         AgentManager agentManager = mockAgentManagerEasySend(new Answer(null, false, GloboACLManager.VLAN_NOT_ACTIVATED_MESSAGE));
 
-        List<FirewallRule> rules = manager.listACLRules(new NetworkVO());
+        List<FirewallRuleVO> rules = manager.listACLRules(new NetworkVO());
 
         assertEquals(0, rules.size());
         verify(agentManager, times(1)).easySend(anyLong(), any(ListACLRulesCommand.class));
@@ -110,9 +110,9 @@ public class GloboACLManagerTest {
         mockGetACLapiHost();
 
         FirewallRuleVO rule = createTCPFirewallRuleVO("10.0.0.5/24", 80, null);
-        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(Arrays.<FirewallRule>asList(rule)));
+        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(Arrays.<FirewallRuleVO>asList(rule)));
 
-        List<FirewallRule> rules = manager.listACLRules(new NetworkVO());
+        List<FirewallRuleVO> rules = manager.listACLRules(new NetworkVO());
 
         assertEquals(1, rules.size());
         verify(agentManager, times(1)).easySend(anyLong(), any(ListACLRulesCommand.class));
