@@ -37,6 +37,7 @@ import com.globo.globoaclapi.cloudstack.commands.CreateACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.commands.ListACLRulesCommand;
 import com.globo.globoaclapi.cloudstack.commands.RemoveACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.response.GloboACLRulesResponse;
+import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.log4j.Logger;
 
 import javax.naming.ConfigurationException;
@@ -140,7 +141,13 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
             return new Answer(cmd, true, "ACL Rule " + rule.getId() + " successfully created.");
         }catch(AclAPIException e){
             s_logger.error("Error while creating ACL Rule: " + cmd.getAclRuleDescription(), e);
-            return new Answer(cmd, false, e.getMessage());
+            if(e.getHttpStatus() != null && e.getHttpStatus() == 403){
+                return new Answer(cmd, false, "The user " + cmd.getAclOwner() + " don't have the required permission to perform this action.");
+            }else if(e.getCause() instanceof ConnectTimeoutException){
+                return new Answer(cmd, false, "ACL creation timed out. Your request may still being processed by ACL API.");
+            } else {
+                return new Answer(cmd, false, e.getMessage());
+            }
         }
     }
 
@@ -150,7 +157,13 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
             return new Answer(cmd, true, "ACL Rule " + cmd.getRuleId() + " successfully removed.");
         }catch(AclAPIException e){
             s_logger.error("Error while removing ACL Rule: " + cmd.getRuleId(), e);
-            return new Answer(cmd, false, e.getMessage());
+            if(e.getHttpStatus() == 403){
+                return new Answer(cmd, false, "The user " + cmd.getAclOwner() + " doesn't have the required permission to perform this action.");
+            }else if(e.getCause() instanceof ConnectTimeoutException){
+                return new Answer(cmd, false, "ACL removal timed out. Your request may still being processed by ACL API.");
+            } else {
+                return new Answer(cmd, false, e.getMessage());
+            }
         }
     }
 
