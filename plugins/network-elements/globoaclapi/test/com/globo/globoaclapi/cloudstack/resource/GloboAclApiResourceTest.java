@@ -1,7 +1,6 @@
 package com.globo.globoaclapi.cloudstack.resource;
 
 import com.cloud.agent.api.Answer;
-import com.cloud.network.rules.FirewallRule;
 import com.globo.aclapi.client.AclAPIException;
 import com.globo.aclapi.client.ClientAclAPI;
 import com.globo.aclapi.client.api.RuleAPI;
@@ -185,12 +184,13 @@ public class GloboAclApiResourceTest {
 
         verify(ruleAPI).listByEnvAndNumVlan(1L, 1L);
         assertEquals(1, answer.getRules().size());
-        FirewallRule fwRule = answer.getRules().get(0);
-        assertEquals(rule.getProtocol().name(), fwRule.getProtocol());
-        assertEquals(rule.getId(), fwRule.getXid());
-        assertEquals(rule.getDestination(), fwRule.getSourceCidrList().get(0));
-        assertEquals(rule.getL4Options().getDestPortStart(), fwRule.getSourcePortStart());
-        assertEquals(rule.getL4Options().getDestPortEnd(), fwRule.getSourcePortEnd());
+        GloboACLRulesResponse.ACLRule fwRule = answer.getRules().get(0);
+
+        assertEquals(rule.getProtocol().name().toLowerCase(), fwRule.getProtocol());
+        assertEquals(rule.getId(), fwRule.getId());
+        assertEquals(rule.getDestination(), fwRule.getDestination());
+        assertEquals(rule.getL4Options().getDestPortStart(), fwRule.getPortStart());
+        assertEquals(rule.getL4Options().getDestPortEnd(), fwRule.getPortEnd());
     }
 
     private RuleAPI mockACLClientApiRemoveSync(Object response, RemoveACLRuleCommand cmd) {

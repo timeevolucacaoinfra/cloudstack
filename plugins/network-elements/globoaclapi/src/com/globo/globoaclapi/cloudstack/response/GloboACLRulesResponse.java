@@ -17,38 +17,100 @@
 package com.globo.globoaclapi.cloudstack.response;
 
 import com.cloud.agent.api.Answer;
-import com.cloud.network.rules.FirewallRuleVO;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class GloboACLRulesResponse extends Answer {
 
-    protected List<FirewallRuleVO> rules;
+    protected List<ACLRule> rules;
 
     public GloboACLRulesResponse(){
         super();
     }
 
-    public GloboACLRulesResponse(List<FirewallRuleVO> rules) {
+    public GloboACLRulesResponse(List<ACLRule> rules) {
         this.result = true;
         this.setRules(rules);
-        if(!rules.isEmpty()) {
-            this.rules = rules;
-        }
     }
 
-    public void setRules(List<FirewallRuleVO> rules) {
-        List<FirewallRuleVO> r = new ArrayList<>();
-        for(FirewallRuleVO rule: rules){
-            if(rule != null){
-                r.add(rule);
-            }
-        }
-        this.rules = r;
-    }
-
-    public List<FirewallRuleVO> getRules() {
+    public List<ACLRule> getRules() {
         return rules;
+    }
+
+    public void setRules(List<ACLRule> rules) {
+        this.rules = rules;
+    }
+
+    public static class ACLRule {
+
+        private String id;
+
+        private String protocol;
+
+        private String destination;
+
+        private Integer icmpType;
+
+        private Integer icmpCode;
+
+        private Integer destPortStart;
+
+        private Integer destPortEnd;
+
+        public String getId() {
+            return id;
+        }
+
+        public void setId(String id) {
+            this.id = id;
+        }
+
+        public String getProtocol() {
+            return protocol;
+        }
+
+        public void setProtocol(String protocol) {
+            this.protocol = protocol;
+        }
+
+        public String getDestination() {
+            return destination;
+        }
+
+        public void setDestination(String destination) {
+            this.destination = destination;
+        }
+
+        public Integer getIcmpType() {
+            return icmpType;
+        }
+
+        public void setIcmpType(Integer icmpType) {
+            this.icmpType = icmpType;
+        }
+
+        public Integer getIcmpCode() {
+            return icmpCode;
+        }
+
+        public void setIcmpCode(Integer icmpCode) {
+            this.icmpCode = icmpCode;
+        }
+
+        public Integer getPortStart() {
+            return destPortStart;
+        }
+
+        public void setPortStart(Integer destPortStart) {
+            this.destPortStart = destPortStart;
+        }
+
+        public Integer getPortEnd() {
+            return destPortEnd;
+        }
+
+        public void setPortEnd(Integer destPortEnd) {
+            this.destPortEnd = destPortEnd;
+        }
     }
 }

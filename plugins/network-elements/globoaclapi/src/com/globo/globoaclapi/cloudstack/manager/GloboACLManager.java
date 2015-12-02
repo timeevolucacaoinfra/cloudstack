@@ -57,6 +57,7 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +99,9 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
         try {
             ListACLRulesCommand cmd = new ListACLRulesCommand(environmentId, vlan.getVlanNum(), network.getId());
             GloboACLRulesResponse response = (GloboACLRulesResponse) callCommand(cmd, network.getDataCenterId());
-            rules = response.getRules();
+            for(GloboACLRulesResponse.ACLRule r : response.getRules()){
+                rules.add((createFirewallRuleVO(network.getId(), r)));
+            }
         }catch(CloudRuntimeException ex){
             // ACL API returns an error when VLAN is inactive
             if(!VLAN_NOT_ACTIVATED_MESSAGE.equals(ex.getMessage())){
@@ -106,6 +109,15 @@ public class GloboACLManager implements GloboACLService, Configurable, Pluggable
             }
         }
         return rules;
+    }
+
+    private FirewallRuleVO createFirewallRuleVO(Long networkId, GloboACLRulesResponse.ACLRule rule) {
+        return new FirewallRuleVO(
+            rule.getId(), null, rule.getPortStart(), rule.getPortEnd(), rule.getProtocol(), networkId,
+            CallContext.current().getCallingAccountId(), 0L,
+            FirewallRule.Purpose.Firewall, Arrays.asList(rule.getDestination()), rule.getIcmpCode(), rule.getIcmpType(), null,
+            FirewallRule.TrafficType.Egress, FirewallRule.FirewallRuleType.User
+        );
     }
 
     @Override

@@ -64,7 +64,7 @@ public class GloboACLManagerTest {
         mockGetGloboNetworkEnvironmentID(1L);
         mockGetACLapiHost();
 
-        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(new ArrayList<FirewallRuleVO>()));
+        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(new ArrayList<GloboACLRulesResponse.ACLRule>()));
 
         List<FirewallRuleVO> rules = manager.listACLRules(new NetworkVO());
 
@@ -109,8 +109,8 @@ public class GloboACLManagerTest {
         mockGetGloboNetworkEnvironmentID(1L);
         mockGetACLapiHost();
 
-        FirewallRuleVO rule = createTCPFirewallRuleVO("10.0.0.5/24", 80, null);
-        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(Arrays.<FirewallRuleVO>asList(rule)));
+        GloboACLRulesResponse.ACLRule rule = createACLRuleResponse("10.0.0.5/24", 80, null);
+        AgentManager agentManager = mockAgentManagerEasySend(new GloboACLRulesResponse(Arrays.asList(rule)));
 
         List<FirewallRuleVO> rules = manager.listACLRules(new NetworkVO());
 
@@ -315,6 +315,16 @@ public class GloboACLManagerTest {
             assertEquals("Failed to add Globo ACL API host", e.getMessage());
             verify(resourceManagerMock, times(1)).addHost(eq(1L), any(GloboAclApiResource.class), eq(Host.Type.L2Networking), any(HashMap.class));
         }
+    }
+
+    private GloboACLRulesResponse.ACLRule createACLRuleResponse(String destination, Integer portStart, Integer portEnd) {
+        GloboACLRulesResponse.ACLRule rule = new GloboACLRulesResponse.ACLRule();
+        rule.setId("1");
+        rule.setProtocol("TCP");
+        rule.setDestination(destination);
+        rule.setPortStart(portStart);
+        rule.setPortEnd(portEnd);
+        return rule;
     }
 
     private FirewallRuleVO createTCPFirewallRuleVO(String destination, Integer portStart, Integer portEnd) {

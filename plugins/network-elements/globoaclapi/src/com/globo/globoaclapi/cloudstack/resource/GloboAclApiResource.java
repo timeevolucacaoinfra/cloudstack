@@ -26,8 +26,6 @@ import com.cloud.agent.api.ReadyAnswer;
 import com.cloud.agent.api.ReadyCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.host.Host;
-import com.cloud.network.rules.FirewallRule;
-import com.cloud.network.rules.FirewallRuleVO;
 import com.cloud.resource.ServerResource;
 import com.cloud.utils.component.ManagerBase;
 import com.globo.aclapi.client.AclAPIException;
@@ -39,12 +37,10 @@ import com.globo.globoaclapi.cloudstack.commands.CreateACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.commands.ListACLRulesCommand;
 import com.globo.globoaclapi.cloudstack.commands.RemoveACLRuleCommand;
 import com.globo.globoaclapi.cloudstack.response.GloboACLRulesResponse;
-import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -127,11 +123,11 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
     private Answer execute(ListACLRulesCommand cmd) {
         try{
             List<Rule> rules = _aclApiClient.getAclAPI().listByEnvAndNumVlan(cmd.getEnvironmentId(), cmd.getVlanNumber());
-            List<FirewallRuleVO> fwRules = new ArrayList<>();
-            for(Rule rule: rules){
-                fwRules.add(createFirewallRuleVO(cmd.getNetworkId(), rule));
+            List<GloboACLRulesResponse.ACLRule> aclRules = new ArrayList<>();
+            for(Rule r : rules) {
+                aclRules.add(createACLRuleResponse(r));
             }
-            return new GloboACLRulesResponse(fwRules);
+            return new GloboACLRulesResponse(aclRules);
         }catch(AclAPIException e){
             s_logger.error("Error while listing ACL Rules.", e);
             return new Answer(cmd, false, e.getMessage());
@@ -181,18 +177,23 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
         return rule;
     }
 
-    private FirewallRuleVO createFirewallRuleVO(Long networkId, Rule rule) {
-        Integer destPortStart = rule.getL4Options() != null ? rule.getL4Options().getDestPortStart() : null;
-        Integer destPortEnd = rule.getL4Options() != null ? rule.getL4Options().getDestPortEnd() : null;
-        Integer code = rule.getIcmpOptions() != null ? rule.getIcmpOptions().getCode() : null;
-        Integer type =  rule.getIcmpOptions() != null ? rule.getIcmpOptions().getType() : null;
+    private GloboACLRulesResponse.ACLRule createACLRuleResponse(Rule r) {
+        GloboACLRulesResponse.ACLRule rule = new GloboACLRulesResponse.ACLRule();
 
-        return new FirewallRuleVO(
-                rule.getId(), null, destPortStart, destPortEnd, rule.getProtocol().name(), networkId,
-                CallContext.current().getCallingAccountId(), 0L,
-                FirewallRule.Purpose.Firewall, Arrays.asList(rule.getDestination()), code, type, null,
-                FirewallRule.TrafficType.Egress, FirewallRule.FirewallRuleType.User
-        );
+        Integer destPortStart = r.getL4Options() != null ? r.getL4Options().getDestPortStart() : null;
+        Integer destPortEnd = r.getL4Options() != null ? r.getL4Options().getDestPortEnd() : null;
+        Integer code = r.getIcmpOptions() != null ? r.getIcmpOptions().getCode() : null;
+        Integer type =  r.getIcmpOptions() != null ? r.getIcmpOptions().getType() : null;
+
+        rule.setId(r.getId());
+        rule.setProtocol(r.getProtocol().name().toLowerCase());
+        rule.setDestination(r.getDestination());
+        rule.setIcmpType(type);
+        rule.setIcmpCode(code);
+        rule.setPortStart(destPortStart);
+        rule.setPortEnd(destPortEnd);
+
+        return rule;
     }
 
     private ClientAclAPI createACLApiClient(Map<String, Object> params) {
