@@ -157,7 +157,7 @@ public class GloboAclApiResource extends ManagerBase implements ServerResource {
             return new Answer(cmd, true, "ACL Rule " + cmd.getRuleId() + " successfully removed.");
         }catch(AclAPIException e){
             s_logger.error("Error while removing ACL Rule: " + cmd.getRuleId(), e);
-            if(e.getHttpStatus() == 403){
+            if(e.getHttpStatus() != null && e.getHttpStatus() == 403){
                 return new Answer(cmd, false, "The user " + cmd.getAclOwner() + " doesn't have the required permission to perform this action.");
             }else if(e.getCause() instanceof ConnectTimeoutException){
                 return new Answer(cmd, false, "ACL removal timed out. Your request may still being processed by ACL API.");
