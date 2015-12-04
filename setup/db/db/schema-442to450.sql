@@ -967,7 +967,7 @@ CREATE TABLE `cloud`.`baremetal_rct` (
    PRIMARY KEY (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8;
 
---Remove duplicates from guest_os_hypervisor table
+-- Remove duplicates from guest_os_hypervisor table
 DELETE t1 FROM guest_os_hypervisor t1, guest_os_hypervisor t2 WHERE (t1.hypervisor_type = t2.hypervisor_type AND t1.hypervisor_version = t2.hypervisor_version AND t1.guest_os_id = t2.guest_os_id AND t1.id > t2.id AND t1.is_user_defined=0);
 
 -- Set as removed built-in CentOS 5.3 template (if any) for XenServer, since CentOS 5.6 template already exists
@@ -975,7 +975,7 @@ UPDATE `cloud`.`vm_template` SET removed=NOW() WHERE unique_name="centos53-x86_6
 
 ALTER TABLE `cloud_usage`.`usage_vpn_user` CHANGE `user_name` `user_name` VARCHAR(255);
 
---Increase key value size generated from RSA-8192 to be stored.
+-- Increase key value size generated from RSA-8192 to be stored.
 ALTER TABLE `cloud`.`user_vm_details` MODIFY `value` VARCHAR(5120);
 
 UPDATE `cloud`.`host` SET resource = REPLACE(resource, 'com.cloud.hypervisor.xen.resource', 'com.cloud.hypervisor.xenserver.resource') WHERE hypervisor_type='XenServer' AND REMOVED IS NULL;
@@ -983,7 +983,7 @@ UPDATE `cloud`.`host` SET resource = REPLACE(resource, 'com.cloud.hypervisor.xen
 INSERT INTO `cloud`.`vm_template` (id, uuid, unique_name, name, public, created, type, hvm, bits, account_id, url, checksum, enable_password, display_text,  format, guest_os_id, featured, cross_zones, hypervisor_type, extractable, state)
     VALUES (11, UUID(), 'centos7-x86_64-lxc', 'CentOS 7(64-bit) no GUI (LXC)', 1, now(), 'BUILTIN', 0, 64, 1, 'http://download.cloud.com/templates/builtin/centos-7-x86_64.tar.gz', 'c2c4fa2d0978121c7977db571f132d6e', 0, 'CentOS 7(64-bit) no GUI (LXC)', 'TAR', 246, 1, 1, 'LXC', 1, 'Active');
 
---Support for RHEL 6.5 in relevant hypervisor versions
+-- Support for RHEL 6.5 in relevant hypervisor versions
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (252, UUID(), 4, 'Red Hat Enterprise Linux 6.5 (32-bit)', utc_timestamp());
 INSERT IGNORE INTO `cloud`.`guest_os` (id, uuid, category_id, display_name, created) VALUES (253, UUID(), 4, 'Red Hat Enterprise Linux 6.5 (64-bit)', utc_timestamp());
 
@@ -1002,14 +1002,14 @@ INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervis
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'rhel6Guest', 252, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'rhel6_64Guest', 253, utc_timestamp(), 0);
 
---Support for Debian 7 on KVM/LXC
+-- Support for Debian 7 on KVM/LXC
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'Debian GNU/Linux 7(32-bit)', 183, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'Debian GNU/Linux 7(64-bit)', 184, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'LXC', 'default', 'Debian GNU/Linux 7(32-bit)', 183, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'LXC', 'default', 'Debian GNU/Linux 7(64-bit)', 184, utc_timestamp(), 0);
 
 
---Support for Ubuntu 14.04
+-- Support for Ubuntu 14.04
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.0', 'ubuntuGuest', 241, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.1', 'ubuntuGuest', 241, utc_timestamp(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'VMware', '5.5', 'ubuntuGuest', 241, utc_timestamp(), 0);
