@@ -75,7 +75,7 @@ class TestCreateIso(cloudstackTestCase):
 
         return
 
-    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke"], BugId="CLOUDSTACK-6769, CLOUDSTACK-6774", required_hardware="false")
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns"], required_hardware="false")
     def test_01_create_iso(self):
         """Test create public & private ISO
         """
@@ -138,7 +138,6 @@ class TestCreateIso(cloudstackTestCase):
 class TestISO(cloudstackTestCase):
 
     @classmethod
-    @attr(BugId="CLOUDSTACK-6769, CLOUDSTACK-6774")
     def setUpClass(cls):
         testClient = super(TestISO, cls).getClsTestClient()
         cls.apiclient = testClient.getApiClient()
@@ -230,7 +229,22 @@ class TestISO(cloudstackTestCase):
 
         return
 
-    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke", "selfservice"],BugId="CLOUDSTACK-6769, CLOUDSTACK-6774")
+
+    def get_iso_details(self,isoname):
+
+        #ListIsos to list default ISOS (VM and xen tools)
+        list_default_iso_response = list_isos(
+                                      self.apiclient,
+                                      name=isoname,
+                                      isready="true"
+                                      )
+        self.assertEqual(
+                         list_default_iso_response,
+                         None,
+                         "Check if ISO exists in ListIsos"
+                         )
+
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke"], required_hardware="false")
     def test_02_edit_iso(self):
         """Test Edit ISO
         """
@@ -295,7 +309,7 @@ class TestISO(cloudstackTestCase):
                         )
         return
 
-    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke", "selfservice"], BugId="CLOUDSTACK-6769, CLOUDSTACK-6774")
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns"], required_hardware="false")
     def test_03_delete_iso(self):
         """Test delete ISO
         """
@@ -323,7 +337,7 @@ class TestISO(cloudstackTestCase):
                          )
         return
 
-    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns"], BugId="CLOUDSTACK-6769, CLOUDSTACK-6774", required_hardware="true")
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns"], required_hardware="true")
     def test_04_extract_Iso(self):
         "Test for extract ISO"
 
@@ -340,6 +354,18 @@ class TestISO(cloudstackTestCase):
         cmd.mode = self.services["iso2"]["mode"]
         cmd.zoneid = self.services["iso2"]["zoneid"]
         list_extract_response = self.apiclient.extractIso(cmd)
+
+        try:
+            #Format URL to ASCII to retrieve response code
+            formatted_url = urllib.unquote_plus(list_extract_response.url)
+            url_response = urllib.urlopen(formatted_url)
+            response_code = url_response.getcode()
+        except Exception:
+            self.fail(
+                "Extract ISO Failed with invalid URL %s (ISO id: %s)" \
+                % (formatted_url, self.iso_2.id)
+            )
+
         self.assertEqual(
                             list_extract_response.id,
                             self.iso_2.id,
@@ -355,18 +381,6 @@ class TestISO(cloudstackTestCase):
                             self.services["iso2"]["zoneid"],
                             "Check zone ID of extraction"
                         )
-
-        try:
-            #Format URL to ASCII to retrieve response code
-            formatted_url = urllib.unquote_plus(list_extract_response.url)
-            url_response = urllib.urlopen(formatted_url)
-            response_code = url_response.getcode()
-        except Exception:
-            self.fail(
-                "Extract ISO Failed with invalid URL %s (ISO id: %s)" \
-                % (formatted_url, self.iso_2.id)
-            )
-
         self.assertEqual(
                          response_code,
                          200,
@@ -374,7 +388,7 @@ class TestISO(cloudstackTestCase):
                          )
         return
 
-    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke", "selfservice"], BugId="CLOUDSTACK-6769, CLOUDSTACK-6774")
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke", "selfservice"])
     def test_05_iso_permissions(self):
         """Update & Test for ISO permissions"""
 
@@ -426,7 +440,7 @@ class TestISO(cloudstackTestCase):
                         )
         return
 
-    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke", "multizone", "provisioning"], BugId="CLOUDSTACK-6769, CLOUDSTACK-6774")
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns", "smoke", "multizone", "provisioning"])
     def test_06_copy_iso(self):
         """Test for copy ISO from one zone to another"""
 
@@ -514,4 +528,21 @@ class TestISO(cloudstackTestCase):
         cmd.id = iso_response.id
         cmd.zoneid = self.services["destzoneid"]
         self.apiclient.deleteIso(cmd)
+        return
+
+
+    @attr(tags = ["advanced", "basic", "eip", "sg", "advancedns"], required_hardware="false")
+    def test_07_list_default_iso(self):
+        """Test delete ISO
+        """
+
+        # Validate the following:
+        # list ISO should list default ISOS (VM and xen tools)
+
+
+        #ListIsos to list default ISOS (VM and xen tools)
+        list_xs__iso_response = self.get_iso_details("xs-tools.iso")
+        list_xs__iso_response = self.get_iso_details("vmware-tools.iso")
+
+
         return

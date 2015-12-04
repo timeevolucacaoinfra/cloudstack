@@ -18,8 +18,10 @@
  */
 package org.apache.cloudstack.storage.datastore.lifecycle;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +48,6 @@ import com.cloud.agent.api.CreateStoragePoolCommand;
 import com.cloud.agent.api.DeleteStoragePoolCommand;
 import com.cloud.agent.api.StoragePoolInfo;
 import com.cloud.alert.AlertManager;
-import com.cloud.exception.DiscoveryException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.host.Host;
 import com.cloud.host.HostVO;
@@ -59,7 +60,6 @@ import com.cloud.storage.Storage.StoragePoolType;
 import com.cloud.storage.StorageManager;
 import com.cloud.storage.StoragePool;
 import com.cloud.storage.StoragePoolAutomation;
-import com.cloud.storage.StoragePoolDiscoverer;
 import com.cloud.storage.StoragePoolHostVO;
 import com.cloud.storage.dao.StoragePoolHostDao;
 import com.cloud.storage.dao.StoragePoolWorkDao;
@@ -80,7 +80,6 @@ public class CloudStackPrimaryDataStoreLifeCycleImpl implements PrimaryDataStore
     private static final Logger s_logger = Logger.getLogger(CloudStackPrimaryDataStoreLifeCycleImpl.class);
     @Inject
     protected ResourceManager _resourceMgr;
-    protected List<StoragePoolDiscoverer> _discoverers;
     @Inject
     PrimaryDataStoreDao primaryDataStoreDao;
     @Inject
@@ -185,7 +184,14 @@ public class CloudStackPrimaryDataStoreLifeCycleImpl implements PrimaryDataStore
 
         String scheme = uri.getScheme();
         String storageHost = uri.getHost();
-        String hostPath = uri.getPath();
+        String hostPath = null;
+        try {
+          hostPath = URLDecoder.decode(uri.getPath(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+        }
+        if (hostPath == null) { // if decoding fails, use getPath() anyway
+            hostPath = uri.getPath();
+        }
         Object localStorage = dsInfos.get("localStorage");
         if (localStorage != null) {
             hostPath = hostPath.replaceFirst("/", "");
@@ -260,19 +266,7 @@ public class CloudStackPrimaryDataStoreLifeCycleImpl implements PrimaryDataStore
                 parameters.setPort(port);
                 parameters.setPath(hostPath);
             } else {
-                for (StoragePoolDiscoverer discoverer : _discoverers) {
-                    Map<? extends StoragePool, Map<String, String>> pools;
-                    try {
-                        pools = discoverer.find(zoneId, podId, uri, details);
-                    } catch (DiscoveryException e) {
-                        throw new IllegalArgumentException("Not enough information for discovery " + uri, e);
-                    }
-                    if (pools != null) {
-                        Map.Entry<? extends StoragePool, Map<String, String>> entry = pools.entrySet().iterator().next();
-                        details = entry.getValue();
-                        break;
-                    }
-                }
+                throw new IllegalArgumentException("iSCSI needs to have LUN number");
             }
         } else if (scheme.equalsIgnoreCase("iso")) {
             if (port == -1) {
@@ -525,4 +519,7 @@ public class CloudStackPrimaryDataStoreLifeCycleImpl implements PrimaryDataStore
         return false;
     }
 
+    @Override
+    public void updateStoragePool(StoragePool storagePool, Map<String, String> details) {
+    }
 }

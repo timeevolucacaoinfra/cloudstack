@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.cloud.utils.exception.CloudRuntimeException;
 import org.apache.log4j.Logger;
 
 import com.cloud.utils.db.TransactionLegacy;
@@ -64,54 +65,53 @@ public class UsageSanityChecker {
     }
 
     protected boolean checkItemCountByPstmt(CheckCase checkCase) throws SQLException {
-        List<PreparedStatement> pstmt2Close = new ArrayList<PreparedStatement>();
         boolean checkOk = true;
-
         /*
          * Check for item usage records which are created after it is removed
          */
-        PreparedStatement pstmt;
-        try {
-            pstmt = conn.prepareStatement(checkCase.sqlTemplate);
+        try (PreparedStatement pstmt = conn.prepareStatement(checkCase.sqlTemplate)) {
             if(checkCase.checkId) {
                 pstmt.setInt(1, lastId);
                 pstmt.setInt(2, maxId);
             }
-
-            pstmt2Close.add(pstmt);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next() && (rs.getInt(1) > 0)) {
-                errors.append(String.format("Error: Found %s %s\n", rs.getInt(1), checkCase.itemName));
-                checkOk = false;
+            try(ResultSet rs = pstmt.executeQuery();) {
+                if (rs.next() && (rs.getInt(1) > 0)) {
+                    errors.append(String.format("Error: Found %s %s\n", rs.getInt(1), checkCase.itemName));
+                    checkOk = false;
+                }
+            }catch (Exception e)
+            {
+                s_logger.error("checkItemCountByPstmt:Exception:"+e.getMessage());
+                throw new CloudRuntimeException("checkItemCountByPstmt:Exception:"+e.getMessage(),e);
             }
-        } catch (SQLException e) {
-            throw e;
-        } finally {
-            TransactionLegacy.closePstmts(pstmt2Close);
+        }
+        catch (Exception e)
+        {
+            s_logger.error("checkItemCountByPstmt:Exception:"+e.getMessage());
+            throw new CloudRuntimeException("checkItemCountByPstmt:Exception:"+e.getMessage(),e);
         }
         return checkOk;
     }
 
     protected void checkMaxUsage() throws SQLException {
         int aggregationRange = DEFAULT_AGGREGATION_RANGE;
-        List<PreparedStatement> pstmt2Close = new ArrayList<PreparedStatement>();
-        try {
-            PreparedStatement pstmt = conn.prepareStatement(
-                    "SELECT value FROM `cloud`.`configuration` where name = 'usage.stats.job.aggregation.range'");
-            pstmt2Close.add(pstmt);
-            ResultSet rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                aggregationRange = rs.getInt(1);
-            } else {
-                s_logger.debug("Failed to retrieve aggregation range. Using default : " + aggregationRange);
+        try (PreparedStatement pstmt = conn.prepareStatement(
+                "SELECT value FROM `cloud`.`configuration` where name = 'usage.stats.job.aggregation.range'");)
+        {
+            try(ResultSet rs = pstmt.executeQuery();) {
+               if (rs.next()) {
+                    aggregationRange = rs.getInt(1);
+                } else {
+                    s_logger.debug("Failed to retrieve aggregation range. Using default : " + aggregationRange);
+                }
+            }catch (SQLException e) {
+                s_logger.error("checkMaxUsage:Exception:"+e.getMessage());
+                throw new CloudRuntimeException("checkMaxUsage:Exception:"+e.getMessage());
             }
         } catch (SQLException e) {
-            throw e;
-        } finally {
-            TransactionLegacy.closePstmts(pstmt2Close);
+            s_logger.error("checkMaxUsage:Exception:"+e.getMessage());
+            throw new CloudRuntimeException("checkMaxUsage:Exception:"+e.getMessage());
         }
-
         int aggregationHours = aggregationRange / 60;
 
         addCheckCase("SELECT count(*) FROM `cloud_usage`.`cloud_usage` cu where usage_type not in (4,5) and raw_usage > "
@@ -176,35 +176,33 @@ public class UsageSanityChecker {
             if ((reader != null) && (lastIdText = reader.readLine()) != null) {
                 lastId = Integer.parseInt(lastIdText);
             }
-        } catch (IOException e) {
-            s_logger.error(e);
+        } catch (Exception e) {
+            s_logger.error("readLastCheckId:Exception:"+e.getMessage(),e);
         }
     }
 
     protected void readMaxId() throws SQLException {
-        try(PreparedStatement pstmt = conn.prepareStatement("select max(id) from cloud_usage.cloud_usage");
-            ResultSet rs = pstmt.executeQuery();)
+        try (PreparedStatement pstmt = conn.prepareStatement("select max(id) from cloud_usage.cloud_usage");
+             ResultSet rs = pstmt.executeQuery();)
         {
             maxId = -1;
             if (rs.next() && (rs.getInt(1) > 0)) {
                 maxId = rs.getInt(1);
                 lastCheckId += " and cu.id <= ?";
             }
-        }
-        catch (Exception e)
-        {
-           s_logger.error("readMaxId: Exception :"+ e.getMessage());
+        }catch (Exception e) {
+            s_logger.error("readMaxId:"+e.getMessage(),e);
         }
     }
 
     protected void updateNewMaxId() {
-
-        try(FileWriter fstream = new FileWriter(lastCheckFile);
+        try (FileWriter fstream = new FileWriter(lastCheckFile);
         BufferedWriter out = new BufferedWriter(fstream);
-        ) {
+        ){
             out.write("" + maxId);
         } catch (IOException e) {
-            s_logger.error("updateMaxId: Exception :"+ e.getMessage());
+            s_logger.error("updateNewMaxId:Exception:"+e.getMessage());
+            // Error while writing last check id
         }
     }
 

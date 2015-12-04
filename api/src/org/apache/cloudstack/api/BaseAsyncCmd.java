@@ -36,6 +36,13 @@ public abstract class BaseAsyncCmd extends BaseCmd {
     @Parameter(name = "starteventid", type = CommandType.LONG)
     private Long startEventId;
 
+    @Parameter(name = ApiConstants.CUSTOM_JOB_ID , type = CommandType.STRING)
+    private String injectedJobId;
+
+    public String getInjectedJobId() {
+        return this.injectedJobId;
+    }
+
     /**
      * For proper tracking of async commands through the system, events must be generated when the command is
      * scheduled, started, and completed. Commands should specify the type of event so that when the scheduled,

@@ -93,7 +93,7 @@ class Services:
             "SSHPasswordEnabledTemplate": "SSHKeyPassword",
             "sleep": 60,
             "timeout": 20,
-            "mode": 'advanced',
+            "mode": '',
         }
 
 def wait_vm_start(apiclient, vmid, timeout, sleep):
@@ -107,6 +107,15 @@ def wait_vm_start(apiclient, vmid, timeout, sleep):
 
     return timeout
 
+def SetPublicIpForVM(apiclient, vm):
+    """ List VM and set the publicip (if available) of VM
+    to ssh_ip attribute"""
+
+    vms = VirtualMachine.list(apiclient, id=vm.id, listall=True)
+    virtual_machine = vms[0]
+    if hasattr(vm, "publicip"):
+        vm.ssh_ip = virtual_machine.publicip
+    return vm
 
 class TestResetSSHKeypair(cloudstackTestCase):
 
@@ -191,6 +200,9 @@ class TestResetSSHKeypair(cloudstackTestCase):
             for c in cmds:
                 ssh.execute(c)
 
+            # Adding delay of 120 sec to avoid data loss due to timing issue
+            time.sleep(120)
+
             #Stop virtual machine
             cls.virtual_machine.stop(cls.api_client)
 
@@ -218,7 +230,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
             )
             cls._cleanup.append(cls.pw_ssh_enabled_template)
             # Delete the VM - No longer needed
-            cls.virtual_machine.delete(cls.api_client)
+            cls.virtual_machine.delete(cls.api_client, expunge=True)
         except Exception as e:
             cls.tearDownClass()
             raise unittest.SkipTest("Exception in setUpClass: %s" % e)
@@ -232,7 +244,6 @@ class TestResetSSHKeypair(cloudstackTestCase):
     def setUp(self):
         self.apiclient = self.testClient.getApiClient()
         self.dbclient = self.testClient.getDbConnection()
-        self.services = Services().services
 
         self.keypair = SSHKeyPair.create(
                                     self.apiclient,
@@ -354,12 +365,18 @@ class TestResetSSHKeypair(cloudstackTestCase):
                    % (virtual_machine.name, self.services["timeout"]))
 
         self.debug("SSH key path: %s" % str(keyPairFilePath))
+
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         try:
             virtual_machine.get_ssh_client(keyPairFileLocation=str(keyPairFilePath))
         except Exception as e:
             self.fail("Failed to SSH into VM with new keypair: %s, %s" %
                                                     (virtual_machine.name, e))
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
     @attr(tags=["simulator", "basic", "advanced"])
@@ -463,6 +480,11 @@ class TestResetSSHKeypair(cloudstackTestCase):
             self.fail("The virtual machine %s failed to start even after %s minutes"
                    % (virtual_machine.name, self.services["timeout"]))
 
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         self.debug("SSHing with new keypair")
         try:
             virtual_machine.get_ssh_client(
@@ -477,7 +499,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
         except Exception as e:
             self.fail("Failed to SSH into VM with password: %s, %s" %
                                                     (virtual_machine.name, e))
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
     @attr(tags=["simulator", "basic", "advanced"])
@@ -573,6 +595,11 @@ class TestResetSSHKeypair(cloudstackTestCase):
             self.fail("The virtual machine %s failed to start even after %s minutes"
                    % (virtual_machine.name, self.services["timeout"]))
 
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         self.debug("SSHing with new keypair")
         try:
             virtual_machine.get_ssh_client(
@@ -580,7 +607,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
         except Exception as e:
             self.fail("Failed to SSH into VM with new keypair: %s, %s" %
                                                     (virtual_machine.name, e))
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
     @attr(tags=["simulator", "basic", "advanced"])
@@ -684,6 +711,11 @@ class TestResetSSHKeypair(cloudstackTestCase):
             self.fail("The virtual machine %s failed to start even after %s minutes"
                    % (virtual_machine.name, self.services["timeout"]))
 
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         self.debug("SSHing with new keypair")
         try:
             virtual_machine.get_ssh_client(
@@ -691,7 +723,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
         except Exception as e:
             self.fail("Failed to SSH into VM with new keypair: %s, %s" %
                                                     (virtual_machine.name, e))
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
     @attr(tags=["simulator", "basic", "advanced"])
@@ -766,7 +798,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
                                         domainid=self.account.domainid
                                         )
 
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
     @attr(tags=["simulator", "basic", "advanced"])
@@ -844,7 +876,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
                                         domainid=self.account.domainid
                                         )
 
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
     @attr(tags=["simulator", "basic", "advanced"])
@@ -920,7 +952,7 @@ class TestResetSSHKeypair(cloudstackTestCase):
                                         )
         self.debug("Reset SSH key pair failed due to invalid parameters")
 
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
 class TestResetSSHKeyUserRights(cloudstackTestCase):
@@ -1002,6 +1034,9 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
         for c in cmds:
             ssh.execute(c)
 
+        # Adding delay of 120 sec to avoid data loss due to timing issue
+        time.sleep(120)
+
         try:
             #Stop virtual machine
             cls.virtual_machine.stop(cls.api_client)
@@ -1030,7 +1065,7 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             cls.volume.id
         )
         # Delete the VM - No longer needed
-        cls.virtual_machine.delete(cls.api_client)
+        cls.virtual_machine.delete(cls.api_client, expunge=True)
 
         cls._cleanup = [
                         cls.service_offering,
@@ -1047,7 +1082,6 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
     def setUp(self):
         self.apiclient = self.testClient.getApiClient()
         self.dbclient = self.testClient.getDbConnection()
-        self.services = Services().services
 
         # Set Zones and disk offerings
         self.services["virtual_machine"]["zoneid"] = self.zone.id
@@ -1067,7 +1101,7 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             raise Exception("Warning: Exception during cleanup : %s" % e)
         return
 
-    @attr(tags=["simulator", "basic", "advanced"])
+    @attr(tags=["basic", "advanced"], required_hardware="true")
     def test_01_reset_keypair_normal_user(self):
         """Verify API resetSSHKeyForVirtualMachine for non admin non root
             domain user"""
@@ -1089,8 +1123,6 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
                                       )
         self.cleanup.append(self.user_account)
         self.debug("Account created: %s" % self.user_account.name)
-
-        self.services = Services().services
 
         # Spawn an instance
         virtual_machine = VirtualMachine.create(
@@ -1176,6 +1208,11 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             self.fail("The virtual machine %s failed to start even after %s minutes"
                    % (vms[0].name, self.services["timeout"]))
 
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         self.debug("SSHing with new keypair")
         try:
             virtual_machine.get_ssh_client(
@@ -1184,10 +1221,10 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             self.fail("Failed to SSH into VM with new keypair: %s, %s" %
                                                     (virtual_machine.name, e))
 
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
-    @attr(tags=["simulator", "basic", "advanced"])
+    @attr(tags=["basic", "advanced"], required_hardware="true")
     def test_02_reset_keypair_domain_admin(self):
         """Verify API resetSSHKeyForVirtualMachine for domain admin non root
             domain user"""
@@ -1315,6 +1352,11 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             self.fail("The virtual machine %s failed to start even after %s minutes"
                    % (virtual_machine.name, self.services["timeout"]))
 
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         self.debug("SSHing with new keypair")
         try:
             virtual_machine.get_ssh_client(
@@ -1323,10 +1365,10 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             self.fail("Failed to SSH into VM with new keypair: %s, %s" %
                                                     (virtual_machine.name, e))
 
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return
 
-    @attr(tags=["simulator", "basic", "advanced"])
+    @attr(tags=["basic", "advanced"], required_hardware="true")
     def test_03_reset_keypair_root_admin(self):
         """Verify API resetSSHKeyForVirtualMachine for domain admin root
             domain user"""
@@ -1455,6 +1497,11 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
             self.fail("The virtual machine %s failed to start even after %s minutes"
                    % (virtual_machine.name, self.services["timeout"]))
 
+        # In case of EIP setup, public IP changes after VM start operation
+        # Assign the new publicip of the VM to its ssh_ip attribute
+        # so that correct IP address is used for getting the ssh client of VM
+        virtual_machine = SetPublicIpForVM(self.apiclient, virtual_machine)
+
         self.debug("SSHing with new keypair")
         try:
             virtual_machine.get_ssh_client(
@@ -1462,5 +1509,5 @@ class TestResetSSHKeyUserRights(cloudstackTestCase):
         except Exception as e:
             self.fail("Failed to SSH into VM with new keypair: %s, %s" %
                                                     (virtual_machine.name, e))
-        virtual_machine.delete(self.apiclient)
+        virtual_machine.delete(self.apiclient, expunge=True)
         return

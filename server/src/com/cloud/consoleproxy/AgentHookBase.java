@@ -17,9 +17,11 @@
 
 package com.cloud.consoleproxy;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Date;
-import java.util.Random;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -40,6 +42,7 @@ import com.cloud.agent.api.GetVncPortCommand;
 import com.cloud.agent.api.StartupCommand;
 import com.cloud.agent.api.StartupProxyCommand;
 import com.cloud.agent.api.proxy.StartConsoleProxyAgentHttpHandlerCommand;
+import com.cloud.configuration.Config;
 import com.cloud.exception.AgentUnavailableException;
 import com.cloud.exception.OperationTimedoutException;
 import com.cloud.host.Host;
@@ -65,7 +68,6 @@ public abstract class AgentHookBase implements AgentHook {
     ConfigurationDao _configDao;
     AgentManager _agentMgr;
     KeystoreManager _ksMgr;
-    final Random _random = new Random(System.currentTimeMillis());
     KeysManager _keysMgr;
 
     public AgentHookBase(VMInstanceDao instanceDao, HostDao hostDao, ConfigurationDao cfgDao, KeystoreManager ksMgr, AgentManager agentMgr, KeysManager keysMgr) {
@@ -145,7 +147,7 @@ public abstract class AgentHookBase implements AgentHook {
 
         String sid = cmd.getSid();
         if (sid == null || !sid.equals(vm.getVncPassword())) {
-            s_logger.warn("sid " + sid + " in url does not match stored sid " + vm.getVncPassword());
+            s_logger.warn("sid " + sid + " in url does not match stored sid.");
             return new ConsoleAccessAuthenticationAnswer(cmd, false);
         }
 
@@ -187,28 +189,39 @@ public abstract class AgentHookBase implements AgentHook {
     @Override
     public void startAgentHttpHandlerInVM(StartupProxyCommand startupCmd) {
         StartConsoleProxyAgentHttpHandlerCommand cmd = null;
-        String storePassword = String.valueOf(_random.nextLong());
-        byte[] ksBits = _ksMgr.getKeystoreBits(ConsoleProxyManager.CERTIFICATE_NAME, ConsoleProxyManager.CERTIFICATE_NAME, storePassword);
-
-        assert (ksBits != null);
-        if (ksBits == null) {
-            s_logger.error("Could not find and construct a valid SSL certificate");
-        }
-        cmd = new StartConsoleProxyAgentHttpHandlerCommand(ksBits, storePassword);
-        cmd.setEncryptorPassword(getEncryptorPassword());
 
         try {
+            SecureRandom random = SecureRandom.getInstance("SHA1PRNG");
+
+            byte[] randomBytes = new byte[16];
+            random.nextBytes(randomBytes);
+            String storePassword = Base64.encodeBase64String(randomBytes);
+
+            byte[] ksBits = null;
+            String consoleProxyUrlDomain = _configDao.getValue(Config.ConsoleProxyUrlDomain.key());
+            if (consoleProxyUrlDomain == null || consoleProxyUrlDomain.isEmpty()) {
+                s_logger.debug("SSL is disabled for console proxy based on global config, skip loading certificates");
+            } else {
+                ksBits = _ksMgr.getKeystoreBits(ConsoleProxyManager.CERTIFICATE_NAME, ConsoleProxyManager.CERTIFICATE_NAME, storePassword);
+                //ks manager raises exception if ksBits are null, hence no need to explicltly handle the condition
+            }
+
+            cmd = new StartConsoleProxyAgentHttpHandlerCommand(ksBits, storePassword);
+            cmd.setEncryptorPassword(getEncryptorPassword());
 
             HostVO consoleProxyHost = findConsoleProxyHost(startupCmd);
 
             assert (consoleProxyHost != null);
-
-            Answer answer = _agentMgr.send(consoleProxyHost.getId(), cmd);
-            if (answer == null || !answer.getResult()) {
-                s_logger.error("Console proxy agent reported that it failed to execute http handling startup command");
-            } else {
-                s_logger.info("Successfully sent out command to start HTTP handling in console proxy agent");
+            if (consoleProxyHost != null) {
+                Answer answer = _agentMgr.send(consoleProxyHost.getId(), cmd);
+                if (answer == null || !answer.getResult()) {
+                    s_logger.error("Console proxy agent reported that it failed to execute http handling startup command");
+                } else {
+                    s_logger.info("Successfully sent out command to start HTTP handling in console proxy agent");
+                }
             }
+        }catch (NoSuchAlgorithmException e) {
+            s_logger.error("Unexpected exception in SecureRandom Algorithm selection ", e);
         } catch (AgentUnavailableException e) {
             s_logger.error("Unable to send http handling startup command to the console proxy resource for proxy:" + startupCmd.getProxyVmId(), e);
         } catch (OperationTimedoutException e) {

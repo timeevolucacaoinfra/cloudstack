@@ -24,8 +24,6 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import org.springframework.stereotype.Component;
-
 import org.apache.cloudstack.api.command.admin.config.UpdateCfgCmd;
 import org.apache.cloudstack.api.command.admin.network.CreateNetworkOfferingCmd;
 import org.apache.cloudstack.api.command.admin.network.DeleteNetworkOfferingCmd;
@@ -53,6 +51,7 @@ import org.apache.cloudstack.config.Configuration;
 import org.apache.cloudstack.region.PortableIp;
 import org.apache.cloudstack.region.PortableIpRange;
 import org.apache.cloudstack.region.PortableIpRangeVO;
+import org.springframework.stereotype.Component;
 
 import com.cloud.configuration.ConfigurationManager;
 import com.cloud.configuration.ConfigurationService;
@@ -81,6 +80,7 @@ import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDaoImpl;
 import com.cloud.org.Grouping.AllocationState;
 import com.cloud.user.Account;
+import com.cloud.utils.Pair;
 import com.cloud.utils.component.ManagerBase;
 
 @Component
@@ -256,7 +256,7 @@ public class MockConfigurationManagerImpl extends ManagerBase implements Configu
      * @see com.cloud.configuration.ConfigurationService#searchForNetworkOfferings(org.apache.cloudstack.api.commands.ListNetworkOfferingsCmd)
      */
     @Override
-    public List<? extends NetworkOffering> searchForNetworkOfferings(ListNetworkOfferingsCmd cmd) {
+    public Pair<List<? extends NetworkOffering>, Integer> searchForNetworkOfferings(ListNetworkOfferingsCmd cmd) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -329,17 +329,7 @@ public class MockConfigurationManagerImpl extends ManagerBase implements Configu
     }
 
     @Override
-    public PortableIpRangeVO createPortableIpRange(Integer regionId, String startIP, String endIP, String gateway, String netmask, String vlanId) {
-        return null;// TODO Auto-generated method stub
-    }
-
-    @Override
     public boolean deletePortableIpRange(DeletePortableIpRangeCmd cmd) {
-        return false;// TODO Auto-generated method stub
-    }
-
-    @Override
-    public boolean deletePortableIpRange(Long rangeId) {
         return false;// TODO Auto-generated method stub
     }
 
@@ -534,5 +524,15 @@ public class MockConfigurationManagerImpl extends ManagerBase implements Configu
         // TODO Auto-generated method stub
         return false;
     }
+
+    @Override
+    public boolean deletePortableIpRange(Long rangeId) {
+        return false;// TODO Auto-generated method stub
+    }
+    @Override
+    public PortableIpRangeVO createPortableIpRange(Integer regionId, String startIP, String endIP, String gateway, String netmask, String vlanId) {
+        return null;// TODO Auto-generated method stub
+    }
+
 
 }

@@ -85,8 +85,9 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
     protected SearchBuilder<VMInstanceVO> HostUpSearch;
     protected SearchBuilder<VMInstanceVO> InstanceNameSearch;
     protected SearchBuilder<VMInstanceVO> HostNameSearch;
+    protected SearchBuilder<VMInstanceVO> HostNameAndZoneSearch;
     protected GenericSearchBuilder<VMInstanceVO, Long> FindIdsOfVirtualRoutersByAccount;
-    protected GenericSearchBuilder<VMInstanceVO, Long> CountRunningByHost;
+    protected GenericSearchBuilder<VMInstanceVO, Long> CountActiveByHost;
     protected GenericSearchBuilder<VMInstanceVO, Long> CountRunningByAccount;
     protected SearchBuilder<VMInstanceVO> NetworkTypeSearch;
     protected GenericSearchBuilder<VMInstanceVO, String> DistinctHostNameSearch;
@@ -218,6 +219,11 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         HostNameSearch.and("hostName", HostNameSearch.entity().getHostName(), Op.EQ);
         HostNameSearch.done();
 
+        HostNameAndZoneSearch = createSearchBuilder();
+        HostNameAndZoneSearch.and("hostName", HostNameAndZoneSearch.entity().getHostName(), Op.EQ);
+        HostNameAndZoneSearch.and("zone", HostNameAndZoneSearch.entity().getDataCenterId(), Op.EQ);
+        HostNameAndZoneSearch.done();
+
         FindIdsOfVirtualRoutersByAccount = createSearchBuilder(Long.class);
         FindIdsOfVirtualRoutersByAccount.selectFields(FindIdsOfVirtualRoutersByAccount.entity().getId());
         FindIdsOfVirtualRoutersByAccount.and("account", FindIdsOfVirtualRoutersByAccount.entity().getAccountId(), SearchCriteria.Op.EQ);
@@ -225,11 +231,11 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
         FindIdsOfVirtualRoutersByAccount.and("state", FindIdsOfVirtualRoutersByAccount.entity().getState(), SearchCriteria.Op.NIN);
         FindIdsOfVirtualRoutersByAccount.done();
 
-        CountRunningByHost = createSearchBuilder(Long.class);
-        CountRunningByHost.select(null, Func.COUNT, null);
-        CountRunningByHost.and("host", CountRunningByHost.entity().getHostId(), SearchCriteria.Op.EQ);
-        CountRunningByHost.and("state", CountRunningByHost.entity().getState(), SearchCriteria.Op.EQ);
-        CountRunningByHost.done();
+        CountActiveByHost = createSearchBuilder(Long.class);
+        CountActiveByHost.select(null, Func.COUNT, null);
+        CountActiveByHost.and("host", CountActiveByHost.entity().getHostId(), SearchCriteria.Op.EQ);
+        CountActiveByHost.and("state", CountActiveByHost.entity().getState(), SearchCriteria.Op.IN);
+        CountActiveByHost.done();
 
         CountRunningByAccount = createSearchBuilder(Long.class);
         CountRunningByAccount.select(null, Func.COUNT, null);
@@ -415,6 +421,14 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
     }
 
     @Override
+    public VMInstanceVO findVMByHostNameInZone(String hostName, long zoneId) {
+        SearchCriteria<VMInstanceVO> sc = HostNameAndZoneSearch.create();
+        sc.setParameters("hostName", hostName);
+        sc.setParameters("zone", zoneId);
+        return findOneBy(sc);
+    }
+
+    @Override
     public void updateProxyId(long id, Long proxyId, Date time) {
         VMInstanceVO vo = createForUpdate();
         vo.setProxyId(proxyId);
@@ -516,10 +530,10 @@ public class VMInstanceDaoImpl extends GenericDaoBase<VMInstanceVO, Long> implem
     }
 
     @Override
-    public Long countRunningByHostId(long hostId) {
-        SearchCriteria<Long> sc = CountRunningByHost.create();
+    public Long countActiveByHostId(long hostId) {
+        SearchCriteria<Long> sc = CountActiveByHost.create();
         sc.setParameters("host", hostId);
-        sc.setParameters("state", State.Running);
+        sc.setParameters("state", State.Running, State.Starting, State.Stopping, State.Migrating);
         return customSearch(sc, null).get(0);
     }
 

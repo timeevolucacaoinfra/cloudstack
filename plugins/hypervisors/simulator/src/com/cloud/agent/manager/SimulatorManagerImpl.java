@@ -47,7 +47,6 @@ import com.cloud.agent.api.CheckRouterCommand;
 import com.cloud.agent.api.CheckS2SVpnConnectionsCommand;
 import com.cloud.agent.api.CheckVirtualMachineCommand;
 import com.cloud.agent.api.CleanupNetworkRulesCmd;
-import com.cloud.agent.api.ClusterSyncCommand;
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.ComputeChecksumCommand;
 import com.cloud.agent.api.CreatePrivateTemplateFromSnapshotCommand;
@@ -57,6 +56,7 @@ import com.cloud.agent.api.CreateVMSnapshotCommand;
 import com.cloud.agent.api.CreateVolumeFromSnapshotCommand;
 import com.cloud.agent.api.DeleteStoragePoolCommand;
 import com.cloud.agent.api.DeleteVMSnapshotCommand;
+import com.cloud.agent.api.FenceCommand;
 import com.cloud.agent.api.GetDomRVersionCmd;
 import com.cloud.agent.api.GetHostStatsCommand;
 import com.cloud.agent.api.GetStorageStatsCommand;
@@ -129,7 +129,7 @@ import com.cloud.utils.component.PluggableService;
 import com.cloud.utils.db.DB;
 import com.cloud.utils.db.TransactionLegacy;
 import com.cloud.utils.exception.CloudRuntimeException;
-import com.cloud.vm.VirtualMachine.State;
+import com.cloud.vm.VirtualMachine.PowerState;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 
@@ -382,8 +382,6 @@ public class SimulatorManagerImpl extends ManagerBase implements SimulatorManage
                     answer = _mockVmMgr.bumpPriority((BumpUpPriorityCommand)cmd);
                 } else if (cmd instanceof GetDomRVersionCmd) {
                     answer = _mockVmMgr.getDomRVersion((GetDomRVersionCmd)cmd);
-                } else if (cmd instanceof ClusterSyncCommand) {
-                    answer = new Answer(cmd);
                 } else if (cmd instanceof CopyVolumeCommand) {
                     answer = _mockStorageMgr.CopyVolume((CopyVolumeCommand)cmd);
                 } else if (cmd instanceof PlugNicCommand) {
@@ -422,6 +420,8 @@ public class SimulatorManagerImpl extends ManagerBase implements SimulatorManage
                     answer = _mockNetworkMgr.setupPVLAN((PvlanSetupCommand)cmd);
                 } else if (cmd instanceof StorageSubSystemCommand) {
                     answer = this.storageHandler.handleStorageCommands((StorageSubSystemCommand)cmd);
+                } else if (cmd instanceof FenceCommand) {
+                    answer = _mockVmMgr.fence((FenceCommand)cmd);
                 } else if (cmd instanceof GetRouterAlertsCommand || cmd instanceof VpnUsersCfgCommand || cmd instanceof RemoteAccessVpnCfgCommand || cmd instanceof SetMonitorServiceCommand || cmd instanceof AggregationControlCommand ||
                         cmd instanceof SecStorageFirewallCfgCommand) {
                     answer = new Answer(cmd);
@@ -456,7 +456,7 @@ public class SimulatorManagerImpl extends ManagerBase implements SimulatorManage
     }
 
     @Override
-    public Map<String, State> getVmStates(String hostGuid) {
+    public Map<String, PowerState> getVmStates(String hostGuid) {
         return _mockVmMgr.getVmStates(hostGuid);
     }
 

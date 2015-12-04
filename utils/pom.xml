@@ -25,7 +25,7 @@
   <parent>
     <groupId>org.apache.cloudstack</groupId>
     <artifactId>cloudstack</artifactId>
-    <version>4.4.2</version>
+    <version>4.5.2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <dependencies>
@@ -142,6 +142,11 @@
           <artifactId>xmlParserAPIs</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.opensaml</groupId>
+      <artifactId>opensaml</artifactId>
+      <version>${cs.opensaml.version}</version>
     </dependency>
     <dependency>
         <groupId>commons-net</groupId>

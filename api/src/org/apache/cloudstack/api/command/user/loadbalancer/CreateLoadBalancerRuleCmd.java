@@ -165,7 +165,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         if (publicIpId != null) {
             IpAddress ipAddr = _networkService.getIp(publicIpId);
             if (ipAddr == null || !ipAddr.readyToUse()) {
-                throw new InvalidParameterValueException("Unable to create load balancer rule, invalid IP address id " + ipAddr.getId());
+                throw new InvalidParameterValueException("Unable to create load balancer rule, invalid IP address id " + publicIpId);
             }
         } else if (getEntityId() != null) {
             LoadBalancer rule = _entityMgr.findById(LoadBalancer.class, getEntityId());
@@ -179,7 +179,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         if (publicIpId != null) {
             IpAddress ipAddr = _networkService.getIp(publicIpId);
             if (ipAddr == null || !ipAddr.readyToUse()) {
-                throw new InvalidParameterValueException("Unable to create load balancer rule, invalid IP address id " + ipAddr.getId());
+                throw new InvalidParameterValueException("Unable to create load balancer rule, invalid IP address id " + publicIpId);
             } else {
                 return ipAddr.getVpcId();
             }
@@ -309,14 +309,15 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
 
             // State might be different after the rule is applied, so get new object here
             rule = _entityMgr.findById(LoadBalancer.class, getEntityId());
+            LoadBalancerResponse lbResponse = new LoadBalancerResponse();
             if (rule == null) {
-                throw new InvalidParameterValueException("Unable to find load balancer rule " + getEntityId() + ".");
+                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to apply firewall rules.");
             }
-
-            LoadBalancerResponse lbResponse = _responseGenerator.createLoadBalancerResponse(rule);
+            lbResponse = _responseGenerator.createLoadBalancerResponse(rule);
             lbResponse.setResponseName(getCommandName());
 
             setResponseObject(lbResponse);
+
         } catch (Exception ex) {
             s_logger.warn("Failed to create LB rule due to exception ", ex);
             String msg = ex.getMessage() != null ? ex.getMessage() : "";
@@ -353,6 +354,8 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
         } catch (InsufficientAddressCapacityException e) {
             s_logger.warn("Exception: ", e);
             throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, e.getMessage());
+        } catch (InvalidParameterValueException e) {
+            throw new ServerApiException(ApiErrorCode.PARAM_ERROR, e.getMessage());
         }
     }
 

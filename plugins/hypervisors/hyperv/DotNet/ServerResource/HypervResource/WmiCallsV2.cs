@@ -1,4 +1,4 @@
-﻿// Licensed to the Apache Software Foundation (ASF) under one
+// Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
 // regarding copyright ownership.  The ASF licenses this file
@@ -2315,7 +2315,7 @@ namespace HypervResource
 
         public ComputerSystem.ComputerSystemCollection GetComputerSystemCollection()
         {
-            var wmiQuery = String.Format("Caption=\"Virtual Machine\"");
+            var wmiQuery = String.Format("ProcessId >= 0");
             return ComputerSystem.GetInstances(wmiQuery);
         }
 
@@ -2684,6 +2684,10 @@ namespace HypervResource
 
         public void GetSummaryInfo(Dictionary<string, VmStatsEntry> vmProcessorInfo, List<System.Management.ManagementPath> vmsToInspect)
         {
+            if (vmsToInspect == null || vmsToInspect.Count == 0)
+            {
+                return;
+            }
             // Process info available from WMI, 
             // See http://msdn.microsoft.com/en-us/library/hh850062(v=vs.85).aspx
             uint[] requestedInfo = new uint[] {  // TODO: correct?

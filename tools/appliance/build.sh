@@ -18,6 +18,62 @@
 
 set -x
 
+
+function stage_vmx (){
+    cat << VMXFILE > "$1.vmx"
+.encoding = "UTF-8"
+displayname = "$1"
+annotation = "$1"
+guestos = "otherlinux-64"
+virtualhw.version = "7"
+config.version = "8"
+numvcpus = "1"
+cpuid.coresPerSocket = "1"
+memsize = "256"
+pciBridge0.present = "TRUE"
+pciBridge4.present = "TRUE"
+pciBridge4.virtualDev = "pcieRootPort"
+pciBridge4.functions = "8"
+pciBridge5.present = "TRUE"
+pciBridge5.virtualDev = "pcieRootPort"
+pciBridge5.functions = "8"
+pciBridge6.present = "TRUE"
+pciBridge6.virtualDev = "pcieRootPort"
+pciBridge6.functions = "8"
+pciBridge7.present = "TRUE"
+pciBridge7.virtualDev = "pcieRootPort"
+pciBridge7.functions = "8"
+vmci0.present = "TRUE"
+floppy0.present = "FALSE"
+ide0:0.clientDevice = "FALSE"
+ide0:0.present = "TRUE"
+ide0:0.deviceType = "atapi-cdrom"
+ide0:0.autodetect = "TRUE"
+ide0:0.startConnected = "FALSE"
+mks.enable3d = "false"
+svga.autodetect = "false"
+svga.vramSize = "4194304"
+scsi0:0.present = "TRUE"
+scsi0:0.deviceType = "disk"
+scsi0:0.fileName = "$2"
+scsi0:0.mode = "persistent"
+scsi0:0.writeThrough = "false"
+scsi0.virtualDev = "lsilogic"
+scsi0.present = "TRUE"
+vmci0.unrestricted = "false"
+ethernet0.present = "TRUE"
+ethernet0.virtualDev = "e1000"
+ethernet0.connectionType = "bridged"
+ethernet0.startConnected = "TRUE"
+ethernet0.addressType = "generated"
+ethernet0.wakeonpcktrcv = "false"
+vcpu.hotadd = "false"
+vcpu.hotremove = "false"
+firmware = "bios"
+mem.hotadd = "false"
+VMXFILE
+}
+
 if [ ! -z "$1" ]
 then
   appliance="$1"
@@ -70,18 +126,18 @@ vboxmanage modifyhd $hdd_uuid --compact
 rm -fr dist *.ova *.vhd *.vdi *.qcow* *.bz2 *.vmdk *.ovf
 mkdir dist
 
-# Export for Xen
+# Export for XenServer
 which faketime >/dev/null 2>&1 && which vhd-util >/dev/null 2>&1
 if [ $? == 0 ]; then
   set -e
   vboxmanage internalcommands converttoraw -format vdi "$hdd_path" img.raw
   vhd-util convert -s 0 -t 1 -i img.raw -o stagefixed.vhd
-  faketime '2010-01-01' vhd-util convert -s 1 -t 2 -i stagefixed.vhd -o $appliance-$branch-$build_date-xen.vhd
+  faketime '2010-01-01' vhd-util convert -s 1 -t 2 -i stagefixed.vhd -o $appliance-$branch-xen.vhd
   rm *.bak
-  bzip2 $appliance-$branch-$build_date-xen.vhd
-  echo "$appliance exported for Xen: dist/$appliance-$branch-$build_date-xen.vhd.bz2"
+  bzip2 $appliance-$branch-xen.vhd
+  echo "$appliance exported for XenServer: dist/$appliance-$branch-xen.vhd.bz2"
 else
-  echo "** Skipping $appliance export for Xen: faketime or vhd-util command is missing. **"
+  echo "** Skipping $appliance export for XenServer: faketime or vhd-util command is missing. **"
   echo "** faketime source code is available from https://github.com/wolfcw/libfaketime **"
 fi
 
@@ -89,28 +145,47 @@ fi
 set -e
 
 # Export for KVM
+rm -f raw.img
 vboxmanage internalcommands converttoraw -format vdi "$hdd_path" raw.img
-qemu-img convert -f raw -c -O qcow2 raw.img $appliance-$branch-$build_date-kvm.qcow2
+set +e
+qemu-img convert -o compat=0.10 -f raw -c -O qcow2 raw.img $appliance-$branch-kvm.qcow2
+qemuresult=$?
+set -e
+if [ ${qemuresult} != 0 ]; then
+  log INFO "'qemu-img convert' failed, trying without compat option"
+  qemu-img convert -f raw -c -O qcow2 raw.img $appliance-$branch-kvm.qcow2
+fi
 rm raw.img
-bzip2 $appliance-$branch-$build_date-kvm.qcow2
-echo "$appliance exported for KVM: dist/$appliance-$branch-$build_date-kvm.qcow2.bz2"
+bzip2 $appliance-$branch-kvm.qcow2
+echo "$appliance exported for KVM: dist/$appliance-$branch-kvm.qcow2.bz2"
 
 # Export both ova and vmdk for VMWare
-vboxmanage clonehd $hdd_uuid $appliance-$branch-$build_date-vmware.vmdk --format VMDK
-bzip2 $appliance-$branch-$build_date-vmware.vmdk
-echo "$appliance exported for VMWare: dist/$appliance-$branch-$build_date-vmware.vmdk.bz2"
-vboxmanage export $machine_uuid --output $appliance-$branch-$build_date-vmware.ovf
-mv $appliance-$branch-$build_date-vmware.ovf $appliance-$branch-$build_date-vmware.ovf-orig
-java -cp convert Convert convert_ovf_vbox_to_esx.xslt $appliance-$branch-$build_date-vmware.ovf-orig $appliance-$branch-$build_date-vmware.ovf
-tar -cf $appliance-$branch-$build_date-vmware.ova $appliance-$branch-$build_date-vmware.ovf $appliance-$branch-$build_date-vmware-disk[0-9].vmdk
-rm -f $appliance-$branch-$build_date-vmware.ovf $appliance-$branch-$build_date-vmware.ovf-orig $appliance-$branch-$build_date-vmware-disk[0-9].vmdk
-echo "$appliance exported for VMWare: dist/$appliance-$branch-$build_date-vmware.ova"
+vboxmanage clonehd $hdd_uuid $appliance-$branch-vmware.vmdk --format VMDK
+chmod 666 $appliance-$branch-vmware.vmdk
+
+if ! ovftool_loc="$(type -p "ovftool")" || [ -z "$ovftool_loc" ]; then
+    echo "ovftool not found, using traditional method to export ova file"
+    vboxmanage export $machine_uuid --output $appliance-$branch-vmware.ovf
+    mv $appliance-$branch-vmware.ovf $appliance-$branch-vmware.ovf-orig
+    java -cp convert Convert convert_ovf_vbox_to_esx.xslt $appliance-$branch-vmware.ovf-orig $appliance-$branch-vmware.ovf
+    chmod 666 *.vmdk *.ovf
+    tar -cf $appliance-$branch-vmware.ova $appliance-$branch-vmware.ovf $appliance-$branch-vmware-disk[0-9].vmdk
+    rm -f $appliance-$branch-vmware.ovf $appliance-$branch-vmware.ovf-orig $appliance-$branch-vmware-disk[0-9].vmdk
+else
+    echo "ovftool found, using it to export ova file"
+    stage_vmx $appliance-$branch-vmware $appliance-$branch-vmware.vmdk
+    ovftool $appliance-$branch-vmware.vmx $appliance-$branch-vmware.ova
+fi
+bzip2 $appliance-$branch-vmware.vmdk
+echo "$appliance exported for VMWare: dist/$appliance-$branch-vmware.vmdk.bz2"
+echo "$appliance exported for VMWare: dist/$appliance-$branch-vmware.ova"
 
 # Export for HyperV
-vboxmanage clonehd $hdd_uuid $appliance-$branch-$build_date-hyperv.vhd --format VHD
+vboxmanage clonehd $hdd_uuid $appliance-$branch-hyperv.vhd --format VHD
 # HyperV doesn't support import a zipped image from S3, but we create a zipped version to save space on the jenkins box
-zip $appliance-$branch-$build_date-hyperv.vhd.zip $appliance-$branch-$build_date-hyperv.vhd
-echo "$appliance exported for HyperV: dist/$appliance-$branch-$build_date-hyperv.vhd"
+zip $appliance-$branch-hyperv.vhd.zip $appliance-$branch-hyperv.vhd
+echo "$appliance exported for HyperV: dist/$appliance-$branch-hyperv.vhd"
 
 mv *-hyperv.vhd *-hyperv.vhd.zip *.bz2 *.ova dist/
+md5sum dist/* > dist/md5sum.txt
 

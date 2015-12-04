@@ -16,6 +16,11 @@
 // under the License.
 package com.cloud.network.router;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.cloudstack.framework.config.ConfigKey;
+
 import com.cloud.deploy.DeployDestination;
 import com.cloud.exception.AgentUnavailableException;
 import com.cloud.exception.ConcurrentOperationException;
@@ -35,23 +40,20 @@ import com.cloud.utils.component.Manager;
 import com.cloud.vm.DomainRouterVO;
 import com.cloud.vm.NicProfile;
 import com.cloud.vm.VirtualMachineProfile;
-import org.apache.cloudstack.framework.config.ConfigKey;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * NetworkManager manages the network for the different end users.
  *
  */
 public interface VirtualNetworkApplianceManager extends Manager, VirtualNetworkApplianceService {
-    static final String RouterTemplateXenCK = "router.template.xen";
+    static final String RouterTemplateXenCK = "router.template.xenserver";
     static final String RouterTemplateKvmCK = "router.template.kvm";
     static final String RouterTemplateVmwareCK = "router.template.vmware";
     static final String RouterTemplateHyperVCK = "router.template.hyperv";
     static final String RouterTemplateLxcCK = "router.template.lxc";
     static final String SetServiceMonitorCK = "network.router.EnableServiceMonitoring";
     static final String RouterAlertsCheckIntervalCK = "router.alerts.check.interval";
+    static final String RouterReprovisionOnOutOfBandMigrationCK = "router.reboot.when.outofband.migrated";
 
     static final ConfigKey<String> RouterTemplateXen = new ConfigKey<String>(String.class, RouterTemplateXenCK, "Advanced", "SystemVM Template (XenServer)",
         "Name of the default router template on Xenserver.", true, ConfigKey.Scope.Zone, null);
@@ -63,14 +65,18 @@ public interface VirtualNetworkApplianceManager extends Manager, VirtualNetworkA
         "Name of the default router template on Hyperv.", true, ConfigKey.Scope.Zone, null);
     static final ConfigKey<String> RouterTemplateLxc = new ConfigKey<String>(String.class, RouterTemplateLxcCK, "Advanced", "SystemVM Template (LXC)",
         "Name of the default router template on LXC.", true, ConfigKey.Scope.Zone, null);
-
     static final ConfigKey<String> SetServiceMonitor = new ConfigKey<String>(String.class, SetServiceMonitorCK, "Advanced", "true",
             "service monitoring in router enable/disable option, default true", true, ConfigKey.Scope.Zone, null);
-
     static final ConfigKey<Integer> RouterAlertsCheckInterval = new ConfigKey<Integer>(Integer.class, RouterAlertsCheckIntervalCK, "Advanced", "1800",
             "Interval (in seconds) to check for alerts in Virtual Router.", false, ConfigKey.Scope.Global, null);
+    static final ConfigKey<Boolean> routerVersionCheckEnabled = new ConfigKey<Boolean>("Advanced", Boolean.class, "router.version.check", "true",
+            "If true, router minimum required version is checked before sending command", false);
+    static final ConfigKey<Boolean> UseExternalDnsServers = new ConfigKey<Boolean>(Boolean.class, "use.external.dns", "Advanced", "false",
+            "Bypass internal dns, use external dns1 and dns2", true, ConfigKey.Scope.Zone, null);
+    static final ConfigKey<Boolean> RouterReprovisionOnOutOfBandMigration = new ConfigKey<Boolean>(Boolean.class, RouterReprovisionOnOutOfBandMigrationCK, "Advanced", "false",
+            "Reboot routers when they are migrated out of band in order to reprovision", true, ConfigKey.Scope.Zone, null);
 
-    public static final int DEFAULT_ROUTER_VM_RAMSIZE = 128;            // 128M
+    public static final int DEFAULT_ROUTER_VM_RAMSIZE = 256;            // 256M
     public static final int DEFAULT_ROUTER_CPU_MHZ = 500;                // 500 MHz
     public static final boolean USE_POD_VLAN = false;
 
@@ -137,8 +143,6 @@ public interface VirtualNetworkApplianceManager extends Manager, VirtualNetworkA
     public boolean prepareAggregatedExecution(Network network, List<DomainRouterVO> routers) throws AgentUnavailableException;
 
     public boolean completeAggregatedExecution(Network network, List<DomainRouterVO> routers) throws AgentUnavailableException;
-
-    public boolean cleanupAggregatedExecution(Network network, List<DomainRouterVO> routers) throws AgentUnavailableException;
 
     public boolean saveVmMetadataToRouter(final Network network, final NicProfile nic, final VirtualMachineProfile profile, final List<? extends VirtualRouter> routers, Map<String, String> metaData) throws ResourceUnavailableException ;
 

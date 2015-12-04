@@ -203,7 +203,7 @@
                         title: '',
                         fields: {
                             scaleUpDuration: {
-                                label: 'Duration(in sec)',
+                                label: 'label.duration.in.sec',
                                 docID: 'helpAutoscaleDuration',
                                 validation: {
                                     required: true
@@ -223,7 +223,7 @@
                         title: '',
                         fields: {
                             scaleDownDuration: {
-                                label: 'Duration(in sec)',
+								label: 'label.duration.in.sec',
                                 docID: 'helpAutoscaleDuration',
                                 validation: {
                                     required: true
@@ -234,7 +234,6 @@
                 });
                 $scaleDownPolicyTitleForm = scaleDownPolicyTitleForm.$formContainer;
                 $scaleDownPolicyTitleForm.appendTo($scaleDownPolicyTitle);
-
 
                 // Make multi-edits
                 //

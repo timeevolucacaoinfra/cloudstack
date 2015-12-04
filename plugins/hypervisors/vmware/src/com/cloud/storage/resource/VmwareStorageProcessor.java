@@ -99,7 +99,7 @@ import com.cloud.utils.Pair;
 import com.cloud.utils.Ternary;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.script.Script;
-import com.cloud.vm.VirtualMachine.State;
+import com.cloud.vm.VirtualMachine.PowerState;
 
 public class VmwareStorageProcessor implements StorageProcessor {
     private static final Logger s_logger = Logger.getLogger(VmwareStorageProcessor.class);
@@ -268,6 +268,9 @@ public class VmwareStorageProcessor implements StorageProcessor {
         Pair<String, String> templateInfo = VmwareStorageLayoutHelper.decodeTemplateRelativePathAndNameFromUrl(secondaryStorageUrl, templateUrl, template.getName());
 
         VmwareContext context = hostService.getServiceContext(cmd);
+        if (context == null) {
+            return new CopyCmdAnswer("Failed to create a Vmware context, check the management server logs or the ssvm log for details");
+        }
 
         try {
             VmwareHypervisorHost hyperHost = hostService.getHyperHost(context, cmd);
@@ -286,7 +289,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
 
                 if (managed) {
                     morDs = prepareManagedDatastore(context, hyperHost, managedStoragePoolName, storageHost, storagePort,
-                                chapInitiatorUsername, chapInitiatorSecret, chapTargetUsername, chapTargetSecret);
+                            chapInitiatorUsername, chapInitiatorSecret, chapTargetUsername, chapTargetSecret);
                 }
                 else {
                     morDs = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(hyperHost, storageUuid);
@@ -303,9 +306,9 @@ public class VmwareStorageProcessor implements StorageProcessor {
                     vmMo.unregisterVm();
 
                     String[] vmwareLayoutFilePair = VmwareStorageLayoutHelper.getVmdkFilePairDatastorePath(dsMo, managedStoragePoolRootVolumeName,
-                        managedStoragePoolRootVolumeName, VmwareStorageLayoutType.VMWARE, false);
+                            managedStoragePoolRootVolumeName, VmwareStorageLayoutType.VMWARE, false);
                     String[] legacyCloudStackLayoutFilePair = VmwareStorageLayoutHelper.getVmdkFilePairDatastorePath(dsMo, null,
-                        managedStoragePoolRootVolumeName, VmwareStorageLayoutType.CLOUDSTACK_LEGACY, false);
+                            managedStoragePoolRootVolumeName, VmwareStorageLayoutType.CLOUDSTACK_LEGACY, false);
 
                     dsMo.moveDatastoreFile(vmwareLayoutFilePair[0], dcMo.getMor(), dsMo.getMor(), legacyCloudStackLayoutFilePair[0], dcMo.getMor(), true);
                     dsMo.moveDatastoreFile(vmwareLayoutFilePair[1], dcMo.getMor(), dsMo.getMor(), legacyCloudStackLayoutFilePair[1], dcMo.getMor(), true);
@@ -324,9 +327,10 @@ public class VmwareStorageProcessor implements StorageProcessor {
             TemplateObjectTO newTemplate = new TemplateObjectTO();
 
             if (managed) {
-                String path = dsMo.getDatastorePath(managedStoragePoolRootVolumeName + ".vmdk");
-
-                newTemplate.setPath(path);
+                if(dsMo != null) {
+                    String path = dsMo.getDatastorePath(managedStoragePoolRootVolumeName + ".vmdk");
+                    newTemplate.setPath(path);
+                }
             }
             else {
                 newTemplate.setPath(templateUuidName);
@@ -474,9 +478,12 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 dsMo.deleteFile(srcFile, dcMo.getMor(), true);
             }
             // restoreVM - move the new ROOT disk into corresponding VM folder
-            String vmInternalCSName = volume.getVmName();
-            if (dsMo.folderExists(String.format("[%s]", dsMo.getName()), vmInternalCSName)) {
-                VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmInternalCSName, dsMo, vmdkFileBaseName);
+            VirtualMachineMO restoreVmMo = dcMo.findVm(volume.getVmName());
+            if (restoreVmMo != null) {
+                String vmNameInVcenter = restoreVmMo.getName(); // VM folder name in datastore will be VM's name in vCenter.
+                if (dsMo.folderExists(String.format("[%s]", dsMo.getName()), vmNameInVcenter)) {
+                    VmwareStorageLayoutHelper.syncVolumeToVmDefaultFolder(dcMo, vmNameInVcenter, dsMo, vmdkFileBaseName);
+                }
             }
 
             VolumeObjectTO newVol = new VolumeObjectTO();
@@ -495,7 +502,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
         }
     }
 
-    private Pair<String, String> copyVolumeFromSecStorage(VmwareHypervisorHost hyperHost, String srcVolumePath, DatastoreMO dsMo, String secStorageUrl) throws Exception {
+    private Pair<String, String> copyVolumeFromSecStorage(VmwareHypervisorHost hyperHost, String srcVolumePath, DatastoreMO dsMo, String secStorageUrl, long wait) throws Exception {
 
         String volumeFolder = null;
         String volumeName = null;
@@ -510,7 +517,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
         }
 
         String newVolume = VmwareHelper.getVCenterSafeUuid();
-        restoreVolumeFromSecStorage(hyperHost, dsMo, newVolume, secStorageUrl, volumeFolder, volumeName);
+        restoreVolumeFromSecStorage(hyperHost, dsMo, newVolume, secStorageUrl, volumeFolder, volumeName, wait);
 
         return new Pair<String, String>(volumeFolder, newVolume);
     }
@@ -555,7 +562,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 }
             }
 
-            Pair<String, String> result = copyVolumeFromSecStorage(hyperHost, srcVolume.getPath(), new DatastoreMO(context, morDatastore), srcStore.getUrl());
+            Pair<String, String> result = copyVolumeFromSecStorage(hyperHost, srcVolume.getPath(), new DatastoreMO(context, morDatastore), srcStore.getUrl(), (long)cmd.getWait() * 1000);
             deleteVolumeDirOnSecondaryStorage(result.first(), srcStore.getUrl());
             VolumeObjectTO newVolume = new VolumeObjectTO();
             newVolume.setPath(result.second());
@@ -594,7 +601,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
             }
 
             vmMo = hyperHost.findVmOnHyperHost(vmName);
-            if (vmMo == null) {
+            if (vmMo == null || VmwareResource.getVmState(vmMo) == PowerState.PowerOff) {
                 // create a dummy worker vm for attaching the volume
                 DatastoreMO dsMo = new DatastoreMO(hyperHost.getContext(), morDs);
                 workerVm = HypervisorHostHelper.createWorkerVM(hyperHost, dsMo, workerVmName);
@@ -862,7 +869,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
     }
 
     private Ternary<String, Long, Long> createTemplateFromSnapshot(String installPath, String templateUniqueName, String secStorageUrl, String snapshotPath,
-            Long templateId) throws Exception {
+            Long templateId, long wait) throws Exception {
         //Snapshot path is decoded in this form: /snapshots/account/volumeId/uuid/uuid
         String backupSSUuid;
         String snapshotFolder;
@@ -902,7 +909,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
 
         try {
             if (new File(snapshotFullOVAName).exists()) {
-                command = new Script(false, "cp", _timeout, s_logger);
+                command = new Script(false, "cp", wait, s_logger);
                 command.add(snapshotFullOVAName);
                 command.add(installFullOVAName);
                 result = command.execute();
@@ -913,7 +920,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 }
 
                 // untar OVA file at template directory
-                command = new Script("tar", 0, s_logger);
+                command = new Script("tar", wait, s_logger);
                 command.add("--no-same-owner");
                 command.add("-xf", installFullOVAName);
                 command.setWorkDir(installFullPath);
@@ -927,7 +934,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
 
             } else {  // there is no ova file, only ovf originally;
                 if (new File(snapshotFullOvfName).exists()) {
-                    command = new Script(false, "cp", _timeout, s_logger);
+                    command = new Script(false, "cp", wait, s_logger);
                     command.add(snapshotFullOvfName);
                     //command.add(installFullOvfName);
                     command.add(installFullPath);
@@ -957,7 +964,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                         }
                     }
                     if (snapshotFullVMDKName != null) {
-                        command = new Script(false, "cp", _timeout, s_logger);
+                        command = new Script(false, "cp", wait, s_logger);
                         command.add(snapshotFullVMDKName);
                         command.add(installFullPath);
                         result = command.execute();
@@ -1006,7 +1013,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
             }
 
             NfsTO nfsSvr = (NfsTO)imageStore;
-            Ternary<String, Long, Long> result = createTemplateFromSnapshot(template.getPath(), uniqeName, nfsSvr.getUrl(), snapshot.getPath(), template.getId());
+            Ternary<String, Long, Long> result = createTemplateFromSnapshot(template.getPath(), uniqeName, nfsSvr.getUrl(), snapshot.getPath(), template.getId(), (long)cmd.getWait() * 1000);
 
             TemplateObjectTO newTemplate = new TemplateObjectTO();
             newTemplate.setPath(result.first());
@@ -1287,6 +1294,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 s_logger.error(msg);
                 throw new Exception(msg);
             }
+            vmName = vmMo.getName();
 
             ManagedObjectReference morDs = null;
 
@@ -1294,9 +1302,9 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 Map<String, String> details = disk.getDetails();
 
                 morDs = prepareManagedStorage(context, hyperHost, iScsiName, storageHost, storagePort, null,
-                            details.get(DiskTO.CHAP_INITIATOR_USERNAME), details.get(DiskTO.CHAP_INITIATOR_SECRET),
-                            details.get(DiskTO.CHAP_TARGET_USERNAME), details.get(DiskTO.CHAP_TARGET_SECRET),
-                            volumeTO.getSize(), cmd);
+                        details.get(DiskTO.CHAP_INITIATOR_USERNAME), details.get(DiskTO.CHAP_INITIATOR_SECRET),
+                        details.get(DiskTO.CHAP_TARGET_USERNAME), details.get(DiskTO.CHAP_TARGET_SECRET),
+                        volumeTO.getSize(), cmd);
             }
             else {
                 morDs = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(hyperHost, isManaged ? VmwareResource.getDatastoreName(iScsiName) : primaryStore.getUuid());
@@ -1353,7 +1361,11 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 hostService.invalidateServiceContext(null);
             }
 
-            String msg = "AttachVolumeCommand failed due to " + VmwareHelper.getExceptionMessage(e);
+            String msg = "";
+            if (isAttach)
+                msg += "Failed to attach volume: " + e.getMessage();
+            else
+                msg += "Failed to detach volume: " + e.getMessage();
             s_logger.error(msg, e);
             return new AttachAnswer(msg);
         }
@@ -1449,10 +1461,12 @@ public class VmwareStorageProcessor implements StorageProcessor {
 
             if (isAttach) {
                 String msg = "AttachIsoCommand(attach) failed due to " + VmwareHelper.getExceptionMessage(e);
+                msg = msg + " Also check if your guest os is a supported version";
                 s_logger.error(msg, e);
                 return new AttachAnswer(msg);
             } else {
                 String msg = "AttachIsoCommand(detach) failed due to " + VmwareHelper.getExceptionMessage(e);
+                msg = msg + " Also check if your guest os is a supported version";
                 s_logger.warn(msg, e);
                 return new AttachAnswer(msg);
             }
@@ -1573,7 +1587,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
             }
 
             ManagedObjectReference morDs = HypervisorHostHelper.findDatastoreWithBackwardsCompatibility(hyperHost,
-                isManaged ? managedDatastoreName : store.getUuid());
+                    isManaged ? managedDatastoreName : store.getUuid());
 
             if (morDs == null) {
                 String msg = "Unable to find datastore based on volume mount point " + store.getUuid();
@@ -1592,6 +1606,11 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 String vmName = vol.getVmName();
                 if (vmName != null) {
                     VirtualMachineMO vmMo = clusterMo.findVmOnHyperHost(vmName);
+                    if (vmMo == null) {
+                        // Volume might be on a zone-wide storage pool, look for VM in datacenter
+                        DatacenterMO dcMo = new DatacenterMO(context, morDc);
+                        vmMo = dcMo.findVm(vmName);
+                    }
                     if (vmMo != null) {
                         if (s_logger.isInfoEnabled()) {
                             s_logger.info("Destroy root volume and VM itself. vmName " + vmName);
@@ -1608,7 +1627,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                         List<NetworkDetails> networks = vmMo.getNetworksWithDetails();
 
                         // tear down all devices first before we destroy the VM to avoid accidently delete disk backing files
-                        if (VmwareResource.getVmState(vmMo) != State.Stopped) {
+                        if (VmwareResource.getVmState(vmMo) != PowerState.PowerOff) {
                             vmMo.safePowerOff(_shutdownWaitMs);
                         }
 
@@ -1660,17 +1679,6 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 if (s_logger.isInfoEnabled()) {
                     s_logger.info("Destroy root volume directly from datastore");
                 }
-            } else {
-                // evitTemplate will be converted into DestroyCommand, test if we are running in this case
-                VirtualMachineMO vmMo = clusterMo.findVmOnHyperHost(vol.getPath());
-                if (vmMo != null) {
-                    if (s_logger.isInfoEnabled()) {
-                        s_logger.info("Destroy template volume " + vol.getPath());
-                    }
-
-                    vmMo.destroy();
-                    return new Answer(cmd, true, "Success");
-                }
             }
 
             VmwareStorageLayoutHelper.deleteVolumeVmdkFiles(dsMo, vol.getPath(), new DatacenterMO(context, morDc));
@@ -1686,6 +1694,11 @@ public class VmwareStorageProcessor implements StorageProcessor {
             s_logger.error(msg, e);
             return new Answer(cmd, false, msg);
         }
+    }
+
+    public ManagedObjectReference prepareManagedDatastore(VmwareContext context, VmwareHypervisorHost hyperHost, String datastoreName,
+            String iScsiName, String storageHost, int storagePort) throws Exception {
+        return getVmfsDatastore(context, hyperHost, datastoreName, storageHost, storagePort, trimIqn(iScsiName), null, null, null, null);
     }
 
     private ManagedObjectReference prepareManagedDatastore(VmwareContext context, VmwareHypervisorHost hyperHost, String iScsiName,
@@ -1800,8 +1813,8 @@ public class VmwareStorageProcessor implements StorageProcessor {
         return null;
     }
 
-    private void removeVmfsDatastore(VmwareHypervisorHost hyperHost, String volumeUuid, String storageIpAddress, int storagePortNumber, String iqn) throws Exception {
-        // hyperHost.unmountDatastore(volumeUuid);
+    private void removeVmfsDatastore(VmwareHypervisorHost hyperHost, String datastoreName, String storageIpAddress, int storagePortNumber, String iqn) throws Exception {
+        // hyperHost.unmountDatastore(datastoreName);
 
         VmwareContext context = hostService.getServiceContext(null);
         ManagedObjectReference morCluster = hyperHost.getHyperHostCluster();
@@ -1977,7 +1990,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
             String storageHost, int storagePort, String volumeName, String chapInitiatorUsername, String chapInitiatorSecret,
             String chapTargetUsername, String chapTargetSecret, long size, Command cmd) throws Exception {
         ManagedObjectReference morDs = prepareManagedDatastore(context, hyperHost, iScsiName, storageHost, storagePort,
-                                           chapInitiatorUsername, chapInitiatorSecret, chapTargetUsername, chapTargetSecret);
+                chapInitiatorUsername, chapInitiatorSecret, chapTargetUsername, chapTargetSecret);
 
         DatastoreMO dsMo = new DatastoreMO(hostService.getServiceContext(null), morDs);
 
@@ -1990,11 +2003,15 @@ public class VmwareStorageProcessor implements StorageProcessor {
         return morDs;
     }
 
-    private void handleDatastoreAndVmdkDetach(String iqn, String storageHost, int storagePort) throws Exception {
+    public void handleDatastoreAndVmdkDetach(String datastoreName, String iqn, String storageHost, int storagePort) throws Exception {
         VmwareContext context = hostService.getServiceContext(null);
         VmwareHypervisorHost hyperHost = hostService.getHyperHost(context, null);
 
-        removeVmfsDatastore(hyperHost, VmwareResource.getDatastoreName(iqn), storageHost, storagePort, trimIqn(iqn));
+        removeVmfsDatastore(hyperHost, datastoreName, storageHost, storagePort, trimIqn(iqn));
+    }
+
+    private void handleDatastoreAndVmdkDetach(String iqn, String storageHost, int storagePort) throws Exception {
+        handleDatastoreAndVmdkDetach(VmwareResource.getDatastoreName(iqn), iqn, storageHost, storagePort);
     }
 
     private void removeManagedTargetsFromCluster(List<String> iqns) throws Exception {
@@ -2062,7 +2079,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
     }
 
     private Long restoreVolumeFromSecStorage(VmwareHypervisorHost hyperHost, DatastoreMO primaryDsMo, String newVolumeName, String secStorageUrl, String secStorageDir,
-            String backupName) throws Exception {
+            String backupName, long wait) throws Exception {
 
         String secondaryMountPoint = mountService.getMountPoint(secStorageUrl);
         String srcOVAFileName = null;
@@ -2083,7 +2100,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
         if (!ovfFile.exists()) {
             srcOVFFileName = getOVFFilePath(srcOVAFileName);
             if (srcOVFFileName == null && ovafile.exists()) {  // volss: ova file exists; o/w can't do tar
-                Script command = new Script("tar", 0, s_logger);
+                Script command = new Script("tar", wait, s_logger);
                 command.add("--no-same-owner");
                 command.add("-xf", srcOVAFileName);
                 command.setWorkDir(secondaryMountPoint + "/" + secStorageDir + "/" + snapshotDir);
@@ -2166,7 +2183,7 @@ public class VmwareStorageProcessor implements StorageProcessor {
                 backedUpSnapshotUuid = backedUpSnapshotUuid.replace(".ovf", "");
             }
             DatastoreMO primaryDsMo = new DatastoreMO(hyperHost.getContext(), morPrimaryDs);
-            restoreVolumeFromSecStorage(hyperHost, primaryDsMo, newVolumeName, secondaryStorageUrl, backupPath, backedUpSnapshotUuid);
+            restoreVolumeFromSecStorage(hyperHost, primaryDsMo, newVolumeName, secondaryStorageUrl, backupPath, backedUpSnapshotUuid, (long)cmd.getWait() * 1000);
 
             VolumeObjectTO newVol = new VolumeObjectTO();
             newVol.setPath(newVolumeName);

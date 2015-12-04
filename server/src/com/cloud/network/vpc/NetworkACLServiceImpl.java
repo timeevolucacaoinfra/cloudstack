@@ -600,7 +600,11 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
         }
 
         Pair<List<NetworkACLItemVO>, Integer> result = _networkACLItemDao.searchAndCount(sc, filter);
-        return new Pair<List<? extends NetworkACLItem>, Integer>(result.first(), result.second());
+        List<NetworkACLItemVO> aclItemVOs = result.first();
+        for (NetworkACLItemVO item: aclItemVOs) {
+            _networkACLItemDao.loadCidrs(item);
+        }
+        return new Pair<List<? extends NetworkACLItem>, Integer>(aclItemVOs, result.second());
     }
 
     @Override
@@ -612,13 +616,14 @@ public class NetworkACLServiceImpl extends ManagerBase implements NetworkACLServ
 
             Vpc vpc = _entityMgr.findById(Vpc.class, acl.getVpcId());
 
+            if((aclItem.getAclId() == NetworkACL.DEFAULT_ALLOW) || (aclItem.getAclId() == NetworkACL.DEFAULT_DENY)){
+                throw new InvalidParameterValueException("ACL Items in default ACL cannot be deleted");
+            }
+
             Account caller = CallContext.current().getCallingAccount();
 
             _accountMgr.checkAccess(caller, null, true, vpc);
 
-            if((aclItem.getAclId() == NetworkACL.DEFAULT_ALLOW) || (aclItem.getAclId() == NetworkACL.DEFAULT_DENY)){
-                throw new InvalidParameterValueException("ACL Items in default ACL cannot be deleted");
-            }
         }
         return _networkAclMgr.revokeNetworkACLItem(ruleId);
     }

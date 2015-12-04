@@ -80,6 +80,7 @@ import org.apache.cloudstack.api.command.admin.host.AddSecondaryStorageCmd;
 import org.apache.cloudstack.api.command.admin.host.CancelMaintenanceCmd;
 import org.apache.cloudstack.api.command.admin.host.DeleteHostCmd;
 import org.apache.cloudstack.api.command.admin.host.FindHostsForMigrationCmd;
+import org.apache.cloudstack.api.command.admin.host.ListHostTagsCmd;
 import org.apache.cloudstack.api.command.admin.host.ListHostsCmd;
 import org.apache.cloudstack.api.command.admin.host.PrepareForMaintenanceCmd;
 import org.apache.cloudstack.api.command.admin.host.ReconnectHostCmd;
@@ -172,6 +173,7 @@ import org.apache.cloudstack.api.command.admin.storage.ListImageStoresCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListS3sCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListSecondaryStagingStoresCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListStoragePoolsCmd;
+import org.apache.cloudstack.api.command.admin.storage.ListStorageTagsCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListStorageProvidersCmd;
 import org.apache.cloudstack.api.command.admin.storage.PreparePrimaryStorageForMaintenanceCmd;
 import org.apache.cloudstack.api.command.admin.storage.UpdateCloudToUseObjectStoreCmd;
@@ -743,7 +745,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
     @Inject
     private InstanceGroupDao _vmGroupDao;
     @Inject
-    private SSHKeyPairDao _sshKeyPairDao;
+    protected SSHKeyPairDao _sshKeyPairDao;
     @Inject
     private LoadBalancerDao _loadbalancerDao;
     @Inject
@@ -940,7 +942,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public boolean archiveEvents(ArchiveEventsCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         List<Long> ids = cmd.getIds();
         boolean result = true;
         List<Long> permittedAccountIds = new ArrayList<Long>();
@@ -967,7 +969,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public boolean deleteEvents(DeleteEventsCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         List<Long> ids = cmd.getIds();
         boolean result = true;
         List<Long> permittedAccountIds = new ArrayList<Long>();
@@ -1091,8 +1093,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public Ternary<Pair<List<? extends Host>, Integer>, List<? extends Host>, Map<Host, Boolean>> listHostsForMigrationOfVM(Long vmId, Long startIndex, Long pageSize) {
-        // access check - only root admin can migrate VM
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         if (!_accountMgr.isRootAdmin(caller.getId())) {
             if (s_logger.isDebugEnabled()) {
                 s_logger.debug("Caller is not a root admin, permission denied to migrate the VM");
@@ -1123,11 +1124,16 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         }
 
         if (!vm.getHypervisorType().equals(HypervisorType.XenServer) && !vm.getHypervisorType().equals(HypervisorType.VMware) && !vm.getHypervisorType().equals(HypervisorType.KVM)
-                && !vm.getHypervisorType().equals(HypervisorType.Ovm) && !vm.getHypervisorType().equals(HypervisorType.Hyperv)) {
+                && !vm.getHypervisorType().equals(HypervisorType.Ovm) && !vm.getHypervisorType().equals(HypervisorType.Hyperv) && !vm.getHypervisorType().equals(HypervisorType.LXC)
+                && !vm.getHypervisorType().equals(HypervisorType.Simulator)) {
             if (s_logger.isDebugEnabled()) {
                 s_logger.debug(vm + " is not XenServer/VMware/KVM/OVM/Hyperv, cannot migrate this VM.");
             }
             throw new InvalidParameterValueException("Unsupported Hypervisor Type for VM migration, we support " + "XenServer/VMware/KVM/Ovm/Hyperv only");
+        }
+
+        if (vm.getType().equals(VirtualMachine.Type.User) && vm.getHypervisorType().equals(HypervisorType.LXC)) {
+            throw new InvalidParameterValueException("Unsupported Hypervisor Type for User VM migration, we support XenServer/VMware/KVM/Ovm/Hyperv only");
         }
 
         long srcHostId = vm.getHostId();
@@ -1153,7 +1159,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         }
 
         // Check if the vm is using any disks on local storage.
-        VirtualMachineProfile vmProfile = new VirtualMachineProfileImpl(vm);
+        VirtualMachineProfile vmProfile = new VirtualMachineProfileImpl(vm, null, _offeringDao.findById(vm.getId(), vm.getServiceOfferingId()), null, null);
         List<VolumeVO> volumes = _volumeDao.findCreatedByInstance(vmProfile.getId());
         boolean usesLocal = false;
         for (VolumeVO volume : volumes) {
@@ -1264,8 +1270,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public Pair<List<? extends StoragePool>, List<? extends StoragePool>> listStoragePoolsForMigrationOfVolume(Long volumeId) {
-        // Access check - only root administrator can migrate volumes.
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         if (!_accountMgr.isRootAdmin(caller.getId())) {
             if (s_logger.isDebugEnabled()) {
                 s_logger.debug("Caller is not a root admin, permission denied to migrate the volume");
@@ -1705,10 +1710,15 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
             for (ConfigurationVO param : result.first()) {
                 ConfigurationVO configVo = _configDao.findByName(param.getName());
                 if (configVo != null) {
-                    configVo.setValue(_configDepot.get(param.getName()).valueIn(id).toString());
-                    configVOList.add(configVo);
+                    ConfigKey<?> key = _configDepot.get(param.getName());
+                    if (key != null) {
+                        configVo.setValue(key.valueIn(id).toString());
+                        configVOList.add(configVo);
+                    } else {
+                        s_logger.warn("ConfigDepot could not find parameter " + param.getName() + " for scope " + scope);
+                    }
                 } else {
-                    s_logger.warn("configuration item  " + param.getName() + " not found in " + scope);
+                    s_logger.warn("Configuration item  " + param.getName() + " not found in " + scope);
                 }
             }
 
@@ -1735,9 +1745,14 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         Boolean forDisplay = cmd.getDisplay();
         Map<String, String> tags = cmd.getTags();
 
+        String state = cmd.getState();
         Boolean isAllocated = cmd.isAllocatedOnly();
         if (isAllocated == null) {
             isAllocated = Boolean.TRUE;
+
+            if (state != null) {
+                isAllocated = Boolean.FALSE;
+            }
         }
 
         Filter searchFilter = new Filter(IPAddressVO.class, "address", false, cmd.getStartIndex(), cmd.getPageSizeVal());
@@ -1747,7 +1762,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         List<Long> permittedAccounts = new ArrayList<Long>();
         ListProjectResourcesCriteria listProjectResourcesCriteria = null;
         if (isAllocated) {
-            Account caller = CallContext.current().getCallingAccount();
+            Account caller = getCaller();
 
             Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
                     cmd.getDomainId(), cmd.isRecursive(), null);
@@ -1768,6 +1783,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         sb.and("isSourceNat", sb.entity().isSourceNat(), SearchCriteria.Op.EQ);
         sb.and("isStaticNat", sb.entity().isOneToOneNat(), SearchCriteria.Op.EQ);
         sb.and("vpcId", sb.entity().getVpcId(), SearchCriteria.Op.EQ);
+        sb.and("state", sb.entity().getState(), SearchCriteria.Op.EQ);
         sb.and("display", sb.entity().isDisplay(), SearchCriteria.Op.EQ);
 
         if (forLoadBalancing != null && forLoadBalancing) {
@@ -1868,6 +1884,10 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
         if (forDisplay != null) {
             sc.setParameters("display", forDisplay);
+        }
+
+        if (state != null) {
+            sc.setParameters("state", state);
         }
 
         Pair<List<IPAddressVO>, Integer> result = _publicIpAddressDao.searchAndCount(sc, searchFilter);
@@ -2162,7 +2182,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
     }
 
     private ConsoleProxyVO startConsoleProxy(long instanceId) {
-        return _consoleProxyMgr.startProxy(instanceId);
+        return _consoleProxyMgr.startProxy(instanceId, true);
     }
 
     private ConsoleProxyVO stopConsoleProxy(VMInstanceVO systemVm, boolean isForced) throws ResourceUnavailableException, OperationTimedoutException, ConcurrentOperationException {
@@ -2235,8 +2255,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
             throw new InvalidParameterValueException("ROOT domain can not be edited with a new name");
         }
 
-        // check permissions
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         _accountMgr.checkAccess(caller, domain);
 
         // domain name is unique under the parent domain
@@ -2369,11 +2388,16 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         Long zoneId = cmd.getZoneId();
         Long podId = cmd.getPodId();
         Long clusterId = cmd.getClusterId();
+        Boolean fetchLatest = cmd.getFetchLatest();
 
         if (clusterId != null) {
             throw new InvalidParameterValueException("Currently clusterId param is not suppoerted");
         }
         zoneId = _accountMgr.checkAccessAndSpecifyAuthority(CallContext.current().getCallingAccount(), zoneId);
+
+        if (fetchLatest != null && fetchLatest) {
+            _alertMgr.recalculateCapacity();
+        }
         List<SummedCapacity> summedCapacities = new ArrayList<SummedCapacity>();
 
         if (zoneId == null && podId == null) {// Group by Zone, capacity type
@@ -2485,8 +2509,8 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         List<CapacityVO> capacities = new ArrayList<CapacityVO>();
 
         for (SummedCapacity summedCapacity : summedCapacities) {
-            CapacityVO capacity = new CapacityVO(null, summedCapacity.getDataCenterId(), podId, clusterId, summedCapacity.getUsedCapacity() + summedCapacity.getReservedCapacity(),
-                    summedCapacity.getTotalCapacity(), summedCapacity.getCapacityType());
+            CapacityVO capacity = new CapacityVO(null, summedCapacity.getDataCenterId(),summedCapacity.getPodId(), summedCapacity.getClusterId(), summedCapacity.getUsedCapacity()
+                    + summedCapacity.getReservedCapacity(), summedCapacity.getTotalCapacity(), summedCapacity.getCapacityType());
             capacities.add(capacity);
         }
 
@@ -2558,6 +2582,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(CancelMaintenanceCmd.class);
         cmdList.add(DeleteHostCmd.class);
         cmdList.add(ListHostsCmd.class);
+        cmdList.add(ListHostTagsCmd.class);
         cmdList.add(FindHostsForMigrationCmd.class);
         cmdList.add(PrepareForMaintenanceCmd.class);
         cmdList.add(ReconnectHostCmd.class);
@@ -2618,6 +2643,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         cmdList.add(ListS3sCmd.class);
         cmdList.add(ListSwiftsCmd.class);
         cmdList.add(ListStoragePoolsCmd.class);
+        cmdList.add(ListStorageTagsCmd.class);
         cmdList.add(FindStoragePoolsForMigrationCmd.class);
         cmdList.add(PreparePrimaryStorageForMaintenanceCmd.class);
         cmdList.add(UpdateStoragePoolCmd.class);
@@ -3280,7 +3306,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public ArrayList<String> getCloudIdentifierResponse(long userId) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
 
         // verify that user exists
         User user = _accountMgr.getUserIncludingRemoved(userId);
@@ -3320,7 +3346,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
     public Map<String, Object> listCapabilities(ListCapabilitiesCmd cmd) {
         Map<String, Object> capabilities = new HashMap<String, Object>();
 
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         boolean securityGroupsEnabled = false;
         boolean elasticLoadBalancerEnabled = false;
         boolean KVMSnapshotEnabled = false;
@@ -3386,7 +3412,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public InstanceGroupVO updateVmGroup(UpdateVMGroupCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         Long groupId = cmd.getId();
         String groupName = cmd.getGroupName();
 
@@ -3504,7 +3530,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public SSHKeyPair createSSHKeyPair(CreateSSHKeyPairCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         String accountName = cmd.getAccountName();
         Long domainId = cmd.getDomainId();
         Long projectId = cmd.getProjectId();
@@ -3528,7 +3554,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public boolean deleteSSHKeyPair(DeleteSSHKeyPairCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         String accountName = cmd.getAccountName();
         Long domainId = cmd.getDomainId();
         Long projectId = cmd.getProjectId();
@@ -3556,7 +3582,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         String name = cmd.getName();
         String fingerPrint = cmd.getFingerprint();
 
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
         List<Long> permittedAccounts = new ArrayList<Long>();
 
         Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
@@ -3588,25 +3614,83 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_REGISTER_SSH_KEYPAIR, eventDescription = "registering ssh keypair", async = true)
     public SSHKeyPair registerSSHKeyPair(RegisterSSHKeyPairCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
-
-        Account owner = _accountMgr.finalizeOwner(caller, cmd.getAccountName(), cmd.getDomainId(), cmd.getProjectId());
-
-        SSHKeyPairVO s = _sshKeyPairDao.findByName(owner.getAccountId(), owner.getDomainId(), cmd.getName());
-        if (s != null) {
-            throw new InvalidParameterValueException("A key pair with name '" + cmd.getName() + "' already exists.");
-        }
+        Account owner = getOwner(cmd);
+        checkForKeyByName(cmd, owner);
+        checkForKeyByPublicKey(cmd, owner);
 
         String name = cmd.getName();
-        String publicKey = SSHKeysHelper.getPublicKeyFromKeyMaterial(cmd.getPublicKey());
+        String key = cmd.getPublicKey();
+
+        String publicKey = getPublicKeyFromKeyKeyMaterial(key);
+        String fingerprint = getFingerprint(publicKey);
+
+        return createAndSaveSSHKeyPair(name, fingerprint, publicKey, null, owner);
+    }
+
+    /**
+     * @param cmd
+     * @param owner
+     * @throws InvalidParameterValueException
+     */
+    private void checkForKeyByPublicKey(RegisterSSHKeyPairCmd cmd, Account owner) throws InvalidParameterValueException {
+        SSHKeyPairVO existingPair = _sshKeyPairDao.findByPublicKey(owner.getAccountId(), owner.getDomainId(), cmd.getPublicKey());
+        if (existingPair != null) {
+            throw new InvalidParameterValueException("A key pair with name '" + cmd.getPublicKey() + "' already exists for this account.");
+        }
+    }
+
+    /**
+     * @param cmd
+     * @param owner
+     * @throws InvalidParameterValueException
+     */
+    protected void checkForKeyByName(RegisterSSHKeyPairCmd cmd, Account owner) throws InvalidParameterValueException {
+        SSHKeyPairVO existingPair = _sshKeyPairDao.findByName(owner.getAccountId(), owner.getDomainId(), cmd.getName());
+        if (existingPair != null) {
+            throw new InvalidParameterValueException("A key pair with name '" + cmd.getName() + "' already exists for this account.");
+        }
+    }
+
+    /**
+     * @param publicKey
+     * @return
+     */
+    private String getFingerprint(String publicKey) {
+        String fingerprint = SSHKeysHelper.getPublicKeyFingerprint(publicKey);
+        return fingerprint;
+    }
+
+    /**
+     * @param key
+     * @return
+     * @throws InvalidParameterValueException
+     */
+    private String getPublicKeyFromKeyKeyMaterial(String key) throws InvalidParameterValueException {
+        String publicKey = SSHKeysHelper.getPublicKeyFromKeyMaterial(key);
 
         if (publicKey == null) {
             throw new InvalidParameterValueException("Public key is invalid");
         }
+        return publicKey;
+    }
 
-        String fingerprint = SSHKeysHelper.getPublicKeyFingerprint(publicKey);
+    /**
+     * @param cmd
+     * @return
+     */
+    protected Account getOwner(RegisterSSHKeyPairCmd cmd) {
+        Account caller = getCaller();
 
-        return createAndSaveSSHKeyPair(name, fingerprint, publicKey, null, owner);
+        Account owner = _accountMgr.finalizeOwner(caller, cmd.getAccountName(), cmd.getDomainId(), cmd.getProjectId());
+        return owner;
+    }
+
+    /**
+     * @return
+     */
+    protected Account getCaller() {
+        Account caller = CallContext.current().getCallingAccount();
+        return caller;
     }
 
     private SSHKeyPair createAndSaveSSHKeyPair(String name, String fingerprint, String publicKey, String privateKey, Account owner) {
@@ -3626,7 +3710,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
 
     @Override
     public String getVMPassword(GetVMPasswordCmd cmd) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
 
         UserVmVO vm = _userVmDao.findById(cmd.getId());
         if (vm == null) {
@@ -3802,7 +3886,7 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
     }
 
     private VirtualMachine upgradeStoppedSystemVm(Long systemVmId, Long serviceOfferingId, Map<String, String> customparameters) {
-        Account caller = CallContext.current().getCallingAccount();
+        Account caller = getCaller();
 
         VMInstanceVO systemVm = _vmInstanceDao.findByIdTypes(systemVmId, VirtualMachine.Type.ConsoleProxy, VirtualMachine.Type.SecondaryStorageVm);
         if (systemVm == null) {
@@ -3843,6 +3927,11 @@ public class ManagementServerImpl extends ManagerBase implements ManagementServe
         String encodedPassword = null;
 
         UserVO adminUser = _userDao.getUser(2);
+        if (adminUser  == null) {
+            String msg = "CANNOT find admin user";
+            s_logger.error(msg);
+            throw new CloudRuntimeException(msg);
+        }
         if (adminUser.getState() == Account.State.disabled) {
             // This means its a new account, set the password using the
             // authenticator

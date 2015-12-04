@@ -16,6 +16,8 @@
 // under the License.
 package com.cloud.hypervisor;
 
+import java.util.Map;
+
 import javax.ejb.Local;
 import javax.inject.Inject;
 
@@ -52,7 +54,7 @@ public class LXCGuru extends HypervisorGuruBase implements HypervisorGuru {
         VirtualMachineTO to = toVirtualMachineTO(vm);
 
         // Determine the VM's OS description
-        GuestOSVO guestOS = _guestOsDao.findById(vm.getVirtualMachine().getGuestOSId());
+        GuestOSVO guestOS = _guestOsDao.findByIdIncludingRemoved(vm.getVirtualMachine().getGuestOSId());
         to.setOs(guestOS.getDisplayName());
 
         HostVO host = _hostDao.findById(vm.getVirtualMachine().getHostId());
@@ -72,5 +74,10 @@ public class LXCGuru extends HypervisorGuruBase implements HypervisorGuru {
     @Override
     public boolean trackVmHostChange() {
         return false;
+    }
+
+    @Override
+    public Map<String, String> getClusterSettings(long vmId) {
+        return null;
     }
 }

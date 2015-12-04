@@ -90,6 +90,9 @@ public class UpdateVMCmd extends BaseCustomIdCmd {
     @Parameter(name = ApiConstants.NAME, type = CommandType.STRING, description = "new host name of the vm. The VM has to be stopped/started for this update to take affect", since = "4.4")
     private String name;
 
+    @Parameter(name = ApiConstants.INSTANCE_NAME, type = CommandType.STRING, description = "instance name of the user vm", since = "4.4", authorized = {RoleType.Admin})
+    private String instanceName;
+
     @Parameter(name = ApiConstants.DETAILS, type = CommandType.MAP, description = "Details in key/value pairs.")
     protected Map details;
 
@@ -127,6 +130,10 @@ public class UpdateVMCmd extends BaseCustomIdCmd {
 
     public String getHostName() {
         return name;
+    }
+
+    public String getInstanceName() {
+        return instanceName;
     }
 
     public Map getDetails() {

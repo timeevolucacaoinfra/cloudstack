@@ -243,7 +243,7 @@ public class IAMApiServiceImpl extends ManagerBase implements IAMApiService, Man
                 Long domainId = ((Long) obj);
                 if (domainId != null) {
                     s_logger.debug("MessageBus message: Domain removed: " + domainId + ", removing the domain group");
-                    Domain domain = _domainDao.findByIdIncludingRemoved(domainId);
+                    Domain domain = _domainDao.findById(domainId);
                     List<IAMGroup> groups = listDomainGroup(domain);
                     for (IAMGroup group : groups) {
                         _iamSrv.deleteIAMGroup(group.getId());
@@ -355,21 +355,6 @@ public class IAMApiServiceImpl extends ManagerBase implements IAMApiService, Man
         sysAccts.add(Account.ACCOUNT_ID_SYSTEM);
         sysAccts.add(Account.ACCOUNT_ID_SYSTEM + 1);
         _iamSrv.addAccountsToGroup(sysAccts, new Long(Account.ACCOUNT_TYPE_ADMIN + 1));
-
-        // add the root domain group
-        Domain domain = _domainDao.findById(Domain.ROOT_DOMAIN);
-        if (domain != null) {
-            List<IAMGroup> domainGroups = listDomainGroup(domain);
-            if (domainGroups != null && !domainGroups.isEmpty()) {
-                return;
-            }
-            IAMGroup rootDomainGrp = _iamSrv.createIAMGroup("DomainGrp-" + domain.getUuid(), "Root Domain group",
-                    domain.getPath());
-            // add the system accounts to the root domain group
-            _iamSrv.addAccountsToGroup(sysAccts, rootDomainGrp.getId());
-
-        }
-
     }
 
     private void addDomainWideResourceAccess(Map<String, Object> params) {
@@ -380,10 +365,10 @@ public class IAMApiServiceImpl extends ManagerBase implements IAMApiService, Man
         Boolean isRecursive = (Boolean) params.get(ApiConstants.SUBDOMAIN_ACCESS);
 
         if (entityType == Network.class) {
-            createPolicyAndAddToDomainGroup("DomainWideNetwork-" + entityId, "domain wide network", entityType.getSimpleName(),
+            createPolicyAndAddToDomainGroup("DomainWideNetwork-" + entityId, "domain wide network", entityType.toString(),
                     entityId, "listNetworks", AccessType.UseEntry, domainId, isRecursive);
         } else if (entityType == AffinityGroup.class) {
-            createPolicyAndAddToDomainGroup("DomainWideNetwork-" + entityId, "domain wide affinityGroup", entityType.getSimpleName(),
+            createPolicyAndAddToDomainGroup("DomainWideNetwork-" + entityId, "domain wide affinityGroup", entityType.toString(),
                     entityId, "listAffinityGroups", AccessType.UseEntry, domainId, isRecursive);
         }
 

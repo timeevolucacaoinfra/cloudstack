@@ -37,7 +37,7 @@ import com.cloud.host.Host;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 
-@APICommand(name = "addGloboDnsHost", responseObject = SuccessResponse.class, description = "Adds the GloboDNS external host")
+@APICommand(name = "addGloboDnsHost", responseObject = SuccessResponse.class, description = "Adds the GloboDNS external host", since="4.5.0")
 public class AddGloboDnsHostCmd extends BaseAsyncCmd {
 
     private static final String s_name = "addglobodnshostresponse";

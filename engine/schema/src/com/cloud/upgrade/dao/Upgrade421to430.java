@@ -110,6 +110,8 @@ public class Upgrade421to430 implements DbUpgrade {
     }
 
     private void encryptLdapConfigParams(Connection conn) {
+        PreparedStatement pstmt = null;
+
         String[][] ldapParams = { {"ldap.user.object", "inetOrgPerson", "Sets the object type of users within LDAP"},
                 {"ldap.username.attribute", "uid", "Sets the username attribute used within LDAP"}, {"ldap.email.attribute", "mail", "Sets the email attribute used within LDAP"},
                 {"ldap.firstname.attribute", "givenname", "Sets the firstname attribute used within LDAP"},
@@ -121,69 +123,68 @@ public class Upgrade421to430 implements DbUpgrade {
                 + "?) ON DUPLICATE KEY UPDATE category='Secure';";
 
         try {
-            String port;
-            int portNumber = 0;
-            String hostname = null;
-            try ( PreparedStatement pstmt = conn.prepareStatement(insertSql);) {
-                 for (String[] ldapParam : ldapParams) {
-                     String name = ldapParam[0];
-                     String value = ldapParam[1];
-                     String desc = ldapParam[2];
-                     String encryptedValue = DBEncryptionUtil.encrypt(value);
-                     pstmt.setString(1, name);
-                     pstmt.setBytes(2, encryptedValue.getBytes("UTF-8"));
-                     pstmt.setString(3, desc);
-                     pstmt.executeUpdate();
-                 }
-             }catch (Exception e) {
-                s_logger.error("encryptLdapConfigParams:Exception:"+e.getMessage());
-                throw new CloudRuntimeException("encryptLdapConfigParams:Exception:"+e.getMessage(), e);
+
+            pstmt = conn.prepareStatement(insertSql);
+            for (String[] ldapParam : ldapParams) {
+                String name = ldapParam[0];
+                String value = ldapParam[1];
+                String desc = ldapParam[2];
+                String encryptedValue = DBEncryptionUtil.encrypt(value);
+                pstmt.setString(1, name);
+                pstmt.setBytes(2, encryptedValue.getBytes("UTF-8"));
+                pstmt.setString(3, desc);
+                pstmt.executeUpdate();
             }
+
+            pstmt.close();
+
             /**
              * if encrypted, decrypt the ldap hostname and port and then update as they are not encrypted now.
              */
-            try(PreparedStatement sel_ldap_hostname_pstmt = conn.prepareStatement("SELECT conf.value FROM `cloud`.`configuration` conf WHERE conf.name='ldap.hostname'");
-                ResultSet resultSet = sel_ldap_hostname_pstmt.executeQuery();) {
-                if (resultSet.next()) {
-                    hostname = DBEncryptionUtil.decrypt(resultSet.getString(1));
-                }
-            }catch (Exception e) {
-                s_logger.error("encryptLdapConfigParams:Exception:"+e.getMessage());
-                throw new CloudRuntimeException("encryptLdapConfigParams:Exception:"+e.getMessage(), e);
+            pstmt = conn.prepareStatement("SELECT conf.value FROM `cloud`.`configuration` conf WHERE conf.name='ldap.hostname'");
+            ResultSet resultSet = pstmt.executeQuery();
+            String hostname = null;
+            String port;
+            int portNumber = 0;
+            if (resultSet.next()) {
+                hostname = DBEncryptionUtil.decrypt(resultSet.getString(1));
             }
 
-            try( PreparedStatement sel_ldap_port_pstmt = conn.prepareStatement("SELECT conf.value FROM `cloud`.`configuration` conf WHERE conf.name='ldap.port'");
-                 ResultSet resultSet = sel_ldap_port_pstmt.executeQuery();)
-            {
-                if (resultSet.next()) {
-                    port = DBEncryptionUtil.decrypt(resultSet.getString(1));
-                    if (StringUtils.isNotBlank(port)) {
-                        portNumber = Integer.valueOf(port);
-                    }
+            pstmt.close();
+
+            pstmt = conn.prepareStatement("SELECT conf.value FROM `cloud`.`configuration` conf WHERE conf.name='ldap.port'");
+            resultSet = pstmt.executeQuery();
+            if (resultSet.next()) {
+                port = DBEncryptionUtil.decrypt(resultSet.getString(1));
+                if (StringUtils.isNotBlank(port)) {
+                    portNumber = Integer.valueOf(port);
                 }
-            }catch (Exception e) {
-                s_logger.error("encryptLdapConfigParams:Exception:"+e.getMessage());
-                throw new CloudRuntimeException("encryptLdapConfigParams:Exception:"+e.getMessage(), e);
             }
+            pstmt.close();
 
             if (StringUtils.isNotBlank(hostname)) {
-                try(PreparedStatement insert_pstmt = conn.prepareStatement("INSERT INTO `cloud`.`ldap_configuration`(hostname, port) VALUES(?,?)");)
-                {
-                    insert_pstmt.setString(1, hostname);
-                    if (portNumber != 0) {
-                        insert_pstmt.setInt(2, portNumber);
-                    } else {
-                        insert_pstmt.setNull(2, Types.INTEGER);
-                    }
-                    insert_pstmt.executeUpdate();
-                }catch (Exception e) {
-                    s_logger.error("encryptLdapConfigParams:Exception:"+e.getMessage());
-                    throw new CloudRuntimeException("encryptLdapConfigParams:Exception:"+e.getMessage(), e);
+                pstmt = conn.prepareStatement("INSERT INTO `cloud`.`ldap_configuration`(hostname, port) VALUES(?,?)");
+                pstmt.setString(1, hostname);
+                if (portNumber != 0) {
+                    pstmt.setInt(2, portNumber);
+                } else {
+                    pstmt.setNull(2, Types.INTEGER);
                 }
+                pstmt.executeUpdate();
+                pstmt.close();
             }
-        } catch (Exception e) {
-            s_logger.error("encryptLdapConfigParams:Exception:"+e.getMessage());
-            throw new CloudRuntimeException("encryptLdapConfigParams:Exception:"+e.getMessage(), e);
+
+        } catch (SQLException e) {
+            throw new CloudRuntimeException("Unable to insert ldap configuration values ", e);
+        } catch (UnsupportedEncodingException e) {
+            throw new CloudRuntimeException("Unable to insert ldap configuration values ", e);
+        } finally {
+            try {
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
         s_logger.debug("Done encrypting ldap Config values");
 
@@ -191,9 +192,11 @@ public class Upgrade421to430 implements DbUpgrade {
 
     private void encryptImageStoreDetails(Connection conn) {
         s_logger.debug("Encrypting image store details");
-        try (PreparedStatement sel_image_store_det_pstmt = conn.prepareStatement("select id, value from `cloud`.`image_store_details` where name = 'key' or name = 'secretkey'");
-             ResultSet rs = sel_image_store_det_pstmt.executeQuery();)
-        {
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            pstmt = conn.prepareStatement("select id, value from `cloud`.`image_store_details` where name = 'key' or name = 'secretkey'");
+            rs = pstmt.executeQuery();
             while (rs.next()) {
                 long id = rs.getLong(1);
                 String value = rs.getString(2);
@@ -201,21 +204,26 @@ public class Upgrade421to430 implements DbUpgrade {
                     continue;
                 }
                 String encryptedValue = DBEncryptionUtil.encrypt(value);
-                try( PreparedStatement update_image_store_det_pstmt = conn.prepareStatement("update `cloud`.`image_store_details` set value=? where id=?");) {
-                    update_image_store_det_pstmt.setBytes(1, encryptedValue.getBytes("UTF-8"));
-                    update_image_store_det_pstmt.setLong(2, id);
-                    update_image_store_det_pstmt.executeUpdate();
-                }catch (UnsupportedEncodingException e) {
-                    s_logger.error("encryptImageStoreDetails:Exception:" + e.getMessage());
-                    throw new CloudRuntimeException("encryptImageStoreDetails:Exception:" + e.getMessage(),e);
-                }
+                pstmt = conn.prepareStatement("update `cloud`.`image_store_details` set value=? where id=?");
+                pstmt.setBytes(1, encryptedValue.getBytes("UTF-8"));
+                pstmt.setLong(2, id);
+                pstmt.executeUpdate();
             }
         } catch (SQLException e) {
-            s_logger.error("encryptImageStoreDetails:Exception:"+e.getMessage());
             throw new CloudRuntimeException("Unable encrypt image_store_details values ", e);
-        } catch (Exception e) {
-            s_logger.error("encryptImageStoreDetails:Exception:"+e.getMessage());
+        } catch (UnsupportedEncodingException e) {
             throw new CloudRuntimeException("Unable encrypt image_store_details values ", e);
+        } finally {
+            try {
+                if (rs != null) {
+                    rs.close();
+                }
+
+                if (pstmt != null) {
+                    pstmt.close();
+                }
+            } catch (SQLException e) {
+            }
         }
         s_logger.debug("Done encrypting image_store_details");
     }

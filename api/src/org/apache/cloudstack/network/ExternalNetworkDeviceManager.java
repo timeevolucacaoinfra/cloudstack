@@ -45,11 +45,11 @@ public interface ExternalNetworkDeviceManager extends Manager {
         public static final NetworkDevice PaloAltoFirewall = new NetworkDevice("PaloAltoFirewall", Network.Provider.PaloAlto.getName());
         public static final NetworkDevice NiciraNvp = new NetworkDevice("NiciraNvp", Network.Provider.NiciraNvp.getName());
         public static final NetworkDevice CiscoVnmc = new NetworkDevice("CiscoVnmc", Network.Provider.CiscoVnmc.getName());
-        public static final NetworkDevice GloboDns = new NetworkDevice("GloboDns", Network.Provider.GloboDns.getName());
         public static final NetworkDevice OpenDaylightController = new NetworkDevice("OpenDaylightController", Network.Provider.Opendaylight.getName());
+        public static final NetworkDevice BrocadeVcs = new NetworkDevice("BrocadeVcs", Network.Provider.BrocadeVcs.getName());
+        public static final NetworkDevice GloboDns = new NetworkDevice("GloboDns", Network.Provider.GloboDns.getName());
         public static final NetworkDevice GloboNetwork = new NetworkDevice("GloboNetwork", Network.Provider.GloboNetwork.getName());
         public static final NetworkDevice GloboAclAPI = new NetworkDevice("GloboACLAPI", Network.Provider.GloboAclApi.getName());
-
         public NetworkDevice(String deviceName, String ntwkServiceprovider) {
             _name = deviceName;
             _provider = ntwkServiceprovider;

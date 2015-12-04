@@ -59,8 +59,9 @@ public class RabbitMQEventBus extends ManagerBase implements EventBus {
     private static Integer port;
     private static String username;
     private static String password;
+    private static String secureProtocol = "TLSv1";
 
-    public static void setVirtualHost(String virtualHost) {
+    public synchronized static void setVirtualHost(String virtualHost) {
         RabbitMQEventBus.virtualHost = virtualHost;
     }
 
@@ -151,6 +152,10 @@ public class RabbitMQEventBus extends ManagerBase implements EventBus {
 
     public void setPort(Integer port) {
         RabbitMQEventBus.port = port;
+    }
+
+    public void setSecureProtocol(String protocol) {
+        RabbitMQEventBus.secureProtocol = protocol;
     }
 
     @Override
@@ -373,7 +378,7 @@ public class RabbitMQEventBus extends ManagerBase implements EventBus {
             }
 
             if (useSsl != null && !useSsl.isEmpty() && useSsl.equalsIgnoreCase("true")) {
-                factory.useSslProtocol();
+                factory.useSslProtocol(this.secureProtocol);
             }
             Connection connection = factory.newConnection();
             connection.addShutdownListener(disconnectHandler);
@@ -481,8 +486,7 @@ public class RabbitMQEventBus extends ManagerBase implements EventBus {
     }
 
     @Override
-    public boolean stop() {
-
+    public synchronized boolean stop() {
         if (s_connection.isOpen()) {
             for (String subscriberId : s_subscribers.keySet()) {
                 Ternary<String, Channel, EventSubscriber> subscriberDetails = s_subscribers.get(subscriberId);

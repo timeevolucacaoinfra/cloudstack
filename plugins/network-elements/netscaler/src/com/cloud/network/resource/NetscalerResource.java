@@ -171,7 +171,6 @@ public class NetscalerResource implements ServerResource {
     // interface to interact with service VM of the SDX appliance
     com.citrix.sdx.nitro.service.nitro_service _netscalerSdxService;
 
-    Long _timeout = new Long(100000);
     base_response apiCallResult;
 
     public NetscalerResource() {
@@ -294,7 +293,6 @@ public class NetscalerResource implements ServerResource {
             if (!_isSdx) {
                 _netscalerService = new nitro_service(_ip, "https");
                 _netscalerService.set_credential(_username, _password);
-                _netscalerService.set_timeout(_timeout);
                 _netscalerService.set_certvalidation(false);
                 _netscalerService.set_hostnameverification(false);
                 apiCallResult = _netscalerService.login();
@@ -632,7 +630,11 @@ public class NetscalerResource implements ServerResource {
                                 newService.set_port(destination.getDestPort());
                                 newService.set_servername(nsServerName);
                                 newService.set_state("ENABLED");
-                                newService.set_servicetype(lbProtocol);
+                                if(lbProtocol.equalsIgnoreCase(NetUtils.SSL_PROTO)) {
+                                    newService.set_servicetype(NetUtils.HTTP_PROTO);
+                                } else {
+                                    newService.set_servicetype(lbProtocol);
+                                }
 
                                 apiCallResult = com.citrix.netscaler.nitro.resource.config.basic.service.add(_netscalerService, newService);
                                 if (apiCallResult.errorcode != 0) {
@@ -929,7 +931,7 @@ public class NetscalerResource implements ServerResource {
                         " as there are no admin profile to use for creating VPX."));
             }
             String profileName = profiles[0].get_name();
-            ns_obj.set_profile_name(profileName);
+            ns_obj.set_profile_name("ns_nsroot_profile");
 
             // use the first VPX image of the available VPX images on the SDX to create an instance of VPX
             // TODO: should enable the option to choose the template while adding the SDX device in to CloudStack
@@ -951,13 +953,13 @@ public class NetscalerResource implements ServerResource {
             ns newVpx = ns.add(_netscalerSdxService, ns_obj);
 
             if (newVpx == null) {
-                new Answer(cmd, new ExecutionException("Failed to create VPX instance on the netscaler SDX device " + _ip));
+                return new Answer(cmd, new ExecutionException("Failed to create VPX instance on the netscaler SDX device " + _ip));
             }
 
             // wait for VPX instance to start-up
             long startTick = System.currentTimeMillis();
             long startWaitMilliSeconds = 600000;
-            while (!newVpx.get_state().equalsIgnoreCase("up") && System.currentTimeMillis() - startTick < startWaitMilliSeconds) {
+            while (!newVpx.get_instance_state().equalsIgnoreCase("up") && System.currentTimeMillis() - startTick < startWaitMilliSeconds) {
                 try {
                     Thread.sleep(10000);
                 } catch (InterruptedException e) {
@@ -968,7 +970,7 @@ public class NetscalerResource implements ServerResource {
             }
 
             // if vpx instance never came up then error out
-            if (!newVpx.get_state().equalsIgnoreCase("up")) {
+            if (!newVpx.get_instance_state().equalsIgnoreCase("up")) {
                 return new Answer(cmd, new ExecutionException("Failed to start VPX instance " + vpxName + " created on the netscaler SDX device " + _ip));
             }
 
@@ -979,8 +981,9 @@ public class NetscalerResource implements ServerResource {
             while (System.currentTimeMillis() - startTick < nsServiceWaitMilliSeconds) {
                 try {
                     nitro_service _netscalerService = new nitro_service(cmd.getLoadBalancerIP(), "https");
+                    _netscalerService.set_certvalidation(false);
+                    _netscalerService.set_hostnameverification(false);
                     _netscalerService.set_credential(username, password);
-                    _netscalerService.set_timeout(_timeout);
                     apiCallResult = _netscalerService.login();
                     if (apiCallResult.errorcode == 0) {
                         nsServiceUp = true;
@@ -1763,14 +1766,14 @@ public class NetscalerResource implements ServerResource {
         }
 
         private static String genGslbObjectName(Object... args) {
-            String objectName = "";
+            StringBuffer buff = new StringBuffer();
             for (int i = 0; i < args.length; i++) {
-                objectName += args[i];
+                buff.append(args[i]);
                 if (i != args.length - 1) {
-                    objectName += "-";
+                    buff.append("-");
                 }
             }
-            return objectName;
+            return buff.toString();
         }
     }
 
@@ -3173,7 +3176,9 @@ public class NetscalerResource implements ServerResource {
                 scaleUpAction.set_vserver(nsVirtualServerName); // Actions Vserver, the one that is autoscaled, with CS
                 // now both are same. Not exposed in API.
                 scaleUpAction.set_profilename(profileName);
-                scaleUpAction.set_quiettime(scaleUpQuietTime);
+                if(scaleUpQuietTime != null) {
+                    scaleUpAction.set_quiettime(scaleUpQuietTime);
+                }
                 String scaleUpParameters =
                         "command=deployVirtualMachine" + "&" + ApiConstants.ZONE_ID + "=" + profileTO.getZoneId() + "&" + ApiConstants.SERVICE_OFFERING_ID + "=" +
                                 profileTO.getServiceOfferingId() + "&" + ApiConstants.TEMPLATE_ID + "=" + profileTO.getTemplateId() + "&" + ApiConstants.DISPLAY_NAME + "=" +
@@ -3770,14 +3775,14 @@ public class NetscalerResource implements ServerResource {
     }
 
     private String genObjectName(Object... args) {
-        String objectName = "";
+        StringBuffer buff = new StringBuffer();
         for (int i = 0; i < args.length; i++) {
-            objectName += args[i];
+            buff.append(args[i]);
             if (i != args.length - 1) {
-                objectName += _objectNamePathSep;
+                buff.append(_objectNamePathSep);
             }
         }
-        return objectName;
+        return buff.toString();
     }
 
     @Override

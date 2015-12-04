@@ -600,7 +600,7 @@ public class MockNetworkModelImpl extends ManagerBase implements NetworkModel {
      * @see com.cloud.network.NetworkModel#isPrivateGateway(com.cloud.vm.Nic)
      */
     @Override
-    public boolean isPrivateGateway(Nic guestNic) {
+    public boolean isPrivateGateway(long ntwkId) {
         // TODO Auto-generated method stub
         return false;
     }
@@ -887,4 +887,5 @@ public class MockNetworkModelImpl extends ManagerBase implements NetworkModel {
     public boolean getNetworkEgressDefaultPolicy(Long networkId) {
         return false;  //To change body of implemented methods use File | Settings | File Templates.
     }
+
 }

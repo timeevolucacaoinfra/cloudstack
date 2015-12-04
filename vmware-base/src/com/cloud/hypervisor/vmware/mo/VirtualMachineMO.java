@@ -86,6 +86,7 @@ import com.vmware.vim25.VirtualMachineConfigOption;
 import com.vmware.vim25.VirtualMachineConfigSpec;
 import com.vmware.vim25.VirtualMachineConfigSummary;
 import com.vmware.vim25.VirtualMachineFileInfo;
+import com.vmware.vim25.VirtualMachineFileLayoutEx;
 import com.vmware.vim25.VirtualMachineMessage;
 import com.vmware.vim25.VirtualMachineMovePriority;
 import com.vmware.vim25.VirtualMachinePowerState;
@@ -457,6 +458,7 @@ public class VirtualMachineMO extends BaseMO {
 
     public boolean createSnapshot(String snapshotName, String snapshotDescription, boolean dumpMemory, boolean quiesce) throws Exception {
 
+        long apiTimeout = _context.getVimClient().getVcenterSessionTimeout();
         ManagedObjectReference morTask = _context.getService().createSnapshotTask(_mor, snapshotName, snapshotDescription, dumpMemory, quiesce);
 
         boolean result = _context.getVimClient().waitForTask(morTask);
@@ -466,7 +468,7 @@ public class VirtualMachineMO extends BaseMO {
             ManagedObjectReference morSnapshot = null;
             // We still need to wait until the object appear in vCenter
             long startTick = System.currentTimeMillis();
-            while (System.currentTimeMillis() - startTick < 10000) {
+            while (System.currentTimeMillis() - startTick < apiTimeout) {
                 morSnapshot = getSnapshotMor(snapshotName);
                 if (morSnapshot != null) {
                     break;
@@ -478,9 +480,11 @@ public class VirtualMachineMO extends BaseMO {
                 }
             }
 
-            if (morSnapshot == null)
-                s_logger.error("We've been waiting for over 10 seconds for snapshot MOR to be appearing in vCenter after CreateSnapshot task is done, but it is still not there?!");
-
+            if (morSnapshot == null) {
+                s_logger.error("We've been waiting for over " + apiTimeout + " milli seconds for snapshot MOR to be appearing in vCenter after CreateSnapshot task is done, but it is still not there?!");
+                return false;
+            }
+            s_logger.debug("Waited for " + (System.currentTimeMillis() - startTick) + " seconds for snapshot object [" + snapshotName + "] to appear in vCenter.");
             return true;
         } else {
             s_logger.error("VMware createSnapshot_Task failed due to " + TaskMO.getTaskFailureInfo(_context, morTask));
@@ -738,6 +742,41 @@ public class VirtualMachineMO extends BaseMO {
 
     public VirtualMachineFileInfo getFileInfo() throws Exception {
         return (VirtualMachineFileInfo)_context.getVimClient().getDynamicProperty(_mor, "config.files");
+    }
+
+    public VirtualMachineFileLayoutEx getFileLayout() throws Exception {
+        VirtualMachineFileLayoutEx fileLayout = null;
+        PropertySpec pSpec = new PropertySpec();
+        pSpec.setType("VirtualMachine");
+        pSpec.getPathSet().add("layoutEx");
+
+        ObjectSpec oSpec = new ObjectSpec();
+        oSpec.setObj(_mor);
+        oSpec.setSkip(Boolean.FALSE);
+
+        PropertyFilterSpec pfSpec = new PropertyFilterSpec();
+        pfSpec.getPropSet().add(pSpec);
+        pfSpec.getObjectSet().add(oSpec);
+        List<PropertyFilterSpec> pfSpecArr = new ArrayList<PropertyFilterSpec>();
+        pfSpecArr.add(pfSpec);
+
+        List<ObjectContent> ocs = _context.getService().retrieveProperties(_context.getPropertyCollector(), pfSpecArr);
+
+        if (ocs != null) {
+            for (ObjectContent oc : ocs) {
+                List<DynamicProperty> props = oc.getPropSet();
+                if (props != null) {
+                    for (DynamicProperty prop : props) {
+                        if (prop.getName().equals("layoutEx")) {
+                            fileLayout = (VirtualMachineFileLayoutEx)prop.getVal();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return fileLayout;
     }
 
     @Override
@@ -1017,8 +1056,6 @@ public class VirtualMachineMO extends BaseMO {
         }
 
         int deviceNumber = getNextDeviceNumber(controllerKey);
-        if (controllerKey != ideControllerKey && VmwareHelper.isReservedScsiDeviceNumber(deviceNumber))
-            deviceNumber++;
 
         newDisk.setControllerKey(controllerKey);
         newDisk.setKey(-deviceNumber);
@@ -1055,25 +1092,27 @@ public class VirtualMachineMO extends BaseMO {
             s_logger.trace("vCenter API trace - attachDisk(). target MOR: " + _mor.getValue() + ", vmdkDatastorePath: " + new Gson().toJson(vmdkDatastorePathChain) +
                     ", datastore: " + morDs.getValue());
 
-        VirtualDevice newDisk = VmwareHelper.prepareDiskDevice(this, null, getScsiDeviceControllerKey(), vmdkDatastorePathChain, morDs, -1, 1);
-        VirtualMachineConfigSpec reConfigSpec = new VirtualMachineConfigSpec();
-        VirtualDeviceConfigSpec deviceConfigSpec = new VirtualDeviceConfigSpec();
+        synchronized (_mor.getValue().intern()) {
+            VirtualDevice newDisk = VmwareHelper.prepareDiskDevice(this, null, getScsiDeviceControllerKey(), vmdkDatastorePathChain, morDs, -1, 1);
+            VirtualMachineConfigSpec reConfigSpec = new VirtualMachineConfigSpec();
+            VirtualDeviceConfigSpec deviceConfigSpec = new VirtualDeviceConfigSpec();
 
-        deviceConfigSpec.setDevice(newDisk);
-        deviceConfigSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+            deviceConfigSpec.setDevice(newDisk);
+            deviceConfigSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
 
-        reConfigSpec.getDeviceChange().add(deviceConfigSpec);
+            reConfigSpec.getDeviceChange().add(deviceConfigSpec);
 
-        ManagedObjectReference morTask = _context.getService().reconfigVMTask(_mor, reConfigSpec);
-        boolean result = _context.getVimClient().waitForTask(morTask);
+            ManagedObjectReference morTask = _context.getService().reconfigVMTask(_mor, reConfigSpec);
+            boolean result = _context.getVimClient().waitForTask(morTask);
 
-        if (!result) {
-            if (s_logger.isTraceEnabled())
-                s_logger.trace("vCenter API trace - attachDisk() done(failed)");
-            throw new Exception("Failed to attach disk due to " + TaskMO.getTaskFailureInfo(_context, morTask));
+            if (!result) {
+                if (s_logger.isTraceEnabled())
+                    s_logger.trace("vCenter API trace - attachDisk() done(failed)");
+                throw new Exception("Failed to attach disk due to " + TaskMO.getTaskFailureInfo(_context, morTask));
+            }
+
+            _context.waitForTaskProgressDone(morTask);
         }
-
-        _context.waitForTaskProgressDone(morTask);
 
         if (s_logger.isTraceEnabled())
             s_logger.trace("vCenter API trace - attachDisk() done(successfully)");
@@ -1084,25 +1123,27 @@ public class VirtualMachineMO extends BaseMO {
         if (s_logger.isTraceEnabled())
             s_logger.trace("vCenter API trace - attachDisk(). target MOR: " + _mor.getValue() + ", vmdkDatastorePath: " + new Gson().toJson(vmdkDatastorePathChain));
 
-        VirtualDevice newDisk = VmwareHelper.prepareDiskDevice(this, controllerKey, vmdkDatastorePathChain, -1, 1);
-        VirtualMachineConfigSpec reConfigSpec = new VirtualMachineConfigSpec();
-        VirtualDeviceConfigSpec deviceConfigSpec = new VirtualDeviceConfigSpec();
+        synchronized (_mor.getValue().intern()) {
+            VirtualDevice newDisk = VmwareHelper.prepareDiskDevice(this, controllerKey, vmdkDatastorePathChain, -1, 1);
+            VirtualMachineConfigSpec reConfigSpec = new VirtualMachineConfigSpec();
+            VirtualDeviceConfigSpec deviceConfigSpec = new VirtualDeviceConfigSpec();
 
-        deviceConfigSpec.setDevice(newDisk);
-        deviceConfigSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
+            deviceConfigSpec.setDevice(newDisk);
+            deviceConfigSpec.setOperation(VirtualDeviceConfigSpecOperation.ADD);
 
-        reConfigSpec.getDeviceChange().add(deviceConfigSpec);
+            reConfigSpec.getDeviceChange().add(deviceConfigSpec);
 
-        ManagedObjectReference morTask = _context.getService().reconfigVMTask(_mor, reConfigSpec);
-        boolean result = _context.getVimClient().waitForTask(morTask);
+            ManagedObjectReference morTask = _context.getService().reconfigVMTask(_mor, reConfigSpec);
+            boolean result = _context.getVimClient().waitForTask(morTask);
 
-        if (!result) {
-            if (s_logger.isTraceEnabled())
-                s_logger.trace("vCenter API trace - attachDisk() done(failed)");
-            throw new Exception("Failed to attach disk due to " + TaskMO.getTaskFailureInfo(_context, morTask));
+            if (!result) {
+                if (s_logger.isTraceEnabled())
+                    s_logger.trace("vCenter API trace - attachDisk() done(failed)");
+                throw new Exception("Failed to attach disk due to " + TaskMO.getTaskFailureInfo(_context, morTask));
+            }
+
+            _context.waitForTaskProgressDone(morTask);
         }
-
-        _context.waitForTaskProgressDone(morTask);
 
         if (s_logger.isTraceEnabled())
             s_logger.trace("vCenter API trace - attachDisk() done(successfully)");
@@ -1121,6 +1162,14 @@ public class VirtualMachineMO extends BaseMO {
         if (deviceInfo == null) {
             s_logger.warn("vCenter API trace - detachDisk() done (failed)");
             throw new Exception("No such disk device: " + vmdkDatastorePath);
+        }
+
+        // IDE virtual disk cannot be detached if VM is running
+        if (deviceInfo.second() != null && deviceInfo.second().contains("ide")) {
+            if (getPowerState() == VirtualMachinePowerState.POWERED_ON) {
+                throw new Exception("Removing a virtual disk over IDE controller is not supported while VM is running in VMware hypervisor. " +
+                        "Please re-try when VM is not running.");
+            }
         }
 
         List<Pair<String, ManagedObjectReference>> chain = getDiskDatastorePathChain(deviceInfo.first(), true);
@@ -1705,8 +1754,15 @@ public class VirtualMachineMO extends BaseMO {
         }
     }
 
+  public String getGuestId() throws Exception {
+    return (String)_context.getVimClient().getDynamicProperty(_mor, "config.guestId");
+  }
+
     public GuestOsDescriptor getGuestOsDescriptor(String guestOsId) throws Exception {
         GuestOsDescriptor guestOsDescriptor = null;
+        if (guestOsId == null) {
+            guestOsId = getGuestId();
+        }
         ManagedObjectReference vmEnvironmentBrowser = _context.getVimClient().getMoRefProp(_mor, "environmentBrowser");
         VirtualMachineConfigOption vmConfigOption = _context.getService().queryConfigOption(vmEnvironmentBrowser, null, null);
         List<GuestOsDescriptor> guestDescriptors = vmConfigOption.getGuestOSDescriptor();
@@ -1853,8 +1909,6 @@ public class VirtualMachineMO extends BaseMO {
     public int getNextScsiDiskDeviceNumber() throws Exception {
         int scsiControllerKey = getScsiDeviceControllerKey();
         int deviceNumber = getNextDeviceNumber(scsiControllerKey);
-        if (VmwareHelper.isReservedScsiDeviceNumber(deviceNumber))
-            deviceNumber++;
 
         return deviceNumber;
     }
@@ -1913,9 +1967,15 @@ public class VirtualMachineMO extends BaseMO {
     public Pair<VirtualDisk, String> getDiskDevice(String vmdkDatastorePath, boolean matchExactly) throws Exception {
         List<VirtualDevice> devices = _context.getVimClient().getDynamicProperty(_mor, "config.hardware.device");
 
-        s_logger.info("Look for disk device info from volume : " + vmdkDatastorePath);
         DatastoreFile dsSrcFile = new DatastoreFile(vmdkDatastorePath);
         String srcBaseName = dsSrcFile.getFileBaseName();
+        String trimmedSrcBaseName = VmwareHelper.trimSnapshotDeltaPostfix(srcBaseName);
+
+        if (matchExactly) {
+            s_logger.info("Look for disk device info from volume : " + vmdkDatastorePath + " with base name: " + srcBaseName);
+        } else {
+            s_logger.info("Look for disk device info from volume : " + vmdkDatastorePath + " with trimmed base name: " + trimmedSrcBaseName);
+        }
 
         if (devices != null && devices.size() > 0) {
             for (VirtualDevice device : devices) {
@@ -1938,7 +1998,7 @@ public class VirtualMachineMO extends BaseMO {
                                     return new Pair<VirtualDisk, String>((VirtualDisk)device, deviceNumbering);
                                 }
                             } else {
-                                if (backingBaseName.contains(srcBaseName)) {
+                                if (backingBaseName.contains(trimmedSrcBaseName)) {
                                     String deviceNumbering = getDeviceBusName(devices, device);
 
                                     s_logger.info("Disk backing : " + diskBackingInfo.getFileName() + " matches ==> " + deviceNumbering);
@@ -2018,6 +2078,26 @@ public class VirtualMachineMO extends BaseMO {
 
         return builder;
     }
+
+    public List<Pair<Integer, ManagedObjectReference>> getAllDiskDatastores() throws Exception {
+        List<Pair<Integer, ManagedObjectReference>> disks = new ArrayList<Pair<Integer, ManagedObjectReference>>();
+
+        List<VirtualDevice> devices = _context.getVimClient().getDynamicProperty(_mor, "config.hardware.device");
+        if (devices != null && devices.size() > 0) {
+            for (VirtualDevice device : devices) {
+                if (device instanceof VirtualDisk) {
+                    VirtualDeviceBackingInfo backingInfo = ((VirtualDisk)device).getBacking();
+                    if (backingInfo instanceof VirtualDiskFlatVer2BackingInfo) {
+                        VirtualDiskFlatVer2BackingInfo diskBackingInfo = (VirtualDiskFlatVer2BackingInfo)backingInfo;
+                        disks.add(new Pair<Integer, ManagedObjectReference>(new Integer(device.getKey()), diskBackingInfo.getDatastore()));
+                    }
+                }
+            }
+        }
+
+        return disks;
+    }
+
 
     @Deprecated
     public List<Pair<String, ManagedObjectReference>> getDiskDatastorePathChain(VirtualDisk disk, boolean followChain) throws Exception {
@@ -2295,17 +2375,25 @@ public class VirtualMachineMO extends BaseMO {
     public int getNextDeviceNumber(int controllerKey) throws Exception {
         List<VirtualDevice> devices = _context.getVimClient().getDynamicProperty(_mor, "config.hardware.device");
 
-        int deviceNumber = -1;
+        List<Integer> existingUnitNumbers = new ArrayList<Integer>();
+        int deviceNumber = 0;
+        int scsiControllerKey = getScsiDeviceControllerKeyNoException();
         if (devices != null && devices.size() > 0) {
             for (VirtualDevice device : devices) {
                 if (device.getControllerKey() != null && device.getControllerKey().intValue() == controllerKey) {
-                    if (device.getUnitNumber() != null && device.getUnitNumber().intValue() > deviceNumber) {
-                        deviceNumber = device.getUnitNumber().intValue();
-                    }
+                    existingUnitNumbers.add(device.getUnitNumber());
                 }
             }
         }
-        return ++deviceNumber;
+        while (true) {
+            // Next device number should be the lowest device number on the key that is not in use and is not reserved.
+            if (!existingUnitNumbers.contains(Integer.valueOf(deviceNumber))) {
+                if (controllerKey != scsiControllerKey || !VmwareHelper.isReservedScsiDeviceNumber(deviceNumber))
+                    break;
+            }
+            ++deviceNumber;
+        }
+        return deviceNumber;
     }
 
     private List<VirtualDevice> getNicDevices(boolean sorted) throws Exception {
@@ -2362,7 +2450,7 @@ public class VirtualMachineMO extends BaseMO {
             attachedNetworkSummary = ((VirtualEthernetCard)nic).getDeviceInfo().getSummary();
             if (attachedNetworkSummary.startsWith(networkNamePrefix)) {
                 return new Pair<Integer, VirtualDevice>(new Integer(index), nic);
-            } else if (attachedNetworkSummary.endsWith("DistributedVirtualPortBackingInfo.summary")) {
+            } else if (attachedNetworkSummary.endsWith("DistributedVirtualPortBackingInfo.summary") || attachedNetworkSummary.startsWith("DVSwitch")) {
                 dvPortGroupName = getDvPortGroupName((VirtualEthernetCard)nic);
                 if (dvPortGroupName != null && dvPortGroupName.startsWith(networkNamePrefix)) {
                     s_logger.debug("Found a dvPortGroup already associated with public NIC.");
@@ -2613,5 +2701,17 @@ public class VirtualMachineMO extends BaseMO {
             virtualHardwareSupportsMemoryHotAdd = true;
         }
         return guestOsSupportsMemoryHotAdd && virtualHardwareSupportsMemoryHotAdd;
+    }
+
+    public boolean consolidateVmDisks() throws Exception {
+        ManagedObjectReference morTask = _context.getService().consolidateVMDisksTask(_mor);
+        boolean result = _context.getVimClient().waitForTask(morTask);
+        if (result) {
+            _context.waitForTaskProgressDone(morTask);
+            return true;
+        } else {
+            s_logger.error("VMware ConsolidateVMDisks_Task failed due to " + TaskMO.getTaskFailureInfo(_context, morTask));
+        }
+        return false;
     }
 }

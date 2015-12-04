@@ -121,6 +121,7 @@ import com.cloud.storage.template.Processor;
 import com.cloud.storage.template.Processor.FormatInfo;
 import com.cloud.storage.template.QCOW2Processor;
 import com.cloud.storage.template.RawImageProcessor;
+import com.cloud.storage.template.TARProcessor;
 import com.cloud.storage.template.TemplateLocation;
 import com.cloud.storage.template.TemplateProp;
 import com.cloud.storage.template.VhdProcessor;
@@ -699,8 +700,11 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
             if (!destFile.createNewFile()) {
                 s_logger.warn("Reusing existing file " + destFile.getPath());
             }
-            FileOutputStream outputStream = new FileOutputStream(destFile);
-            entity.writeTo(outputStream);
+            try(FileOutputStream outputStream = new FileOutputStream(destFile);) {
+                entity.writeTo(outputStream);
+            }catch (IOException e) {
+                s_logger.debug("downloadFromUrlToNfs:Exception:"+e.getMessage(),e);
+            }
             return new File(destFile.getAbsolutePath());
         } catch (IOException e) {
             s_logger.debug("Faild to get url:" + url + ", due to " + e.toString());
@@ -806,7 +810,7 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
 
     }
 
-    protected Long getVirtualSize(File file, ImageFormat format) {
+    protected long getVirtualSize(File file, ImageFormat format) {
         Processor processor = null;
         try {
             if (format == null) {
@@ -821,6 +825,8 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
                 processor = new RawImageProcessor();
             } else if (format == ImageFormat.VMDK) {
                 processor = new VmdkProcessor();
+            } if (format == ImageFormat.TAR) {
+                processor = new TARProcessor();
             }
 
             if (processor == null) {
@@ -830,9 +836,10 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
             processor.configure("template processor", new HashMap<String, Object>());
             return processor.getVirtualSize(file);
         } catch (Exception e) {
-            s_logger.debug("Failed to get virtual size:", e);
+            s_logger.warn("Failed to get virtual size, returning file size instead:", e);
+            return file.length();
         }
-        return file.length();
+
     }
 
     protected Answer copyFromNfsToS3(CopyCommand cmd) {
@@ -1368,28 +1375,31 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
                     if (tmpFile == null) {
                         continue;
                     }
-                    FileReader fr = new FileReader(tmpFile);
-                    BufferedReader brf = new BufferedReader(fr);
-                    String line = null;
-                    String uniqName = null;
-                    Long size = null;
-                    String name = null;
-                    while ((line = brf.readLine()) != null) {
-                        if (line.startsWith("uniquename=")) {
-                            uniqName = line.split("=")[1];
-                        } else if (line.startsWith("size=")) {
-                            size = Long.parseLong(line.split("=")[1]);
-                        } else if (line.startsWith("filename=")) {
-                            name = line.split("=")[1];
+                    try (FileReader fr = new FileReader(tmpFile);
+                         BufferedReader brf = new BufferedReader(fr);) {
+                        String line = null;
+                        String uniqName = null;
+                        Long size = null;
+                        String name = null;
+                        while ((line = brf.readLine()) != null) {
+                            if (line.startsWith("uniquename=")) {
+                                uniqName = line.split("=")[1];
+                            } else if (line.startsWith("size=")) {
+                                size = Long.parseLong(line.split("=")[1]);
+                            } else if (line.startsWith("filename=")) {
+                                name = line.split("=")[1];
+                            }
                         }
+                        tempFile.delete();
+                        if (uniqName != null) {
+                            TemplateProp prop = new TemplateProp(uniqName, container + File.separator + name, size, size, true, false);
+                            tmpltInfos.put(uniqName, prop);
+                        }
+                    } catch (IOException ex)
+                    {
+                        s_logger.debug("swiftListTemplate:Exception:" + ex.getMessage());
+                        continue;
                     }
-                    brf.close();
-                    tempFile.delete();
-                    if (uniqName != null) {
-                        TemplateProp prop = new TemplateProp(uniqName, container + File.separator + name, size, size, true, false);
-                        tmpltInfos.put(uniqName, prop);
-                    }
-
                 } catch (IOException e) {
                     s_logger.debug("Failed to create templ file:" + e.toString());
                     continue;
@@ -1526,7 +1536,7 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
     private String deleteLocalFile(String fullPath) {
         Script command = new Script("/bin/bash", s_logger);
         command.add("-c");
-        command.add("rm -f " + fullPath);
+        command.add("rm -rf " + fullPath);
         String result = command.execute();
         if (result != null) {
             String errMsg = "Failed to delete file " + fullPath + ", err=" + result;
@@ -1928,7 +1938,7 @@ public class NfsSecondaryStorageResource extends ServerResourceBase implements S
         }
 
         _configAuthScr = Script.findScript(getDefaultScriptsDir(), "config_auth.sh");
-        if (_configSslScr != null) {
+        if (_configAuthScr != null) {
             s_logger.info("config_auth.sh found in " + _configAuthScr);
         }
 

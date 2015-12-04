@@ -138,6 +138,19 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public UserAccount getActiveUserAccount(String username, Long domainId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount updateUser(Long userId, String firstName, String lastName, String email, String userName, String password, String apiKey, String secretKey,
+                                  String timeZone) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public Account getActiveAccountById(long accountId) {
         // TODO Auto-generated method stub
         return null;
@@ -252,6 +265,11 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
+    public String[] createApiKeyAndSecretKey(final long userId) {
+        return null;
+    }
+
+    @Override
     public boolean enableAccount(long accountId) {
         // TODO Auto-generated method stub
         return false;
@@ -305,8 +323,22 @@ public class MockAccountManagerImpl extends ManagerBase implements Manager, Acco
     }
 
     @Override
-    public User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
-        String userUUID) {
+    public UserAccount createUserAccount(String userName, String password, String firstName, String lastName, String email, String timezone, String accountName, short accountType,
+                                         Long domainId, String networkDomain, Map<String, String> details, String accountUUID, String userUUID, User.Source source) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public User createUser(String userName, String password, String firstName,
+            String lastName, String email, String timeZone, String accountName,
+            Long domainId, String userUUID) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override public User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
+                                     String userUUID, User.Source source) {
         // TODO Auto-generated method stub
         return null;
     }

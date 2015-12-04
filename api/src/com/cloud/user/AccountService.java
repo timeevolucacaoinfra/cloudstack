@@ -57,6 +57,9 @@ public interface AccountService {
     UserAccount createUserAccount(String userName, String password, String firstName, String lastName, String email, String timezone, String accountName,
         short accountType, Long domainId, String networkDomain, Map<String, String> details, String accountUUID, String userUUID);
 
+    UserAccount createUserAccount(String userName, String password, String firstName, String lastName, String email, String timezone, String accountName, short accountType, Long domainId, String networkDomain,
+                                  Map<String, String> details, String accountUUID, String userUUID, User.Source source);
+
     /**
      * Locks a user by userId. A locked user cannot access the API, but will still have running VMs/IP addresses
      * allocated/etc.
@@ -70,14 +73,20 @@ public interface AccountService {
 
     User getSystemUser();
 
-        User
-        createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId, String userUUID);
+    User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId, String userUUID);
+
+    User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId, String userUUID,
+                    User.Source source);
 
     boolean isAdmin(Long accountId);
 
     Account finalizeOwner(Account caller, String accountName, Long domainId, Long projectId);
 
     Account getActiveAccountByName(String accountName, Long domainId);
+
+    UserAccount getActiveUserAccount(String username, Long domainId);
+
+    UserAccount updateUser(Long userId, String firstName, String lastName, String email, String userName, String password, String apiKey, String secretKey, String timeZone);
 
     Account getActiveAccountById(long accountId);
 
@@ -98,6 +107,8 @@ public interface AccountService {
     void markUserRegistered(long userId);
 
     public String[] createApiKeyAndSecretKey(RegisterCmd cmd);
+
+    public String[] createApiKeyAndSecretKey(final long userId);
 
     UserAccount getUserByApiKey(String apiKey);
 

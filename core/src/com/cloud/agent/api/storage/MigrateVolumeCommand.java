@@ -1,3 +1,4 @@
+//
 // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -14,11 +15,14 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
+//
+
 package com.cloud.agent.api.storage;
 
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.to.StorageFilerTO;
 import com.cloud.storage.StoragePool;
+import com.cloud.storage.Volume;
 
 public class MigrateVolumeCommand extends Command {
 
@@ -26,18 +30,22 @@ public class MigrateVolumeCommand extends Command {
     String volumePath;
     StorageFilerTO pool;
     String attachedVmName;
+    Volume.Type volumeType;
 
-    public MigrateVolumeCommand(long volumeId, String volumePath, StoragePool pool) {
+    public MigrateVolumeCommand(long volumeId, String volumePath, StoragePool pool, int timeout) {
         this.volumeId = volumeId;
         this.volumePath = volumePath;
         this.pool = new StorageFilerTO(pool);
+        this.setWait(timeout);
     }
 
-    public MigrateVolumeCommand(long volumeId, String volumePath, StoragePool pool, String attachedVmName) {
+    public MigrateVolumeCommand(long volumeId, String volumePath, StoragePool pool, String attachedVmName, Volume.Type volumeType, int timeout) {
         this.volumeId = volumeId;
         this.volumePath = volumePath;
         this.pool = new StorageFilerTO(pool);
         this.attachedVmName = attachedVmName;
+        this.volumeType = volumeType;
+        this.setWait(timeout);
     }
 
     @Override
@@ -59,5 +67,9 @@ public class MigrateVolumeCommand extends Command {
 
     public String getAttachedVmName() {
         return attachedVmName;
+    }
+
+    public Volume.Type getVolumeType() {
+        return volumeType;
     }
 }

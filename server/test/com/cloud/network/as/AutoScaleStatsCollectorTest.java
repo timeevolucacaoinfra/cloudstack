@@ -257,7 +257,7 @@ public abstract class AutoScaleStatsCollectorTest {
 
     protected void mockServiceOfferingDao(Integer memorySize) {
         ServiceOfferingDao _serviceOfferingDao = mock(ServiceOfferingDao.class);
-        when(_serviceOfferingDao.findById(anyLong())).thenReturn(new ServiceOfferingVO("offering", 100, memorySize, 1, 1000, 1000, false, "offering", false, false, null, false, VirtualMachine.Type.Instance, false));
+        when(_serviceOfferingDao.findById(anyLong())).thenReturn(new ServiceOfferingVO("offering", 100, memorySize, 1, 1000, 1000, false, "offering", null, false, false, null, false, VirtualMachine.Type.Instance, false));
         autoScaleStatsCollector._serviceOfferingDao = _serviceOfferingDao;
     }
 

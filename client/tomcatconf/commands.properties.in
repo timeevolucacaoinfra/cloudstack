@@ -18,6 +18,19 @@
 ### bitmap of permissions at the end of each classname, 1 = ADMIN, 2 = RESOURCE_DOMAIN_ADMIN, 4 = DOMAIN_ADMIN, 8 = USER
 ### Please standardize naming conventions to camel-case (even for acronyms).
 
+### CloudStack authentication commands
+login=15
+logout=15
+
+### SAML SSO/SLO commands
+samlSso=15
+samlSlo=15
+getSPMetadata=15
+listIdps=15
+authorizeSamlSso=7
+listSamlAuthorization=7
+listAndSwitchSamlAccount=15
+
 ### Account commands
 createAccount=7
 deleteAccount=7
@@ -32,7 +45,7 @@ markDefaultZoneForAccount=1
 createUser=7
 deleteUser=7
 updateUser=15
-listUsers=7
+listUsers=15
 lockUser=7
 disableUser=7
 enableUser=7
@@ -295,6 +308,7 @@ deleteHost=3
 prepareHostForMaintenance=1
 cancelHostMaintenance=1
 listHosts=3
+listHostTags=7
 findHostsForMigration=1
 addSecondaryStorage=1
 updateHostPassword=1
@@ -331,6 +345,7 @@ listAsyncJobs=15
 #### storage pools commands
 listStoragePools=3
 listStorageProviders=3
+listStorageTags=7
 createStoragePool=1
 updateStoragePool=1
 deleteStoragePool=1
@@ -609,6 +624,13 @@ listNiciraNvpDeviceNetworks=1
 # Not implemented (yet)
 #configureNiciraNvpDevice=1
 
+#### brocade vcs commands
+
+addBrocadeVcsDevice=1
+deleteBrocadeVcsDevice=1
+listBrocadeVcsDevices=1
+listBrocadeVcsDeviceNetworks=1
+
 #### bigswitch vns commands
 
 addBigSwitchVnsDevice=1
@@ -619,6 +641,13 @@ listBigSwitchVnsDevices=1
 
 addStratosphereSsp=1
 deleteStratoshereSsp=1
+
+#### nuage vsp commands
+
+addNuageVspDevice=1
+deleteNuageVspDevice=1
+listNuageVspDevices=1
+issueNuageVspResourceRequest=15
 
 #### host simulator commands
 
@@ -634,6 +663,12 @@ listApis=15
 
 getApiLimit=15
 resetApiLimit=1
+
+#### API SolidFire Service Command
+getSolidFireAccountId=15
+getSolidFireVolumeSize=15
+getSolidFireVolumeAccessGroupId=15
+getSolidFireVolumeIscsiName=15
 
 #### Region commands
 addRegion=1
@@ -662,6 +697,9 @@ addBaremetalPxePingServer=1
 addBaremetalDhcp=1
 listBaremetalDhcp=1
 listBaremetalPxeServers=1
+addBaremetalRct=1
+deleteBaremetalRct=1
+listBaremetalRct=1
 
 #### UCS commands
 addUcsManager=1
@@ -740,7 +778,7 @@ importLdapUsers=3
 createServiceInstance=1
 
 ### GloboDNS commands
-addGloboDnsHost=1###
+addGloboDnsHost=1
 
 ###GloboACLAPI commands
 addGloboAclApiHost=1

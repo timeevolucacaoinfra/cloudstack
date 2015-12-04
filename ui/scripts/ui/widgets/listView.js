@@ -88,7 +88,7 @@
 
                 // Make sure the master checkbox is unselected
                 if (multiSelect) {
-                    $('div.list-view').find('input.multiSelectMasterCheckbox').attr('checked', false);
+                    $instanceRow.closest('.list-view').find('input.multiSelectMasterCheckbox').attr('checked', false);
                 }
 
                 var externalLinkAction = action.externalLink;
@@ -184,6 +184,7 @@
                                 // Make copy of previous row, in case data is needed
                                 $prevRow = $instanceRow.clone();
                                 if (multiSelect) {
+                                    $prevRow.find('.quick-view').addClass('loading-overlay');
                                     $.each($prevRow, function(index, elem) {
                                         $(elem).data($($instanceRow[index]).data());
                                     });
@@ -363,6 +364,9 @@
                                 );
                             },
                             error: function(message) {
+                                $instanceRow.removeClass('loading');
+                                $instanceRow.find('td.quick-view').removeClass('loading-overlay');
+                                
                                 if (!isHeader) {
                                     if (($.isPlainObject(args.action.createForm) && args.action.addRow != 'false') ||
                                         (!args.action.createForm && args.action.addRow == 'true')) {
@@ -465,7 +469,7 @@
                                         data: [
                                             $.extend(args.data, {
                                                 state: 'Creating',
-                                                status: 'Creating',
+                                                status: 'state.Creating',
                                                 allocationstate: 'Creating'
                                             })
                                         ]
@@ -512,7 +516,7 @@
                                     data: [
                                         $.extend(args.data, {
                                             state: 'Creating',
-                                            status: 'Creating',
+                                            status: 'state.Creating',
                                             allocationstate: 'Creating'
                                         })
                                     ]
@@ -782,7 +786,7 @@
             content.click(function() {
                 var checked = $(this).is(':checked');
                 $('.multiSelectCheckbox').attr('checked', checked);
-                toggleMultiSelectActions(checked);
+                toggleMultiSelectActions($table.closest('.list-view'), checked);
             });
         }
 
@@ -1031,6 +1035,7 @@
         var subselect = uiCustom ? listViewArgs.listView.subselect : null;
 
         if (!(data && data.length)) {
+            $listView.data('end-of-table', true);
             if (!$tbody.find('tr').size()) {
                 return [
                     $('<tr>').addClass('empty last').append(
@@ -1072,9 +1077,10 @@
                         var numRows = $(this).parents('tbody').find('input.multiSelectCheckbox').size();
                         var numRowsChecked = $(this).parents('tbody').find('input.multiSelectCheckbox:checked').size();
                         var enabled = checked || (numRowsChecked > 0);
-                        toggleMultiSelectActions(enabled);
 
-                        $('input.multiSelectMasterCheckbox').attr('checked', (numRows === numRowsChecked));
+                        toggleMultiSelectActions($td.closest('.list-view'), enabled);
+
+                        $td.closest('.list-view').find('input.multiSelectMasterCheckbox').attr('checked', (numRows === numRowsChecked));
                     });
 
                 $td.append(
@@ -1117,9 +1123,23 @@
                     createEditField($td).appendTo($td);
                 } else {
                     $td.html('');
-                    $td.append(
-                        $('<span></span>').html(_s(content))
-                    );
+
+                    if ($.isArray(content)) {
+                        var $ul = $('<ul>');
+
+                        $(content).map(function (index, contentItem) {
+                            var $li = $('<li>');
+
+                            $li.append('<span>').text(contentItem.toString());
+                            $li.appendTo($ul);
+                        });
+
+                        $ul.appendTo($td);
+                    } else {
+                        $td.append(
+                            $('<span>').html(_s(content))
+                        );
+                    }
                 }
 
                 $td.attr('title', _s(content));
@@ -1307,7 +1327,10 @@
                     if ($(this).is(':checked')) {
                         // Populate data
                         subselect.dataProvider({
-                            context: $.extend(true, {}, options.context, {
+                            context: $.extend(true, {},
+                                ($listView && $listView.data('view-args') ?
+                                    $.extend(true, {}, $listView.data('view-args').context, options.context) :
+                                    options.context), {
                                 instances: [$tr.data('json-obj')]
                             }),
                             response: {
@@ -1411,7 +1434,7 @@
                                         },
                                         onPerformAction: function() {
                                             $tr.addClass('loading').find('td:last').prepend($('<div>').addClass('loading'));
-                                            $quickViewTooltip.hide();
+                                            $quickViewTooltip.detach();
                                         },
                                         onActionComplete: function() {
                                             if (listViewArgs.onActionComplete) {
@@ -1439,7 +1462,7 @@
                         $quickViewTooltip.css({
                             position: 'absolute',
                             left: $tr.offset().left + $tr.width() - $quickViewTooltip.width(),
-                            top: $quickView.offset().top - 50,
+                            top: $quickView.offset().top,
                             zIndex: $tr.closest('.panel').zIndex() + 1
                         });
 
@@ -1483,6 +1506,7 @@
         var reorder = options.reorder;
         var multiSelect = options.multiSelect;
         var $tbody = $table.find('tbody');
+        var $listView = $table.closest('.list-view');
 
         if (!loadArgs) loadArgs = {
             page: 1,
@@ -1493,11 +1517,16 @@
             }
         };
 
+        if (options.clearEndTable) {
+            $listView.data('page', 1);
+            $table.closest('.list-view').data('end-of-table', false);
+        }
+
         if (!append) {
             if (!append) $table.find('tbody tr').remove();
         }
 
-        var viewArgs = $table.closest('.list-view').data('view-args');
+        var viewArgs = $listView.data('view-args');
         var uiCustom = viewArgs.listView ? viewArgs.listView.uiCustom : false;
 
         setLoading($table, function(setLoadingArgs) {
@@ -1519,12 +1548,6 @@
                         $table.dataTable(null, {
                             noSelect: uiCustom
                         });
-
-                        if (args.data &&
-                            args.data.length < pageSize &&
-                            options.setEndTable) {
-                            options.setEndTable();
-                        }
 
                         setTimeout(function() {
                             $table.dataTable('refresh');
@@ -1566,7 +1589,7 @@
 
             sectionPreFilter = args.sectionSelect.preFilter ?
                 args.sectionSelect.preFilter({
-                    context: cloudStack.context
+                    context: $.extend({}, cloudStack.context, args.context)
                 }) : null;
         } else {
             $sectionSelect.hide();
@@ -1667,16 +1690,13 @@
         var $toolbar = $('<div>').addClass('toolbar').appendTo($listView);
         var $table = $('<table>').appendTo($listView);
         var infScrollTimer;
-        var page = 1;
         var actions = listViewData.actions;
         var reorder = listViewData.reorder;
         var multiSelect = listViewData.multiSelect;
         var tableHeight = $table.height();
-        var endTable = false;
-        var setEndTable = function() {
-            endTable = true;
-        }
 
+        $listView.data('end-of-table', false);
+        $listView.data('page', 1);
 
         var $switcher;
         if (args.sections) {
@@ -1728,11 +1748,21 @@
         // List view header actions
         if (listViewData.actions) {
             $.each(listViewData.actions, function(actionName, action) {
-                if (!action.isHeader || (
-                    action.preFilter && !action.preFilter({
-                        context: $listView.data('view-args').context ? $listView.data('view-args').context : cloudStack.context
-                    })
-                )) return true;
+                var preFilter = function(extendContext) {
+                    var context = $.extend(true, {},
+                        $listView.data('view-args').context ? $listView.data('view-args').context : cloudStack.context);
+
+                    if (extendContext) {
+                        $.extend(context, extendContext);
+                    }
+
+                    return action.preFilter ? action.preFilter({
+                        id: listViewData.id,
+                        context: context
+                    }) : null;
+                }
+
+                if (!action.isHeader || (action.preFilter && !preFilter())) return true;
 
                 var $action = $('<div>')
                     .addClass('button action main-action reduced-hide').addClass(actionName)
@@ -1743,6 +1773,10 @@
                 if (action.isMultiSelectAction) {
                     $action.addClass('multiSelectAction');
                     $action.hide();
+
+                    if (action.preFilter) {
+                        $action.data('list-view-action-prefilter', preFilter);
+                    }
                 }
 
                 $toolbar.append($action)
@@ -1774,7 +1808,7 @@
             listViewData.preFilter,
             listViewData.fields,
             false, {
-                page: page,
+                page: $listView.data('page'),
                 filterBy: {
                     kind: $listView.find('select[id=filterBy]').val(),
                     search: {
@@ -1788,7 +1822,6 @@
                 context: args.context,
                 reorder: reorder,
                 detailView: listViewData.detailView,
-                setEndTable: setEndTable,
                 'multiSelect': multiSelect,
                 noActionCol: listViewData.noActionCol
             }
@@ -1821,15 +1854,16 @@
         //basic search
         var basicSearch = function() {
             $listView.removeData('advSearch');
+            advancedSearchData = {};
 
-            page = 1;
+            $listView.data('page', 1);
             loadBody(
                 $table,
                 listViewData.dataProvider,
                 listViewData.preFilter,
                 listViewData.fields,
                 false, {
-                    page: page,
+                    page: $listView.data('page'),
                     filterBy: {
                         kind: $listView.find('select[id=filterBy]').val(),
                         search: {
@@ -1842,7 +1876,6 @@
                     context: $listView.data('view-args').context,
                     reorder: listViewData.reorder,
                     detailView: listViewData.detailView,
-                    setEndTable: setEndTable,
                     'multiSelect': multiSelect,
                     noActionCol: listViewData.noActionCol
                 }
@@ -1875,15 +1908,14 @@
         //advanced search
         var advancedSearch = function(args) {
             $listView.data('advSearch', args.data);
-
-            page = 1;
+            $listView.data('page', 1);
             loadBody(
                 $table,
                 listViewData.dataProvider,
                 listViewData.preFilter,
                 listViewData.fields,
                 false, {
-                    page: page,
+                    page: $listView.data('page'),
                     filterBy: {
                         kind: $listView.find('select[id=filterBy]').val(),
                         advSearch: args.data
@@ -1893,12 +1925,13 @@
                     context: $listView.data('view-args').context,
                     reorder: listViewData.reorder,
                     detailView: listViewData.detailView,
-                    setEndTable: setEndTable,
                     'multiSelect': multiSelect,
                     noActionCol: listViewData.noActionCol
                 }
             );
         };
+
+        var advancedSearchData = {};
 
         var closeAdvancedSearch = function() {
             $listView.find('.advanced-search .form-container:visible').remove();
@@ -1911,6 +1944,11 @@
                 return false;
             }
 
+            // Setup advanced search default values, when existing data is present
+            $.each(listViewData.advSearchFields, function(fieldID, field) {
+                field.defaultValue = advancedSearchData[fieldID];
+            });
+
             var form = cloudStack.dialog.createForm({
                 noDialog: true,
                 form: {
@@ -1919,6 +1957,7 @@
                 },
                 after: function(args) {
                     advancedSearch(args);
+                    advancedSearchData = args.data;
                     $listView.find('.button.search#basic_search').siblings('.search-bar').find('input').val(''); //clear basic search input field to avoid confusion of search result
                     closeAdvancedSearch();
                 }
@@ -1959,8 +1998,8 @@
                 var loadMoreData = $listView.scrollTop() >= ($table.height() - $listView.height()) - $listView.height() / 4;
                 var context = $listView.data('view-args').context;
 
-                if (loadMoreData && !endTable) {
-                    page = page + 1;
+                if (loadMoreData && !$listView.data('end-of-table')) {
+                    $listView.data('page', $listView.data('page') + 1);
 
                     var filterBy = {
                         kind: $listView.find('select[id=filterBy]').length > 0 ? $listView.find('select[id=filterBy]').val() : 'all'
@@ -1980,12 +2019,11 @@
                         listViewData.preFilter,
                         listViewData.fields, true, {
                             context: context,
-                            page: page,
+                            page: $listView.data('page'),
                             filterBy: filterBy
                         }, actions, {
                             reorder: listViewData.reorder,
                             detailView: listViewData.detailView,
-                            setEndTable: setEndTable,
                             'multiSelect': multiSelect,
                             noActionCol: listViewData.noActionCol
                         });
@@ -2019,7 +2057,7 @@
             var jsonObj = $target.closest('tr').data('jsonObj');
             var detailViewArgs;
             var detailViewPresent = ($target.closest('div.data-table tr td.first').size() &&
-                listViewData.detailView && !$target.closest('div.edit').size());
+                listViewData.detailView && !$target.closest('div.edit').size()) && !listViewData.detailView.noPanelView;
             var uiCustom = args.uiCustom == true ? true : false;
 
             // Click on first item will trigger detail view (if present)
@@ -2104,7 +2142,7 @@
                     $tr = $target.closest('div.list-view').find('tr:first'); // Dummy row
                 } else {
                     if (listViewData.actions[actionID].isMultiSelectAction) {
-                        $tr = $('div.list-view').find('input.multiSelectCheckbox:checked').parents('tr');
+                        $tr = $listView.find('input.multiSelectCheckbox:checked').parents('tr');
                     } else {
                         $tr = $target.closest('tr');
                     }
@@ -2217,11 +2255,33 @@
         return $newRow;
     };
 
-    var toggleMultiSelectActions = function(enabled) {
-        var $listView = $('div.list-view');
+    var toggleMultiSelectActions = function($listView, enabled) {
+        var $multiSelectActions = $listView.find('div.main-action.multiSelectAction');
+
         $listView.find('div.action.add')[enabled ? 'hide' : 'show']();
         $listView.find('div.main-action:not(.multiSelectAction)')[enabled ? 'hide' : 'show']();
-        $listView.find('div.main-action.multiSelectAction')[enabled ? 'show' : 'hide']();
+        $multiSelectActions.hide();
+
+        if (enabled) {
+            $multiSelectActions.filter(function() {
+                var preFilter = $(this).data('list-view-action-prefilter');
+                var $selectedVMs;
+                var context = {};
+
+                if (preFilter) {
+                    $selectedVMs = $listView.find('tbody tr').filter(function() {
+                        return $(this).find('td.multiselect input[type=checkbox]:checked').size()
+                    });
+                    context[$listView.data('view-args').activeSection] = $selectedVMs.map(function(index, item) {
+                        return $(item).data('json-obj');
+                    });
+
+                    return preFilter(context);
+                }
+
+                return true;
+            }).show();
+        }
     }
 
     $.fn.listView = function(args, options) {
@@ -2253,6 +2313,7 @@
                 false,
                 null,
                 listViewArgs.actions, {
+                    clearEndTable: true,
                     multiSelect: listViewArgs.multiSelect,
                     context: this.data('view-args').context,
                     detailView: listViewArgs.detailView

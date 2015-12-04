@@ -379,7 +379,10 @@
             },
 
             addPrimaryStorage: function(args) {
-                return args.data.localstorageenabled != 'on';
+                if(args.data.localstorageenabled == 'on' && args.data.localstorageenabledforsystemvm == 'on') {
+                    return false; //skip step only when both localstorage and localstorage for system vm are checked
+                }
+                return true;
             }
         },
 
@@ -419,23 +422,23 @@
                         desc: 'message.tooltip.zone.name'
                     },
                     ip4dns1: {
-                        label: 'IPv4 DNS1',
+                        label: 'label.ipv4.dns1',
                         validation: {
                             required: true
                         },
                         desc: 'message.tooltip.dns.1'
                     },
                     ip4dns2: {
-                        label: 'IPv4 DNS2',
+                        label: 'label.ipv4.dns2',
                         desc: 'message.tooltip.dns.2'
                     },
 
                     ip6dns1: {
-                        label: 'IPv6 DNS1',
+                        label: 'label.ipv6.dns1',
                         desc: 'message.tooltip.dns.1'
                     },
                     ip6dns2: {
-                        label: 'IPv6 DNS2',
+                        label: 'label.ipv6.dns2',
                         desc: 'message.tooltip.dns.2'
                     },
 
@@ -474,9 +477,12 @@
                                         nonSupportedHypervisors["BareMetal"] = 1;
                                         nonSupportedHypervisors["Hyperv"] = 1;
                                         nonSupportedHypervisors["Ovm"] = 1;
-                                        nonSupportedHypervisors["LXC"] = 1;
                                     }
 
+                                    if (args.context.zones[0]['network-model'] == "Advanced") { //CLOUDSTACK-7681: UI > zone wizard > Advanced zone > hypervisor => do not support BareMetal                                    
+                                        nonSupportedHypervisors["BareMetal"] = 1;                                        
+                                    }
+                                    
                                     if (items != null) {
                                         for (var i = 0; i < items.length; i++) {
                                             if (items[i].name in nonSupportedHypervisors)
@@ -574,7 +580,7 @@
                                         });
 
                                         if (thisNetworkOffering.havingEIP == true && thisNetworkOffering.havingELB == true) { //EIP ELB
-                                            if (args.hypervisor == "VMware" || args.hypervisor == "BareMetal") { //VMware, BareMetal don't support EIP ELB
+                                            if (args.hypervisor == "VMware") { //VMware does not support EIP ELB
                                                 return true; //move to next item in $.each() loop
                                             }
                                             if (args.context.zones[0]["network-model"] == "Advanced" && args.context.zones[0]["zone-advanced-sg-enabled"] == "on") { // Advanced SG-enabled zone doesn't support EIP ELB
@@ -617,7 +623,7 @@
                     },
                     isdedicated: {                        
                         isBoolean: true,
-                        label: 'Dedicated',
+                        label: 'label.dedicated',
                         isChecked: false 
                     },
                     domain: {
@@ -648,7 +654,7 @@
                     },
 
                     account: {
-                        label: 'Account',
+                        label: 'label.account',
                         isHidden: true,
                         dependsOn: 'isdedicated',
                         //docID:'helpAccountForDedication',
@@ -662,23 +668,13 @@
                         label: 'label.local.storage.enabled',
                         isBoolean: true,
                         onChange: function(args) {
-                            var $checkbox = args.$checkbox;
+                        }
+                    },
 
-                            if ($checkbox.is(':checked')) {
-                                cloudStack.dialog.confirm({
-                                    message: 'message.zoneWizard.enable.local.storage',
-                                    action: function() {
-                                        $checkbox.attr('checked', true);
-                                    },
-                                    cancelAction: function() {
-                                        $checkbox.attr('checked', false);
-                                    }
-                                });
-
-                                return false;
-                            }
-
-                            return true;
+                    localstorageenabledforsystemvm: {
+                        label: 'label.local.storage.enabled.system.vms',
+                        isBoolean: true,
+                        onChange: function(args) {
                         }
                     }
                 }
@@ -770,15 +766,15 @@
                         label: 'label.private.interface'
                     },
                     gslbprovider: {
-                        label: 'GSLB service',
+                        label: 'label.gslb.service',
                         isBoolean: true,
                         isChecked: false
                     },
                     gslbproviderpublicip: {
-                        label: 'GSLB service Public IP'
+                        label: 'label.gslb.service.public.ip'
                     },
                     gslbproviderprivateip: {
-                        label: 'GSLB service Private IP'
+                        label: 'label.gslb.service.private.ip'
                     },
                     numretries: {
                         label: 'label.numretries',
@@ -852,7 +848,7 @@
                         label: 'label.guest.end.ip'
                     }, //Basic, Advanced with SG
                     vlanId: {
-                        label: 'VLAN ID'
+                        label: 'label.vlan.id'
                     }, //Advanced with SG
 
                     vlanRange: { //in multiple tabs (tabs is as many as Guest Traffic types in multiple physical networks in Advanced Zone without SG)
@@ -1038,7 +1034,7 @@
                     },
 
                     overridepublictraffic: {
-                        label: 'Override Public-Traffic',
+                        label: 'label.override.public.traffic',
                         isBoolean: true,
                         isHidden: true
 
@@ -1118,7 +1114,7 @@
                     */
 					
                     overrideguesttraffic: {
-                        label: 'Override Guest-Traffic',
+                        label: 'label.override.guest.traffic',
                         isBoolean: true,
                         isHidden: true
 
@@ -1201,21 +1197,21 @@
 
                     //Cisco Nexus Vswitch
                     vsmipaddress: {
-                        label: 'Nexus 1000v IP Address',
+                        label: 'label.cisco.nexus1000v.ip.address',
                         validation: {
                             required: false
                         },
                         isHidden: true
                     },
                     vsmusername: {
-                        label: 'Nexus 1000v Username',
+                        label: 'label.cisco.nexus1000v.username',
                         validation: {
                             required: false
                         },
                         isHidden: true
                     },
                     vsmpassword: {
-                        label: 'Nexus 1000v Password',
+                        label: 'label.cisco.nexus1000v.password',
                         validation: {
                             required: false
                         },
@@ -1635,7 +1631,7 @@
                                     $form.find('[rel=server]').find(".value").find("input").val("localhost");
                                    
                                     $form.find('[rel=path]').css('display', 'block');                                    
-                                    $form.find('[rel=path]').find(".name").find("label").html("<span class=\"field-required\">*</span>'label.SR.name':");
+                                    $form.find('[rel=path]').find(".name").find("label").html('<span class=\"field-required\">*</span>'+_l('label.SR.name')+':');
                                    
                                     $form.find('[rel=smbUsername]').hide();
                                     $form.find('[rel=smbPassword]').hide();
@@ -1785,7 +1781,14 @@
                         isHidden: true
                     },
 
-                    //SMB                                           
+                    //SMB
+                    smbDomain: {
+                    	label: 'label.smb.domain',
+                    	validation: {
+                            required: true
+                        },
+                        isHidden: true
+                    },          
                     smbUsername: {
                     	label: 'label.smb.username',
                     	validation: {
@@ -1801,13 +1804,7 @@
                         },
                         isHidden: true
                     },
-                    smbDomain: {
-                    	label: 'label.smb.domain',
-                    	validation: {
-                            required: true
-                        },
-                        isHidden: true
-                    },                          
+                                    
                     
                     //iscsi
                     iqn: {
@@ -2121,7 +2118,13 @@
                     //NFS, SMB (end)
 
 
-                    //SMB (begin)                                            
+                    //SMB (begin) 
+                    smbDomain: {
+                    	label: 'label.smb.domain',
+                    	validation: {
+                            required: true
+                        }
+                    },
                     smbUsername: {
                     	label: 'label.smb.username',
                     	validation: {
@@ -2134,13 +2137,7 @@
                     	validation: {
                             required: true
                         }
-                    },
-                    smbDomain: {
-                    	label: 'label.smb.domain',
-                    	validation: {
-                            required: true
-                        }
-                    },
+                    },                    
                     //SMB (end)
                     
                     //S3 (begin)
@@ -2238,9 +2235,9 @@
             }
         },
 
-        action: function(args) {      	
-        	var $wizard = args.wizard;
-        	        	
+        action: function(args) {
+            var $wizard = args.wizard;
+            var formData = args.data;
             var advZoneConfiguredVirtualRouterCount = 0; //for multiple physical networks in advanced zone. Each physical network has 2 virtual routers: regular one and VPC one.
 
             var success = args.response.success;
@@ -4415,29 +4412,50 @@
                         });
                     }
 
-                    $.ajax({
-                        url: createURL("addHost"),
-                        type: "POST",
-                        data: data,
-                        success: function(json) {
-                            stepFns.addPrimaryStorage({
-                                data: $.extend(args.data, {
-                                    returnedHost: json.addhostresponse.host[0]
-                                })
-                            });
-                        },
-                        error: function(XMLHttpResponse) {
-                            var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
-                            error('addHost', errorMsg, {
-                                fn: 'addHost',
-                                args: args
-                            });
-                        }
-                    });
+                    var addHostAjax = function() {
+                        $.ajax({
+                            url: createURL("addHost"),
+                            type: "POST",
+                            data: data,
+                            success: function(json) {
+                                stepFns.addPrimaryStorage({
+                                    data: $.extend(args.data, {
+                                        returnedHost: json.addhostresponse.host[0]
+                                    })
+                                });
+                            },
+                            error: function(XMLHttpResponse) {
+                                var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                                error('addHost', errorMsg, {
+                                    fn: 'addHost',
+                                    args: args
+                                });
+                            }
+                        });
+                    };
+
+                    if(args.data.zone.localstorageenabledforsystemvm == 'on') {
+                        $.ajax({
+                            url: createURL("updateConfiguration&name=system.vm.use.local.storage&value=true&zoneid=" + args.data.returnedZone.id),
+                            dataType: "json",
+                            success: function(json) {
+                                addHostAjax();
+                            },
+                            error: function(XMLHttpResponse) {
+                               var errorMsg = parseXMLHttpResponse(XMLHttpResponse);
+                               error('addHost', errorMsg, {
+                                   fn: 'addHost',
+                                   args: args
+                               });
+                            }
+                        });
+                    } else {
+                        addHostAjax();
+                    }
                 },
 
                 addPrimaryStorage: function(args) {
-                    if (args.data.zone.localstorageenabled == 'on') { //use local storage, don't need primary storage. So, skip this step.
+                    if (args.data.zone.localstorageenabled == 'on' && args.data.zone.localstorageenabledforsystemvm == 'on') { //use local storage, don't need primary storage. So, skip
                         stepFns.addSecondaryStorage({
                             data: args.data
                         });
@@ -4454,8 +4472,16 @@
                     array1.push("&scope=" + todb(args.data.primaryStorage.scope));
 
                     //zone-wide-primary-storage is supported only for KVM and VMWare
-                    if (args.data.primaryStorage.scope == "zone") {
-                        array1.push("&hypervisor=" + todb(args.data.cluster.hypervisor)); //hypervisor type of the hosts in zone that will be attached to this storage pool. KVM, VMware supported as of now.
+                    if (args.data.primaryStorage.scope == "zone") { //hypervisor type of the hosts in zone that will be attached to this storage pool. KVM, VMware supported as of now.
+                        if(args.data.cluster.hypervisor != undefined) {        
+                    	    array1.push("&hypervisor=" + todb(args.data.cluster.hypervisor)); 
+                        } else if(args.data.returnedCluster.hypervisortype != undefined) {        
+                    	    array1.push("&hypervisor=" + todb(args.data.returnedCluster.hypervisortype)); 
+                        } else {
+                        	cloudStack.dialog.notice({
+                            	message: "Error: args.data.cluster.hypervisor is undefined. So is args.data.returnedCluster.hypervisortype (zone-wide-primary-storage)"
+                            });     
+                        }
                     }
 
                     var server = args.data.primaryStorage.server;

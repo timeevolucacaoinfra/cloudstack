@@ -184,7 +184,9 @@ public class PrimaryDataStoreDaoImpl extends GenericDaoBase<StoragePoolVO, Long>
     public StoragePoolVO findPoolByHostPath(long datacenterId, Long podId, String host, String path, String uuid) {
         SearchCriteria<StoragePoolVO> sc = AllFieldSearch.create();
         sc.setParameters("hostAddress", host);
-        sc.setParameters("path", path);
+        if (path != null) {
+            sc.setParameters("path", path);
+        }
         sc.setParameters("datacenterId", datacenterId);
         sc.setParameters("podId", podId);
         sc.setParameters("uuid", uuid);
@@ -263,9 +265,8 @@ public class PrimaryDataStoreDaoImpl extends GenericDaoBase<StoragePoolVO, Long>
         sql.delete(sql.length() - 4, sql.length());
         sql.append(DetailsSqlSuffix);
         TransactionLegacy txn = TransactionLegacy.currentTxn();
-        PreparedStatement pstmt = null;
-        try {
-            pstmt = txn.prepareAutoCloseStatement(sql.toString());
+        try (PreparedStatement pstmt = txn.prepareStatement(sql.toString());){
+            List<StoragePoolVO> pools = new ArrayList<StoragePoolVO>();
             int i = 1;
             pstmt.setLong(i++, dcId);
             pstmt.setLong(i++, podId);
@@ -274,14 +275,16 @@ public class PrimaryDataStoreDaoImpl extends GenericDaoBase<StoragePoolVO, Long>
                 pstmt.setLong(i++, clusterId);
             }
             pstmt.setInt(i++, details.size());
-            ResultSet rs = pstmt.executeQuery();
-            List<StoragePoolVO> pools = new ArrayList<StoragePoolVO>();
-            while (rs.next()) {
-                pools.add(toEntityBean(rs, false));
+            try(ResultSet rs = pstmt.executeQuery();) {
+                while (rs.next()) {
+                    pools.add(toEntityBean(rs, false));
+                }
+            }catch (SQLException e) {
+                throw new CloudRuntimeException("Unable to execute :" + e.getMessage(), e);
             }
             return pools;
         } catch (SQLException e) {
-            throw new CloudRuntimeException("Unable to execute " + pstmt, e);
+            throw new CloudRuntimeException("Unable to execute :" + e.getMessage(), e);
         }
     }
 
@@ -378,21 +381,24 @@ public class PrimaryDataStoreDaoImpl extends GenericDaoBase<StoragePoolVO, Long>
             sql.delete(sql.length() - 4, sql.length());
             sql.append(ZoneWideDetailsSqlSuffix);
             TransactionLegacy txn = TransactionLegacy.currentTxn();
-            PreparedStatement pstmt = null;
-            try {
-                pstmt = txn.prepareAutoCloseStatement(sql.toString());
-                int i = 1;
-                pstmt.setLong(i++, dcId);
-                pstmt.setString(i++, ScopeType.ZONE.toString());
-                pstmt.setInt(i++, details.size());
-                ResultSet rs = pstmt.executeQuery();
+            try (PreparedStatement pstmt = txn.prepareStatement(sql.toString());){
                 List<StoragePoolVO> pools = new ArrayList<StoragePoolVO>();
-                while (rs.next()) {
-                    pools.add(toEntityBean(rs, false));
+                if (pstmt != null) {
+                    int i = 1;
+                    pstmt.setLong(i++, dcId);
+                    pstmt.setString(i++, ScopeType.ZONE.toString());
+                    pstmt.setInt(i++, details.size());
+                    try(ResultSet rs = pstmt.executeQuery();) {
+                        while (rs.next()) {
+                            pools.add(toEntityBean(rs, false));
+                        }
+                    }catch (SQLException e) {
+                        throw new CloudRuntimeException("findZoneWideStoragePoolsByTags:Exception:" + e.getMessage(), e);
+                    }
                 }
                 return pools;
             } catch (SQLException e) {
-                throw new CloudRuntimeException("Unable to execute " + pstmt, e);
+                throw new CloudRuntimeException("findZoneWideStoragePoolsByTags:Exception:" + e.getMessage(), e);
             }
         }
     }
@@ -400,27 +406,25 @@ public class PrimaryDataStoreDaoImpl extends GenericDaoBase<StoragePoolVO, Long>
     @Override
     @DB
     public List<String> searchForStoragePoolDetails(long poolId, String value) {
-
         StringBuilder sql = new StringBuilder(FindPoolTagDetails);
-
         TransactionLegacy txn = TransactionLegacy.currentTxn();
-        PreparedStatement pstmt = null;
-        try {
-            pstmt = txn.prepareAutoCloseStatement(sql.toString());
-            pstmt.setLong(1, poolId);
-            pstmt.setString(2, value);
-
-            ResultSet rs = pstmt.executeQuery();
-            List<String> tags = new ArrayList<String>();
-
-            while (rs.next()) {
-                tags.add(rs.getString("name"));
+        List<String> tags = new ArrayList<String>();
+        try(PreparedStatement pstmt = txn.prepareStatement(sql.toString());) {
+            if (pstmt != null) {
+                pstmt.setLong(1, poolId);
+                pstmt.setString(2, value);
+                try(ResultSet rs = pstmt.executeQuery();) {
+                    while (rs.next()) {
+                        tags.add(rs.getString("name"));
+                    }
+                }catch (SQLException e) {
+                    throw new CloudRuntimeException("searchForStoragePoolDetails:Exception:" + e.getMessage(), e);
+                }
             }
             return tags;
         } catch (SQLException e) {
-            throw new CloudRuntimeException("Unable to execute " + pstmt.toString(), e);
+            throw new CloudRuntimeException("searchForStoragePoolDetails:Exception:" + e.getMessage(), e);
         }
-
     }
 
     @Override
@@ -431,6 +435,9 @@ public class PrimaryDataStoreDaoImpl extends GenericDaoBase<StoragePoolVO, Long>
                 detailsVO.add(new StoragePoolDetailVO(poolId, key, details.get(key), true));
             }
             _detailsDao.saveDetails(detailsVO);
+            if(details.size() == 0) {
+                _detailsDao.removeDetails(poolId);
+            }
         }
     }
 

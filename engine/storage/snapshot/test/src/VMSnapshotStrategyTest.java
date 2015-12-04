@@ -165,9 +165,9 @@ public class VMSnapshotStrategyTest extends TestCase {
         GuestOSVO guestOSVO = Mockito.mock(GuestOSVO.class);
         Mockito.when(guestOSDao.findById(Matchers.anyLong())).thenReturn(guestOSVO);
         GuestOSHypervisorVO guestOSHypervisorVO = Mockito.mock(GuestOSHypervisorVO.class);
+        Mockito.when(guestOSHypervisorVO.getGuestOsName()).thenReturn(guestOsName);
         Mockito.when(guestOsHypervisorDao.findById(Matchers.anyLong())).thenReturn(guestOSHypervisorVO);
         Mockito.when(guestOsHypervisorDao.findByOsIdAndHypervisor(Matchers.anyLong(), Matchers.anyString(), Matchers.anyString())).thenReturn(guestOSHypervisorVO);
-        Mockito.when(guestOSHypervisorVO.getGuestOsName()).thenReturn(guestOsName);
         VMSnapshotTO vmSnapshotTO = Mockito.mock(VMSnapshotTO.class);
         Mockito.when(vmSnapshotHelper.getSnapshotWithParents(Matchers.any(VMSnapshotVO.class))).thenReturn(vmSnapshotTO);
         Mockito.when(vmSnapshotDao.findById(Matchers.anyLong())).thenReturn(vmSnapshot);
@@ -226,6 +226,7 @@ public class VMSnapshotStrategyTest extends TestCase {
         Mockito.when(hostDao.findById(Matchers.anyLong())).thenReturn(hostVO);
         Mockito.when(hostVO.getHypervisorType()).thenReturn(hypervisorType);
         Mockito.when(hostVO.getHypervisorVersion()).thenReturn(hypervisorVersion);
+
         Exception e = null;
         try {
             vmSnapshotStrategy.deleteVMSnapshot(vmSnapshot);

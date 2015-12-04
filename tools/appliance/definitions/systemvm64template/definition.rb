@@ -1,11 +1,18 @@
+#
+# NOTE: Before changing the version of the debian image make
+# sure it is added to the userContent of jenkins.buildacloud.org
+# and the copy task is updated on the systemvm builds
+# This will prevent the inevitable build failure once the iso is
+# removed from the debian mirrors
+#
 Veewee::Definition.declare({
   :cpu_count => '1',
   :memory_size=> '256',
-  :disk_size => '2500', :disk_format => 'VDI', :hostiocache => 'off',
+  :disk_size => '3000', :disk_format => 'VDI', :hostiocache => 'off',
   :os_type_id => 'Debian_64',
-  :iso_file => "debian-7.5.0-amd64-netinst.iso",
-  :iso_src => "http://cdimage.debian.org/mirror/cdimage/archive/7.5.0/amd64/iso-cd/debian-7.5.0-amd64-netinst.iso",
-  :iso_md5 => "8fdb6715228ea90faba58cb84644d296",
+  :iso_file => "debian-7.8.0-amd64-netinst.iso",
+  :iso_src => "http://cdimage.debian.org/cdimage/archive/7.8.0/amd64/iso-cd/debian-7.8.0-amd64-netinst.iso",
+  :iso_md5 => "a91fba5001cf0fbccb44a7ae38c63b6e",
   :iso_download_timeout => "1000",
   :boot_wait => "10", :boot_cmd_sequence => [
      '<Esc>',

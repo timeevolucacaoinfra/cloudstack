@@ -513,7 +513,7 @@ public class NetworkVO implements Network {
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("Ntwk[");
-        buf.append(uuid).append("|").append(trafficType).append("|").append(networkOfferingId).append("]");
+        buf.append(id).append("|").append(trafficType).append("|").append(networkOfferingId).append("]");
         return buf.toString();
     }
 
@@ -606,7 +606,7 @@ public class NetworkVO implements Network {
         this.strechedL2Network = strechedL2Network;
     }
 
-    public void setVpcId(long vpcId) {
+    public void setVpcId(Long vpcId) {
         this.vpcId = vpcId;
     }
 }

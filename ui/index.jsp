@@ -29,9 +29,11 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-        <title></title>
+        <title>Apache CloudStack</title>
+        <link rel="shortcut icon" href="images/cloud.ico" />
         <link type="text/css" rel="stylesheet" href="lib/reset.css"/>
         <link type="text/css" rel="stylesheet" href="css/cloudstack3.css" />
+        <link type="text/css" rel="stylesheet" href="css/token-input-facebook.css" />
         <c:if test="${!empty cookie.lang && cookie.lang.value != 'en'}">
             <link type="text/css" rel="stylesheet" href="css/cloudstack3.${cookie.lang.value}.css" />
         </c:if>
@@ -49,27 +51,38 @@
                 <form>
                     <div class="logo"></div>
                     <div class="fields">
-                        <!-- User name -->
-                        <div class="field username">
-                            <label for="username"><fmt:message key="label.username"/></label>
-                            <input type="text" name="username" class="required" />
+                        <div id="login-dropdown">
+                            <select id="login-options" style="width: 260px">
+                                <option value="cloudstack-login">Local <fmt:message key="label.login"/></option>
+                            </select>
                         </div>
-                        <!-- Password -->
-                        <div class="field password">
-                            <label for="password"><fmt:message key="label.password"/></label>
-                            <input type="password" name="password" class="required" autocomplete="off" />
+
+                        <div id="cloudstack-login">
+                            <!-- User name -->
+                            <div class="field username">
+                                <label for="username"><fmt:message key="label.username"/></label>
+                                <input type="text" name="username" class="required" />
+                            </div>
+                            <!-- Password -->
+                            <div class="field password">
+                                <label for="password"><fmt:message key="label.password"/></label>
+                                <input type="password" name="password" class="required" autocomplete="off" />
+                            </div>
+                            <!-- Domain -->
+                            <div class="field domain">
+                                <label for="domain"><fmt:message key="label.domain"/></label>
+                                <input type="text" name="domain" />
+                            </div>
                         </div>
-                        <!-- Domain -->
-                        <div class="field domain">
-                            <label for="domain"><fmt:message key="label.domain"/></label>
-                            <input type="text" name="domain" />
+
+                        <div id="login-submit">
+                            <!-- Submit (login) -->
+                            <input id="login-submit" type="submit" value="<fmt:message key="label.login"/>" />
                         </div>
-                        <!-- Submit (login) -->
-                        <input type="submit" value="<fmt:message key="label.login"/>" />
                         <!-- Select language -->
                         <div class="select-language">
                             <select name="language">
-                                <option value=""></option> <!-- when this blank option is selected, browser's default language will be used -->
+                                <option value=""></option> <!-- when this blank option is selected, default language of the browser will be used -->
                                 <option value="en"><fmt:message key="label.lang.english"/></option>
                                 <option value="ja_JP"><fmt:message key="label.lang.japanese"/></option>
                                 <option value="zh_CN"><fmt:message key="label.lang.chinese"/></option>
@@ -85,6 +98,7 @@
                                 <option value="ar"><fmt:message key="label.lang.arabic"/></option>
                                 <option value="nl_NL"><fmt:message key="label.lang.dutch"/></option>
                                 <option value="pl"><fmt:message key="label.lang.polish"/></option>
+                                <option value="hu"><fmt:message key="label.lang.hungarian"/></option>
                             </select>
                         </div>
                     </div>
@@ -147,7 +161,8 @@
                                     <ul>
                                         <li class="first"><a href="#instance-wizard-featured-templates"><fmt:message key="label.featured"/></a></li>
                                         <li><a href="#instance-wizard-community-templates"><fmt:message key="label.community"/></a></li>
-                                        <li class="last"><a href="#instance-wizard-my-templates"><fmt:message key="label.my.templates"/></a></li>
+                                        <li><a href="#instance-wizard-my-templates"><fmt:message key="label.my.templates"/></a></li>
+                                        <li class="last"><a href="#instance-wizard-shared-templates"><fmt:message key="label.shared"/></a></li>
                                     </ul>
 
                                     <!-- Used for Select Template only -->
@@ -162,6 +177,10 @@
                                         </div>
                                     </div>
                                     <div id="instance-wizard-my-templates">
+                                        <div class="select-container">
+                                        </div>
+                                    </div>
+                                    <div id="instance-wizard-shared-templates">
                                         <div class="select-container">
                                         </div>
                                     </div>
@@ -183,7 +202,8 @@
                                     <ul>
                                         <li class="first"><a href="#instance-wizard-featured-isos"><fmt:message key="label.featured"/></a></li>
                                         <li><a href="#instance-wizard-community-isos"><fmt:message key="label.community"/></a></li>
-                                        <li class="last"><a href="#instance-wizard-my-isos"><fmt:message key="label.menu.my.isos"/></a></li>
+                                        <li><a href="#instance-wizard-my-isos"><fmt:message key="label.menu.my.isos"/></a></li>
+                                        <li class="last"><a href="#instance-wizard-shared-isos"><fmt:message key="label.shared"/></a></li>
                                     </ul>
                                     <div id="instance-wizard-featured-isos">
                                         <div class="select-container">
@@ -194,6 +214,10 @@
                                         </div>
                                     </div>
                                     <div id="instance-wizard-my-isos">
+                                        <div class="select-container">
+                                        </div>
+                                    </div>
+                                    <div id="instance-wizard-shared-isos">
                                         <div class="select-container">
                                         </div>
                                     </div>
@@ -400,7 +424,7 @@
                             <div class="content">
                                 <div class="select-container">
                                     <!-- Name -->
-                                    <div class="select vm-instance-name">
+                                    <div class="select odd vm-instance-name">
                                         <div class="name">
                                             <span><fmt:message key="label.name"/> (<fmt:message key="label.optional"/>)</span>
                                         </div>
@@ -409,7 +433,7 @@
                                         </div>
                                     </div>
                                     <!-- Add to group -->
-                                    <div class="select odd">
+                                    <div class="select">
                                         <div class="name">
                                             <span><fmt:message key="label.add.to.group"/> (<fmt:message key="label.optional"/>)</span>
                                         </div>
@@ -417,6 +441,23 @@
                                             <input type="text" name="groupname" class="disallowSpecialCharacters" />
                                         </div>
                                     </div>
+
+                                    <!-- Keyboard Language -->
+                                    <div class="select odd">
+                                        <div class="name">
+                                            <span>Keyboard language</span>
+                                        </div>
+                                        <div class="value">
+                                            <select name="keyboardLanguage">
+                                                <option value=""></option>
+                                                <option value="us">Standard (US) keyboard</option>
+                                                <option value="uk">UK keyboard</option>
+                                                <option value="jp">Japanese keyboard</option>
+                                                <option value="sc">Simplified Chinese keyboard</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
                                     <!-- Zone -->
                                     <div class="select">
                                         <div class="name">
@@ -1675,6 +1716,10 @@
         <script src="lib/jquery.md5.js" type="text/javascript" ></script>
         <script src="lib/require.js" type="text/javascript"></script>
 
+        <!-- localized messages -->
+        <jsp:include page="dictionary.jsp" />
+        <jsp:include page="dictionary2.jsp" />
+
         <script src="lib/excanvas.js" type="text/javascript"></script>
         <script src="lib/flot/jquery.flot.js" type="text/javascript"></script>
         <script src="lib/flot/jquery.colorhelpers.js" type="text/javascript"></script>
@@ -1688,6 +1733,8 @@
         <script src="lib/flot/jquery.flot.stack.js" type="text/javascript"></script>
         <script src="lib/flot/jquery.flot.symbol.js" type="text/javascript"></script>
         <script src="lib/flot/jquery.flot.threshold.js" type="text/javascript"></script>
+        <!-- jquery.tokeninput.js -->
+        <script src="lib/jquery.tokeninput.js" type="text/javascript"></script>
         <!-- CloudStack -->
         <script type="text/javascript" src="scripts/ui/core.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/ui/utils.js?t=<%=now%>"></script>
@@ -1754,14 +1801,12 @@
         <script type="text/javascript" src="scripts/docs.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/vm_snapshots.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/ui-custom/projectSelect.js?t=<%=now%>"></script>
+        <script type="text/javascript" src="scripts/ui-custom/saml.js?t=<%=now%>"></script>
 
         <!-- Plugin/module API -->
         <script type="text/javascript" src="scripts/ui-custom/pluginListing.js?t=<%=now%>"></script>
         <script type="text/javascript" src="plugins/plugins.js?t=<%=now%>"></script>
         <script type="text/javascript" src="modules/modules.js?t=<%=now%>"></script>
         <script type="text/javascript" src="scripts/plugins.js?t=<%=now%>"></script>
-
-        <!-- localized messages -->
-        <jsp:include page="dictionary.jsp" />
     </body>
 </html>

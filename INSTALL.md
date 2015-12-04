@@ -14,25 +14,25 @@ was tested against a CentOS 6.5 x86_64 setup.
 
 Install tools and dependencies used for development:
 
-    $ yum install git ant ant-devel java-1.7.0-openjdk java-1.7.0-openjdk-devel
+    $ yum install git ant ant-devel java-1.6.0-openjdk java-1.6.0-openjdk-devel
     mysql mysql-server tomcat6 mkisofs gcc python MySQL-python openssh-clients wget
 
-    #yum -y update
-    #yum -y install java-1.7.0-openjdk
-    #yum -y install java-1.7.0-openjdk-devel
-    #yum -y install mysql-server
-    #yum -y install git
-    #yum -y install genisoimage
+    # yum -y update
+    # yum -y install java-1.7.0-openjdk
+    # yum -y install java-1.7.0-openjdk-devel
+    # yum -y install mysql-server
+    # yum -y install git
+    # yum -y install genisoimage
 
 Set up Maven (3.0.5):
 
-    #wget http://www.us.apache.org/dist/maven/maven-3/3.0.5/binaries/apache-maven-3.0.5-bin.tar.gz
-    #tar -zxvf apache-maven-3.0.5-bin.tar.gz -C /usr/local
-    #cd /usr/local
-    #ln -s apache-maven-3.0.5 maven
-    #echo export M2_HOME=/usr/local/maven >> ~/.bashrc # or .zshrc or .profile
-    #echo export PATH=/usr/local/maven/bin:${PATH} >> ~/.bashrc # or .zshrc or .profile
-    #source ~/.bashrc
+    # wget http://www.us.apache.org/dist/maven/maven-3/3.0.5/binaries/apache-maven-3.0.5-bin.tar.gz
+    # tar -zxvf apache-maven-3.0.5-bin.tar.gz -C /usr/local
+    # cd /usr/local
+    # ln -s apache-maven-3.0.5 maven
+    # echo export M2_HOME=/usr/local/maven >> ~/.bashrc # or .zshrc or .profile
+    # echo export PATH=/usr/local/maven/bin:${PATH} >> ~/.bashrc # or .zshrc or .profile
+    # source ~/.bashrc
 
 Start the MySQL service:
 
@@ -105,9 +105,9 @@ Before packaging, please make sure you go through the "Building" section above. 
 
 To create debs install the following extra packages:
 
-    #apt-get -y install python-mysqldb
-    #apt-get -y install debhelper
-    #apt-get -y install tomcat6
+    # apt-get -y install python-mysqldb
+    # apt-get -y install debhelper
+    # apt-get -y install tomcat6
 
 Then:
 
@@ -120,12 +120,12 @@ All the deb packages will be located one level down.
 
 To create rpms, install the following extra packages:
 
-    #yum -y install rpm-build
-    #yum -y install tomcat6
-    #yum -y install ws-commons-util
-    #yum -y instal gcc
-    #yum -y install glibc-devel
-    #yum -y install MySQL-python
+    # yum -y install rpm-build
+    # yum -y install tomcat6
+    # yum -y install ws-commons-util
+    # yum -y instal gcc
+    # yum -y install glibc-devel
+    # yum -y install MySQL-python
 
 Then:
 

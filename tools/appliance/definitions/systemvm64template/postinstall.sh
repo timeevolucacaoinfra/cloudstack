@@ -19,11 +19,11 @@ set -x
 
 ROOTPW=password
 HOSTNAME=systemvm
-CLOUDSTACK_RELEASE=4.4.1
+CLOUDSTACK_RELEASE=4.5.2
 
 add_backports () {
     sed -i '/backports/d' /etc/apt/sources.list
-    echo 'deb http://http.us.debian.org/debian wheezy-backports main' >> /etc/apt/sources.list
+    echo 'deb http://http.debian.net/debian/ wheezy-backports main' >> /etc/apt/sources.list
     apt-get update
 }
 
@@ -49,7 +49,7 @@ install_packages() {
   # nfs client
   apt-get --no-install-recommends -q -y --force-yes install nfs-common
   # nfs irqbalance
-  apt-get --no-install-recommends -q -y --force-yes install irqbalance
+  apt-get --no-install-recommends -q -y --force-yes -t wheezy-backports install irqbalance
 
   # cifs client
   apt-get --no-install-recommends -q -y --force-yes install samba-common
@@ -60,6 +60,7 @@ install_packages() {
   echo "openswan openswan/install_x509_certificate boolean false" | debconf-set-selections
   echo "openswan openswan/install_x509_certificate seen true" | debconf-set-selections
   apt-get --no-install-recommends -q -y --force-yes install openswan=1:2.6.37-3
+  apt-mark hold openswan
 
   # xenstore utils
   apt-get --no-install-recommends -q -y --force-yes install xenstore-utils libxenstore3.0
@@ -74,39 +75,37 @@ install_packages() {
   echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections
   echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections
   apt-get --no-install-recommends -q -y --force-yes install iptables-persistent
-  
+
   # Hyperv  kvp daemon - 64bit only
-  # Download the hv kvp daemon 
+  # Download the hv kvp daemon
   wget http://people.apache.org/~rajeshbattala/hv-kvp-daemon_3.1_amd64.deb
   dpkg -i hv-kvp-daemon_3.1_amd64.deb
+  rm -f hv-kvp-daemon_3.1_amd64.deb
 
-  #libraries required for rdp client (Hyper-V) 
-  DEBIAN_FRONTEND=noninteractive apt-get --no-install-recommends -qq -y --force-yes install libtcnative-1 libssl-dev libapr1-dev
+  # Libraries required for rdp client (Hyper-V)
+  apt-get --no-install-recommends -q -y --force-yes install libtcnative-1 libssl-dev libapr1-dev
 
   # vmware tools
-  apt-get --no-install-recommends -q -y --force-yes install open-vm-tools
-  # commented installaion of vmware-tools  as we are using the opensource open-vm-tools:
-  # apt-get --no-install-recommends -q -y --force-yes install build-essential linux-headers-`uname -r`
-  # df -h
-  # PREVDIR=$PWD
-  # cd /opt
-  # wget http://people.apache.org/~bhaisaab/cloudstack/VMwareTools-9.2.1-818201.tar.gz
-  # tar xzf VMwareTools-9.2.1-818201.tar.gz
-  # rm VMwareTools-*.tar.gz
-  # cd vmware-tools-distrib
-  # ./vmware-install.pl -d
-  # cd $PREV
-  # rm -fr /opt/vmware-tools-distrib
-  # apt-get -q -y --force-yes purge build-essential
+  apt-get --no-install-recommends -q -y --force-yes -t wheezy-backports install open-vm-tools
+
+  # xs tools
+  wget https://raw.githubusercontent.com/bhaisaab/cloudstack-nonoss/master/xe-guest-utilities_6.5.0_amd64.deb
+  dpkg -i xe-guest-utilities_6.5.0_amd64.deb
+  rm -f xe-guest-utilities_6.5.0_amd64.deb
 
   apt-get --no-install-recommends -q -y --force-yes install haproxy
 
-  #32 bit architecture support:: not required for 32 bit template
+  #installing 32 -bit architecture for running vhd-util
   dpkg --add-architecture i386
   apt-get update
-  apt-get --no-install-recommends -q -y --force-yes install links:i386 libuuid1:i386
+  apt-get --no-install-recommends -q -y --force-yes install links:i386 libuuid1:i386 libc6:i386
 
   apt-get --no-install-recommends -q -y --force-yes install radvd
+
+  # do a final update and upgrade
+  apt-get clean
+  apt-get update
+  apt-get -y --force-yes upgrade
 }
 
 setup_accounts() {
@@ -183,6 +182,13 @@ EOF
   locale-gen en_US.UTF-8
 }
 
+# This is actually a bug in the conntrackd package. The comment in the conf file says stats logging is off by default but the parameter is set to on.
+# After a couple weeks logrotate will rotate the conntrackd-stats.log file ans start conntracking even if we don't want it to (on non-redundant routers for instance).
+fix_conntrackd() {
+  sed -i '/Stats {/,/}/ s/LogFile on/LogFile off/' /etc/conntrackd/conntrackd.conf
+  rm -f /var/log/conntrackd-stats.log
+}
+
 fix_vhdutil() {
   wget --no-check-certificate http://download.cloud.com.s3.amazonaws.com/tools/vhd-util -O /bin/vhd-util
   chmod a+x /bin/vhd-util
@@ -204,6 +210,7 @@ do_fixes() {
   fix_acpid
   fix_hostname
   fix_locale
+  fix_conntrackd
   fix_vhdutil
   fix_modules
 }
@@ -229,11 +236,11 @@ configure_services() {
   mkdir -p /var/lib/haproxy
 
   # Get config files from master
-  snapshot_url="https://git-wip-us.apache.org/repos/asf?p=cloudstack.git;a=snapshot;h=HEAD;sf=tgz"
+  snapshot_url="https://git-wip-us.apache.org/repos/asf?p=cloudstack.git;a=snapshot;h=refs/heads/4.5;sf=tgz"
   snapshot_dir="/opt/cloudstack*"
   cd /opt
   wget --no-check-certificate $snapshot_url -O cloudstack.tar.gz
-  tar -zxvf cloudstack.tar.gz --wildcards 'cloudstack-HEAD-???????/systemvm'
+  tar -zxvf cloudstack.tar.gz --wildcards cloudstack*/systemvm
   cp -rv $snapshot_dir/systemvm/patches/debian/config/* /
   cp -rv $snapshot_dir/systemvm/patches/debian/vpn/* /
   mkdir -p /usr/share/cloud/
@@ -253,6 +260,10 @@ configure_services() {
   chkconfig xl2tpd off
   chkconfig hv_kvp_daemon off
   chkconfig radvd off
+
+  # Disable services that slow down boot and are not used anyway
+  chkconfig x11-common off
+  chkconfig console-setup off
 }
 
 do_signature() {

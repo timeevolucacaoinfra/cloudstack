@@ -17,55 +17,6 @@
 
 package com.cloud.network.router;
 
-import com.cloud.server.ResourceTag;
-import com.cloud.tags.TagKeysBuilder;
-import com.cloud.tags.dao.ResourceTagDao;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
-import javax.ejb.Local;
-import javax.inject.Inject;
-import javax.naming.ConfigurationException;
-
-import org.apache.log4j.Logger;
-
-import org.apache.cloudstack.alert.AlertService;
-import org.apache.cloudstack.alert.AlertService.AlertType;
-import org.apache.cloudstack.api.command.admin.router.RebootRouterCmd;
-import org.apache.cloudstack.api.command.admin.router.UpgradeRouterCmd;
-import org.apache.cloudstack.api.command.admin.router.UpgradeRouterTemplateCmd;
-import org.apache.cloudstack.config.ApiServiceConfiguration;
-import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
-import org.apache.cloudstack.framework.config.ConfigDepot;
-import org.apache.cloudstack.framework.config.ConfigKey;
-import org.apache.cloudstack.framework.config.Configurable;
-import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
-import org.apache.cloudstack.framework.jobs.AsyncJobManager;
-import org.apache.cloudstack.framework.jobs.impl.AsyncJobVO;
-import org.apache.cloudstack.managed.context.ManagedContextRunnable;
-import org.apache.cloudstack.utils.identity.ManagementServerNode;
-
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.Listener;
 import com.cloud.agent.api.AgentControlAnswer;
@@ -121,6 +72,7 @@ import com.cloud.cluster.ManagementServerHostVO;
 import com.cloud.cluster.dao.ManagementServerHostDao;
 import com.cloud.configuration.Config;
 import com.cloud.configuration.ConfigurationManager;
+import com.cloud.configuration.ConfigurationManagerImpl;
 import com.cloud.configuration.ZoneConfig;
 import com.cloud.dc.ClusterVO;
 import com.cloud.dc.DataCenter;
@@ -146,7 +98,7 @@ import com.cloud.exception.ConnectionException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.InsufficientServerCapacityException;
-import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
+import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.OperationTimedoutException;
 import com.cloud.exception.ResourceUnavailableException;
@@ -227,14 +179,19 @@ import com.cloud.offerings.NetworkOfferingVO;
 import com.cloud.offerings.dao.NetworkOfferingDao;
 import com.cloud.resource.ResourceManager;
 import com.cloud.server.ConfigurationServer;
+import com.cloud.server.ResourceTag;
 import com.cloud.service.ServiceOfferingVO;
 import com.cloud.service.dao.ServiceOfferingDao;
+import com.cloud.storage.GuestOSVO;
+import com.cloud.storage.Storage.ProvisioningType;
 import com.cloud.storage.VMTemplateVO;
 import com.cloud.storage.Volume;
 import com.cloud.storage.VolumeVO;
 import com.cloud.storage.dao.GuestOSDao;
 import com.cloud.storage.dao.VMTemplateDao;
 import com.cloud.storage.dao.VolumeDao;
+import com.cloud.tags.TagKeysBuilder;
+import com.cloud.tags.dao.ResourceTagDao;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.User;
@@ -247,7 +204,6 @@ import com.cloud.user.dao.UserStatsLogDao;
 import com.cloud.uservm.UserVm;
 import com.cloud.utils.NumbersUtil;
 import com.cloud.utils.Pair;
-import com.cloud.utils.PasswordGenerator;
 import com.cloud.utils.StringUtils;
 import com.cloud.utils.component.ComponentContext;
 import com.cloud.utils.component.ManagerBase;
@@ -257,6 +213,7 @@ import com.cloud.utils.db.EntityManager;
 import com.cloud.utils.db.Filter;
 import com.cloud.utils.db.GlobalLock;
 import com.cloud.utils.db.JoinBuilder;
+import com.cloud.utils.db.QueryBuilder;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
 import com.cloud.utils.db.Transaction;
@@ -264,6 +221,7 @@ import com.cloud.utils.db.TransactionCallbackNoReturn;
 import com.cloud.utils.db.TransactionStatus;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.fsm.StateListener;
+import com.cloud.utils.fsm.StateMachine2;
 import com.cloud.utils.net.Ip;
 import com.cloud.utils.net.MacAddress;
 import com.cloud.utils.net.NetUtils;
@@ -291,12 +249,58 @@ import com.cloud.vm.dao.UserVmDao;
 import com.cloud.vm.dao.UserVmDetailsDao;
 import com.cloud.vm.dao.VMInstanceDao;
 
+import org.apache.cloudstack.alert.AlertService;
+import org.apache.cloudstack.alert.AlertService.AlertType;
+import org.apache.cloudstack.api.command.admin.router.RebootRouterCmd;
+import org.apache.cloudstack.api.command.admin.router.UpgradeRouterCmd;
+import org.apache.cloudstack.api.command.admin.router.UpgradeRouterTemplateCmd;
+import org.apache.cloudstack.config.ApiServiceConfiguration;
+import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
+import org.apache.cloudstack.framework.config.ConfigDepot;
+import org.apache.cloudstack.framework.config.ConfigKey;
+import org.apache.cloudstack.framework.config.Configurable;
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.framework.jobs.AsyncJobManager;
+import org.apache.cloudstack.framework.jobs.impl.AsyncJobVO;
+import org.apache.cloudstack.managed.context.ManagedContextRunnable;
+import org.apache.cloudstack.utils.identity.ManagementServerNode;
+import org.apache.cloudstack.utils.usage.UsageUtils;
+import org.apache.log4j.Logger;
+
+import javax.ejb.Local;
+import javax.inject.Inject;
+import javax.naming.ConfigurationException;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 /**
  * VirtualNetworkApplianceManagerImpl manages the different types of virtual network appliances available in the Cloud Stack.
  */
 @Local(value = { VirtualNetworkApplianceManager.class, VirtualNetworkApplianceService.class })
 public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements VirtualNetworkApplianceManager, VirtualNetworkApplianceService,
-        VirtualMachineGuru, Listener, Configurable, StateListener<State, VirtualMachine.Event, VirtualMachine> {
+VirtualMachineGuru, Listener, Configurable, StateListener<State, VirtualMachine.Event, VirtualMachine> {
     private static final Logger s_logger = Logger.getLogger(VirtualNetworkApplianceManagerImpl.class);
 
     @Inject
@@ -431,14 +435,14 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     private int _usageAggregationRange = 1440;
     private String _usageTimeZone = "GMT";
     private final long mgmtSrvrId = MacAddress.getMacAddress().toLong();
-    private static final int ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION = 5;    // 5 seconds
-    private static final int USAGE_AGGREGATION_RANGE_MIN = 10; // 10 minutes, same as com.cloud.usage.UsageManagerImpl.USAGE_AGGREGATION_RANGE_MIN
+    private static final int ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION = 5; // 5 seconds
     private boolean _dailyOrHourly = false;
 
     ScheduledExecutorService _executor;
     ScheduledExecutorService _checkExecutor;
     ScheduledExecutorService _networkStatsUpdateExecutor;
     ExecutorService _rvrStatusUpdateExecutor;
+    ExecutorService _rebootRouterExecutor;
 
     Account _systemAcct;
 
@@ -718,19 +722,13 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         }
     }
 
-    static final ConfigKey<Boolean> UseExternalDnsServers = new ConfigKey<Boolean>(Boolean.class, "use.external.dns", "Advanced", "false",
-            "Bypass internal dns, use external dns1 and dns2", true, ConfigKey.Scope.Zone, null);
-
-    static final ConfigKey<Boolean> routerVersionCheckEnabled = new ConfigKey<Boolean>("Advanced", Boolean.class, "router.version.check", "true",
-            "If true, router minimum required version is checked before sending command", false);
-
-
     @Override
     public boolean configure(final String name, final Map<String, Object> params) throws ConfigurationException {
 
         _executor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("RouterMonitor"));
         _checkExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("RouterStatusMonitor"));
         _networkStatsUpdateExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NetworkStatsUpdater"));
+        _rebootRouterExecutor = Executors.newCachedThreadPool(new NamedThreadFactory("RebootRouterTask"));
 
         VirtualMachine.State.getStateMachine().registerListener(this);
 
@@ -785,15 +783,11 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
         _agentMgr.registerForHostEvents(new SshKeysDistriMonitor(_agentMgr, _hostDao, _configDao), true, false, false);
 
-        final boolean useLocalStorage = Boolean.parseBoolean(configs.get(Config.SystemVMUseLocalStorage.key()));
-        _offering =
-                new ServiceOfferingVO("System Offering For Software Router", 1, _routerRamSize, _routerCpuMHz, null, null, true, null, useLocalStorage, true, null, true,
-                        VirtualMachine.Type.DomainRouter, true);
-        _offering.setUniqueName(ServiceOffering.routerDefaultOffUniqueName);
-        _offering = _serviceOfferingDao.persistSystemServiceOffering(_offering);
-
+        List<ServiceOfferingVO> offerings = _serviceOfferingDao.createSystemServiceOfferings("System Offering For Software Router",
+                ServiceOffering.routerDefaultOffUniqueName, 1, _routerRamSize, _routerCpuMHz, null,
+                null, true, null, ProvisioningType.THIN, true, null, true, VirtualMachine.Type.DomainRouter, true);
         // this can sometimes happen, if DB is manually or programmatically manipulated
-        if (_offering == null) {
+        if (offerings == null || offerings.size() < 2) {
             final String msg = "Data integrity problem : System Offering For Software router VM has been removed?";
             s_logger.error(msg);
             throw new ConfigurationException(msg);
@@ -824,42 +818,51 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         }
 
         //Schedule Network stats update task
+        //Network stats aggregation should align with aggregation range
+        //For daily aggregation, update stats at the end of the day
+        //For hourly aggregation, update stats at the end of the hour
         final TimeZone usageTimezone = TimeZone.getTimeZone(_usageTimeZone);
         final Calendar cal = Calendar.getInstance(usageTimezone);
         cal.setTime(new Date());
-        long endDate = 0;
+        //aggDate is the time in millis when the aggregation should happen
+        long aggDate = 0;
         final int HOURLY_TIME = 60;
         final int DAILY_TIME = 60 * 24;
         if (_usageAggregationRange == DAILY_TIME) {
-            cal.roll(Calendar.DAY_OF_YEAR, false);
             cal.set(Calendar.HOUR_OF_DAY, 0);
             cal.set(Calendar.MINUTE, 0);
             cal.set(Calendar.SECOND, 0);
             cal.set(Calendar.MILLISECOND, 0);
             cal.roll(Calendar.DAY_OF_YEAR, true);
             cal.add(Calendar.MILLISECOND, -1);
-            endDate = cal.getTime().getTime();
+            aggDate = cal.getTime().getTime();
             _dailyOrHourly = true;
         } else if (_usageAggregationRange == HOURLY_TIME) {
-            cal.roll(Calendar.HOUR_OF_DAY, false);
             cal.set(Calendar.MINUTE, 0);
             cal.set(Calendar.SECOND, 0);
             cal.set(Calendar.MILLISECOND, 0);
             cal.roll(Calendar.HOUR_OF_DAY, true);
             cal.add(Calendar.MILLISECOND, -1);
-            endDate = cal.getTime().getTime();
+            aggDate = cal.getTime().getTime();
             _dailyOrHourly = true;
         } else {
-            endDate = cal.getTime().getTime();
+            aggDate = cal.getTime().getTime();
             _dailyOrHourly = false;
         }
 
-        if (_usageAggregationRange < USAGE_AGGREGATION_RANGE_MIN) {
-            s_logger.warn("Usage stats job aggregation range is to small, using the minimum value of " + USAGE_AGGREGATION_RANGE_MIN);
-            _usageAggregationRange = USAGE_AGGREGATION_RANGE_MIN;
+        if (_usageAggregationRange < UsageUtils.USAGE_AGGREGATION_RANGE_MIN) {
+            s_logger.warn("Usage stats job aggregation range is to small, using the minimum value of " + UsageUtils.USAGE_AGGREGATION_RANGE_MIN);
+            _usageAggregationRange = UsageUtils.USAGE_AGGREGATION_RANGE_MIN;
         }
 
-        _networkStatsUpdateExecutor.scheduleAtFixedRate(new NetworkStatsUpdateTask(), (endDate - System.currentTimeMillis()), (_usageAggregationRange * 60 * 1000),
+        // We cannot schedule a job at specific time. Provide initial delay instead, from current time, so that the job runs at desired time
+        long initialDelay = aggDate - System.currentTimeMillis();
+
+        if( initialDelay < 0){
+            s_logger.warn("Initial delay for network usage stats update task is incorrect. Stats update task will run immediately");
+        }
+
+        _networkStatsUpdateExecutor.scheduleAtFixedRate(new NetworkStatsUpdateTask(), initialDelay, (_usageAggregationRange * 60 * 1000),
                 TimeUnit.MILLISECONDS);
 
         if (_routerCheckInterval > 0) {
@@ -1086,7 +1089,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                 if (scanLock.lock(ACQUIRE_GLOBAL_LOCK_TIMEOUT_FOR_COOPERATION)) {
                     //Check for ownership
                     //msHost in UP state with min id should run the job
-                    final ManagementServerHostVO msHost = _msHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", true, 0L, 1L));
+                    final ManagementServerHostVO msHost = _msHostDao.findOneInUpState(new Filter(ManagementServerHostVO.class, "id", false, 0L, 1L));
                     if (msHost == null || (msHost.getMsid() != mgmtSrvrId)) {
                         s_logger.debug("Skipping aggregate network stats update");
                         scanLock.unlock();
@@ -1480,8 +1483,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
                     GetRouterAlertsCommand command = null;
                     if (opRouterMonitorServiceVO == null) {
-                        String date_str = "1970-01-01 00:00:00";
-                        command = new GetRouterAlertsCommand(date_str); // To avoid sending null value
+                        command = new GetRouterAlertsCommand(new String("1970-01-01 00:00:00")); // To avoid sending null value
                     } else {
                         command = new GetRouterAlertsCommand(opRouterMonitorServiceVO.getLastAlertTimestamp());
                     }
@@ -1547,7 +1549,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     private final static int DEFAULT_DELTA = 2;
 
     protected int getUpdatedPriority(final Network guestNetwork, final List<DomainRouterVO> routers, final DomainRouterVO exclude)
-            throws InsufficientVirtualNetworkCapcityException {
+            throws InsufficientVirtualNetworkCapacityException {
         int priority;
         if (routers.size() == 0) {
             priority = DEFAULT_PRIORITY;
@@ -1567,10 +1569,10 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             }
             if (maxPriority < 20) {
                 s_logger.error("Current maximum priority is too low!");
-                throw new InsufficientVirtualNetworkCapcityException("Current maximum priority is too low as " + maxPriority + "!", guestNetwork.getId());
+                throw new InsufficientVirtualNetworkCapacityException("Current maximum priority is too low as " + maxPriority + "!", guestNetwork.getId());
             } else if (maxPriority > 200) {
                 s_logger.error("Too many times fail-over happened! Current maximum priority is too high as " + maxPriority + "!");
-                throw new InsufficientVirtualNetworkCapcityException("Too many times fail-over happened! Current maximum priority is too high as " + maxPriority + "!",
+                throw new InsufficientVirtualNetworkCapacityException("Too many times fail-over happened! Current maximum priority is too high as " + maxPriority + "!",
                         guestNetwork.getId());
             }
             priority = maxPriority - DEFAULT_DELTA + 1;
@@ -1688,7 +1690,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             // Except for Basic Zone, the for loop will iterate only once
             for (final DeployDestination destination : destinations) {
                 final Pair<DeploymentPlan, List<DomainRouterVO>> planAndRouters = getDeploymentPlanAndRouters(isPodBased, destination, guestNetwork.getId());
-                routers = planAndRouters.second();
+                List<DomainRouterVO> destRouters = planAndRouters.second();
 
                 // 2) Figure out required routers count
                 int routerCount = 1;
@@ -1696,16 +1698,16 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                     routerCount = 2;
                     //Check current redundant routers, if possible(all routers are stopped), reset the priority
                     if (routers.size() != 0) {
-                        checkAndResetPriorityOfRedundantRouter(routers);
+                        checkAndResetPriorityOfRedundantRouter(destRouters);
                     }
                 }
 
                 // If old network is redundant but new is single router, then routers.size() = 2 but routerCount = 1
-                if (routers.size() >= routerCount) {
-                    return routers;
+                if (destRouters.size() >= routerCount) {
+                    return destRouters;
                 }
 
-                if (routers.size() >= 5) {
+                if (destRouters.size() >= 5) {
                     s_logger.error("Too much redundant routers!");
                 }
 
@@ -1737,7 +1739,8 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
                 Long offeringId = _networkOfferingDao.findById(guestNetwork.getNetworkOfferingId()).getServiceOfferingId();
                 if (offeringId == null) {
-                    offeringId = _offering.getId();
+                    ServiceOfferingVO serviceOffering = _serviceOfferingDao.findDefaultSystemOffering(ServiceOffering.routerDefaultOffUniqueName, ConfigurationManagerImpl.SystemVMUseLocalStorage.valueIn(dest.getDataCenter().getId()));
+                    offeringId = serviceOffering.getId();
                 }
 
                 PublicIp sourceNatIp = null;
@@ -1746,7 +1749,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                 }
 
                 // 3) deploy virtual router(s)
-                final int count = routerCount - routers.size();
+                final int count = routerCount - destRouters.size();
                 final DeploymentPlan plan = planAndRouters.first();
                 for (int i = 0; i < count; i++) {
                     LinkedHashMap<Network, List<? extends NicProfile>> networks = createRouterNetworks(owner, isRedundant, plan, guestNetwork, new Pair<Boolean, PublicIp>(
@@ -1804,7 +1807,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         int startRetry = 0;
         DomainRouterVO router = null;
         for (final Iterator<HypervisorType> iter = hypervisors.iterator(); iter.hasNext();) {
-            final HypervisorType hType = iter.next();
+            HypervisorType hType = iter.next();
             try {
                 final long id = _routerDao.getNextInSequence(Long.class, "id");
                 if (s_logger.isDebugEnabled()) {
@@ -1827,6 +1830,28 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                     break;
                 case LXC:
                     templateName = RouterTemplateLxc.valueIn(dest.getDataCenter().getId());
+                    break;
+                case BareMetal:
+                    /*
+                    String peerHvType = _configDao.getValue(Config.BaremetalPeerHypervisorType.key());
+                    if (peerHvType == null) {
+                        throw new CloudRuntimeException(String.format("To use baremetal in advanced networking, you must set %s to type of hypervisor(e.g XenServer)" +
+                                " that exists in the same zone with baremetal host. That hyperivsor is used to spring up virtual router for baremetal instance", Config.BaremetalPeerHypervisorType.key()));
+                    }
+
+                    hType = HypervisorType.getType(peerHvType);
+                    if (HypervisorType.XenServer.toString().equals(peerHvType)) {
+                        templateName = RouterTemplateXen.valueIn(dest.getDataCenter().getId());
+                    } else if (HypervisorType.KVM.toString().equals(peerHvType)) {
+                        templateName = RouterTemplateKvm.valueIn(dest.getDataCenter().getId());
+                    } else if (HypervisorType.VMware.toString().equals(peerHvType)) {
+                        templateName = RouterTemplateVmware.valueIn(dest.getDataCenter().getId());
+                    } else {
+                        throw new CloudRuntimeException(String.format("Baremetal only supports peer hypervisor(XenServer/KVM/VMWare) right now, you specified %s", peerHvType));
+                    }
+                    */
+                    hType = HypervisorType.VMware;
+                    templateName = RouterTemplateVmware.valueIn(dest.getDataCenter().getId());
                     break;
                 default:
                     break;
@@ -2094,7 +2119,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
     private DomainRouterVO startVirtualRouter(DomainRouterVO router, User user, Account caller, Map<Param, Object> params)
             throws StorageUnavailableException, InsufficientCapacityException,
-    ConcurrentOperationException, ResourceUnavailableException {
+            ConcurrentOperationException, ResourceUnavailableException {
 
         if (router.getRole() != Role.VIRTUAL_ROUTER || !router.getIsRedundantRouter()) {
             return this.start(router, user, caller, params, null);
@@ -2184,11 +2209,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
     protected List<DomainRouterVO> startRouters(final Map<Param, Object> params, final List<DomainRouterVO> routers) throws StorageUnavailableException,
     InsufficientCapacityException, ConcurrentOperationException, ResourceUnavailableException {
-        List<DomainRouterVO> runningRouters = null;
-
-        if (routers != null) {
-            runningRouters = new ArrayList<DomainRouterVO>();
-        }
+        List<DomainRouterVO> runningRouters = new ArrayList<DomainRouterVO>();
 
         for (DomainRouterVO router : routers) {
             boolean skip = false;
@@ -2372,6 +2393,18 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             }
         }
 
+        if (Boolean.valueOf(_configDao.getValue("baremetal.provision.done.notification"))) {
+            QueryBuilder<UserVO> acntq = QueryBuilder.create(UserVO.class);
+            acntq.and(acntq.entity().getUsername(), SearchCriteria.Op.EQ, "baremetal-system-account");
+            UserVO user = acntq.find();
+            if (user == null) {
+                s_logger.warn(String.format("global setting[baremetal.provision.done.notification] is enabled but user baremetal-system-account is not found. Baremetal provision done notification will not be enabled"));
+            } else {
+                buf.append(String.format(" baremetalnotificationsecuritykey=%s", user.getSecretKey()));
+                buf.append(String.format(" baremetalnotificationapikey=%s", user.getApiKey()));
+            }
+        }
+
         if (s_logger.isDebugEnabled()) {
             s_logger.debug("Boot Args for " + profile + ": " + buf.toString());
         }
@@ -2395,7 +2428,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                 final int priority = getUpdatedPriority(guestNetwork, routers, router);
                 router.setPriority(priority);
                 router = _routerDao.persist(router);
-            } catch (final InsufficientVirtualNetworkCapcityException e) {
+            } catch (final InsufficientVirtualNetworkCapacityException e) {
                 s_logger.error("Failed to get update priority!", e);
                 throw new CloudRuntimeException("Failed to get update priority!");
             }
@@ -2613,6 +2646,9 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         // at VR startup time, information in VirtualMachineProfile may not updated to DB yet,
         // getRouterControlIp() may give wrong IP under basic network mode in VMware environment
         final NicProfile controlNic = getControlNic(profile);
+        if (controlNic == null) {
+            throw new CloudRuntimeException("VirtualMachine " + profile.getInstanceName() + " doesn't have a control interface");
+        }
         final SetMonitorServiceCommand command = new SetMonitorServiceCommand(servicesTO);
         command.setAccessDetail(NetworkElementCommand.ROUTER_IP, controlNic.getIp4Address());
         command.setAccessDetail(NetworkElementCommand.ROUTER_GUEST_IP, getRouterIpInNetwork(networkId, router.getId()));
@@ -2685,6 +2721,10 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         //  Fetch firewall Egress rules.
         if (_networkModel.isProviderSupportServiceInNetwork(guestNetworkId, Service.Firewall, provider)) {
             firewallRulesEgress.addAll(_rulesDao.listByNetworkPurposeTrafficType(guestNetworkId, Purpose.Firewall, FirewallRule.TrafficType.Egress));
+            if (firewallRulesEgress.isEmpty()) {
+                //create egress default rule for VR
+                createDefaultEgressFirewallRule(firewallRulesEgress, guestNetworkId);
+            }
         }
 
         // Re-apply firewall Egress rules
@@ -2807,6 +2847,33 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
             }
         }
     }
+
+    private void createDefaultEgressFirewallRule(List<FirewallRule> rules, long networkId) {
+        String systemRule = null;
+
+        Boolean defaultEgressPolicy = false;
+        NetworkVO network = _networkDao.findById(networkId);
+        NetworkOfferingVO offering = _networkOfferingDao.findById(network.getNetworkOfferingId());
+        defaultEgressPolicy = offering.getEgressDefaultPolicy();
+
+
+        // construct rule when egress policy is true. In true case for VR we default allow rule need to be added
+        if (!defaultEgressPolicy) {
+            systemRule = String.valueOf(FirewallRule.FirewallRuleType.System);
+
+            List<String> sourceCidr = new ArrayList<String>();
+
+            sourceCidr.add(NetUtils.ALL_CIDRS);
+            FirewallRule rule = new FirewallRuleVO(null, null, null, null, "all", networkId, network.getAccountId(), network.getDomainId(), Purpose.Firewall, sourceCidr,
+                    null, null, null, FirewallRule.TrafficType.Egress, FirewallRule.FirewallRuleType.System);
+
+            rules.add(rule);
+        } else {
+            s_logger.debug(" Egress policy for the Network "+ networkId +" is "+defaultEgressPolicy + " So no need"+
+                    " of default rule is needed. ");
+        }
+    }
+
 
     private void removeRevokedIpAliasFromDb(final List<NicIpAliasVO> revokedIpAliasVOs) {
         for (final NicIpAliasVO ipalias : revokedIpAliasVOs) {
@@ -3514,9 +3581,8 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     private void createApplyPortForwardingRulesCommands(final List<? extends PortForwardingRule> rules, final VirtualRouter router, final Commands cmds, final long guestNetworkId) {
-        List<PortForwardingRuleTO> rulesTO = null;
+        List<PortForwardingRuleTO> rulesTO = new ArrayList<PortForwardingRuleTO>();
         if (rules != null) {
-            rulesTO = new ArrayList<PortForwardingRuleTO>();
             for (final PortForwardingRule rule : rules) {
                 final IpAddress sourceIp = _networkModel.getIp(rule.getSourceIpAddressId());
                 final PortForwardingRuleTO ruleTO = new PortForwardingRuleTO(rule, null, sourceIp.getAddress().addr());
@@ -3542,9 +3608,8 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     private void createApplyStaticNatRulesCommands(final List<? extends StaticNatRule> rules, final VirtualRouter router, final Commands cmds, final long guestNetworkId) {
-        List<StaticNatRuleTO> rulesTO = null;
+        List<StaticNatRuleTO> rulesTO = new ArrayList<StaticNatRuleTO>();
         if (rules != null) {
-            rulesTO = new ArrayList<StaticNatRuleTO>();
             for (final StaticNatRule rule : rules) {
                 final IpAddress sourceIp = _networkModel.getIp(rule.getSourceIpAddressId());
                 final StaticNatRuleTO ruleTO = new StaticNatRuleTO(rule, null, sourceIp.getAddress().addr(), rule.getDestIpAddress());
@@ -3648,9 +3713,8 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
         // password should be set only on default network element
         if (password != null && nic.isDefaultNic()) {
-            final String encodedPassword = PasswordGenerator.rot13(password);
             final SavePasswordCommand cmd =
-                    new SavePasswordCommand(encodedPassword, nic.getIp4Address(), profile.getVirtualMachine().getHostName(), _networkModel.getExecuteInSeqNtwkElmtCmd());
+                    new SavePasswordCommand(password, nic.getIp4Address(), profile.getVirtualMachine().getHostName(), _networkModel.getExecuteInSeqNtwkElmtCmd());
             cmd.setAccessDetail(NetworkElementCommand.ROUTER_IP, getRouterControlIp(router.getId()));
             cmd.setAccessDetail(NetworkElementCommand.ROUTER_GUEST_IP, getRouterIpInNetwork(nic.getNetworkId(), router.getId()));
             cmd.setAccessDetail(NetworkElementCommand.ROUTER_NAME, router.getInstanceName());
@@ -3693,10 +3757,12 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         final DhcpEntryCommand dhcpCommand =
                 new DhcpEntryCommand(nic.getMacAddress(), nic.getIp4Address(), vm.getHostName(), nic.getIp6Address(), _networkModel.getExecuteInSeqNtwkElmtCmd());
         final DataCenterVO dcVo = _dcDao.findById(router.getDataCenterId());
-        final Nic defaultNic = findGatewayIp(vm.getId());
-        String gatewayIp = defaultNic.getGateway();
-        if (gatewayIp != null && !gatewayIp.equals(nic.getGateway())) {
-            gatewayIp = "0.0.0.0";
+        String gatewayIp = nic.getGateway();
+        if (!nic.isDefaultNic() ) {
+            GuestOSVO guestOS = _guestOSDao.findById(vm.getGuestOSId());
+            if ( guestOS == null || !guestOS.getDisplayName().toLowerCase().contains("windows")) {
+                gatewayIp = "0.0.0.0";
+            }
         }
         dhcpCommand.setDefaultRouter(gatewayIp);
         dhcpCommand.setIp6Gateway(nic.getIp6Gateway());
@@ -3783,7 +3849,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     protected boolean sendCommandsToRouter(final VirtualRouter router, final Commands cmds) throws AgentUnavailableException {
         if(!checkRouterVersion(router)){
             s_logger.debug("Router requires upgrade. Unable to send command to router:" + router.getId() + ", router template version : " + router.getTemplateVersion()
-                    + ", minimal required version : " + MinVRVersion);
+                    + ", minimal required version : " + NetworkOrchestrationService.MinVRVersion.valueIn(router.getDataCenterId()));
             throw new CloudRuntimeException("Unable to send command. Upgrade in progress. Please contact administrator.");
         }
         Answer[] answers = null;
@@ -3979,7 +4045,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     private void createFirewallRulesCommands(final List<? extends FirewallRule> rules, final VirtualRouter router, final Commands cmds, final long guestNetworkId) {
-        List<FirewallRuleTO> rulesTO = null;
+        List<FirewallRuleTO> rulesTO = new ArrayList<FirewallRuleTO>();
         String systemRule = null;
         Boolean defaultEgressPolicy = false;
         if (rules != null) {
@@ -3988,7 +4054,6 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
                     systemRule = String.valueOf(FirewallRule.FirewallRuleType.System);
                 }
             }
-            rulesTO = new ArrayList<FirewallRuleTO>();
             for (final FirewallRule rule : rules) {
                 _rulesDao.loadSourceCidrs((FirewallRuleVO)rule);
                 final FirewallRule.TrafficType traffictype = rule.getTrafficType();
@@ -4140,9 +4205,8 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     private void createApplyStaticNatCommands(final List<? extends StaticNat> rules, final VirtualRouter router, final Commands cmds, final long guestNetworkId) {
-        List<StaticNatRuleTO> rulesTO = null;
+        List<StaticNatRuleTO> rulesTO = new ArrayList<StaticNatRuleTO>();
         if (rules != null) {
-            rulesTO = new ArrayList<StaticNatRuleTO>();
             for (final StaticNat rule : rules) {
                 final IpAddress sourceIp = _networkModel.getIp(rule.getSourceIpAddressId());
                 final StaticNatRuleTO ruleTO =
@@ -4420,29 +4484,31 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         if(router.getTemplateVersion() == null){
             return false;
         }
+        long dcid = router.getDataCenterId();
+        final String dcVersion = NetworkOrchestrationService.MinVRVersion.valueIn(dcid);
         final String trimmedVersion = Version.trimRouterVersion(router.getTemplateVersion());
-        return (Version.compare(trimmedVersion, MinVRVersion) >= 0);
+        return (Version.compare(trimmedVersion, dcVersion) >= 0);
     }
 
     private List<Long> rebootRouters(List<DomainRouterVO> routers){
         List<Long> jobIds = new ArrayList<Long>();
         for(DomainRouterVO router: routers){
             if(!checkRouterVersion(router)){
-                    s_logger.debug("Upgrading template for router: "+router.getId());
-                    Map<String, String> params = new HashMap<String, String>();
-                    params.put("ctxUserId", "1");
-                    params.put("ctxAccountId", "" + router.getAccountId());
+                s_logger.debug("Upgrading template for router: "+router.getId());
+                Map<String, String> params = new HashMap<String, String>();
+                params.put("ctxUserId", "1");
+                params.put("ctxAccountId", "" + router.getAccountId());
 
-                    RebootRouterCmd cmd = new RebootRouterCmd();
-                    ComponentContext.inject(cmd);
-                    params.put("id", ""+router.getId());
-                    params.put("ctxStartEventId", "1");
+                RebootRouterCmd cmd = new RebootRouterCmd();
+                ComponentContext.inject(cmd);
+                params.put("id", ""+router.getId());
+                params.put("ctxStartEventId", "1");
                 AsyncJobVO job = new AsyncJobVO("", User.UID_SYSTEM, router.getAccountId(), RebootRouterCmd.class.getName(),
-                            ApiGsonHelper.getBuilder().create().toJson(params), router.getId(),
-                            cmd.getInstanceType() != null ? cmd.getInstanceType().toString() : null);
-                    job.setDispatcher(_asyncDispatcher.getName());
-                    long jobId = _asyncMgr.submitAsyncJob(job);
-                    jobIds.add(jobId);
+                        ApiGsonHelper.getBuilder().create().toJson(params), router.getId(),
+                        cmd.getInstanceType() != null ? cmd.getInstanceType().toString() : null, null);
+                job.setDispatcher(_asyncDispatcher.getName());
+                long jobId = _asyncMgr.submitAsyncJob(job);
+                jobIds.add(jobId);
             } else {
                 s_logger.debug("Router: " + router.getId() + " is already at the latest version. No upgrade required");
             }
@@ -4457,7 +4523,7 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {UseExternalDnsServers, routerVersionCheckEnabled, SetServiceMonitor, RouterAlertsCheckInterval};
+        return new ConfigKey<?>[] {UseExternalDnsServers, routerVersionCheckEnabled, SetServiceMonitor, RouterAlertsCheckInterval, RouterReprovisionOnOutOfBandMigration};
     }
 
     @Override
@@ -4466,14 +4532,45 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
     }
 
     @Override
-    public boolean postStateTransitionEvent(State oldState, VirtualMachine.Event event, State newState, VirtualMachine vo, boolean status, Object opaque) {
-        if (oldState == State.Stopped && event == VirtualMachine.Event.FollowAgentPowerOnReport && newState == State.Running) {
-            if (vo.getType() == VirtualMachine.Type.DomainRouter) {
+    public boolean postStateTransitionEvent(StateMachine2.Transition<State, VirtualMachine.Event> transition, VirtualMachine vo, boolean status, Object opaque) {
+        State oldState = transition.getCurrentState();
+        State newState = transition.getToState();
+        VirtualMachine.Event event = transition.getEvent();
+        boolean reprovision_out_of_band = RouterReprovisionOnOutOfBandMigration.value();
+        if (
+            (vo.getType() == VirtualMachine.Type.DomainRouter) &&
+            ((oldState == State.Stopped) || (reprovision_out_of_band && isOutOfBandMigrated(opaque))) &&
+            (event == VirtualMachine.Event.FollowAgentPowerOnReport) &&
+            (newState == State.Running)) {
                 s_logger.info("Schedule a router reboot task as router " + vo.getId() + " is powered-on out-of-band. we need to reboot to refresh network rules");
                 _executor.schedule(new RebootTask(vo.getId()), 1000, TimeUnit.MICROSECONDS);
+        } else {
+            if (isOutOfBandMigrated(opaque) && (vo.getType() == VirtualMachine.Type.DomainRouter)) {
+                final String title = "Router has been migrated out of band: " + vo.getInstanceName();
+                final String context =
+                        "An out of band migration of router " + vo.getInstanceName() + "(" + vo.getUuid() + ") was detected. No automated action was performed.";
+                _alertMgr.sendAlert(AlertManager.AlertType.ALERT_TYPE_DOMAIN_ROUTER, vo.getDataCenterId(), vo.getPodIdToDeployIn(), title, context);
             }
         }
+
         return true;
+    }
+
+    private boolean isOutOfBandMigrated(Object opaque) {
+        if (opaque != null && opaque instanceof Pair<?, ?>) {
+            Pair<?, ?> pair = (Pair<?, ?>)opaque;
+            Object first = pair.first();
+            Object second = pair.second();
+            if (first != null && second != null && first instanceof Long && second instanceof Long) {
+                Long hostId = (Long)first;
+                Long powerHostId = (Long)second;
+                // If VM host known to CS is different from 'PowerOn' report host, then it is out-of-band movement
+                if (hostId.longValue() != powerHostId.longValue()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     protected class RebootTask extends ManagedContextRunnable {
@@ -4517,8 +4614,4 @@ public class VirtualNetworkApplianceManagerImpl extends ManagerBase implements V
         return aggregationExecution(Action.Finish, network, routers);
     }
 
-    @Override
-    public boolean cleanupAggregatedExecution(Network network, List<DomainRouterVO> routers) throws AgentUnavailableException {
-        return aggregationExecution(Action.Cleanup, network, routers);
-    }
 }

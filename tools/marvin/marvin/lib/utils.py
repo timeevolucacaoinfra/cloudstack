@@ -33,14 +33,13 @@ from platform import system
 from marvin.cloudstackException import GetDetailExceptionInfo
 from marvin.sshClient import SshClient
 from marvin.codes import (
-    SUCCESS,
-    FAIL,
-    PASS,
-    MATCH_NOT_FOUND,
-    INVALID_INPUT,
-    EMPTY_LIST,
-    FAILED)
-
+                          SUCCESS,
+                          FAIL,
+                          PASS,
+                          MATCH_NOT_FOUND,
+                          INVALID_INPUT,
+                          EMPTY_LIST,
+                          FAILED)
 
 def restart_mgmt_server(server):
     """Restarts the management server"""
@@ -122,9 +121,7 @@ def cleanup_resources(api_client, resources):
         obj.delete(api_client)
 
 
-def is_server_ssh_ready(ipaddress, port, username, password,
-                        retries=20, retryinterv=30,
-                        timeout=10.0, keyPairFileLocation=None):
+def is_server_ssh_ready(ipaddress, port, username, password, retries=20, retryinterv=30, timeout=10.0, keyPairFileLocation=None):
     '''
     @Name: is_server_ssh_ready
     @Input: timeout: tcp connection timeout flag,
@@ -144,10 +141,8 @@ def is_server_ssh_ready(ipaddress, port, username, password,
             retries=retries,
             delay=retryinterv,
             timeout=timeout)
-    except Exception as e:
-        raise Exception(
-            "SSH connection has Failed. Waited %ss. Error is %s" %
-            (retries * retryinterv, str(e)))
+    except Exception, e:
+        raise Exception("SSH connection has Failed. Waited %ss. Error is %s" % (retries * retryinterv, str(e)))
     else:
         return ssh
 
@@ -176,7 +171,6 @@ def fetch_api_client(config_file='datacenterCfg'):
         )
     )
 
-
 def get_host_credentials(config, hostip):
     """Get login information for a host `hostip` (ipv4) from marvin's `config`
 
@@ -192,43 +186,38 @@ def get_host_credentials(config, hostip):
                     try:
                         if socket.getfqdn(hostip) == socket.getfqdn(hostname):
                             return host.username, host.password
-                    except socket.error as e:
-                        raise Exception(
-                            "Unresolvable host %s error is %s" %
-                            (hostip, e))
-    raise KeyError(
-        "Please provide the marvin configuration file "
-        "with credentials to your hosts")
+                    except socket.error, e:
+                        raise Exception("Unresolvable host %s error is %s" % (hostip, e))
+    raise KeyError("Please provide the marvin configuration file with credentials to your hosts")
 
 
-def get_process_status(
-        hostip, port, username, password,
-        linklocalip, process, hypervisor=None):
+def get_process_status(hostip, port, username, password, linklocalip, process, hypervisor=None):
     """Double hop and returns a process status"""
 
-    # SSH to the machine
+    #SSH to the machine
     ssh = SshClient(hostip, port, username, password)
     if (str(hypervisor).lower() == 'vmware'
-            or str(hypervisor).lower() == 'hyperv'):
-        ssh_command =\
-            "ssh -i /var/cloudstack/management/" \
-            ".ssh/id_rsa -ostricthostkeychecking=no "
+		or str(hypervisor).lower() == 'hyperv'):
+        ssh_command = "ssh -i /var/cloudstack/management/.ssh/id_rsa -ostricthostkeychecking=no "
     else:
-        ssh_command = "ssh -i ~/.ssh/id_rsa.cloud " \
-                      "-ostricthostkeychecking=no "
+        ssh_command = "ssh -i ~/.ssh/id_rsa.cloud -ostricthostkeychecking=no "
 
     ssh_command = ssh_command +\
-        "-oUserKnownHostsFile=/dev/null -p 3922 %s %s" % (
-            linklocalip,
-            process)
+                  "-oUserKnownHostsFile=/dev/null -p 3922 %s %s" % (
+                      linklocalip,
+                      process)
 
     # Double hop into router
-    timeout = 5
+    if str(hypervisor).lower() == 'hyperv':
+        timeout = 12
+    else:
+        timeout = 5
     # Ensure the SSH login is successful
     while True:
         res = ssh.execute(ssh_command)
-
-        if res[0] != "Host key verification failed.":
+        if "Connection refused".lower() in res[0].lower():
+            pass
+        elif res[0] != "Host key verification failed.":
             break
         elif timeout == 0:
             break
@@ -257,13 +246,12 @@ def xsplit(txt, seps):
     @return: list of split units
     """
     default_sep = seps[0]
-    # we skip seps[0] because that's the default separator
-    for sep in seps[1:]:
+    for sep in seps[1:]: # we skip seps[0] because that's the default separator
         txt = txt.replace(sep, default_sep)
     return [i.strip() for i in txt.split(default_sep)]
 
-
 def get_hypervisor_type(apiclient):
+
     """Return the hypervisor type of the hosts in setup"""
 
     cmd = listHosts.listHostsCmd()
@@ -271,79 +259,62 @@ def get_hypervisor_type(apiclient):
     cmd.listall = True
     hosts = apiclient.listHosts(cmd)
     hosts_list_validation_result = validateList(hosts)
-    assert hosts_list_validation_result[
-        0] == PASS, "host list validation failed"
+    assert hosts_list_validation_result[0] == PASS, "host list validation failed"
     return hosts_list_validation_result[1].hypervisor
-
 
 def is_snapshot_on_nfs(apiclient, dbconn, config, zoneid, snapshotid):
     """
-    Checks whether a snapshot with id
-    (not UUID) `snapshotid` is present on the nfs storage
+    Checks whether a snapshot with id (not UUID) `snapshotid` is present on the nfs storage
 
     @param apiclient: api client connection
     @param @dbconn:  connection to the cloudstack db
     @param config: marvin configuration file
-    @param zoneid: uuid of the zone on which the
-     secondary nfs storage pool is mounted
+    @param zoneid: uuid of the zone on which the secondary nfs storage pool is mounted
     @param snapshotid: uuid of the snapshot
     @return: True if snapshot is found, False otherwise
     """
     # snapshot extension to be appended to the snapshot path obtained from db
     snapshot_extensions = {"vmware": ".ovf",
-                           "kvm": "",
-                           "xenserver": ".vhd",
-                           "simulator": ""}
+                            "kvm": "",
+                            "xenserver": ".vhd",
+                            "simulator":""}
 
     qresultset = dbconn.execute(
-        "select id from snapshots where uuid = '%s';"
-        % str(snapshotid)
-    )
+                        "select id from snapshots where uuid = '%s';" \
+                        % str(snapshotid)
+                        )
     if len(qresultset) == 0:
         raise Exception(
             "No snapshot found in cloudstack with id %s" % snapshotid)
 
+
     snapshotid = qresultset[0][0]
     qresultset = dbconn.execute(
-        "select install_path,store_id from snapshot_store_ref"
-        " where snapshot_id='%s' and "
-        "store_role='Image';" % snapshotid
+        "select install_path,store_id from snapshot_store_ref where snapshot_id='%s' and store_role='Image';" % snapshotid
     )
 
-    assert isinstance(
-        qresultset, list), "Invalid db query " \
-                           "response for snapshot " \
-                           "%s" % snapshotid
+    assert isinstance(qresultset, list), "Invalid db query response for snapshot %s" % snapshotid
 
     if len(qresultset) == 0:
-        # Snapshot does not exist
+        #Snapshot does not exist
         return False
 
     from base import ImageStore
-    # pass store_id to get the exact storage pool where snapshot is stored
-    secondaryStores = ImageStore.list(
-        apiclient,
-        zoneid=zoneid,
-        id=int(
-            qresultset[0][1]))
+    #pass store_id to get the exact storage pool where snapshot is stored
+    secondaryStores = ImageStore.list(apiclient, zoneid=zoneid, id=int(qresultset[0][1]))
 
-    assert isinstance(
-        secondaryStores, list), "Not a valid response for listImageStores"
-    assert len(
-        secondaryStores) != 0, "No image stores found in zone %s" % zoneid
+    assert isinstance(secondaryStores, list), "Not a valid response for listImageStores"
+    assert len(secondaryStores) != 0, "No image stores found in zone %s" % zoneid
 
     secondaryStore = secondaryStores[0]
 
     if str(secondaryStore.providername).lower() != "nfs":
         raise Exception(
-            "is_snapshot_on_nfs works only "
-            "against nfs secondary storage."
-            " found %s" % str(secondaryStore.providername))
+            "is_snapshot_on_nfs works only against nfs secondary storage. found %s" % str(secondaryStore.providername))
 
     hypervisor = get_hypervisor_type(apiclient)
     # append snapshot extension based on hypervisor, to the snapshot path
-    snapshotPath = str(qresultset[0][0]) + \
-        snapshot_extensions[str(hypervisor).lower()]
+    snapshotPath = str(qresultset[0][0]) + snapshot_extensions[str(hypervisor).lower()]
 
     nfsurl = secondaryStore.url
     from urllib2 import urlparse
@@ -351,11 +322,8 @@ def is_snapshot_on_nfs(apiclient, dbconn, config, zoneid, snapshotid):
     host, path = str(parse_url.netloc), str(parse_url.path)
 
     if not config.mgtSvr:
-        raise Exception(
-            "Your marvin configuration does "
-            "not contain mgmt server credentials")
-    mgtSvr, user, passwd = config.mgtSvr[
-        0].mgtSvrIp, config.mgtSvr[0].user, config.mgtSvr[0].passwd
+        raise Exception("Your marvin configuration does not contain mgmt server credentials")
+    mgtSvr, user, passwd = config.mgtSvr[0].mgtSvrIp, config.mgtSvr[0].user, config.mgtSvr[0].passwd
 
     try:
         ssh_client = SshClient(
@@ -370,6 +338,7 @@ def is_snapshot_on_nfs(apiclient, dbconn, config, zoneid, snapshotid):
             pathSeparator= ":"
 
         cmds = [
+
             "mkdir -p %s /mnt/tmp",
             "mount -t %s %s%s%s /mnt/tmp" % (
                 'nfs',
@@ -387,16 +356,15 @@ def is_snapshot_on_nfs(apiclient, dbconn, config, zoneid, snapshotid):
 
         # Unmount the Sec Storage
         cmds = [
-            "cd",
-            "umount /mnt/tmp",
-        ]
+                "cd",
+                "umount /mnt/tmp",
+            ]
         for c in cmds:
             ssh_client.execute(c)
     except Exception as e:
         raise Exception("SSH failed for management server: %s - %s" %
-                        (config.mgtSvr[0].mgtSvrIp, e))
+                      (config.mgtSvr[0].mgtSvrIp, e))
     return 'snapshot exists' in result
-
 
 def validateList(inp):
     """
@@ -431,8 +399,7 @@ def validateList(inp):
         return ret
     return [PASS, inp[0], None]
 
-
-def verifyElementInList(inp, toverify, responsevar=None, pos=0):
+def verifyElementInList(inp, toverify, responsevar=None,  pos=0):
     '''
     @name: verifyElementInList
     @Description:
@@ -444,9 +411,9 @@ def verifyElementInList(inp, toverify, responsevar=None, pos=0):
     at a given pos
     @Input:
              I   : Input to be verified whether its a list or not
-             II  : Element to verify whether it exists in the list
-             III : variable name in response object to verify
-                   default to None, if None, we will verify for the complete
+             II  : Element to verify whether it exists in the list 
+             III : variable name in response object to verify 
+                   default to None, if None, we will verify for the complete 
                    first element EX: state of response object object
              IV  : Position in the list at which the input element to verify
                    default to 0
@@ -469,17 +436,15 @@ def verifyElementInList(inp, toverify, responsevar=None, pos=0):
         return [FAIL, out[2]]
     if len(inp) > pos:
         if responsevar is None:
-            if inp[pos] == toverify:
-                return [PASS, None]
+                if inp[pos] == toverify:
+                    return [PASS, None]
         else:
-            if responsevar in inp[pos].\
-               __dict__ and getattr(inp[pos], responsevar) == toverify:
-                return [PASS, None]
-            else:
-                return [FAIL, MATCH_NOT_FOUND]
+                if responsevar in inp[pos].__dict__ and getattr(inp[pos], responsevar) == toverify:
+                    return [PASS, None]
+                else:
+                    return [FAIL, MATCH_NOT_FOUND]
     else:
         return [FAIL, MATCH_NOT_FOUND]
-
 
 def checkVolumeSize(ssh_handle=None,
                     volume_name="/dev/sda",
@@ -487,11 +452,9 @@ def checkVolumeSize(ssh_handle=None,
                     size_to_verify=0):
     '''
     @Name : getDiskUsage
-    @Desc : provides facility to verify the
-    volume size against the size to verify
+    @Desc : provides facility to verify the volume size against the size to verify
     @Input: 1. ssh_handle : machine against which to execute the disk size cmd
-            2. volume_name : The name of the volume
-             against which to verify the size
+            2. volume_name : The name of the volume against which to verify the size
             3. cmd_inp : Input command used to veify the size
             4. size_to_verify: size against which to compare.
     @Output: Returns FAILED in case of an issue, else SUCCESS
@@ -512,14 +475,14 @@ def checkVolumeSize(ssh_handle=None,
                 if volume_name in line:
                     parts = line.strip().split()
                     if str(parts[-2]) == str(size_to_verify):
-                        return [SUCCESS, str(parts[-2])]
-            return [FAILED, "Volume Not Found"]
-    except Exception as e:
+                        return [SUCCESS,str(parts[-2])]
+            return [FAILED,"Volume Not Found"]
+    except Exception, e:
         print "\n Exception Occurred under getDiskUsage: " \
-              "%s" % GetDetailExceptionInfo(e)
-        return [FAILED, GetDetailExceptionInfo(e)]
+              "%s" %GetDetailExceptionInfo(e)
+        return [FAILED,GetDetailExceptionInfo(e)]
 
-
+        
 def verifyRouterState(apiclient, routerid, allowedstates):
     """List the router and verify that its state is in allowed states
     @output: List, containing [Result, Reason]
@@ -539,7 +502,7 @@ def verifyRouterState(apiclient, routerid, allowedstates):
     if listvalidationresult[0] == FAIL:
         return [FAIL, listvalidationresult[2]]
     if routers[0].redundantstate not in allowedstates:
-        return [FAIL, "Redundant state of the"
-                      " router should be in %s but is %s" %
-                (allowedstates, routers[0].redundantstate)]
+        return [FAIL, "Redundant state of the router should be in %s but is %s" %
+            (allowedstates, routers[0].redundantstate)]
     return [PASS, None]
+        

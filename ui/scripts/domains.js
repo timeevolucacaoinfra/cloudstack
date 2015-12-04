@@ -21,6 +21,7 @@
 
         // Domain tree
         treeView: {
+		overflowScroll: true,
             // Details
             detailView: {
                 name: 'Domain details',
@@ -355,7 +356,7 @@
                             }
                         }, {
                             id: {
-                                label: 'ID'
+                                label: 'label.id'
                             },
 
                             path: {
@@ -488,9 +489,7 @@
                             $.ajax({
                                 url: createURL("listAccounts&domainid=" + domainObj.id),
                                 async: false,
-                                data: {
-                                    details: 'min'
-                                },
+                                data: {},
                                 success: function(json) {
                                     var items = json.listaccountsresponse.account;
                                     if (items != null) {
@@ -508,9 +507,7 @@
                             $.ajax({
                                 url: createURL("listProjects&domainid=" + domainObj.id),
                                 async: false,
-                                data: {
-                                    details: 'min'
-                                },
+                                data: {},
                                 success: function(json) {
                                     var items = json.listprojectsresponse.project;
                                     if (items != null) {

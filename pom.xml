@@ -19,10 +19,10 @@
 
   <groupId>org.apache.cloudstack</groupId>
   <artifactId>cloudstack</artifactId>
-  <version>4.4.2</version>
+  <version>4.5.2</version>
   <packaging>pom</packaging>
   <name>Apache CloudStack</name>
-  <description>Apache CloudStack is an IaaS (“Infrastracture as a Service”) cloud orchestration platform.</description>
+  <description>Apache CloudStack is an IaaS (“Infrastructure as a Service”) cloud orchestration platform.</description>
   <url>http://www.cloudstack.org</url>
   <scm>
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/cloudstack.git</connection>
@@ -60,9 +60,10 @@
     <cs.ehcache.version>2.6.6</cs.ehcache.version>
     <cs.gson.version>1.7.2</cs.gson.version>
     <cs.guava.version>14.0-rc1</cs.guava.version>
-    <cs.xapi.version>6.2.0-1</cs.xapi.version>
-    <cs.httpclient.version>3.1</cs.httpclient.version>
-    <cs.httpcore.version>4.2.1</cs.httpcore.version>
+    <cs.xapi.version>6.2.0-3.1</cs.xapi.version>
+    <cs.httpclient.version>4.3.6</cs.httpclient.version>
+    <cs.httpcore.version>4.3.3</cs.httpcore.version>
+    <cs.commons-httpclient.version>3.1</cs.commons-httpclient.version>
     <cs.mysql.version>5.1.21</cs.mysql.version>
     <cs.xstream.version>1.3.1</cs.xstream.version>
     <cs.xmlrpc.version>3.1.3</cs.xmlrpc.version>
@@ -94,6 +95,7 @@
     <cs.mycila.license.version>2.5</cs.mycila.license.version>
     <cs.findbugs.version>2.5.3</cs.findbugs.version>
     <cs.javadoc.version>2.9.1</cs.javadoc.version>
+    <cs.opensaml.version>2.6.1</cs.opensaml.version>
   </properties>
 
   <distributionManagement>
@@ -174,7 +176,6 @@
     <module>server</module>
     <module>usage</module>
     <module>utils</module>
-    <module>deps/XenServerJava</module>
     <module>engine</module>
     <module>plugins</module>
     <module>framework</module>
@@ -323,7 +324,7 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>${cs.httpcore.version}</version>
+        <version>${cs.httpclient.version}</version>
       </dependency>
       <dependency>
         <groupId>com.thoughtworks.xstream</groupId>
@@ -540,7 +541,7 @@
             <includeTestSourceDirectory>true</includeTestSourceDirectory>
             <sourceDirectory>${project.basedir}</sourceDirectory>
             <includes>**\/*.java</includes>
-            <excludes>**\/deps\/,**\/test\/,**\/target\/,**\/bin\/,**\/*.xml,**\/*.ini,**\/*.sh,**\/*.bat,**\/awsapi\/,**\/XenServerJava\/,**\/apidoc\/</excludes>
+            <excludes>**\/deps\/,**\/test\/,**\/target\/,**\/bin\/,**\/*.xml,**\/*.ini,**\/*.sh,**\/*.bat,**\/awsapi\/,**\/apidoc\/</excludes>
           </configuration>
         </plugin>
         <plugin>
@@ -705,6 +706,9 @@
               <exclude>CHANGES.md</exclude>
               <exclude>README.md</exclude>
               <exclude>INSTALL.md</exclude>
+              <exclude>CONTRIBUTING.md</exclude>
+              <exclude>Dockerfile</exclude>
+              <exclude>supervisord.conf</exclude>
               <exclude>.idea/</exclude>
               <exclude>**/*.log</exclude>
               <exclude>**/*.patch</exclude>
@@ -735,9 +739,6 @@
               <exclude>debian/control</exclude>
               <exclude>debian/dirs</exclude>
               <exclude>debian/rules</exclude>
-              <exclude>deps/XenServerJava/src/com/xensource/xenapi/*.java</exclude>
-              <exclude>deps/XenServerJava/BSD</exclude>
-              <exclude>deps/XenServerJava/Makefile</exclude>
               <exclude>dist/console-proxy/js/jquery.js</exclude>
               <exclude>plugins/hypervisors/hyperv/DotNet/ServerResource/ServerResource.sln</exclude>
               <exclude>plugins/hypervisors/hyperv/DotNet/ServerResource/packages/**</exclude>
@@ -763,6 +764,7 @@
               <exclude>tools/devcloud/src/deps/boxes/basebox-build/definition.rb</exclude>
               <exclude>tools/devcloud/src/deps/boxes/basebox-build/preseed.cfg</exclude>
               <exclude>tools/marvin/Marvin.egg-info/*</exclude>
+              <exclude>ui/css/token-input-facebook.css</exclude>
               <exclude>ui/lib/flot/jquery.colorhelpers.js</exclude>
               <exclude>ui/lib/flot/jquery.flot.crosshair.js</exclude>
               <exclude>ui/lib/flot/jquery.flot.fillbetween.js</exclude>
@@ -783,6 +785,7 @@
               <exclude>ui/lib/jquery.js</exclude>
               <exclude>ui/lib/jquery.md5.js</exclude>
               <exclude>ui/lib/jquery.validate.js</exclude>
+              <exclude>ui/lib/jquery.tokeninput.js</exclude>
               <exclude>ui/lib/qunit/qunit.css</exclude>
               <exclude>ui/lib/qunit/qunit.js</exclude>
               <exclude>ui/lib/reset.css</exclude>
@@ -824,6 +827,7 @@
               <exclude>tools/ngui/static/bootstrap/*</exclude>
               <exclude>tools/ngui/static/js/lib/*</exclude>
               <exclude>**/.checkstyle</exclude>
+              <exclude>scripts/installer/windows/acs_license.rtf</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -888,18 +892,53 @@
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
           <version>${cs.findbugs.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.cloudstack</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>${project.version}</version>
+            </dependency>
+          </dependencies>
           <configuration>
             <effort>Max</effort>
             <threshold>High</threshold>
             <xmlOutput>true</xmlOutput>
             <failOnError>false</failOnError>
             <maxHeap>2048</maxHeap>
+            <excludeFilterFile>findbugsExcludeFilter.xml</excludeFilterFile>
           </configuration>
           <executions>
             <execution>
               <id>cloudstack-findbugs</id>
               <goals>
                 <goal>check</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>3.1</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.cloudstack</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>${project.version}</version>
+            </dependency>
+          </dependencies>
+          <configuration>
+            <failOnViolation>false</failOnViolation>
+           <rulesets>
+             <ruleset>cloud-pmd.xml</ruleset>
+           </rulesets>
+          </configuration>
+          <executions>
+            <execution>
+              <id>cloudstack-pmd</id>
+              <goals>
+                <goal>check</goal>
+                <goal>cpd-check</goal>
               </goals>
             </execution>
           </executions>
@@ -916,6 +955,7 @@
         <configuration>
           <threshold>Low</threshold><!-- High|Normal|Low|Exp|Ignore -->
           <effort>Default</effort><!-- Min|Default|Max -->
+          <excludeFilterFile>${basedir}/findbugsExcludeFilter.xml</excludeFilterFile>
         </configuration>
       </plugin>
       <plugin>
@@ -1035,5 +1075,16 @@
         </plugins>
       </build>
     </profile>  
+    <profile>
+      <id>buildw</id>
+      <activation>
+        <property>
+          <name>buildw</name>
+        </property>
+      </activation>
+      <modules>
+        <module>tools/wix-cloudstack-maven-plugin</module>
+      </modules>
+    </profile>
   </profiles>
 </project>

@@ -88,7 +88,7 @@ public class ListResourceDetailsCmd extends BaseListProjectAndAccountResourcesCm
         List<ResourceDetailResponse> resourceDetailResponse = _queryService.listResourceDetails(this);
         response.setResponses(resourceDetailResponse);
         response.setResponseName(getCommandName());
-        this.setResponseObject(response);
+        setResponseObject(response);
     }
 
     public ResourceTag.ResourceObjectType getResourceType() {

@@ -592,7 +592,7 @@ public class AutoScaleManagerImplTest {
     }
 
     private ServiceOfferingVO createServiceOffering(){
-        return new ServiceOfferingVO("Small instance", 1, 256, 100, 100, 100, true, "display", false, true, null, false, VirtualMachine.Type.Instance, false);
+        return new ServiceOfferingVO("Small instance", 1, 256, 100, 100, 100, true, "display", null, false, true, null, false, VirtualMachine.Type.Instance, false);
     }
 
     private void mockFindDataCenter(EntityManager entityManager, DataCenter zone) {

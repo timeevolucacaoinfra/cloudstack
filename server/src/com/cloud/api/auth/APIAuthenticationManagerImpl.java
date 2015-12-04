@@ -16,21 +16,19 @@
 // under the License.
 package com.cloud.api.auth;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import javax.ejb.Local;
-
+import com.cloud.utils.component.ComponentContext;
+import com.cloud.utils.component.ManagerBase;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.auth.APIAuthenticationManager;
 import org.apache.cloudstack.api.auth.APIAuthenticator;
 import org.apache.cloudstack.api.auth.PluggableAPIAuthenticator;
 import org.apache.log4j.Logger;
 
-import com.cloud.utils.component.ComponentContext;
-import com.cloud.utils.component.ManagerBase;
+import javax.ejb.Local;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Local(value = APIAuthenticationManager.class)
 @SuppressWarnings("unchecked")
@@ -55,24 +53,14 @@ public class APIAuthenticationManagerImpl extends ManagerBase implements APIAuth
     @Override
     public boolean start() {
         s_authenticators = new HashMap<String, Class<?>>();
-        for (Class<?> authenticatorCommand: getCommands()) {
-            registerCommandsInAPIAuthenticator(authenticatorCommand);
-        }
-        // Register all external APIAuthenticator(s)
-        for (PluggableAPIAuthenticator apiAuthenticator: _apiAuthenticators) {
-            for (Class<?> authenticatorCommand: apiAuthenticator.getCommands()) {
-                registerCommandsInAPIAuthenticator(authenticatorCommand);
+        for (Class<?> authenticator: getCommands()) {
+            APICommand command = authenticator.getAnnotation(APICommand.class);
+            if (command != null && !command.name().isEmpty()
+                    && APIAuthenticator.class.isAssignableFrom(authenticator)) {
+                s_authenticators.put(command.name().toLowerCase(), authenticator);
             }
         }
         return true;
-    }
-
-    private void registerCommandsInAPIAuthenticator(Class<?> authenticator) {
-        APICommand command = authenticator.getAnnotation(APICommand.class);
-        if (command != null && !command.name().isEmpty()
-                && APIAuthenticator.class.isAssignableFrom(authenticator)) {
-            s_authenticators.put(command.name(), authenticator);
-        }
     }
 
     @Override
@@ -80,22 +68,27 @@ public class APIAuthenticationManagerImpl extends ManagerBase implements APIAuth
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
         cmdList.add(DefaultLoginAPIAuthenticatorCmd.class);
         cmdList.add(DefaultLogoutAPIAuthenticatorCmd.class);
+        for (PluggableAPIAuthenticator apiAuthenticator: _apiAuthenticators) {
+            List<Class<?>> commands = apiAuthenticator.getAuthCommands();
+            if (commands != null) {
+                cmdList.addAll(commands);
+            } else {
+                s_logger.warn("API Authenticator returned null api commands:" + apiAuthenticator.getName());
+            }
+        }
         return cmdList;
     }
 
     @Override
     public APIAuthenticator getAPIAuthenticator(String name) {
+        name = name.toLowerCase();
         APIAuthenticator apiAuthenticator = null;
         if (s_authenticators != null && s_authenticators.containsKey(name)) {
             try {
                 apiAuthenticator = (APIAuthenticator) s_authenticators.get(name).newInstance();
                 apiAuthenticator = ComponentContext.inject(apiAuthenticator);
                 apiAuthenticator.setAuthenticators(_apiAuthenticators);
-            } catch (InstantiationException e) {
-                if (s_logger.isDebugEnabled()) {
-                    s_logger.debug("APIAuthenticationManagerImpl::getAPIAuthenticator failed: " + e.getMessage());
-                }
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 if (s_logger.isDebugEnabled()) {
                     s_logger.debug("APIAuthenticationManagerImpl::getAPIAuthenticator failed: " + e.getMessage());
                 }

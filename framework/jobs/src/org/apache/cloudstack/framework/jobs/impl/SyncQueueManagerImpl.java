@@ -26,7 +26,6 @@ import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.framework.jobs.dao.SyncQueueDao;
 import org.apache.cloudstack.framework.jobs.dao.SyncQueueItemDao;
-
 import com.cloud.utils.DateUtil;
 import com.cloud.utils.component.ManagerBase;
 import com.cloud.utils.db.DB;
@@ -143,7 +142,7 @@ public class SyncQueueManagerImpl extends ManagerBase implements SyncQueueManage
                         for(SyncQueueItemVO item : l) {
                             SyncQueueVO queueVO = _syncQueueDao.findById(item.getQueueId());
                             SyncQueueItemVO itemVO = _syncQueueItemDao.findById(item.getId());
-                            if(queueReadyToProcess(queueVO) && itemVO.getLastProcessNumber() == null) {
+                            if(queueReadyToProcess(queueVO) && itemVO != null && itemVO.getLastProcessNumber() == null) {
                                 Long processNumber = queueVO.getLastProcessNumber();
                                 if (processNumber == null)
                                     processNumber = new Long(1);
@@ -161,7 +160,7 @@ public class SyncQueueManagerImpl extends ManagerBase implements SyncQueueManage
                                 itemVO.setLastProcessTime(dt);
                                 _syncQueueItemDao.update(item.getId(), itemVO);
 
-                                resultList.add(item);
+                                resultList.add(itemVO);
                             }
                         }
                     }
@@ -221,6 +220,7 @@ public class SyncQueueManagerImpl extends ManagerBase implements SyncQueueManage
                         itemVO.setLastProcessTime(null);
                         _syncQueueItemDao.update(queueItemId, itemVO);
 
+                        queueVO.setQueueSize(queueVO.getQueueSize() - 1);
                         queueVO.setLastUpdated(DateUtil.currentGMTTime());
                         _syncQueueDao.update(queueVO.getId(), queueVO);
                     }
@@ -260,4 +260,16 @@ public class SyncQueueManagerImpl extends ManagerBase implements SyncQueueManage
             purgeItem(itemId);
         }
     }
+
+    @Override
+    public void cleanupActiveQueueItems(Long msid, boolean exclusive) {
+        List<SyncQueueItemVO> l = getActiveQueueItems(msid, false);
+        for (SyncQueueItemVO item : l) {
+            if (s_logger.isInfoEnabled()) {
+                s_logger.info("Discard left-over queue item: " + item.toString());
+            }
+            purgeItem(item.getId());
+        }
+    }
+
 }

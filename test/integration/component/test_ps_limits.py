@@ -56,6 +56,7 @@ class TestVolumeLimits(cloudstackTestCase):
         cloudstackTestClient = super(TestVolumeLimits,
                                cls).getClsTestClient()
         cls.api_client = cloudstackTestClient.getApiClient()
+        cls.hypervisor = cloudstackTestClient.getHypervisorInfo()
         # Fill services from the external config file
         cls.services = cloudstackTestClient.getParsedTestDataConfig()
         # Get Zone, Domain and templates
@@ -145,7 +146,7 @@ class TestVolumeLimits(cloudstackTestCase):
         return [PASS, None]
 
     @data(ROOT_DOMAIN_ADMIN, CHILD_DOMAIN_ADMIN)
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_stop_start_vm(self, value):
         """Test Deploy VM with 5 GB volume & verify the usage
 
@@ -184,7 +185,7 @@ class TestVolumeLimits(cloudstackTestCase):
 
     @unittest.skip("skip")
     @data(ROOT_DOMAIN_ADMIN, CHILD_DOMAIN_ADMIN)
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_destroy_recover_vm(self, value):
         """Test delete and recover instance
 
@@ -199,7 +200,7 @@ class TestVolumeLimits(cloudstackTestCase):
         expectedCount = self.initialResourceCount
         # Stopping instance
         try:
-            self.virtualMachine.delete(self.apiclient)
+            self.virtualMachine.delete(self.apiclient, expunge=False)
         except Exception as e:
             self.fail("Failed to destroy instance: %s" % e)
         response = matchResourceCount(
@@ -222,7 +223,7 @@ class TestVolumeLimits(cloudstackTestCase):
         return
 
     @data(ROOT_DOMAIN_ADMIN, CHILD_DOMAIN_ADMIN)
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_attach_detach_volume(self, value):
         """Stop attach and detach volume from VM
 
@@ -291,7 +292,7 @@ class TestVolumeLimits(cloudstackTestCase):
         return
 
     @data(ROOT_DOMAIN_ADMIN, CHILD_DOMAIN_ADMIN)
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_create_multiple_volumes(self, value):
         """Test create multiple volumes
 
@@ -385,7 +386,7 @@ class TestVolumeLimits(cloudstackTestCase):
         return
 
     @data(ROOT_DOMAIN_ADMIN, CHILD_DOMAIN_ADMIN)
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_deploy_multiple_vm(self, value):
         """Test Deploy multiple VMs with & verify the usage
         # Validate the following
@@ -494,7 +495,7 @@ class TestVolumeLimits(cloudstackTestCase):
 	return
 
     @data(ROOT_DOMAIN_ADMIN, CHILD_DOMAIN_ADMIN)
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_create_template_snapshot(self, value):
         """Test create snapshot and templates from volume
 
@@ -505,7 +506,8 @@ class TestVolumeLimits(cloudstackTestCase):
         # 3. Create volume againt from this snapshto and attach to VM
         # 4. Verify that primary storage count increases by the volume size
         # 5. Detach and delete volume, verify primary storage count decreaes by volume size"""
-
+        if self.hypervisor.lower() in ['hyperv']:
+            self.skipTest("Snapshots feature is not supported on Hyper-V")
         response = self.setupAccount(value)
         self.debug(response[0])
         self.debug(response[1])

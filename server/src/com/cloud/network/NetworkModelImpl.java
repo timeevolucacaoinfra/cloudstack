@@ -97,6 +97,7 @@ import com.cloud.offerings.dao.NetworkOfferingServiceMapDao;
 import com.cloud.projects.dao.ProjectAccountDao;
 import com.cloud.server.ConfigurationServer;
 import com.cloud.user.Account;
+import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
 import com.cloud.user.DomainManager;
 import com.cloud.user.dao.AccountDao;
@@ -136,6 +137,8 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
     AccountDao _accountDao = null;
     @Inject
     DomainDao _domainDao = null;
+    @Inject
+    AccountManager _accountMgr;
     @Inject
     ConfigurationDao _configDao;
 
@@ -421,14 +424,14 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
 
         // We only support one provider for one service now
         Map<Service, Set<Provider>> serviceToProviders = getServiceProvidersMap(networkId);
-        Set<Provider> oldProviders = serviceToProviders.get(services.toArray()[0]);
-        Provider oldProvider = (Provider)oldProviders.toArray()[0];
         // Since IP already has service to bind with, the oldProvider can't be null
         Set<Provider> newProviders = serviceToProviders.get(service);
         if (newProviders == null || newProviders.isEmpty()) {
             throw new InvalidParameterException("There is no new provider for IP " + publicIp.getAddress() + " of service " + service.getName() + "!");
         }
         Provider newProvider = (Provider)newProviders.toArray()[0];
+        Set<Provider> oldProviders = serviceToProviders.get(services.toArray()[0]);
+        Provider oldProvider = (Provider)oldProviders.toArray()[0];
         Network network = _networksDao.findById(networkId);
         NetworkElement oldElement = getElementImplementingProvider(oldProvider.getName());
         NetworkElement newElement = getElementImplementingProvider(newProvider.getName());
@@ -587,6 +590,10 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
                 hasFreeIps = isIP6AddressAvailableInNetwork(network.getId());
             }
         } else {
+            if (network.getCidr() == null) {
+                s_logger.debug("Network - " + network.getId() +  " has NULL CIDR.");
+                return false;
+            }
             hasFreeIps = (getAvailableIps(network, null)).size() > 0;
         }
 
@@ -1585,8 +1592,12 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
 
         } else {
             if (!isNetworkAvailableInDomain(network.getId(), owner.getDomainId())) {
+                DomainVO ownerDomain = _domainDao.findById(owner.getDomainId());
+                if (ownerDomain == null) {
+                    throw new CloudRuntimeException("cannot check permission on account " + owner.getAccountName() + " whose domain does not exist");
+                }
                 throw new PermissionDeniedException("Shared network id=" + ((NetworkVO)network).getUuid() + " is not available in domain id=" +
-                    owner.getDomainId());
+                        ownerDomain.getUuid());
             }
         }
     }
@@ -1696,8 +1707,8 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
     }
 
     @Override
-    public boolean isPrivateGateway(Nic guestNic) {
-        Network network = getNetwork(guestNic.getNetworkId());
+    public boolean isPrivateGateway(long ntwkId) {
+        Network network = getNetwork(ntwkId);
         if (network.getTrafficType() != TrafficType.Guest || network.getNetworkOfferingId() != s_privateOfferingId.longValue()) {
             return false;
         }
@@ -2158,7 +2169,7 @@ public class NetworkModelImpl extends ManagerBase implements NetworkModel {
                     List<? extends Vlan> vlans = _vlanDao.listVlansForPod(podId);
                     for (Vlan vlan : vlans) {
                         if (nic.getIp4Address() != null) {
-                            IpAddress ip = _ipAddressDao.findByIpAndNetworkId(network.getId(), nic.getIp4Address());
+                            IpAddress ip = _ipAddressDao.findByIpAndSourceNetworkId(network.getId(), nic.getIp4Address());
                             if (ip != null && ip.getVlanId() == vlan.getId()) {
                                 return nic;
                             }

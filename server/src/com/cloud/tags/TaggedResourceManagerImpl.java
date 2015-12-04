@@ -16,12 +16,7 @@
 // under the License.
 package com.cloud.tags;
 
-import com.cloud.network.NetworkModel;
-import com.cloud.network.dao.NetworkDao;
-import com.cloud.storage.dao.VMTemplateDao;
 import com.cloud.vm.UserVmManager;
-import com.cloud.vm.dao.NicDao;
-import com.cloud.vm.dao.UserVmDao;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -152,21 +147,6 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
     AccountDao _accountDao;
     @Inject
     UserVmManager _userVmManager;
-
-    @Inject
-    protected VMTemplateDao _templateDao = null;
-
-    @Inject
-    protected UserVmDao _vmDao = null;
-
-    @Inject
-    protected NicDao _nicDao;
-
-    @Inject
-    protected NetworkModel _networkModel = null;
-
-    @Inject
-    protected NetworkDao _networkDao;
 
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {

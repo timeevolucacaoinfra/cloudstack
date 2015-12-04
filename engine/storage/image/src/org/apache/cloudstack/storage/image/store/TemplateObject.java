@@ -190,6 +190,9 @@ public class TemplateObject implements TemplateInfo {
                     TemplateObjectTO newTemplate = (TemplateObjectTO)cpyAnswer.getNewData();
                     VMTemplateStoragePoolVO templatePoolRef = templatePoolDao.findByPoolTemplate(getDataStore().getId(), getId());
                     templatePoolRef.setDownloadPercent(100);
+                    if (newTemplate.getSize() != null) {
+                        templatePoolRef.setTemplateSize(newTemplate.getSize());
+                    }
                     templatePoolRef.setDownloadState(Status.DOWNLOADED);
                     templatePoolRef.setLocalDownloadPath(newTemplate.getPath());
                     templatePoolRef.setInstallPath(newTemplate.getPath());

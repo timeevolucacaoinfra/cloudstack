@@ -138,7 +138,7 @@ class TestProjectsVolumeLimits(cloudstackTestCase):
             return [FAIL, e]
         return [PASS, None]
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_01_VM_start_stop(self):
         """Test project primary storage count with VM stop/start operation
 
@@ -173,7 +173,7 @@ class TestProjectsVolumeLimits(cloudstackTestCase):
         self.assertEqual(response[0], PASS, response[1])
         return
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_02_migrate_vm(self):
         """Test migrate VM in project
 
@@ -190,7 +190,7 @@ class TestProjectsVolumeLimits(cloudstackTestCase):
             host = hosts[0]
             self.vm.migrate(self.apiclient, host.id)
         except Exception as e:
-            self.fail("Exception occured" % e)
+            self.fail("Exception occured: %s" % e)
 
         expectedCount = self.initialResourceCount
         response = matchResourceCount(
@@ -200,7 +200,7 @@ class TestProjectsVolumeLimits(cloudstackTestCase):
         self.assertEqual(response[0], PASS, response[1])
         return
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_03_delete_vm(self):
         """Test delete VM belonging to project
 

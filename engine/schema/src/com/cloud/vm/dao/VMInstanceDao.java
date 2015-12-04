@@ -104,7 +104,7 @@ public interface VMInstanceDao extends GenericDao<VMInstanceVO, Long>, StateDao<
 
     List<VMInstanceVO> listVmsMigratingFromHost(Long hostId);
 
-    public Long countRunningByHostId(long hostId);
+    public Long countActiveByHostId(long hostId);
 
     Pair<List<Long>, Map<Long, Double>> listClusterIdsInZoneByVmCount(long zoneId, long accountId);
 
@@ -136,4 +136,6 @@ public interface VMInstanceDao extends GenericDao<VMInstanceVO, Long>, StateDao<
     void resetHostPowerStateTracking(long hostId);
 
     HashMap<String, Long> countVgpuVMs(Long dcId, Long podId, Long clusterId);
+
+    VMInstanceVO findVMByHostNameInZone(String hostName, long zoneId);
 }

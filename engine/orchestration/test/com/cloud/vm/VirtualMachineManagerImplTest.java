@@ -83,14 +83,15 @@ import com.cloud.hypervisor.HypervisorGuru;
 import com.cloud.hypervisor.HypervisorGuruManager;
 import com.cloud.offering.ServiceOffering;
 import com.cloud.service.ServiceOfferingVO;
-import com.cloud.storage.DiskOfferingVO;
-import com.cloud.storage.StoragePoolHostVO;
-import com.cloud.storage.VMTemplateVO;
-import com.cloud.storage.VolumeVO;
 import com.cloud.storage.dao.DiskOfferingDao;
 import com.cloud.storage.dao.StoragePoolHostDao;
 import com.cloud.storage.dao.VMTemplateDao;
 import com.cloud.storage.dao.VolumeDao;
+import com.cloud.storage.Storage.ProvisioningType;
+import com.cloud.storage.DiskOfferingVO;
+import com.cloud.storage.StoragePoolHostVO;
+import com.cloud.storage.VolumeVO;
+import com.cloud.storage.VMTemplateVO;
 import com.cloud.user.Account;
 import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
@@ -101,6 +102,7 @@ import com.cloud.utils.db.EntityManager;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.vm.VirtualMachine.Event;
 import com.cloud.vm.VirtualMachine.State;
+import com.cloud.vm.VirtualMachine.PowerState;
 import com.cloud.vm.dao.UserVmDao;
 import com.cloud.vm.dao.UserVmDetailsDao;
 import com.cloud.vm.dao.VMInstanceDao;
@@ -308,7 +310,7 @@ public class VirtualMachineManagerImplTest {
         boolean useLocalStorage = false;
 
         ServiceOfferingVO serviceOffering =
-                new ServiceOfferingVO(name, cpu, ramSize, speed, null, null, ha, displayText, useLocalStorage, false, null, false, null, false);
+                new ServiceOfferingVO(name, cpu, ramSize, speed, null, null, ha, displayText, ProvisioningType.THIN, useLocalStorage, false, null, false, null, false);
         return serviceOffering;
     }
 
@@ -396,7 +398,7 @@ public class VirtualMachineManagerImplTest {
 
         CheckVirtualMachineAnswer checkVmAnswerMock = mock(CheckVirtualMachineAnswer.class);
         when(checkVmAnswerMock.getResult()).thenReturn(true);
-        when(checkVmAnswerMock.getState()).thenReturn(State.Running);
+        when(checkVmAnswerMock.getState()).thenReturn(PowerState.PowerOn);
         when(_agentMgr.send(anyLong(), isA(CheckVirtualMachineCommand.class))).thenReturn(checkVmAnswerMock);
 
         // Mock the state transitions of vm.

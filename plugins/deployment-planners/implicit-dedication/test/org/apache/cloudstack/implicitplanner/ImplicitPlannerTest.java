@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
+import com.cloud.user.User;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,8 +70,10 @@ import com.cloud.deploy.DataCenterDeployment;
 import com.cloud.deploy.DeploymentPlanner.ExcludeList;
 import com.cloud.deploy.ImplicitDedicationPlanner;
 import com.cloud.exception.InsufficientServerCapacityException;
+import com.cloud.gpu.dao.HostGpuGroupsDao;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
+import com.cloud.host.dao.HostTagsDao;
 import com.cloud.resource.ResourceManager;
 import com.cloud.service.ServiceOfferingVO;
 import com.cloud.service.dao.ServiceOfferingDao;
@@ -162,7 +165,7 @@ public class ImplicitPlannerTest {
         acct.setDomainId(domainId);
         acct.setId(accountId);
 
-        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString());
+        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString(), User.Source.UNKNOWN);
         CallContext.register(user, acct);
     }
 
@@ -465,6 +468,16 @@ public class ImplicitPlannerTest {
         @Bean
         public HostDao hostDao() {
             return Mockito.mock(HostDao.class);
+        }
+
+        @Bean
+        public HostTagsDao hostTagsDao() {
+            return Mockito.mock(HostTagsDao.class);
+        }
+
+        @Bean
+        public HostGpuGroupsDao hostGpuGroupsDao() {
+            return Mockito.mock(HostGpuGroupsDao.class);
         }
 
         @Bean

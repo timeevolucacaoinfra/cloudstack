@@ -198,7 +198,7 @@ public class ResourceLimitManagerImpl extends ManagerBase implements ResourceLim
         templateSizeSearch.done();
 
         snapshotSizeSearch = _snapshotDataStoreDao.createSearchBuilder(SumCount.class);
-        snapshotSizeSearch.select("sum", Func.SUM, snapshotSizeSearch.entity().getSize());
+        snapshotSizeSearch.select("sum", Func.SUM, snapshotSizeSearch.entity().getPhysicalSize());
         snapshotSizeSearch.and("state", snapshotSizeSearch.entity().getState(), Op.EQ);
         snapshotSizeSearch.and("storeRole", snapshotSizeSearch.entity().getRole(), Op.EQ);
         SearchBuilder<SnapshotVO> join2 = _snapshotDao.createSearchBuilder();
@@ -425,7 +425,9 @@ public class ResourceLimitManagerImpl extends ManagerBase implements ResourceLim
                             "Maximum number of resources of type '" + type + "' for project name=" + projectFinal.getName() + " in domain id=" + account.getDomainId() +
                                 " has been exceeded.";
                 }
-                throw new ResourceAllocationException(message, type);
+                ResourceAllocationException e=  new ResourceAllocationException(message, type);;
+                s_logger.error(message, e);
+                throw e;
             }
 
             // check all domains in the account's domain hierarchy
@@ -845,8 +847,9 @@ public class ResourceLimitManagerImpl extends ManagerBase implements ResourceLim
 
         // this lock guards against the updates to user_vm, volume, snapshot, public _ip and template table
         // as any resource creation precedes with the resourceLimitExceeded check which needs this lock too
+        Set rowIdsToLock = _resourceCountDao.listAllRowsToUpdate(accountId, Resource.ResourceOwnerType.Account, type);
         SearchCriteria<ResourceCountVO> sc = ResourceCountSearch.create();
-        sc.setParameters("accountId", accountId);
+        sc.setParameters("id", rowIdsToLock.toArray());
         _resourceCountDao.lockRows(sc, null, true);
 
         ResourceCountVO accountRC = _resourceCountDao.findByOwnerAndType(accountId, ResourceOwnerType.Account, type);
@@ -886,7 +889,8 @@ public class ResourceLimitManagerImpl extends ManagerBase implements ResourceLim
         }
         _resourceCountDao.setResourceCount(accountId, ResourceOwnerType.Account, type, (newCount == null) ? 0 : newCount.longValue());
 
-                if (!Long.valueOf(oldCount).equals(newCount)) {
+                // No need to log message for primary and secondary storage because both are recalculating the resource count which will not lead to any discrepancy.
+                if (!Long.valueOf(oldCount).equals(newCount) && (type != Resource.ResourceType.primary_storage && type != Resource.ResourceType.secondary_storage)) {
                     s_logger.info("Discrepency in the resource count " + "(original count=" + oldCount + " correct count = " + newCount + ") for type " + type +
                         " for account ID " + accountId + " is fixed during resource count recalculation.");
         }

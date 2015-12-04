@@ -200,12 +200,11 @@ def preparePING(tftpRootDir):
     return True
 
 def prepareSyslinux(tftpRootDir):
-    pkg = bash('rpm -ql syslinux | grep "/pxelinux.0$"')
-    if not pkg.isSuccess():
+    pkg = '/usr/share/syslinux/pxelinux.0'
+    if not os.path.exists(pkg):
         printError('cannot find pxelinux.0 on system. is syslinux installed?')
         return False
 
-    pkg = pkg.getStdout()
     cp = "cp -f %s %s" % (pkg, tftpRootDir)
     if not bashWithResult(cp):
         return False

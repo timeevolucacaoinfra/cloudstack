@@ -113,7 +113,19 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public String[] createApiKeyAndSecretKey(final long userId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public User createUser(String arg0, String arg1, String arg2, String arg3, String arg4, String arg5, String arg6, Long arg7, String arg8) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override public User createUser(String userName, String password, String firstName, String lastName, String email, String timeZone, String accountName, Long domainId,
+                                     String userUUID, User.Source source) {
         // TODO Auto-generated method stub
         return null;
     }
@@ -126,12 +138,32 @@ public class MockAccountManager extends ManagerBase implements AccountManager {
     }
 
     @Override
+    public UserAccount createUserAccount(String userName, String password, String firstName, String lastName, String email, String timezone, String accountName, short accountType,
+                                         Long domainId, String networkDomain, Map<String, String> details, String accountUUID, String userUUID, User.Source source) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
     public Account finalizeOwner(Account arg0, String arg1, Long arg2, Long arg3) {
         return _systemAccount;
     }
 
     @Override
     public Account getActiveAccountByName(String arg0, Long arg1) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount getActiveUserAccount(String username, Long domainId) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public UserAccount updateUser(Long userId, String firstName, String lastName, String email, String userName, String password, String apiKey, String secretKey,
+                                  String timeZone) {
         // TODO Auto-generated method stub
         return null;
     }
