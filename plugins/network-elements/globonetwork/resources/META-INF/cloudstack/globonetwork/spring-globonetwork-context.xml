@@ -27,6 +27,12 @@
                       http://www.springframework.org/schema/context/spring-context-3.0.xsd"
                       >
 
-  <context:component-scan base-package="com.globo.globonetwork.cloudstack" />
+  <!-- <context:component-scan base-package="com.globo.globonetwork.cloudstack" /> -->
+
+  <bean id="GloboNetworkManager" class="com.globo.globonetwork.cloudstack.manager.GloboNetworkManager"/>
+  <bean id="GloboNetworkGuru" class="com.globo.globonetwork.cloudstack.guru.GloboNetworkGuru"/>
+  <bean id="GloboNetworkElement" class="com.globo.globonetwork.cloudstack.element.GloboNetworkElement"/>
+  <bean id="GloboNetworkNetworkDaoImpl" class="com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDaoImpl"/>
+  <bean id="GloboNetworkEnvironmentDaoImpl" class="com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDaoImpl"/>
 
 </beans>

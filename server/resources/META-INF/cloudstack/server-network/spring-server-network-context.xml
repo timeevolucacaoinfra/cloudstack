@@ -47,6 +47,9 @@
         <property name="name" value="DirectNetworkGuru" />
     </bean>
     -->
+    <bean id="GloboNetworkGuru" class="com.globo.globonetwork.cloudstack.guru.GloboNetworkGuru">
+        <property name="name" value="GloboNetworkGuru" />
+    </bean>
     <bean id="DirectPodBasedNetworkGuru" class="com.cloud.network.guru.DirectPodBasedNetworkGuru">
         <property name="name" value="DirectPodBasedNetworkGuru" />
     </bean>

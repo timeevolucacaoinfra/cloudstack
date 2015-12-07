@@ -71,7 +71,8 @@ under the License.
             <adapter name="PublicNetworkGuru" class="com.cloud.network.guru.PublicNetworkGuru"/>
             <adapter name="PodBasedNetworkGuru" class="com.cloud.network.guru.PodBasedNetworkGuru"/>
             <adapter name="ControlNetworkGuru" class="com.cloud.network.guru.ControlNetworkGuru"/>
-            <adapter name="DirectNetworkGuru" class="com.cloud.network.guru.DirectNetworkGuru"/>
+            <!-- <adapter name="DirectNetworkGuru" class="com.cloud.network.guru.DirectNetworkGuru"/> -->
+            <adapter name="GloboNetworkGuru" class="com.globo.globonetwork.cloudstack.guru.GloboNetworkGuru"/>
             <adapter name="DirectPodBasedNetworkGuru" class="com.cloud.network.guru.DirectPodBasedNetworkGuru"/>
             <!--<adapter name="OvsGuestNetworkGuru" class="com.cloud.network.guru.OvsGuestNetworkGuru"/> -->
             <adapter name="PrivateNetworkGuru" class="com.cloud.network.guru.PrivateNetworkGuru"/>
