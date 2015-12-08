@@ -22,12 +22,14 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.apache.cloudstack.api.APICommand;
-import org.apache.cloudstack.api.ApiErrorCode;
+import org.apache.cloudstack.api.ApiServerService;
 import org.apache.cloudstack.api.BaseCmd;
+import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.ResponseObject;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.auth.APIAuthenticationType;
@@ -38,7 +40,6 @@ import org.apache.cloudstack.oauth2.response.OAuth2UrlResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Logger;
 
-import com.cloud.api.ApiServerService;
 import com.cloud.api.response.ApiResponseSerializer;
 import com.cloud.domain.DomainVO;
 import com.cloud.exception.CloudAuthenticationException;
@@ -133,8 +134,14 @@ public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {
     }
 
     @Override
-    public String authenticate(final String command, final Map<String, Object[]> params, final HttpSession session, final String remoteAddress, final String responseType,
-            final StringBuffer auditTrailSb, final HttpServletResponse resp) throws ServerApiException {
+    public String authenticate(String command,
+                               Map<String, Object[]> params,
+                               HttpSession session,
+                               String remoteAddress,
+                               String responseType,
+                               StringBuilder auditTrailSb,
+                               HttpServletRequest req,
+                               HttpServletResponse resp) throws ServerApiException {
         // FIXME Put string constants in ApiConstants
         if (params.containsKey("code") && params.containsKey("redirect_uri")) {
             String code = String.valueOf(params.get("code")[0]);

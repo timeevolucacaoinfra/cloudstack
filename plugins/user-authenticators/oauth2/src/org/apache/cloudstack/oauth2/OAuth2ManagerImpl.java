@@ -290,7 +290,7 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
     }
 
     @Override
-    public List<Class<?>> getCommands() {
+    public List<Class<?>> getAuthCommands() {
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
         cmdList.add(OAuth2LoginCmd.class);
         cmdList.add(OAuth2RedirectCmd.class);
@@ -410,4 +410,5 @@ public class OAuth2ManagerImpl extends AdapterBase implements OAuth2Manager, Plu
             }
         }
     }
+
 }
