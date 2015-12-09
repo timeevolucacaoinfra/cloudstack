@@ -58,7 +58,6 @@ public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {
     @Inject
     ApiServerService _apiServer;
 
-    @Inject
     OAuth2Manager _oauth2Manager;
 
     @Inject

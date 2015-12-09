@@ -50,7 +50,6 @@ public class OAuth2RedirectCmd extends BaseCmd implements APIAuthenticator {
     @Inject
     ApiServerService _apiServer;
 
-    @Inject
     OAuth2Manager _oauth2Manager;
 
     @Parameter(name = "redirect_uri", type = CommandType.STRING, required = false, description = "URL the user is returned to")
