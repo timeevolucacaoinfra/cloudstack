@@ -62,6 +62,7 @@ function packaging() {
 
 	CWD=`pwd`
 	RPMDIR=$CWD/../../dist/rpmbuild
+	[[ ! -d ${RPMDIR} ]] && mkdir -p ${RPMDIR}
 	PACK_PROJECT=cloudstack	
 
 	if echo $VERSION | grep SNAPSHOT ; then

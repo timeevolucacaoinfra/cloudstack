@@ -43,7 +43,9 @@ Group:     System Environment/Libraries
 Source0:   %{name}-%{_maventag}.tgz
 BuildRoot: %{_tmppath}/%{name}-%{_maventag}-%{release}-build
 
-%include SPECS/%{_os}/macros.spec
+# %include SPECS/%{_os}/macros.spec
+%include SPECS/default/macros.spec
+
 
 # BuildRequires: java-1.7.0-openjdk-devel
 BuildRequires: %{_javaversion}
