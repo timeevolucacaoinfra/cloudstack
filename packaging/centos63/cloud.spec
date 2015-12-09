@@ -45,7 +45,8 @@ BuildRoot: %{_tmppath}/%{name}-%{_maventag}-%{release}-build
 
 %include SPECS/%{_os}/macros.spec
 
-BuildRequires: java-1.7.0-openjdk-devel
+# BuildRequires: java-1.7.0-openjdk-devel
+BuildRequires: %{_javaversion}
 BuildRequires: %{_tomcatversion}
 BuildRequires: ws-commons-util
 BuildRequires: jpackage-utils
