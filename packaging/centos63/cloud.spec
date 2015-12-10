@@ -340,7 +340,8 @@ install -D client/target/pythonlibs/jasypt-1.9.0.jar ${RPM_BUILD_ROOT}%{_datadir
 install -D packaging/centos63/cloud-ipallocator.rc ${RPM_BUILD_ROOT}%{_initrddir}/%{name}-ipallocator
 install -D packaging/centos63/cloud-management.rc ${RPM_BUILD_ROOT}%{_managementstartscriptpath}/%{name}-management
 install -D packaging/centos63/cloud-management.sysconfig ${RPM_BUILD_ROOT}%{_sysconfdir}/sysconfig/%{name}-management
-install -D packaging/centos63/%{_os}/tomcat.sh ${RPM_BUILD_ROOT}%{_managementstartscriptpath}/tomcat.sh
+# install -D packaging/centos63/%{_os}/tomcat.sh ${RPM_BUILD_ROOT}%{_managementstartscriptpath}/tomcat.sh
+install -D packaging/centos63/default/tomcat.sh ${RPM_BUILD_ROOT}%{_managementstartscriptpath}/tomcat.sh
 %{_managementservice}
 
 chmod 770 ${RPM_BUILD_ROOT}%{_sysconfdir}/%{name}/management/Catalina
