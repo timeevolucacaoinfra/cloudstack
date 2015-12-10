@@ -46,7 +46,7 @@ gen_package(){
     # export some shell environments variables
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
 
-    git checkout ${tag}
+    # git checkout ${tag}
     (cd packaging/centos63; ./package.sh -t ${tag})
 
     [[ $? -ne 0 ]] && echo "Failed to compile package. Please, fix errors." && return 1
