@@ -56,7 +56,8 @@ gen_package(){
     rpms='agent awsapi baremetal-agent cli common management usage'
     for f in ${rpms}; do rm -f $(ls -1t ${REPOPATH}/cloudstack-${f}* 2>/dev/null | awk 'NR>5 {print}') ; done
 
-    BUILDDIR="${BASEDIR}/packaging/centos63/dist/rpmbuild"
+    # BUILDDIR="${BASEDIR}/packaging/centos63/dist/rpmbuild"
+    BUILDDIR="${BASEDIR}/dist/rpmbuild"
     echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH..."
     if mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH; then
         echo "rpm file copied with success"
