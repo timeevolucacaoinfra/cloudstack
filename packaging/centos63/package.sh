@@ -47,10 +47,17 @@ function activateVirtualEnv() {
 function packaging() {
 	tag_from_arg=$1
 	echo "Getting last changes from git..."
-	git pull
-	
+	if ! git pull; then
+	    echo "Failed to get last commits"
+	    exit 1
+	fi
+
 	echo "Cheking out to tag: ${tag_from_arg}"
-	git checkout $tag_from_arg > /dev/null 2>&1
+	if ! git checkout $tag_from_arg > /dev/null 2>&1; then
+	    echo "Failed to checkout to tag ${tag_from_arg}"
+	    exit 1
+	fi
+
 	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
 	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
@@ -62,6 +69,7 @@ function packaging() {
 
 	CWD=`pwd`
 	RPMDIR=$CWD/../../dist/rpmbuild
+	[[ ! -d ${RPMDIR} ]] && mkdir -p ${RPMDIR}
 	PACK_PROJECT=cloudstack	
 
 	if echo $VERSION | grep SNAPSHOT ; then
