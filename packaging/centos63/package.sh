@@ -46,6 +46,12 @@ function activateVirtualEnv() {
 
 function packaging() {
 	tag_from_arg=$1
+
+    if ! git checkout develop; then
+        echo "Failed to checkout to branch develop"
+        exit 1
+    fi
+
 	echo "Getting last changes from git..."
 	if ! git pull; then
 	    echo "Failed to get last commits"
