@@ -45,18 +45,13 @@ function activateVirtualEnv() {
 }
 
 function packaging() {
-	tag_from_arg=$1
+    tag_from_arg=$1
 
-    if ! git checkout develop; then
-        echo "Failed to checkout to branch develop"
+    echo "Getting new tags from remote..."
+    if ! git fetch --tags ; then
+        echo "Failed to get tags from remote repository"
         exit 1
     fi
-
-	echo "Getting last changes from git..."
-	if ! git pull; then
-	    echo "Failed to get last commits"
-	    exit 1
-	fi
 
 	echo "Cheking out to tag: ${tag_from_arg}"
 	if ! git checkout $tag_from_arg > /dev/null 2>&1; then
