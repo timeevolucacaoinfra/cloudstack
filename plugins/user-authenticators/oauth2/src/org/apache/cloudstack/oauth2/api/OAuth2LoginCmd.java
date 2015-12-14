@@ -26,12 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import org.apache.cloudstack.api.APICommand;
-import org.apache.cloudstack.api.ApiServerService;
-import org.apache.cloudstack.api.BaseCmd;
-import org.apache.cloudstack.api.ApiErrorCode;
-import org.apache.cloudstack.api.ResponseObject;
-import org.apache.cloudstack.api.ServerApiException;
+import org.apache.cloudstack.api.*;
 import org.apache.cloudstack.api.auth.APIAuthenticationType;
 import org.apache.cloudstack.api.auth.APIAuthenticator;
 import org.apache.cloudstack.api.auth.PluggableAPIAuthenticator;
@@ -123,8 +118,8 @@ public class OAuth2LoginCmd extends BaseCmd implements APIAuthenticator {
             SecureRandom sesssionKeyRandom = new SecureRandom();
             byte sessionKeyBytes[] = new byte[20];
             sesssionKeyRandom.nextBytes(sessionKeyBytes);
-            String sessionKey = Base64.encodeBase64String(sessionKeyBytes);
-            session.setAttribute("sessionkey", sessionKey);
+            final String sessionKey = Base64.encodeBase64URLSafeString(sessionKeyBytes);
+            session.setAttribute(ApiConstants.SESSIONKEY, sessionKey);
 
             return _responseGenerator.createLoginResponse(session);
         }
