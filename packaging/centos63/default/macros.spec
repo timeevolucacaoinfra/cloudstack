@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# %define _javaversion jdk-1.7.0_80-fcs
 
 %define _pythonparamiko Requires: python-paramiko
 %define _javaversion java-1.7.0-openjdk
-# %define _javaversion jdk-1.7.0_80-fcs
 %define _tomcatversion tomcat6
 %define _vlanconfigtool vconfig
 %define _tomcatpathname tomcat6
