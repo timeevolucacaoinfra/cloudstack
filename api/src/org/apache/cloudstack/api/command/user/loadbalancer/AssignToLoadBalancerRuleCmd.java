@@ -166,6 +166,7 @@ public class AssignToLoadBalancerRuleCmd extends BaseAsyncCmd {
 
         Map<Long, List<String>> vmIdIpsMap = getVmIdIpListMap();
 
+
         boolean result = _lbService.assignToLoadBalancer(getLoadBalancerId(), virtualMachineIds, vmIdIpsMap);
         if (result) {
             SuccessResponse response = new SuccessResponse(getCommandName());
