@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.cloud.utils.exception.CloudRuntimeException;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.api.APICommand;
@@ -168,11 +167,9 @@ public class AssignToLoadBalancerRuleCmd extends BaseAsyncCmd {
         Map<Long, List<String>> vmIdIpsMap = getVmIdIpListMap();
         boolean result = false;
 
-        try {
-            result = _lbService.assignToLoadBalancer(getLoadBalancerId(), virtualMachineIds, vmIdIpsMap);
-        }catch (CloudRuntimeException ex) {
-            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to assign load balancer rule");
-        }
+
+        result = _lbService.assignToLoadBalancer(getLoadBalancerId(), virtualMachineIds, vmIdIpsMap);
+
 
         if (result) {
             SuccessResponse response = new SuccessResponse(getCommandName());
