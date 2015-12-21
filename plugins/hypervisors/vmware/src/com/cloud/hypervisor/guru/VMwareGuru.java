@@ -37,6 +37,7 @@ import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.storage.command.CopyCommand;
 import org.apache.cloudstack.storage.command.DeleteCommand;
+import org.apache.cloudstack.storage.command.StorageSubSystemCommand;
 import org.apache.cloudstack.storage.datastore.db.PrimaryDataStoreDao;
 import org.apache.cloudstack.storage.datastore.db.StoragePoolVO;
 import org.apache.cloudstack.storage.to.VolumeObjectTO;
@@ -148,11 +149,11 @@ public class VMwareGuru extends HypervisorGuruBase implements HypervisorGuru, Co
         super();
     }
 
-    static final ConfigKey<Boolean> VmwareReserveCpu = new ConfigKey<Boolean>(Boolean.class, "vmware.reserve.cpu", "Advanced", "false",
+    public static final ConfigKey<Boolean> VmwareReserveCpu = new ConfigKey<Boolean>(Boolean.class, "vmware.reserve.cpu", "Advanced", "false",
         "Specify whether or not to reserve CPU when not overprovisioning, In case of cpu overprovisioning we will always reserve cpu.", true, ConfigKey.Scope.Cluster,
         null);
 
-    static final ConfigKey<Boolean> VmwareReserveMemory = new ConfigKey<Boolean>(Boolean.class, "vmware.reserve.cpu", "Advanced", "false",
+    public static final ConfigKey<Boolean> VmwareReserveMemory = new ConfigKey<Boolean>(Boolean.class, "vmware.reserve.mem", "Advanced", "false",
         "Specify whether or not to reserve memory when not overprovisioning, In case of memory overprovisioning we will always reserve memory.", true,
         ConfigKey.Scope.Cluster, null);
 
@@ -220,8 +221,8 @@ public class VMwareGuru extends HypervisorGuruBase implements HypervisorGuru, Co
         }
 
         long clusterId = getClusterId(vm.getId());
-        details.put(Config.VmwareReserveCpu.key(), VmwareReserveCpu.valueIn(clusterId).toString());
-        details.put(Config.VmwareReserveMem.key(), VmwareReserveMemory.valueIn(clusterId).toString());
+        details.put(VmwareReserveCpu.key(), VmwareReserveCpu.valueIn(clusterId).toString());
+        details.put(VmwareReserveMemory.key(), VmwareReserveMemory.valueIn(clusterId).toString());
         to.setDetails(details);
 
         if (vmType.equals(VirtualMachine.Type.DomainRouter)) {
@@ -368,14 +369,30 @@ public class VMwareGuru extends HypervisorGuruBase implements HypervisorGuru, Co
     public Pair<Boolean, Long> getCommandHostDelegation(long hostId, Command cmd) {
         boolean needDelegation = false;
 
+        if (cmd instanceof StorageSubSystemCommand) {
+            Boolean fullCloneEnabled = VmwareFullClone.value();
+            StorageSubSystemCommand c = (StorageSubSystemCommand)cmd;
+            c.setExecuteInSequence(fullCloneEnabled);
+        }
+
         //NOTE: the hostid can be a hypervisor host, or a ssvm agent. For copycommand, if it's for volume upload, the hypervisor
         //type is empty, so we need to check the format of volume at first.
         if (cmd instanceof CopyCommand) {
-            CopyCommand cpyCommand = (CopyCommand)cmd;
+            CopyCommand cpyCommand = (CopyCommand) cmd;
             DataTO srcData = cpyCommand.getSrcTO();
             DataStoreTO srcStoreTO = srcData.getDataStore();
             DataTO destData = cpyCommand.getDestTO();
             DataStoreTO destStoreTO = destData.getDataStore();
+
+            boolean inSeq = true;
+            if ((srcData.getObjectType() == DataObjectType.SNAPSHOT) || (destData.getObjectType() == DataObjectType.SNAPSHOT)) {
+                inSeq = false;
+            } else if ((destStoreTO.getRole() == DataStoreRole.Image) || (destStoreTO.getRole() == DataStoreRole.ImageCache)) {
+                inSeq = false;
+            } else if (!VmwareFullClone.value()) {
+                inSeq = false;
+            }
+            cpyCommand.setExecuteInSequence(inSeq);
 
             if (srcData.getObjectType() == DataObjectType.VOLUME) {
                 VolumeObjectTO volumeObjectTO = (VolumeObjectTO)srcData;
@@ -544,5 +561,14 @@ public class VMwareGuru extends HypervisorGuruBase implements HypervisorGuru, Co
         }
 
         return commands;
+    }
+
+    @Override
+    public Map<String, String> getClusterSettings(long vmId) {
+        Map<String, String> details = new HashMap<String, String>();
+        long clusterId = getClusterId(vmId);
+        details.put(VmwareReserveCpu.key(), VmwareReserveCpu.valueIn(clusterId).toString());
+        details.put(VmwareReserveMemory.key(), VmwareReserveMemory.valueIn(clusterId).toString());
+        return details;
     }
 }

@@ -17,6 +17,7 @@
 
 package com.globo.globonetwork.cloudstack.manager;
 
+import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
@@ -88,7 +89,6 @@ import com.cloud.exception.CloudException;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
-import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.PermissionDeniedException;
 import com.cloud.exception.ResourceAllocationException;
@@ -681,7 +681,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
-    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapcityException,
+    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapacityException,
             InsufficientAddressCapacityException {
 
         GetVlanInfoFromGloboNetworkCommand cmd = new GetVlanInfoFromGloboNetworkCommand();
@@ -691,7 +691,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         Answer answer = this.callCommand(cmd, network.getDataCenterId());
         if (answer == null || !answer.getResult()) {
             msg = answer == null ? msg : answer.getDetails();
-            throw new InsufficientVirtualNetworkCapcityException(msg, Nic.class, nicProfile.getId());
+            throw new InsufficientVirtualNetworkCapacityException(msg, Nic.class, nicProfile.getId());
         }
 
         GloboNetworkVlanResponse vlanResponse = (GloboNetworkVlanResponse) answer;

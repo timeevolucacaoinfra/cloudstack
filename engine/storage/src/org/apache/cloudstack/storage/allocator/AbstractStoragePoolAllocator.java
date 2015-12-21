@@ -27,6 +27,7 @@ import java.util.Random;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.storage.Storage;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
@@ -38,11 +39,10 @@ import com.cloud.dc.ClusterVO;
 import com.cloud.dc.dao.ClusterDao;
 import com.cloud.deploy.DeploymentPlan;
 import com.cloud.deploy.DeploymentPlanner.ExcludeList;
-import com.cloud.storage.Storage.StoragePoolType;
+import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.storage.StorageManager;
 import com.cloud.storage.StoragePool;
 import com.cloud.storage.Volume;
-import com.cloud.storage.Volume.Type;
 import com.cloud.storage.dao.DiskOfferingDao;
 import com.cloud.storage.dao.VolumeDao;
 import com.cloud.user.Account;
@@ -76,24 +76,20 @@ public abstract class AbstractStoragePoolAllocator extends AdapterBase implement
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
         super.configure(name, params);
-
-        Map<String, String> configs = _configDao.getConfiguration(null, params);
-
-        String globalStorageOverprovisioningFactor = configs.get("storage.overprovisioning.factor");
-        _storageOverprovisioningFactor = new BigDecimal(NumbersUtil.parseFloat(globalStorageOverprovisioningFactor, 2.0f));
-
-        _extraBytesPerVolume = 0;
-
-        _rand = new Random(System.currentTimeMillis());
-
-        _dontMatter = Boolean.parseBoolean(configs.get("storage.overwrite.provisioning"));
-
-        String allocationAlgorithm = configs.get("vm.allocation.algorithm");
-        if (allocationAlgorithm != null) {
-            _allocationAlgorithm = allocationAlgorithm;
+        if(_configDao != null) {
+            Map<String, String> configs = _configDao.getConfiguration(null, params);
+            String globalStorageOverprovisioningFactor = configs.get("storage.overprovisioning.factor");
+            _storageOverprovisioningFactor = new BigDecimal(NumbersUtil.parseFloat(globalStorageOverprovisioningFactor, 2.0f));
+            _extraBytesPerVolume = 0;
+            _rand = new Random(System.currentTimeMillis());
+            _dontMatter = Boolean.parseBoolean(configs.get("storage.overwrite.provisioning"));
+            String allocationAlgorithm = configs.get("vm.allocation.algorithm");
+            if (allocationAlgorithm != null) {
+                _allocationAlgorithm = allocationAlgorithm;
+            }
+            return true;
         }
-
-        return true;
+        return false;
     }
 
     protected abstract List<StoragePool> select(DiskProfile dskCh, VirtualMachineProfile vmProfile, DeploymentPlan plan, ExcludeList avoid, int returnUpTo);
@@ -164,13 +160,6 @@ public abstract class AbstractStoragePoolAllocator extends AdapterBase implement
             return false;
         }
 
-        if (dskCh.getType().equals(Type.ROOT) && pool.getPoolType().equals(StoragePoolType.Iscsi)) {
-            if (s_logger.isDebugEnabled()) {
-                s_logger.debug("Disk needed for ROOT volume, but StoragePoolType is Iscsi, skipping this and trying other available pools");
-            }
-            return false;
-        }
-
         Long clusterId = pool.getClusterId();
         if (clusterId != null) {
             ClusterVO cluster = _clusterDao.findById(clusterId);
@@ -180,10 +169,14 @@ public abstract class AbstractStoragePoolAllocator extends AdapterBase implement
                 }
                 return false;
             }
-        } else if (pool.getHypervisor() != null && !(pool.getHypervisor() == dskCh.getHypervisorType())) {
+        } else if (pool.getHypervisor() != null && !pool.getHypervisor().equals(HypervisorType.Any) && !(pool.getHypervisor() == dskCh.getHypervisorType())) {
             if (s_logger.isDebugEnabled()) {
                 s_logger.debug("StoragePool does not have required hypervisorType, skipping this pool");
             }
+            return false;
+        }
+
+        if(!checkHypervisorCompatibility(dskCh.getHypervisorType(), dskCh.getType(), pool.getPoolType())){
             return false;
         }
 
@@ -191,6 +184,29 @@ public abstract class AbstractStoragePoolAllocator extends AdapterBase implement
         Volume volume = _volumeDao.findById(dskCh.getVolumeId());
         List<Volume> requestVolumes = new ArrayList<Volume>();
         requestVolumes.add(volume);
-        return storageMgr.storagePoolHasEnoughSpace(requestVolumes, pool);
+        return storageMgr.storagePoolHasEnoughIops(requestVolumes, pool) && storageMgr.storagePoolHasEnoughSpace(requestVolumes, pool);
+    }
+
+    /*
+    Check StoragePool and Volume type compatibility for the hypervisor
+     */
+    private boolean checkHypervisorCompatibility(HypervisorType hyperType, Volume.Type volType, Storage.StoragePoolType poolType){
+        if(HypervisorType.LXC.equals(hyperType)){
+            if(Volume.Type.ROOT.equals(volType)){
+                //LXC ROOT disks supports NFS and local storage pools only
+                if(!(Storage.StoragePoolType.NetworkFilesystem.equals(poolType) ||
+                        Storage.StoragePoolType.Filesystem.equals(poolType)) ){
+                    s_logger.debug("StoragePool does not support LXC ROOT disk, skipping this pool");
+                    return false;
+                }
+            } else if (Volume.Type.DATADISK.equals(volType)){
+                //LXC DATA disks supports RBD storage pool only
+                if(!Storage.StoragePoolType.RBD.equals(poolType)){
+                    s_logger.debug("StoragePool does not support LXC DATA disk, skipping this pool");
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 }

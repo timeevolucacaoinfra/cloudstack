@@ -20,6 +20,8 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -98,6 +100,13 @@ public class UserAccountVO implements UserAccount, InternalIdentity {
 
     @Column(name = "state", table = "account", insertable = false, updatable = false)
     private String accountState;
+
+    @Column(name = "source")
+    @Enumerated(value = EnumType.STRING)
+    private User.Source source;
+
+    @Column(name = "external_entity", length = 65535)
+    private String externalEntity = null;
 
     public UserAccountVO() {
     }
@@ -242,7 +251,7 @@ public class UserAccountVO implements UserAccount, InternalIdentity {
         return accountState;
     }
 
-    public void setAccountDisabled(String accountState) {
+    public void setAccountState(String accountState) {
         this.accountState = accountState;
     }
 
@@ -280,5 +289,22 @@ public class UserAccountVO implements UserAccount, InternalIdentity {
     @Override
     public int getLoginAttempts() {
         return loginAttempts;
+    }
+
+    @Override
+    public User.Source getSource() {
+        return source;
+    }
+
+    public void setSource(User.Source source) {
+        this.source = source;
+    }
+
+    public String getExternalEntity() {
+        return externalEntity;
+    }
+
+    public void setExternalEntity(String externalEntity) {
+        this.externalEntity = externalEntity;
     }
 }

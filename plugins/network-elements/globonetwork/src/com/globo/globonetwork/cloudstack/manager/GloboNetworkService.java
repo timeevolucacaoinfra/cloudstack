@@ -16,6 +16,7 @@
 */
 package com.globo.globonetwork.cloudstack.manager;
 
+import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.util.List;
 
@@ -28,7 +29,6 @@ import com.cloud.dc.DataCenter;
 import com.cloud.exception.ConcurrentOperationException;
 import com.cloud.exception.InsufficientAddressCapacityException;
 import com.cloud.exception.InsufficientCapacityException;
-import com.cloud.exception.InsufficientVirtualNetworkCapcityException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
@@ -95,10 +95,10 @@ public interface GloboNetworkService {
      * @param NicProfile
      * @param network
      * @return
-     * @throws InsufficientVirtualNetworkCapcityException
+     * @throws InsufficientVirtualNetworkCapacityException
      * @throws InsufficientAddressCapacityException
      */
-    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapcityException,
+    public Network validateNic(NicProfile nicProfile, VirtualMachineProfile vm, Network network) throws InsufficientVirtualNetworkCapacityException,
             InsufficientAddressCapacityException;
 
     /**

@@ -116,6 +116,7 @@ public class DefaultVMSnapshotStrategy extends ManagerBase implements VMSnapshot
         boolean result = false;
         try {
             GuestOSVO guestOS = guestOSDao.findById(userVm.getGuestOSId());
+
             List<VolumeObjectTO> volumeTOs = vmSnapshotHelper.getVolumeTOList(userVm.getId());
 
             VMSnapshotTO current = null;
@@ -135,7 +136,8 @@ public class DefaultVMSnapshotStrategy extends ManagerBase implements VMSnapshot
 
             HostVO host = hostDao.findById(hostId);
             GuestOSHypervisorVO guestOsMapping = guestOsHypervisorDao.findByOsIdAndHypervisor(guestOS.getId(), host.getHypervisorType().toString(), host.getHypervisorVersion());
-            CreateVMSnapshotCommand ccmd = new CreateVMSnapshotCommand(userVm.getInstanceName(), target, volumeTOs, guestOS.getDisplayName(), userVm.getState());
+
+            CreateVMSnapshotCommand ccmd = new CreateVMSnapshotCommand(userVm.getInstanceName(), target, volumeTOs, guestOS.getDisplayName());
             if (guestOsMapping == null) {
                 ccmd.setPlatformEmulator(null);
             } else {
@@ -348,9 +350,9 @@ public class DefaultVMSnapshotStrategy extends ManagerBase implements VMSnapshot
                     snapshot.getCurrent(), parent, true);
             Long hostId = vmSnapshotHelper.pickRunningHost(vmSnapshot.getVmId());
             GuestOSVO guestOS = guestOSDao.findById(userVm.getGuestOSId());
+            RevertToVMSnapshotCommand revertToSnapshotCommand = new RevertToVMSnapshotCommand(vmInstanceName, vmSnapshotTO, volumeTOs, guestOS.getDisplayName());
             HostVO host = hostDao.findById(hostId);
             GuestOSHypervisorVO guestOsMapping = guestOsHypervisorDao.findByOsIdAndHypervisor(guestOS.getId(), host.getHypervisorType().toString(), host.getHypervisorVersion());
-            RevertToVMSnapshotCommand revertToSnapshotCommand = new RevertToVMSnapshotCommand(vmInstanceName, vmSnapshotTO, volumeTOs, guestOS.getDisplayName());
             if (guestOsMapping == null) {
                 revertToSnapshotCommand.setPlatformEmulator(null);
             } else {

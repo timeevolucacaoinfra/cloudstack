@@ -305,7 +305,7 @@ class TestIpReservation(cloudstackTestCase):
         return
 
     @data(NAT_RULE, STATIC_NAT_RULE)
-    @attr(tags=["advanced"])
+    @attr(tags=["advanced"], required_hardware="true")
     def test_nat_rules(self, value):
         """ Test NAT rules working with IP reservation
         # steps
@@ -964,16 +964,10 @@ class TestRouterOperations(cloudstackTestCase):
         self.assertEqual(validateList(routers)[0], PASS, "Routers list validation failed")
 
         # Destroy Router
-        try:
-            Router.destroy(self.apiclient, id=routers[0].id)
-        except Exception as e:
-            self.fail("Failed to destroy router: %s" % e)
+        Router.destroy(self.apiclient, id=routers[0].id)
 
         #Restart Network
-        try:
-            isolated_network.restart(self.apiclient)
-        except Exception as e:
-            self.fail("Failed to restart network: %s" % e)
+        isolated_network.restart(self.apiclient)
 
         try:
             virtual_machine_2 = createVirtualMachine(self, network_id=isolated_network.id)
@@ -1068,7 +1062,7 @@ class TestFailureScnarios(cloudstackTestCase):
             raise Exception("Warning: Exception during cleanup : %s" % e)
         return
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_network_not_implemented(self):
         # steps
         # 1. update guestvmcidr of isolated network (non persistent)
@@ -1084,10 +1078,10 @@ class TestFailureScnarios(cloudstackTestCase):
             isolated_network = resultSet[1]
 
         with self.assertRaises(Exception):
-            response = isolated_network.update(self.apiclient, guestvmcidr="10.1.1.0/26")
+            isolated_network.update(self.apiclient, guestvmcidr="10.1.1.0/26")
         return
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_vm_create_after_reservation(self):
         # steps
         # 1. create vm in persistent isolated network with ip in guestvmcidr
@@ -1146,7 +1140,7 @@ class TestFailureScnarios(cloudstackTestCase):
             self.skipTest("VM creation fails, cannot validate the condition: %s" % e)
         return
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_reservation_after_router_restart(self):
         # steps
         # 1. update guestvmcidr of persistent isolated network
@@ -1181,19 +1175,25 @@ class TestFailureScnarios(cloudstackTestCase):
         routers = Router.list(self.apiclient,
                              networkid=isolated_persistent_network.id,
                              listall=True)
-        self.assertEqual(validateList(routers)[0], PASS,
-                    "routers list validation failed")
+        self.assertEqual(
+                    isinstance(routers, list),
+                    True,
+                    "list router should return valid response"
+                    )
+        if not routers:
+            self.skipTest("Router list should not be empty, skipping test")
 
         Router.reboot(self.apiclient, routers[0].id)
         networks = Network.list(self.apiclient, id=isolated_persistent_network.id)
         self.assertEqual(
-                    validateList(networks)[0], PASS,
+                    isinstance(networks, list),
+                    True,
                     "list Networks should return valid response"
                     )
         self.assertEqual(networks[0].cidr, guest_vm_cidr, "guestvmcidr should match after router reboot")
         return
 
-    @attr(tags=["advanced", "selfservice"])
+    @attr(tags=["advanced"], required_hardware="false")
     def test_vm_create_outside_cidr_after_reservation(self):
         # steps
         # 1. update guestvmcidr of persistent isolated network

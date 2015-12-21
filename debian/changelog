@@ -1,14 +1,26 @@
-cloudstack (4.4.2) unstable; urgency=low
+cloudstack (4.5.2) unstable; urgency=low
 
-  * Update the version to 4.4.2
+  * Update the version to 4.5.2
 
- -- the Apache CloudStack project <dev@cloudstack.apache.org>  Fri, 21 Nov 2014 03:41:25 +0100
+ -- the Apache CloudStack project <dev@cloudstack.apache.org>  Wed, 19 Aug 2015 14:42:53 +0530
 
-cloudstack (4.4.1-snapshot) unstable; urgency=low
+cloudstack (4.5.1) unstable; urgency=low
 
-  * Update the version to 4.4.1.snapshot
+  * Update the version to 4.5.1
 
- -- Wido den Hollander <wido@widodh.nl>  Wed, 30 Jul 2014 14:42:53 +0100
+ -- the Apache CloudStack project <dev@cloudstack.apache.org>  Mon, 04 May 2015 12:17:03 +0200
+
+cloudstack (4.5.1-snapshot) unstable; urgency=low
+
+  * Update the version to 4.5.1.snapshot
+
+ -- Rohit Yadav <bhaisaab@apache.org>  Thu, 19 Mar 2015 14:30:00 +0530
+
+cloudstack (4.5.0-snapshot) unstable; urgency=low
+
+  * Update the version to 4.5.0.snapshot
+
+ -- Hugo Trippaers <hugo@apache.org>  Thu, 21 Nov 2013 12:00:00 -0400
 
 cloudstack (4.4.0-snapshot) unstable; urgency=low
 

@@ -16,6 +16,8 @@
 // under the License.
 package com.cloud.hypervisor.kvm.resource;
 
+import org.apache.commons.lang.StringEscapeUtils;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -173,11 +175,40 @@ public class LibvirtVMDef {
         }
     }
 
+    public static class HyperVEnlightenmentFeatureDef {
+        private final Map<String, String> features = new HashMap<String,String>();
+        public void setRelaxed(boolean on) {
+            String state = on ? "On":"Off";
+            features.put("relaxed", state);
+        }
+        @Override
+        public String toString() {
+            if (features.isEmpty()) {
+                return "";
+            }
+            StringBuilder feaBuilder = new StringBuilder();
+            feaBuilder.append("<hyperv>\n");
+            for (Map.Entry<String, String> e : features.entrySet()) {
+                feaBuilder.append("<");
+                feaBuilder.append(e.getKey());
+                feaBuilder.append(" state='" + e.getValue() + "'");
+                feaBuilder.append("/>\n");
+            }
+            feaBuilder.append("</hyperv>\n");
+            return feaBuilder.toString();
+        }
+    }
+
     public static class FeaturesDef {
         private final List<String> _features = new ArrayList<String>();
 
+        private HyperVEnlightenmentFeatureDef hyperVEnlightenmentFeatureDef = null;
         public void addFeatures(String feature) {
             _features.add(feature);
+        }
+
+        public void addHyperVFeature(HyperVEnlightenmentFeatureDef hyperVEnlightenmentFeatureDef) {
+            this.hyperVEnlightenmentFeatureDef = hyperVEnlightenmentFeatureDef;
         }
 
         @Override
@@ -186,6 +217,12 @@ public class LibvirtVMDef {
             feaBuilder.append("<features>\n");
             for (String feature : _features) {
                 feaBuilder.append("<" + feature + "/>\n");
+            }
+            if (hyperVEnlightenmentFeatureDef != null) {
+                String hpervF = hyperVEnlightenmentFeatureDef.toString();
+                if (!hpervF.isEmpty()) {
+                    feaBuilder.append(hpervF);
+                }
             }
             feaBuilder.append("</features>\n");
             return feaBuilder.toString();
@@ -243,6 +280,7 @@ public class LibvirtVMDef {
         private String _timerName;
         private String _tickPolicy;
         private String _track;
+        private boolean _noKvmClock = false;
 
         public ClockDef() {
             _offset = ClockOffset.UTC;
@@ -258,6 +296,11 @@ public class LibvirtVMDef {
             _track = track;
         }
 
+        public void setTimer(String timerName, String tickPolicy, String track, boolean noKvmClock) {
+            _noKvmClock = noKvmClock;
+            setTimer(timerName, tickPolicy, track);
+        }
+
         @Override
         public String toString() {
             StringBuilder clockBuilder = new StringBuilder();
@@ -269,20 +312,24 @@ public class LibvirtVMDef {
                 clockBuilder.append(_timerName);
                 clockBuilder.append("' ");
 
-                if (_tickPolicy != null) {
-                    clockBuilder.append("tickpolicy='");
-                    clockBuilder.append(_tickPolicy);
-                    clockBuilder.append("' ");
-                }
+                if (_timerName.equals("kvmclock") && _noKvmClock) {
+                    clockBuilder.append("present='no' />");
+                } else {
+                    if (_tickPolicy != null) {
+                        clockBuilder.append("tickpolicy='");
+                        clockBuilder.append(_tickPolicy);
+                        clockBuilder.append("' ");
+                    }
 
-                if (_track != null) {
-                    clockBuilder.append("track='");
-                    clockBuilder.append(_track);
-                    clockBuilder.append("' ");
-                }
+                    if (_track != null) {
+                        clockBuilder.append("track='");
+                        clockBuilder.append(_track);
+                        clockBuilder.append("' ");
+                    }
 
-                clockBuilder.append(">\n");
-                clockBuilder.append("</timer>\n");
+                    clockBuilder.append(">\n");
+                    clockBuilder.append("</timer>\n");
+                }
             }
             clockBuilder.append("</clock>\n");
             return clockBuilder.toString();
@@ -326,8 +373,14 @@ public class LibvirtVMDef {
             for (List<?> devs : devices.values()) {
                 for (Object dev : devs) {
                     if (_guestType == GuestDef.guestType.LXC) {
-                        if (dev instanceof GraphicDef || dev instanceof InputDef || dev instanceof DiskDef) {
+                        if (dev instanceof GraphicDef || dev instanceof InputDef) {
                             continue;
+                        }
+                        if(dev instanceof DiskDef){
+                            DiskDef disk = (DiskDef)dev;
+                            if(!disk.getDiskType().toString().equals("block")){
+                                continue;
+                            }
                         }
                     }
                     devicesBuilder.append(dev.toString());
@@ -456,6 +509,7 @@ public class LibvirtVMDef {
         private Long _iopsReadRate;
         private Long _iopsWriteRate;
         private diskCacheMode _diskCacheMode;
+        private boolean qemuDriver = true;
 
         public void setDeviceType(deviceType deviceType) {
             _deviceType = deviceType;
@@ -531,7 +585,7 @@ public class LibvirtVMDef {
         }
 
         public void defNetworkBasedDisk(String diskName, String sourceHost, int sourcePort, String authUserName, String authSecretUUID, int devId, diskBus bus,
-            diskProtocol protocol, diskFmtType diskFmtType) {
+                diskProtocol protocol, diskFmtType diskFmtType) {
             _diskType = diskType.NETWORK;
             _deviceType = deviceType.DISK;
             _diskFmtType = diskFmtType;
@@ -547,7 +601,7 @@ public class LibvirtVMDef {
         }
 
         public void defNetworkBasedDisk(String diskName, String sourceHost, int sourcePort, String authUserName, String authSecretUUID, String diskLabel, diskBus bus,
-            diskProtocol protocol, diskFmtType diskFmtType) {
+                diskProtocol protocol, diskFmtType diskFmtType) {
             _diskType = diskType.NETWORK;
             _deviceType = deviceType.DISK;
             _diskFmtType = diskFmtType;
@@ -635,6 +689,10 @@ public class LibvirtVMDef {
             return _diskCacheMode;
         }
 
+        public void setQemuDriver(boolean qemuDriver){
+            this.qemuDriver = qemuDriver;
+        }
+
         @Override
         public String toString() {
             StringBuilder diskBuilder = new StringBuilder();
@@ -644,8 +702,11 @@ public class LibvirtVMDef {
             }
             diskBuilder.append(" type='" + _diskType + "'");
             diskBuilder.append(">\n");
-            diskBuilder.append("<driver name='qemu'" + " type='" + _diskFmtType
-                + "' cache='" + _diskCacheMode + "' " + "/>\n");
+            if(qemuDriver) {
+                diskBuilder.append("<driver name='qemu'" + " type='" + _diskFmtType
+                        + "' cache='" + _diskCacheMode + "' " + "/>\n");
+            }
+
             if (_diskType == diskType.FILE) {
                 diskBuilder.append("<source ");
                 if (_sourcePath != null) {
@@ -686,10 +747,10 @@ public class LibvirtVMDef {
             diskBuilder.append("/>\n");
 
             if ((_deviceType != deviceType.CDROM) &&
-                (s_libvirtVersion >= 9008) &&
-                (s_qemuVersion >= 1001000) &&
-                (((_bytesReadRate != null) && (_bytesReadRate > 0)) || ((_bytesWriteRate != null) && (_bytesWriteRate > 0)) ||
-                    ((_iopsReadRate != null) && (_iopsReadRate > 0)) || ((_iopsWriteRate != null) && (_iopsWriteRate > 0)))) { // not CDROM, from libvirt 0.9.8 and QEMU 1.1.0
+                    (s_libvirtVersion >= 9008) &&
+                    (s_qemuVersion >= 1001000) &&
+                    (((_bytesReadRate != null) && (_bytesReadRate > 0)) || ((_bytesWriteRate != null) && (_bytesWriteRate > 0)) ||
+                            ((_iopsReadRate != null) && (_iopsReadRate > 0)) || ((_iopsWriteRate != null) && (_iopsWriteRate > 0)))) { // not CDROM, from libvirt 0.9.8 and QEMU 1.1.0
                 diskBuilder.append("<iotune>\n");
                 if ((_bytesReadRate != null) && (_bytesReadRate > 0))
                     diskBuilder.append("<read_bytes_sec>" + _bytesReadRate + "</read_bytes_sec>\n");
@@ -723,7 +784,7 @@ public class LibvirtVMDef {
         }
 
         enum nicModel {
-            E1000("e1000"), VIRTIO("virtio"), RTL8139("rtl8139"), NE2KPCI("ne2k_pci");
+            E1000("e1000"), VIRTIO("virtio"), RTL8139("rtl8139"), NE2KPCI("ne2k_pci"), VMXNET3("vmxnet3");
             String _model;
 
             nicModel(String model) {
@@ -741,9 +802,9 @@ public class LibvirtVMDef {
         }
 
         private guestNetType _netType; /*
-                                         * bridge, ethernet, network, user,
-                                         * internal
-                                         */
+         * bridge, ethernet, network, user,
+         * internal
+         */
         private hostNicType _hostNetType; /* Only used by agent java code */
         private String _netSourceMode;
         private String _sourceName;
@@ -756,6 +817,7 @@ public class LibvirtVMDef {
         private String _virtualPortType;
         private String _virtualPortInterfaceId;
         private int _vlanTag = -1;
+        private boolean _pxeDisable = false;
 
         public void defBridgeNet(String brName, String targetBrName, String macAddr, nicModel model) {
             defBridgeNet(brName, targetBrName, macAddr, model, 0);
@@ -821,6 +883,10 @@ public class LibvirtVMDef {
 
         public hostNicType getHostNetType() {
             return _hostNetType;
+        }
+
+        public void setPxeDisable(boolean pxeDisable) {
+            _pxeDisable = pxeDisable;
         }
 
         public String getBrName() {
@@ -900,6 +966,9 @@ public class LibvirtVMDef {
             if (_scriptPath != null) {
                 netBuilder.append("<script path='" + _scriptPath + "'/>\n");
             }
+            if (_pxeDisable) {
+                netBuilder.append("<rom bar='off' file=''/>");
+            }
             if (_virtualPortType != null) {
                 netBuilder.append("<virtualport type='" + _virtualPortType + "'>\n");
                 if (_virtualPortInterfaceId != null) {
@@ -974,11 +1043,18 @@ public class LibvirtVMDef {
     public static class CpuModeDef {
         private String _mode;
         private String _model;
+        private List<String> _features;
         private int _coresPerSocket = -1;
         private int _sockets = -1;
 
         public void setMode(String mode) {
             _mode = mode;
+        }
+
+        public void setFeatures(List<String> features) {
+            if (features != null) {
+                _features = features;
+            }
         }
 
         public void setModel(String model) {
@@ -1003,6 +1079,12 @@ public class LibvirtVMDef {
                 modeBuilder.append("<cpu mode='host-passthrough'>");
             } else {
                 modeBuilder.append("<cpu>");
+            }
+
+            if (_features != null) {
+                for (String feature : _features) {
+                    modeBuilder.append("<feature policy='require' name='" + feature + "'/>");
+                }
             }
 
             // add topology
@@ -1039,6 +1121,28 @@ public class LibvirtVMDef {
             }
             serialBuidler.append("</serial>\n");
             return serialBuidler.toString();
+        }
+    }
+
+    public static class VideoDef {
+        private String _videoModel;
+        private int _videoRam;
+
+        public VideoDef(String videoModel, int videoRam) {
+            _videoModel = videoModel;
+            _videoRam = videoRam;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder videoBuilder = new StringBuilder();
+            if (_videoModel != null && !_videoModel.isEmpty() && _videoRam != 0){
+                videoBuilder.append("<video>\n");
+                videoBuilder.append("<model type='" + _videoModel + "' vram='" + _videoRam + "'/>\n");
+                videoBuilder.append("</video>\n");
+                return videoBuilder.toString();
+            }
+            return "";
         }
     }
 
@@ -1079,7 +1183,7 @@ public class LibvirtVMDef {
             _port = port;
             _autoPort = autoPort;
             _listenAddr = listenAddr;
-            _passwd = passwd;
+            _passwd = StringEscapeUtils.escapeXml(passwd);
             _keyMap = keyMap;
         }
 

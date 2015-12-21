@@ -542,7 +542,7 @@
 
             instances.listView.actions = {
                 select: {
-                    label: 'Select instance',
+                    label: 'label.select.instance',
                     type: isMultipleAdd ? 'checkbox' : 'radio',
                     action: {
                         uiCustom: function(args) {

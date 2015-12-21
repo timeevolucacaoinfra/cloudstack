@@ -16,13 +16,13 @@
 // under the License.
 package org.apache.cloudstack.api.auth;
 
-import java.util.List;
-import java.util.Map;
+import org.apache.cloudstack.api.ServerApiException;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
-import org.apache.cloudstack.api.ServerApiException;
+import java.util.List;
+import java.util.Map;
 
 /*
 * APIAuthenticator is an interface that defines method that
@@ -35,8 +35,9 @@ import org.apache.cloudstack.api.ServerApiException;
 * @param session HttpSession object
 * */
 public interface APIAuthenticator {
-    public String authenticate(String command, Map<String, Object[]> params, HttpSession session, String remoteAddress, String responseType, StringBuffer auditTrailSb,
-            final HttpServletResponse resp) throws ServerApiException;
+    public String authenticate(String command, Map<String, Object[]> params,
+                               HttpSession session, String remoteAddress, String responseType,
+                               StringBuilder auditTrailSb, final HttpServletRequest req, final HttpServletResponse resp) throws ServerApiException;
 
     public APIAuthenticationType getAPIType();
 

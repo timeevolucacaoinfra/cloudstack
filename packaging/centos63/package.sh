@@ -45,12 +45,20 @@ function activateVirtualEnv() {
 }
 
 function packaging() {
-	tag_from_arg=$1
-	echo "Getting last changes from git..."
-	git pull
-	
+    tag_from_arg=$1
+
+    echo "Getting new tags from remote..."
+    if ! git fetch --tags ; then
+        echo "Failed to get tags from remote repository"
+        exit 1
+    fi
+
 	echo "Cheking out to tag: ${tag_from_arg}"
-	git checkout $tag_from_arg > /dev/null 2>&1
+	if ! git checkout $tag_from_arg > /dev/null 2>&1; then
+	    echo "Failed to checkout to tag ${tag_from_arg}"
+	    exit 1
+	fi
+
 	[[ $? -ne 0 ]] && echo -e "\nInvalid tag, plese check it (${tag_from_arg})\n" && exit 1
 	[[ $tag_from_arg =~ ([0-9]+\.[0-9]+\.[0-9]+)\-([0-9]+) ]] &&  tag_version=${BASH_REMATCH[1]} tag_release=${BASH_REMATCH[2]}
 
@@ -62,6 +70,7 @@ function packaging() {
 
 	CWD=`pwd`
 	RPMDIR=$CWD/../../dist/rpmbuild
+	[[ ! -d ${RPMDIR} ]] && mkdir -p ${RPMDIR}
 	PACK_PROJECT=cloudstack	
 
 	if echo $VERSION | grep SNAPSHOT ; then
@@ -93,8 +102,15 @@ function packaging() {
     echo ". executing rpmbuild"
 
 	cp cloud.spec $RPMDIR/SPECS
+    cp -rf default $RPMDIR/SPECS
+    cp -rf rhel7 $RPMDIR/SPECS
 
 	(cd $RPMDIR; rpmbuild --define "_topdir $RPMDIR" "${DEFVER}" "${DEFREL}" ${DEFPRE+${DEFPRE}} -ba SPECS/cloud.spec)
+
+    if [ $? -ne 0 ]; then
+        echo "RPM Build Failed "
+        exit 1
+    fi
 
     echo "Done"
 

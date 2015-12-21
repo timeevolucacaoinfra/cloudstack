@@ -59,6 +59,8 @@ from marvin.cloudstackAPI import (listConfigurations,
                                   listVPCOfferings)
 
 
+
+
 from marvin.sshClient import SshClient
 from marvin.codes import (PASS, FAILED, ISOLATED_NETWORK, VPC_NETWORK,
                           BASIC_ZONE, FAIL, NAT_RULE, STATIC_NAT_RULE,
@@ -91,8 +93,7 @@ import time
 
 def is_config_suitable(apiclient, name, value):
     """
-    Ensure if the deployment has the expected
-    `value` for the global setting `name'
+    Ensure if the deployment has the expected `value` for the global setting `name'
     @return: true if value is set, else false
     """
     configs = Configurations.list(apiclient, name=name)
@@ -167,8 +168,7 @@ def add_netscaler(apiclient, zoneid, NSservice):
 def get_region(apiclient, region_id=None, region_name=None):
     '''
     @name : get_region
-    @Desc : Returns the Region Information for a given
-    region  id or region name
+    @Desc : Returns the Region Information for a given region  id or region name
     @Input : region_name: Name of the Region
              region_id : Id of the region
     @Output : 1. Region  Information for the passed inputs else first Region
@@ -202,6 +202,25 @@ def get_domain(apiclient, domain_id=None, domain_name=None):
     if validateList(cmd_out)[0] != PASS:
         return FAILED
     return cmd_out[0]
+
+
+def find_storage_pool_type(apiclient, storagetype='NetworkFileSystem'):
+    """
+    @name : find_storage_pool_type
+    @Desc : Returns true if the given storage pool type exists
+    @Input : type : type of the storage pool[NFS, RBD, etc.,]
+    @Output : True : if the type of storage is found
+              False : if the type of storage is not found
+              FAILED In case the cmd failed
+    """
+    cmd = listStoragePools.listStoragePoolsCmd()
+    cmd_out = apiclient.listStoragePools(cmd)
+    if validateList(cmd_out)[0] != PASS:
+        return FAILED
+    for storage_pool in cmd_out:
+        if storage_pool.type.lower() == storagetype:
+            return True
+    return False
 
 
 def get_zone(apiclient, zone_name=None, zone_id=None):
@@ -254,12 +273,10 @@ def get_pod(apiclient, zone_id=None, pod_id=None, pod_name=None):
     if validateList(cmd_out)[0] != PASS:
         return FAILED
     return cmd_out[0]
-
-
 def get_template(
-        apiclient, zone_id=None, ostype_desc=None, template_filter="featured",
-        template_type='BUILTIN', template_id=None, template_name=None,
-        account=None, domain_id=None, project_id=None, hypervisor=None):
+        apiclient, zone_id=None, ostype_desc=None, template_filter="featured", template_type='BUILTIN',
+        template_id=None, template_name=None, account=None, domain_id=None, project_id=None,
+        hypervisor=None):
     '''
     @Name : get_template
     @Desc : Retrieves the template Information based upon inputs provided
@@ -300,6 +317,59 @@ def get_template(
     Return default first template, if no template matched
     '''
     return list_templatesout[0]
+
+
+
+def get_windows_template(
+        apiclient, zone_id=None, ostype_desc=None, template_filter="featured", template_type='USER',
+        template_id=None, template_name=None, account=None, domain_id=None, project_id=None,
+        hypervisor=None):
+    '''
+    @Name : get_template
+    @Desc : Retrieves the template Information based upon inputs provided
+            Template is retrieved based upon either of the inputs matched
+            condition
+    @Input : returns a template"
+    @Output : FAILED in case of any failure
+              template Information matching the inputs
+    '''
+    cmd = listTemplates.listTemplatesCmd()
+    cmd.templatefilter = template_filter
+    if domain_id is not None:
+        cmd.domainid = domain_id
+    if zone_id is not None:
+        cmd.zoneid = zone_id
+    if template_id is not None:
+        cmd.id = template_id
+    if template_name is not None:
+        cmd.name = template_name
+    if hypervisor is not None:
+        cmd.hypervisor = hypervisor
+    if project_id is not None:
+        cmd.projectid = project_id
+    if account is not None:
+        cmd.account = account
+
+
+    '''
+    Get the Templates pertaining to the inputs provided
+    '''
+    list_templatesout = apiclient.listTemplates(cmd)
+    #print("template result is %s"%(list_templatesout))
+    if list_templatesout is None:
+        return FAILED
+    if validateList(list_templatesout[0]) == FAIL :
+            return FAILED
+
+    for template in list_templatesout:
+        if template.isready and template.templatetype == "USER" and template.ostypename == ostype_desc:
+            return template
+    '''
+    Return default first template, if no template matched
+    '''
+
+    return FAILED
+
 
 
 def download_systemplates_sec_storage(server, services):
@@ -844,24 +914,20 @@ def update_resource_count(apiclient, domainid, accountid=None,
                           )
     return
 
-
 def findSuitableHostForMigration(apiclient, vmid):
     """Returns a suitable host for VM migration"""
     suitableHost = None
     try:
         hosts = Host.listForMigration(apiclient, virtualmachineid=vmid,
-                                      )
+                )
     except Exception as e:
-        raise Exception(
-            "Exception while getting hosts list suitable for migration: %s" %
-            e)
+        raise Exception("Exception while getting hosts list suitable for migration: %s" % e)
 
     suitablehosts = []
     if isinstance(hosts, list) and len(hosts) > 0:
-        suitablehosts = [host for host in hosts
-                         if (str(host.resourcestate).lower() == "enabled"
-                             and str(host.state).lower() == "up")]
-        if len(suitablehosts) > 0:
+        suitablehosts = [host for host in hosts if (str(host.resourcestate).lower() == "enabled"\
+                and str(host.state).lower() == "up")]
+        if len(suitablehosts)>0:
             suitableHost = suitablehosts[0]
 
     return suitableHost
@@ -887,10 +953,10 @@ def get_resource_type(resource_id):
     return lookup[resource_id]
 
 
+
 def get_free_vlan(apiclient, zoneid):
     """
-    Find an unallocated VLAN outside the range
-    allocated to the physical network.
+    Find an unallocated VLAN outside the range allocated to the physical network.
 
     @note: This does not guarantee that the VLAN is available for use in
     the deployment's network gear
@@ -902,8 +968,7 @@ def get_free_vlan(apiclient, zoneid):
     )
     assert isinstance(list_physical_networks_response, list)
     assert len(
-        list_physical_networks_response) > 0,\
-        "No physical networks found in zone %s" % zoneid
+        list_physical_networks_response) > 0, "No physical networks found in zone %s" % zoneid
 
     physical_network = list_physical_networks_response[0]
 
@@ -926,8 +991,7 @@ def get_free_vlan(apiclient, zoneid):
 
         assert len(vlans) > 0
         assert int(vlans[0]) < int(
-            vlans[-1]), "VLAN range  %s was improperly split"\
-                        % physical_network.vlan
+            vlans[-1]), "VLAN range  %s was improperly split" % physical_network.vlan
 
         # Assuming random function will give different integer each time
         retriesCount = 20
@@ -955,8 +1019,7 @@ def get_free_vlan(apiclient, zoneid):
 
 def setNonContiguousVlanIds(apiclient, zoneid):
     """
-    Form the non contiguous ranges based on currently
-     assigned range in physical network
+    Form the non contiguous ranges based on currently assigned range in physical network
     """
 
     NonContigVlanIdsAcquired = False
@@ -967,8 +1030,7 @@ def setNonContiguousVlanIds(apiclient, zoneid):
     )
     assert isinstance(list_physical_networks_response, list)
     assert len(
-        list_physical_networks_response) > 0, \
-        "No physical networks found in zone %s" % zoneid
+        list_physical_networks_response) > 0, "No physical networks found in zone %s" % zoneid
 
     for physical_network in list_physical_networks_response:
 
@@ -976,30 +1038,26 @@ def setNonContiguousVlanIds(apiclient, zoneid):
 
         assert len(vlans) > 0
         assert int(vlans[0]) < int(
-            vlans[-1]), "VLAN range  %s was improperly split"\
-                        % physical_network.vlan
+            vlans[-1]), "VLAN range  %s was improperly split" % physical_network.vlan
 
-        # Keep some gap between existing vlan and the new vlans
-        # which we are going to add
+        # Keep some gap between existing vlan and the new vlans which we are going to add
         # So that they are non contiguous
 
         non_contig_end_vlan_id = int(vlans[-1]) + 6
         non_contig_start_vlan_id = int(vlans[0]) - 6
 
-        # Form ranges which are consecutive to existing ranges but
-        # not immediately contiguous
-        # There should be gap in between existing range
-        # and new non contiguous range
-        # If you can't add range after existing range,
-        # because it's crossing 4095, then select VLAN ids before
-        # the existing range such that they are greater than 0, and
+        # Form ranges which are consecutive to existing ranges but not immediately contiguous
+        # There should be gap in between existing range and new non contiguous
+        # ranage
+
+        # If you can't add range after existing range, because it's crossing 4095, then
+        # select VLAN ids before the existing range such that they are greater than 0, and
         # then add this non contiguoud range
         vlan = {"partial_range": ["", ""], "full_range": ""}
 
         if non_contig_end_vlan_id < 4095:
             vlan["partial_range"][0] = str(
-                non_contig_end_vlan_id - 4) + '-' + str(non_contig_end_vlan_id
-                                                        - 3)
+                non_contig_end_vlan_id - 4) + '-' + str(non_contig_end_vlan_id - 3)
             vlan["partial_range"][1] = str(
                 non_contig_end_vlan_id - 1) + '-' + str(non_contig_end_vlan_id)
             vlan["full_range"] = str(
@@ -1007,15 +1065,12 @@ def setNonContiguousVlanIds(apiclient, zoneid):
             NonContigVlanIdsAcquired = True
 
         elif non_contig_start_vlan_id > 0:
-            vlan["partial_range"][0] = \
-                str(non_contig_start_vlan_id) \
-                + '-' + str(non_contig_start_vlan_id + 1)
-            vlan["partial_range"][1] = \
-                str(non_contig_start_vlan_id + 3) \
-                + '-' + str(non_contig_start_vlan_id + 4)
-            vlan["full_range"] = \
-                str(non_contig_start_vlan_id) \
-                + '-' + str(non_contig_start_vlan_id + 4)
+            vlan["partial_range"][0] = str(
+                non_contig_start_vlan_id) + '-' + str(non_contig_start_vlan_id + 1)
+            vlan["partial_range"][1] = str(
+                non_contig_start_vlan_id + 3) + '-' + str(non_contig_start_vlan_id + 4)
+            vlan["full_range"] = str(
+                non_contig_start_vlan_id) + '-' + str(non_contig_start_vlan_id + 4)
             NonContigVlanIdsAcquired = True
 
         else:
@@ -1030,8 +1085,7 @@ def setNonContiguousVlanIds(apiclient, zoneid):
         else:
             break
 
-    # If even through looping from all existing physical networks,
-    # failed to get relevant non
+    # If even through looping from all existing physical networks, failed to get relevant non
     # contiguous vlan ids, then fail the test case
 
     if not NonContigVlanIdsAcquired:
@@ -1065,76 +1119,58 @@ def isIpInDesiredState(apiclient, ipaddressid, state):
                             (state, portableips[0].state)
     return [False, ipInDesiredState, exceptionMessage]
 
-
 def setSharedNetworkParams(networkServices, range=20):
-    """Fill up the services dictionary for shared network
-    using random subnet
-    """
+    """Fill up the services dictionary for shared network using random subnet"""
 
-    # @range: range decides the endip. Pass the range as "x"
-    # if you want the difference between the startip
+    # @range: range decides the endip. Pass the range as "x" if you want the difference between the startip
     # and endip as "x"
     # Set the subnet number of shared networks randomly prior to execution
     # of each test case to avoid overlapping of ip addresses
-    shared_network_subnet_number = random.randrange(1, 254)
+    shared_network_subnet_number = random.randrange(1,254)
 
-    networkServices["gateway"] = "172.16." + \
-        str(shared_network_subnet_number) + ".1"
-    networkServices["startip"] = "172.16." + \
-        str(shared_network_subnet_number) + ".2"
-    networkServices["endip"] = "172.16." + \
-        str(shared_network_subnet_number) + "." + str(range + 1)
+    networkServices["gateway"] = "172.16."+str(shared_network_subnet_number)+".1"
+    networkServices["startip"] = "172.16."+str(shared_network_subnet_number)+".2"
+    networkServices["endip"] = "172.16."+str(shared_network_subnet_number)+"."+str(range+1)
     networkServices["netmask"] = "255.255.255.0"
     return networkServices
-
 
 def createEnabledNetworkOffering(apiclient, networkServices):
     """Create and enable network offering according to the type
 
        @output: List, containing [ Result,Network Offering,Reason ]
-                 Ist Argument('Result') : FAIL : If exception or assertion
-                                          error occurs
+                 Ist Argument('Result') : FAIL : If exception or assertion error occurs
                                           PASS : If network offering
                                           is created and enabled successfully
                  IInd Argument(Net Off) : Enabled network offering
                                                 In case of exception or
-                                                assertion error, it will be
-                                                None
+                                                assertion error, it will be None
                  IIIrd Argument(Reason) :  Reason for failure,
                                               default to None
     """
     try:
         resultSet = [FAIL, None, None]
         # Create network offering
-        network_offering = NetworkOffering.create(
-            apiclient,
-            networkServices,
-            conservemode=False)
+        network_offering = NetworkOffering.create(apiclient, networkServices, conservemode=False)
 
         # Update network offering state from disabled to enabled.
-        NetworkOffering.update(network_offering,
-                               apiclient, id=network_offering.id,
+        NetworkOffering.update(network_offering, apiclient, id=network_offering.id,
                                state="enabled")
     except Exception as e:
         resultSet[2] = e
         return resultSet
     return [PASS, network_offering, None]
 
-
 def shouldTestBeSkipped(networkType, zoneType):
     """Decide which test to skip, according to type of network and zone type"""
 
-    # If network type is isolated or vpc and zone type is basic, then test
-    # should be skipped
+    # If network type is isolated or vpc and zone type is basic, then test should be skipped
     skipIt = False
-    if (networkType.lower() == str(ISOLATED_NETWORK).lower() or
-        networkType.lower() == str(VPC_NETWORK).lower()) and\
-        (zoneType.lower() == BASIC_ZONE):
+    if ((networkType.lower() == str(ISOLATED_NETWORK).lower() or networkType.lower() == str(VPC_NETWORK).lower())
+            and (zoneType.lower() == BASIC_ZONE)):
         skipIt = True
     return skipIt
 
-
-def verifyNetworkState(apiclient, networkid, state):
+def verifyNetworkState(apiclient, networkid, state, listall=True):
     """List networks and check if the network state matches the given state"""
     retriesCount = 10
     isNetworkInDesiredState = False
@@ -1142,7 +1178,7 @@ def verifyNetworkState(apiclient, networkid, state):
     exceptionMessage = ""
     try:
         while retriesCount >= 0:
-            networks = Network.list(apiclient, id=networkid)
+            networks = Network.list(apiclient, id=networkid, listall=listall)
             assert validateList(
                 networks)[0] == PASS, "Networks list validation failed"
             if str(networks[0].state).lower() == state:
@@ -1150,12 +1186,14 @@ def verifyNetworkState(apiclient, networkid, state):
                 break
             retriesCount -= 1
             time.sleep(60)
+        if not isNetworkInDesiredState:
+            exceptionMessage = "Network state should be %s, it is %s" %\
+                                (state, networks[0].state)
     except Exception as e:
         exceptionOccured = True
         exceptionMessage = e
         return [exceptionOccured, isNetworkInDesiredState, exceptionMessage]
     return [exceptionOccured, isNetworkInDesiredState, exceptionMessage]
-
 
 def verifyComputeOfferingCreation(apiclient, computeofferingid):
     """List Compute offerings by ID and verify that the offering exists"""
@@ -1166,11 +1204,10 @@ def verifyComputeOfferingCreation(apiclient, computeofferingid):
     try:
         serviceOfferings = apiclient.listServiceOfferings(cmd)
     except Exception:
-        return FAIL
+       return FAIL
     if not (isinstance(serviceOfferings, list) and len(serviceOfferings) > 0):
-        return FAIL
+       return FAIL
     return PASS
-
 
 def createNetworkRulesForVM(apiclient, virtualmachine, ruletype,
                             account, networkruledata):
@@ -1179,28 +1216,26 @@ def createNetworkRulesForVM(apiclient, virtualmachine, ruletype,
 
     try:
         public_ip = PublicIPAddress.create(
-            apiclient, accountid=account.name,
-            zoneid=virtualmachine.zoneid, domainid=account.domainid,
-            networkid=virtualmachine.nic[0].networkid)
+                apiclient,accountid=account.name,
+                zoneid=virtualmachine.zoneid,domainid=account.domainid,
+                networkid=virtualmachine.nic[0].networkid)
 
         FireWallRule.create(
-            apiclient, ipaddressid=public_ip.ipaddress.id,
+            apiclient,ipaddressid=public_ip.ipaddress.id,
             protocol='TCP', cidrlist=[networkruledata["fwrule"]["cidr"]],
             startport=networkruledata["fwrule"]["startport"],
             endport=networkruledata["fwrule"]["endport"]
-        )
+            )
 
         if ruletype == NAT_RULE:
             # Create NAT rule
             NATRule.create(apiclient, virtualmachine,
-                           networkruledata[
-                               "natrule"], ipaddressid=public_ip.ipaddress.id,
-                           networkid=virtualmachine.nic[0].networkid)
+                                 networkruledata["natrule"],ipaddressid=public_ip.ipaddress.id,
+                                 networkid=virtualmachine.nic[0].networkid)
         elif ruletype == STATIC_NAT_RULE:
             # Enable Static NAT for VM
-            StaticNATRule.enable(apiclient, public_ip.ipaddress.id,
-                                 virtualmachine.id,
-                                 networkid=virtualmachine.nic[0].networkid)
+            StaticNATRule.enable(apiclient,public_ip.ipaddress.id,
+                                     virtualmachine.id, networkid=virtualmachine.nic[0].networkid)
     except Exception as e:
         [FAIL, e]
     return [PASS, public_ip]
@@ -1347,3 +1382,16 @@ def isDomainResourceCountEqualToExpectedCount(apiclient, domainid, expectedcount
     if resourcecount == expectedcount:
         isResourceCountEqual = True
     return [isExceptionOccured, reasonForException, isResourceCountEqual]
+
+def isNetworkDeleted(apiclient, networkid, timeout=600):
+    """ List the network and check that the list is empty or not"""
+    networkDeleted = False
+    while timeout >= 0:
+        networks = Network.list(apiclient, id=networkid)
+        if networks is None:
+            networkDeleted = True
+            break
+        timeout -= 60
+        time.sleep(60)
+    #end while
+    return networkDeleted

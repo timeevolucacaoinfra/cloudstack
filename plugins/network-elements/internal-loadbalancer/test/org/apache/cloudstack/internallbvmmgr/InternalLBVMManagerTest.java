@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import com.cloud.storage.Storage;
 import junit.framework.TestCase;
 
 import org.junit.Before;
@@ -117,10 +118,15 @@ public class InternalLBVMManagerTest extends TestCase {
     public void setUp() {
         //mock system offering creation as it's used by configure() method called by initComponentsLifeCycle
         Mockito.when(_accountMgr.getAccount(1L)).thenReturn(new AccountVO());
-        ServiceOfferingVO off =
-            new ServiceOfferingVO("alena", 1, 1, 1, 1, 1, false, "alena", false, false, null, false, VirtualMachine.Type.InternalLoadBalancerVm, false);
+        ServiceOfferingVO off = new ServiceOfferingVO("alena", 1, 1,
+                1, 1, 1, false, "alena", Storage.ProvisioningType.THIN, false, false, null, false, VirtualMachine.Type.InternalLoadBalancerVm, false);
         off = setId(off, 1);
-        Mockito.when(_svcOffDao.persistSystemServiceOffering(Matchers.any(ServiceOfferingVO.class))).thenReturn(off);
+        List<ServiceOfferingVO> list = new ArrayList<ServiceOfferingVO>();
+        list.add(off);
+        list.add(off);
+        Mockito.when(_svcOffDao.createSystemServiceOfferings(Matchers.anyString(), Matchers.anyString(), Matchers.anyInt(), Matchers.anyInt(), Matchers.anyInt(),
+                Matchers.anyInt(), Matchers.anyInt(), Matchers.anyBoolean(), Matchers.anyString(), Matchers.any(Storage.ProvisioningType.class), Matchers.anyBoolean(),
+                Matchers.anyString(), Matchers.anyBoolean(), Matchers.any(VirtualMachine.Type.class), Matchers.anyBoolean())).thenReturn(list);
 
         ComponentContext.initComponentsLifeCycle();
 

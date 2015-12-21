@@ -686,6 +686,7 @@ INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name, guest_os_id) VALUES  ("VmWare", 'CentOS 6.5 (64-bit)', 228);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (hypervisor_type, guest_os_name, guest_os_id) VALUES  ("XenServer", 'CentOS 6.5 (64-bit)', 228);
 
+
 CREATE TABLE `cloud`.`op_router_monitoring_services` (
   `vm_id` bigint unsigned UNIQUE NOT NULL COMMENT 'Primary Key',
   `router_name` varchar(255) NOT NULL COMMENT 'Name of the Virtual Router',
@@ -780,12 +781,14 @@ ALTER TABLE `cloud`.`vpc_offerings` ADD COLUMN supports_distributed_router boole
 ALTER TABLE `cloud`.`vpc` ADD COLUMN uses_distributed_router  boolean default false;
 INSERT INTO `cloud`.`storage_pool_details` (pool_id,name,value,display) SELECT storage_pool.id,data_center_details.name,data_center_details.value,data_center_details.display FROM `cloud`.`storage_pool` JOIN `cloud`.`data_center_details` ON data_center_details.dc_id=storage_pool.data_center_id WHERE data_center_details.name = "storage.overprovisioning.factor";
 DELETE FROM `cloud`.`data_center_details` WHERE name="storage.overprovisioning.factor";
+ALTER TABLE `cloud`.`load_balancer_vm_map` ADD COLUMN instance_ip VARCHAR(40);
+ALTER TABLE `cloud`.`load_balancer_vm_map` DROP KEY `load_balancer_id`, ADD UNIQUE KEY load_balancer_id (`load_balancer_id`, `instance_id`, `instance_ip`);
 ALTER TABLE `cloud`.`vpc_offerings` ADD COLUMN supports_region_level_vpc boolean default false;
 ALTER TABLE `cloud`.`network_offerings` ADD COLUMN supports_streched_l2 boolean default false;
 ALTER TABLE `cloud`.`networks` ADD COLUMN streched_l2 boolean default false;
 ALTER TABLE `cloud`.`vpc` ADD COLUMN region_level_vpc boolean default false;
-ALTER TABLE `cloud`.`load_balancer_vm_map` ADD COLUMN instance_ip VARCHAR(40);
-ALTER TABLE `cloud`.`load_balancer_vm_map` DROP KEY `load_balancer_id`, ADD UNIQUE KEY load_balancer_id (`load_balancer_id`, `instance_id`, `instance_ip`);
+INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'NetworkOrchestrationService', 'router.redundant.vrrp.interval', '1', 'seconds between VRRP broadcast. It would 3 times broadcast fail to trigger fail-over mechanism of redundant router', '1') ON DUPLICATE KEY UPDATE category='Advanced';
+INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'NetworkOrchestrationService', 'router.aggregation.command.each.timeout', '3', 'timeout in seconds for each Virtual Router command being aggregated. The final aggregation command timeout would be determined by this timeout * commands counts ', '3') ON DUPLICATE KEY UPDATE category='Advanced';
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', 'XCP 1.0', 'CentOS 4.5 (32-bit)', 1, now(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', 'XCP 1.0', 'CentOS 4.6 (32-bit)', 2, now(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', 'XCP 1.0', 'CentOS 4.7 (32-bit)', 3, now(), 0);
@@ -1657,7 +1660,6 @@ INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervis
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.2.5', 'Other install media', 203, now(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.2.5', 'CentOS 5 (32-bit)', 139, now(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'Xenserver', '6.2.5', 'CentOS 5 (64-bit)', 140, now(), 0);
-INSERT INTO `cloud`.`configuration`(category, instance, component, name, value, description, default_value) VALUES ('Advanced', 'DEFAULT', 'NetworkOrchestrationService', 'router.redundant.vrrp.interval', '1', 'seconds between VRRP broadcast. It would 3 times broadcast fail to trigger fail-over mechanism of redundant router', '1') ON DUPLICATE KEY UPDATE category='Advanced';
 CREATE TABLE `cloud`.`op_vpc_distributed_router_sequence_no` (
   `id` bigint unsigned UNIQUE NOT NULL AUTO_INCREMENT COMMENT 'id',
   `vpc_id` bigint unsigned NOT NULL COMMENT 'vpc id.',
@@ -1680,6 +1682,7 @@ CREATE TABLE `cloud`.`network_acl_item_cidrs` (
 
 ALTER TABLE `cloud`.`load_balancer_healthcheck_policies` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the policy can be displayed to the end user';
 ALTER TABLE `cloud`.`load_balancer_stickiness_policies` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the policy can be displayed to the end user';
+
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'CentOS 5.6', 141, now(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'CentOS 5.6', 142, now(), 0);
 INSERT IGNORE INTO `cloud`.`guest_os_hypervisor` (uuid,hypervisor_type, hypervisor_version, guest_os_name, guest_os_id, created, is_user_defined) VALUES (UUID(),'KVM', 'default', 'CentOS 5.7', 161, now(), 0);
@@ -2452,6 +2455,7 @@ alter table `cloud`.`vlan` add column created datetime NULL COMMENT 'date create
 alter table `cloud`.`user_ip_address` drop key public_ip_address;
 alter table `cloud`.`user_ip_address` add UNIQUE KEY public_ip_address (public_ip_address,source_network_id, removed);
 
+
 CREATE TABLE `cloud`.`load_balancer_stickiness_policy_details` (
   `id` bigint unsigned NOT NULL auto_increment,
   `lb_policy_id` bigint unsigned NOT NULL COMMENT 'resource id',
@@ -2472,7 +2476,6 @@ CREATE TABLE `cloud`.`load_balancer_healthcheck_policy_details` (
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_lb_healthcheck_policy_details__lb_healthcheck_policy_id` FOREIGN KEY `fk_lb_healthcheck_policy_details__lb_healthcheck_policy_id`(`lb_policy_id`) REFERENCES `load_balancer_healthcheck_policies`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
 
 ALTER TABLE `cloud`.`snapshot_policy` ADD COLUMN `display` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'True if the policy can be displayed to the end user';
 

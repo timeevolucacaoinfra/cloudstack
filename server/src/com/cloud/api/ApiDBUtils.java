@@ -45,6 +45,7 @@ import org.apache.cloudstack.api.response.DomainRouterResponse;
 import org.apache.cloudstack.api.response.EventResponse;
 import org.apache.cloudstack.api.response.HostForMigrationResponse;
 import org.apache.cloudstack.api.response.HostResponse;
+import org.apache.cloudstack.api.response.HostTagResponse;
 import org.apache.cloudstack.api.response.ImageStoreResponse;
 import org.apache.cloudstack.api.response.InstanceGroupResponse;
 import org.apache.cloudstack.api.response.ProjectAccountResponse;
@@ -54,6 +55,7 @@ import org.apache.cloudstack.api.response.ResourceTagResponse;
 import org.apache.cloudstack.api.response.SecurityGroupResponse;
 import org.apache.cloudstack.api.response.ServiceOfferingResponse;
 import org.apache.cloudstack.api.response.StoragePoolResponse;
+import org.apache.cloudstack.api.response.StorageTagResponse;
 import org.apache.cloudstack.api.response.TemplateResponse;
 import org.apache.cloudstack.api.response.UserResponse;
 import org.apache.cloudstack.api.response.UserVmResponse;
@@ -77,6 +79,7 @@ import com.cloud.api.query.dao.DataCenterJoinDao;
 import com.cloud.api.query.dao.DiskOfferingJoinDao;
 import com.cloud.api.query.dao.DomainRouterJoinDao;
 import com.cloud.api.query.dao.HostJoinDao;
+import com.cloud.api.query.dao.HostTagDao;
 import com.cloud.api.query.dao.ImageStoreJoinDao;
 import com.cloud.api.query.dao.InstanceGroupJoinDao;
 import com.cloud.api.query.dao.ProjectAccountJoinDao;
@@ -86,6 +89,7 @@ import com.cloud.api.query.dao.ResourceTagJoinDao;
 import com.cloud.api.query.dao.SecurityGroupJoinDao;
 import com.cloud.api.query.dao.ServiceOfferingJoinDao;
 import com.cloud.api.query.dao.StoragePoolJoinDao;
+import com.cloud.api.query.dao.StorageTagDao;
 import com.cloud.api.query.dao.TemplateJoinDao;
 import com.cloud.api.query.dao.UserAccountJoinDao;
 import com.cloud.api.query.dao.UserVmJoinDao;
@@ -98,6 +102,7 @@ import com.cloud.api.query.vo.DiskOfferingJoinVO;
 import com.cloud.api.query.vo.DomainRouterJoinVO;
 import com.cloud.api.query.vo.EventJoinVO;
 import com.cloud.api.query.vo.HostJoinVO;
+import com.cloud.api.query.vo.HostTagVO;
 import com.cloud.api.query.vo.ImageStoreJoinVO;
 import com.cloud.api.query.vo.InstanceGroupJoinVO;
 import com.cloud.api.query.vo.ProjectAccountJoinVO;
@@ -107,6 +112,7 @@ import com.cloud.api.query.vo.ResourceTagJoinVO;
 import com.cloud.api.query.vo.SecurityGroupJoinVO;
 import com.cloud.api.query.vo.ServiceOfferingJoinVO;
 import com.cloud.api.query.vo.StoragePoolJoinVO;
+import com.cloud.api.query.vo.StorageTagVO;
 import com.cloud.api.query.vo.TemplateJoinVO;
 import com.cloud.api.query.vo.UserAccountJoinVO;
 import com.cloud.api.query.vo.UserVmJoinVO;
@@ -398,6 +404,8 @@ public class ApiDBUtils {
     static HostJoinDao s_hostJoinDao;
     static VolumeJoinDao s_volJoinDao;
     static StoragePoolJoinDao s_poolJoinDao;
+    static StorageTagDao s_tagDao;
+    static HostTagDao s_hostTagDao;
     static ImageStoreJoinDao s_imageStoreJoinDao;
     static AccountJoinDao s_accountJoinDao;
     static AsyncJobJoinDao s_jobJoinDao;
@@ -601,6 +609,10 @@ public class ApiDBUtils {
     @Inject
     private StoragePoolJoinDao poolJoinDao;
     @Inject
+    private StorageTagDao tagDao;
+    @Inject
+    private HostTagDao hosttagDao;
+    @Inject
     private ImageStoreJoinDao imageStoreJoinDao;
     @Inject
     private AccountJoinDao accountJoinDao;
@@ -742,6 +754,8 @@ public class ApiDBUtils {
         s_hostJoinDao = hostJoinDao;
         s_volJoinDao = volJoinDao;
         s_poolJoinDao = poolJoinDao;
+        s_tagDao = tagDao;
+        s_hostTagDao = hosttagDao;
         s_imageStoreJoinDao = imageStoreJoinDao;
         s_accountJoinDao = accountJoinDao;
         s_jobJoinDao = jobJoinDao;
@@ -1647,12 +1661,7 @@ public class ApiDBUtils {
     }
 
     public static ResourceTagJoinVO findResourceTagViewById(Long tagId) {
-        List<ResourceTagJoinVO> tags = s_tagJoinDao.searchByIds(tagId);
-        if (tags != null && tags.size() > 0) {
-            return tags.get(0);
-        } else {
-            return null;
-        }
+        return s_tagJoinDao.searchById(tagId);
     }
 
     public static EventResponse newEventResponse(EventJoinVO ve) {
@@ -1759,6 +1768,14 @@ public class ApiDBUtils {
 
     public static StoragePoolResponse newStoragePoolResponse(StoragePoolJoinVO vr) {
         return s_poolJoinDao.newStoragePoolResponse(vr);
+    }
+
+    public static StorageTagResponse newStorageTagResponse(StorageTagVO vr) {
+        return s_tagDao.newStorageTagResponse(vr);
+    }
+
+    public static HostTagResponse newHostTagResponse(HostTagVO vr) {
+        return s_hostTagDao.newHostTagResponse(vr);
     }
 
     public static StoragePoolResponse fillStoragePoolDetails(StoragePoolResponse vrData, StoragePoolJoinVO vr) {

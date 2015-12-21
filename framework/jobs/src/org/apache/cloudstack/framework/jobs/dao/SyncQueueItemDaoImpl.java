@@ -116,9 +116,9 @@ public class SyncQueueItemDaoImpl extends GenericDaoBase<SyncQueueItemVO, Long> 
                 l.add(item);
             }
         } catch (SQLException e) {
-            s_logger.error("Unexpected sql excetpion, ", e);
+            s_logger.error("Unexpected sql exception, ", e);
         } catch (Throwable e) {
-            s_logger.error("Unexpected excetpion, ", e);
+            s_logger.error("Unexpected exception, ", e);
         }
         return l;
     }
@@ -147,7 +147,7 @@ public class SyncQueueItemDaoImpl extends GenericDaoBase<SyncQueueItemVO, Long> 
         SearchBuilder<SyncQueueItemVO> sbItem = createSearchBuilder();
         sbItem.and("lastProcessMsid", sbItem.entity().getLastProcessMsid(), SearchCriteria.Op.NNULL);
         sbItem.and("lastProcessNumber", sbItem.entity().getLastProcessNumber(), SearchCriteria.Op.NNULL);
-        sbItem.and("lastProcessNumber", sbItem.entity().getLastProcessTime(), SearchCriteria.Op.NNULL);
+        sbItem.and("lastProcessTime", sbItem.entity().getLastProcessTime(), SearchCriteria.Op.NNULL);
         sbItem.and("lastProcessTime2", sbItem.entity().getLastProcessTime(), SearchCriteria.Op.LT);
 
         sbItem.done();

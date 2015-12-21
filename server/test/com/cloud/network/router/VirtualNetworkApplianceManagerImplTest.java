@@ -14,70 +14,201 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-
 package com.cloud.network.router;
 
-import com.cloud.agent.api.routing.VmDataCommand;
-import com.cloud.server.ResourceTag;
-import com.cloud.tags.ResourceTagVO;
-import com.cloud.tags.dao.ResourceTagDao;
-import com.cloud.tags.dao.ResourceTagsDaoImpl;
-import java.util.ArrayList;
-import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.when;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.runners.MockitoJUnitRunner;
+
+import com.cloud.cluster.dao.ManagementServerHostDao;
+import com.cloud.dc.DataCenter;
+import com.cloud.dc.DataCenter.NetworkType;
+import com.cloud.dc.DataCenterVO;
+import com.cloud.dc.dao.ClusterDao;
+import com.cloud.dc.dao.DataCenterDao;
+import com.cloud.dc.dao.HostPodDao;
+import com.cloud.dc.dao.VlanDao;
+import com.cloud.deploy.DataCenterDeployment;
+import com.cloud.deploy.DeployDestination;
+import com.cloud.deploy.DeploymentPlan;
+import com.cloud.host.dao.HostDao;
+import com.cloud.hypervisor.Hypervisor.HypervisorType;
+import com.cloud.network.Network;
+import com.cloud.network.dao.FirewallRulesDao;
+import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.LoadBalancerDao;
+import com.cloud.network.dao.LoadBalancerVMMapDao;
+import com.cloud.network.dao.MonitoringServiceDao;
+import com.cloud.network.dao.NetworkDao;
+import com.cloud.network.dao.OpRouterMonitorServiceDao;
+import com.cloud.network.dao.PhysicalNetworkServiceProviderDao;
+import com.cloud.network.dao.RemoteAccessVpnDao;
+import com.cloud.network.dao.Site2SiteCustomerGatewayDao;
+import com.cloud.network.dao.Site2SiteVpnConnectionDao;
+import com.cloud.network.dao.Site2SiteVpnGatewayDao;
+import com.cloud.network.dao.UserIpv6AddressDao;
+import com.cloud.network.dao.VirtualRouterProviderDao;
+import com.cloud.network.dao.VpnUserDao;
+import com.cloud.network.element.VirtualRouterProviderVO;
+import com.cloud.network.router.VirtualRouter.RedundantState;
+import com.cloud.network.rules.dao.PortForwardingRulesDao;
+import com.cloud.offerings.dao.NetworkOfferingDao;
+import com.cloud.resource.ResourceManager;
+import com.cloud.service.ServiceOfferingVO;
+import com.cloud.service.dao.ServiceOfferingDao;
+import com.cloud.storage.Storage.ProvisioningType;
+import com.cloud.storage.VMTemplateVO;
+import com.cloud.storage.dao.GuestOSDao;
+import com.cloud.storage.dao.VMTemplateDao;
+import com.cloud.storage.dao.VolumeDao;
+import com.cloud.user.AccountManager;
+import com.cloud.user.AccountVO;
+import com.cloud.user.dao.UserDao;
+import com.cloud.user.dao.UserStatisticsDao;
+import com.cloud.user.dao.UserStatsLogDao;
+import com.cloud.vm.DomainRouterVO;
+import com.cloud.vm.NicProfile;
+import com.cloud.vm.VirtualMachine;
+import com.cloud.vm.VirtualMachineManager;
+import com.cloud.vm.dao.DomainRouterDao;
+import com.cloud.vm.dao.NicDao;
+import com.cloud.vm.dao.NicIpAliasDao;
+import com.cloud.vm.dao.UserVmDao;
+import com.cloud.vm.dao.UserVmDetailsDao;
+import com.cloud.vm.dao.VMInstanceDao;
+
+@RunWith(MockitoJUnitRunner.class)
 public class VirtualNetworkApplianceManagerImplTest {
 
+    // mock dao/db access
+    @Mock private ClusterDao _clusterDao;
+    @Mock private ConfigurationDao _configDao;
+    @Mock private DataCenterDao _dcDao;
+    @Mock private GuestOSDao _guestOSDao;
+    @Mock private HostDao _hostDao;
+    @Mock private IPAddressDao _ipAddressDao;
+    @Mock private UserIpv6AddressDao _ipv6Dao;
+    @Mock private LoadBalancerDao _loadBalancerDao;
+    @Mock private LoadBalancerVMMapDao _loadBalancerVMMapDao;
+    @Mock private MonitoringServiceDao _monitorServiceDao;
+    @Mock private ManagementServerHostDao _msHostDao;
+    @Mock private NetworkDao _networkDao;
+    @Mock private NetworkOfferingDao _networkOfferingDao;
+    @Mock private NicDao _nicDao;
+    @Mock private NicIpAliasDao _nicIpAliasDao;
+    @Mock private OpRouterMonitorServiceDao _opRouterMonitorServiceDao;
+    @Mock private PortForwardingRulesDao _pfRulesDao;
+    @Mock private PhysicalNetworkServiceProviderDao _physicalProviderDao;
+    @Mock private HostPodDao _podDao;
+    @Mock private DomainRouterDao _routerDao;
+    @Mock private FirewallRulesDao _rulesDao;
+    @Mock private Site2SiteCustomerGatewayDao _s2sCustomerGatewayDao;
+    @Mock private Site2SiteVpnConnectionDao _s2sVpnConnectionDao;
+    @Mock private Site2SiteVpnGatewayDao _s2sVpnGatewayDao;
+    @Mock private ServiceOfferingDao _serviceOfferingDao;
+    @Mock private VMTemplateDao _templateDao;
+    @Mock private UserDao _userDao;
+    @Mock private UserStatisticsDao _userStatsDao;
+    @Mock private UserStatsLogDao _userStatsLogDao;
+    @Mock private UserVmDao _userVmDao;
+    @Mock private VlanDao _vlanDao;
+    @Mock private VMInstanceDao _vmDao;
+    @Mock private UserVmDetailsDao _vmDetailsDao;
+    @Mock private VolumeDao _volumeDao;
+    @Mock private RemoteAccessVpnDao _vpnDao;
+    @Mock private VpnUserDao _vpnUsersDao;
+    @Mock private VirtualRouterProviderDao _vrProviderDao;
 
-    VirtualNetworkApplianceManagerImpl vnAM;
+    // mock the managers that have no influence on this functionality
+    @Mock private AccountManager _accountMgr;
+    @Mock private VirtualMachineManager _itMgr;
+    @Mock private ResourceManager _resourceMgr;
 
-    @Before
-    public void setup() {
-        vnAM = new VirtualNetworkApplianceManagerImpl();
+    @InjectMocks
+    private VirtualNetworkApplianceManagerImpl virtualNetworkApplianceManagerImpl;
+
+    @Test
+    public void testDestroyRouter() throws Exception {
+        VirtualRouter r = new DomainRouterVO(1L, 0L, 0L, "router", 0L, HypervisorType.Any, 0L, 0L,
+                1L, false, 0, false, RedundantState.UNKNOWN, false, false, null);
+        when(_routerDao.findById(1L)).thenReturn((DomainRouterVO)r);
+        VirtualRouter vr = virtualNetworkApplianceManagerImpl.destroyRouter(1L, new AccountVO(1L), 0L);
+        assertEquals(vr, r);
     }
 
     @Test
-    public void testSetVmTags() {
-        VmDataCommand cmd = new VmDataCommand("10.1.1.1", "vm-User", false);
+    public void testDeployRouterNotRedundant() throws Exception {
+        ServiceOfferingVO svcoff = new ServiceOfferingVO("name",
+                /* cpu */ 1,
+                /* ramsize */ 1024*1024,
+                /* (clock?)speed */ 1024*1024*1024,
+                /* rateMbps */ 1,
+                /* multicastRateMbps */ 0,
+                /* offerHA */ false,
+                "displayText",
+                ProvisioningType.THIN,
+                /* useLocalStorage */ false,
+                /* recreatable */ false,
+                "tags",
+                /* systemUse */ false,
+                VirtualMachine.Type.DomainRouter,
+                /* defaultUse */ false);
 
-        List<ResourceTag> tags = new ArrayList<ResourceTag>();
-        tags.add(new ResourceTagVO("Key_1", "VALUE_11", 0l, 0l, 123l, ResourceTag.ResourceObjectType.UserVm, "user_1", "123-123"));
-        tags.add(new ResourceTagVO("key_2", "", 0l, 0l, 123l, ResourceTag.ResourceObjectType.UserVm, "user_1", "123-123"));
-        tags.add(new ResourceTagVO("KEY_3", null, 0l, 0l, 123l, ResourceTag.ResourceObjectType.UserVm, "user_1", "123-123"));
+        DataCenter dc = new DataCenterVO(/* id */ 1L,
+                "name",
+                "description",
+                "dns1",
+                /* dns2 */ null,
+                /* dns3 */ null,
+                /* dns4 */ null,
+                "cidr",
+                "domain",
+                /*domainid */ null,
+                NetworkType.Basic,
+                "zoneToken",
+                "domainSuffix");
 
-        ResourceTagDao dao = mock(ResourceTagsDaoImpl.class);
-        Mockito.<List<? extends ResourceTag>>when(dao.listBy(123l, ResourceTag.ResourceObjectType.UserVm)).thenReturn(tags);
-        vnAM._resourceTagDao = dao;
+        DomainRouterVO router = new DomainRouterVO(/* id */ 1L,
+                /* serviceOfferingId */ 1L,
+                /* elementId */ 0L,
+                "name",
+                /* templateId */0L,
+                HypervisorType.XenServer,
+                /* guestOSId */ 0L,
+                /* domainId */ 0L,
+                /* accountId */ 1L,
+                /* isRedundantRouter */ false,
+                /* priority */ 0,
+                /* isPriorityBumpUp */ false,
+                RedundantState.UNKNOWN,
+                /* haEnabled */ false,
+                /* stopPending */ false,
+                /* vpcId */ null);
 
-        vnAM.buildTagMetadata(cmd, 123);
+        DeploymentPlan plan = new DataCenterDeployment(1L);
 
-        List<String[]> vmData = cmd.getVmData();
-        assertEquals(4, vmData.size());
+        when(_serviceOfferingDao.findById(1L)).thenReturn(svcoff);
+        when(_routerDao.getNextInSequence(Long.class, "id")).thenReturn(1L);
+// being anti-social and testing my own case first
+        when(_resourceMgr.getDefaultHypervisor(1L)).thenReturn(HypervisorType.XenServer);
+        when(_templateDao.findRoutingTemplate(HypervisorType.XenServer, "SystemVM Template (XenServer)")).thenReturn(new VMTemplateVO());
+        when(_routerDao.persist(any(DomainRouterVO.class))).thenReturn(router);
+        when(_routerDao.findById(router.getId())).thenReturn(router);
 
-        String[] data =  vmData.get(0);
-        assertEquals("metadata", data[0]);
-        assertEquals("TAG_Key_1", data[1]);
-        assertEquals("VALUE_11", data[2]);
-
-        String[] data2 =  vmData.get(1);
-        assertEquals("metadata", data2[0]);
-        assertEquals("TAG_key_2", data2[1]);
-        assertEquals("", data2[2]);
-
-        String[] data3 =  vmData.get(2);
-        assertEquals("metadata", data3[0]);
-        assertEquals("TAG_KEY_3", data3[1]);
-        assertEquals("", data3[2]);
-
-        String[] dataKeys =  vmData.get(3);
-        assertEquals("metadata", dataKeys[0]);
-        assertEquals("TAGKEYS", dataKeys[1]);
-        assertEquals("Key_1,key_2,KEY_3", dataKeys[2]);
+        VirtualRouter vr = virtualNetworkApplianceManagerImpl.deployRouter(new AccountVO(1L), new DeployDestination(dc,null,null,null), plan, null, false,
+                new VirtualRouterProviderVO(), 1L, null, new LinkedHashMap<Network, List<? extends NicProfile>> (), true /* start the router */,
+                null);
+        // TODO: more elaborate mocking needed to have a vr returned
+        assertEquals(vr, router);
     }
-
 }

@@ -309,17 +309,21 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
             throw new InvalidParameterValueException("Volume is not in ready state");
         }
 
-        boolean backedUp = false;
+
         // does the caller have the authority to act on this volume
         _accountMgr.checkAccess(CallContext.current().getCallingAccount(), null, true, volume);
 
         SnapshotInfo snapshot = snapshotFactory.getSnapshot(snapshotId, DataStoreRole.Primary);
-
+        if(snapshot != null)
+        {
+            s_logger.debug("Failed to create snapshot");
+            throw new CloudRuntimeException("Failed to create snapshot");
+        }
         try {
             postCreateSnapshot(volumeId, snapshot.getId(), policyId);
             //Check if the snapshot was removed while backingUp. If yes, do not log snapshot create usage event
             SnapshotVO freshSnapshot = _snapshotDao.findById(snapshot.getId());
-            if ((freshSnapshot != null) && backedUp) {
+            if (freshSnapshot != null)  {
                 UsageEventUtils.publishUsageEvent(EventTypes.EVENT_SNAPSHOT_CREATE, snapshot.getAccountId(), snapshot.getDataCenterId(), snapshotId, snapshot.getName(),
                     null, null, volume.getSize(), snapshot.getClass().getName(), snapshot.getUuid());
             }
@@ -434,7 +438,7 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
                 if (snapshotCheck.getState() != Snapshot.State.Error && snapshotCheck.getState() != Snapshot.State.Destroyed)
                 _resourceLimitMgr.decrementResourceCount(snapshotCheck.getAccountId(), ResourceType.snapshot);
                 if (snapshotCheck.getState() == Snapshot.State.BackedUp)
-                    _resourceLimitMgr.decrementResourceCount(snapshotCheck.getAccountId(), ResourceType.secondary_storage, new Long(snapshotStoreRef.getSize()));
+                    _resourceLimitMgr.decrementResourceCount(snapshotCheck.getAccountId(), ResourceType.secondary_storage, new Long(snapshotStoreRef.getPhysicalSize()));
             }
             return result;
         } catch (Exception e) {
@@ -623,7 +627,9 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
                 if (snapshotStrategy.deleteSnapshot(snapshot.getId())) {
                     if (Type.MANUAL == snapshot.getRecurringType()) {
                         _resourceLimitMgr.decrementResourceCount(accountId, ResourceType.snapshot);
-                        _resourceLimitMgr.decrementResourceCount(accountId, ResourceType.secondary_storage, new Long(snapshotStoreRef.getSize()));
+                        if  (snapshotStoreRef != null) {
+                            _resourceLimitMgr.decrementResourceCount(accountId, ResourceType.secondary_storage, new Long(snapshotStoreRef.getPhysicalSize()));
+                        }
                     }
 
                     // Log event after successful deletion
@@ -639,6 +645,7 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
 
     @Override
     @DB
+    @ActionEvent(eventType = EventTypes.EVENT_SNAPSHOT_POLICY_CREATE, eventDescription = "creating snapshot policy")
     public SnapshotPolicyVO createPolicy(CreateSnapshotPolicyCmd cmd, Account policyOwner) {
         Long volumeId = cmd.getVolumeId();
         boolean display = cmd.isDisplay();
@@ -735,6 +742,8 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
             }
 
         }
+        // TODO - Make createSnapshotPolicy - BaseAsyncCreate and remove this.
+        CallContext.current().putContextParameter(SnapshotPolicy.class.getName(), policy.getUuid());
         return policy;
     }
 
@@ -933,7 +942,7 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
                     List<SnapshotVO> activeSnapshots =
                         _snapshotDao.listByInstanceId(volume.getInstanceId(), Snapshot.State.Creating, Snapshot.State.CreatedOnPrimary, Snapshot.State.BackingUp);
                     if (activeSnapshots.size() > 0) {
-                        throw new CloudRuntimeException("There is other active snapshot tasks on the instance to which the volume is attached, please try again later");
+                        throw new InvalidParameterValueException("There is other active snapshot tasks on the instance to which the volume is attached, please try again later");
                     }
                 }
 
@@ -966,13 +975,12 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
             snapshotStrategy.takeSnapshot(snapshot);
 
             try {
-            postCreateSnapshot(volume.getId(), snapshotId, payload.getSnapshotPolicyId());
-
-                UsageEventUtils.publishUsageEvent(EventTypes.EVENT_SNAPSHOT_CREATE, snapshot.getAccountId(), snapshot.getDataCenterId(), snapshotId, snapshot.getName(),
-                    null, null, volume.getSize(), snapshot.getClass().getName(), snapshot.getUuid());
+                postCreateSnapshot(volume.getId(), snapshotId, payload.getSnapshotPolicyId());
                 SnapshotDataStoreVO snapshotStoreRef = _snapshotStoreDao.findBySnapshot(snapshotId, DataStoreRole.Image);
+                UsageEventUtils.publishUsageEvent(EventTypes.EVENT_SNAPSHOT_CREATE, snapshot.getAccountId(), snapshot.getDataCenterId(), snapshotId, snapshot.getName(),
+                    null, null, snapshotStoreRef.getPhysicalSize(), volume.getSize(), snapshot.getClass().getName(), snapshot.getUuid());
                 // Correct the resource count of snapshot in case of delta snapshots.
-                _resourceLimitMgr.decrementResourceCount(snapshotOwner.getId(), ResourceType.secondary_storage, new Long(volume.getSize() - snapshotStoreRef.getSize()));
+                _resourceLimitMgr.decrementResourceCount(snapshotOwner.getId(), ResourceType.secondary_storage, new Long(volume.getSize() - snapshotStoreRef.getPhysicalSize()));
             } catch (Exception e) {
                 s_logger.debug("post process snapshot failed", e);
             }
@@ -1082,7 +1090,7 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
 
         try {
             _resourceLimitMgr.checkResourceLimit(owner, ResourceType.snapshot);
-                _resourceLimitMgr.checkResourceLimit(owner, ResourceType.secondary_storage, new Long(volume.getSize()));
+                _resourceLimitMgr.checkResourceLimit(owner, ResourceType.secondary_storage, new Long(volume.getSize()).longValue());
         } catch (ResourceAllocationException e) {
             if (snapshotType != Type.MANUAL) {
                 String msg = "Snapshot resource limit exceeded for account id : " + owner.getId() + ". Failed to create recurring snapshots";
@@ -1125,5 +1133,7 @@ public class SnapshotManagerImpl extends ManagerBase implements SnapshotManager,
         _resourceLimitMgr.incrementResourceCount(volume.getAccountId(), ResourceType.secondary_storage, new Long(volume.getSize()));
         return snapshot;
     }
+
+
 
 }

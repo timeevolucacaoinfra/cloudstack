@@ -19,6 +19,21 @@ package com.cloud.event;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.cloud.network.IpAddress;
+import com.cloud.network.Site2SiteCustomerGateway;
+import com.cloud.network.Site2SiteVpnGateway;
+import com.cloud.network.rules.FirewallRule;
+import com.cloud.network.rules.HealthCheckPolicy;
+import com.cloud.network.rules.StickinessPolicy;
+import com.cloud.network.vpc.NetworkACL;
+import com.cloud.network.vpc.NetworkACLItem;
+import com.cloud.network.Site2SiteVpnConnection;
+import com.cloud.server.ResourceTag;
+import com.cloud.storage.snapshot.SnapshotPolicy;
+import com.cloud.vm.ConsoleProxy;
+import com.cloud.vm.Nic;
+import com.cloud.vm.NicSecondaryIp;
+import com.cloud.vm.SecondaryStorageVm;
 import org.apache.cloudstack.config.Configuration;
 
 import com.cloud.dc.DataCenter;
@@ -28,29 +43,20 @@ import com.cloud.dc.Vlan;
 import com.cloud.domain.Domain;
 import com.cloud.host.Host;
 import com.cloud.network.GuestVlan;
-import com.cloud.network.IpAddress;
 import com.cloud.network.Network;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.PhysicalNetworkServiceProvider;
 import com.cloud.network.PhysicalNetworkTrafficType;
 import com.cloud.network.RemoteAccessVpn;
-import com.cloud.network.Site2SiteCustomerGateway;
-import com.cloud.network.Site2SiteVpnConnection;
-import com.cloud.network.Site2SiteVpnGateway;
 import com.cloud.network.as.AutoScaleCounter;
 import com.cloud.network.as.AutoScalePolicy;
 import com.cloud.network.as.AutoScaleVmGroup;
 import com.cloud.network.as.AutoScaleVmProfile;
 import com.cloud.network.as.Condition;
 import com.cloud.network.router.VirtualRouter;
-import com.cloud.network.rules.FirewallRule;
-import com.cloud.network.rules.HealthCheckPolicy;
 import com.cloud.network.rules.LoadBalancer;
 import com.cloud.network.rules.StaticNat;
-import com.cloud.network.rules.StickinessPolicy;
 import com.cloud.network.security.SecurityGroup;
-import com.cloud.network.vpc.NetworkACL;
-import com.cloud.network.vpc.NetworkACLItem;
 import com.cloud.network.vpc.PrivateGateway;
 import com.cloud.network.vpc.StaticRoute;
 import com.cloud.network.vpc.Vpc;
@@ -58,18 +64,13 @@ import com.cloud.offering.DiskOffering;
 import com.cloud.offering.NetworkOffering;
 import com.cloud.offering.ServiceOffering;
 import com.cloud.projects.Project;
-import com.cloud.server.ResourceTag;
 import com.cloud.storage.GuestOS;
 import com.cloud.storage.GuestOSHypervisor;
 import com.cloud.storage.Snapshot;
 import com.cloud.storage.Volume;
-import com.cloud.storage.snapshot.SnapshotPolicy;
 import com.cloud.template.VirtualMachineTemplate;
 import com.cloud.user.Account;
 import com.cloud.user.User;
-import com.cloud.vm.ConsoleProxy;
-import com.cloud.vm.NicSecondaryIp;
-import com.cloud.vm.SecondaryStorageVm;
 import com.cloud.vm.VirtualMachine;
 
 public class EventTypes {
@@ -430,6 +431,9 @@ public class EventTypes {
     public static final String EVENT_EXTERNAL_OVS_CONTROLLER_ADD = "PHYSICAL.OVSCONTROLLER.ADD";
     public static final String EVENT_EXTERNAL_OVS_CONTROLLER_DELETE = "PHYSICAL.OVSCONTROLLER.DELETE";
 
+    // external network mapping events
+    public static final String EVENT_EXTERNAL_VSP_VSD_ADD = "PHYSICAL.NUAGE.VSD.ADD";
+    public static final String EVENT_EXTERNAL_VSP_VSD_DELETE = "PHYSICAL.NUAGE.VSD.DELETE";
     // AutoScale
     public static final String EVENT_COUNTER_CREATE = "COUNTER.CREATE";
     public static final String EVENT_COUNTER_DELETE = "COUNTER.DELETE";
@@ -456,6 +460,9 @@ public class EventTypes {
     public static final String EVENT_BAREMETAL_DHCP_SERVER_DELETE = "PHYSICAL.DHCP.DELETE";
     public static final String EVENT_BAREMETAL_PXE_SERVER_ADD = "PHYSICAL.PXE.ADD";
     public static final String EVENT_BAREMETAL_PXE_SERVER_DELETE = "PHYSICAL.PXE.DELETE";
+    public static final String EVENT_BAREMETAL_RCT_ADD = "BAREMETAL.RCT.ADD";
+    public static final String EVENT_BAREMETAL_RCT_DELETE = "BAREMETAL.RCT.DELETE";
+    public static final String EVENT_BAREMETAL_PROVISION_DONE = "BAREMETAL.PROVISION.DONE";
 
     public static final String EVENT_AFFINITY_GROUP_CREATE = "AG.CREATE";
     public static final String EVENT_AFFINITY_GROUP_DELETE = "AG.DELETE";
@@ -578,6 +585,8 @@ public class EventTypes {
         entityEventDetails.put(EVENT_FIREWALL_EGRESS_CLOSE, FirewallRule.class);
         entityEventDetails.put(EVENT_FIREWALL_EGRESS_UPDATE, FirewallRule.class);
 
+        // Nic Events
+        entityEventDetails.put(EVENT_NIC_CREATE, Nic.class);
 
         // Load Balancers
         entityEventDetails.put(EVENT_ASSIGN_TO_LOAD_BALANCER_RULE, FirewallRule.class);
@@ -829,6 +838,10 @@ public class EventTypes {
         entityEventDetails.put(EVENT_EXTERNAL_NVP_CONTROLLER_ADD, "NvpController");
         entityEventDetails.put(EVENT_EXTERNAL_NVP_CONTROLLER_DELETE, "NvpController");
         entityEventDetails.put(EVENT_EXTERNAL_NVP_CONTROLLER_CONFIGURE, "NvpController");
+
+        // external network mapping events
+        entityEventDetails.put(EVENT_EXTERNAL_VSP_VSD_ADD,  "NuageVsp");
+        entityEventDetails.put(EVENT_EXTERNAL_VSP_VSD_DELETE,  "NuageVsp");
 
         // AutoScale
         entityEventDetails.put(EVENT_COUNTER_CREATE, AutoScaleCounter.class);

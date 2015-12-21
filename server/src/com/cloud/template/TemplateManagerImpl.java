@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,7 +30,6 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import com.cloud.utils.DateUtil;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.acl.SecurityChecker.AccessType;
@@ -157,9 +155,9 @@ import com.cloud.user.AccountManager;
 import com.cloud.user.AccountService;
 import com.cloud.user.AccountVO;
 import com.cloud.user.ResourceLimitService;
-import com.cloud.user.User;
 import com.cloud.user.dao.AccountDao;
 import com.cloud.uservm.UserVm;
+import com.cloud.utils.DateUtil;
 import com.cloud.utils.EnumUtils;
 import com.cloud.utils.Pair;
 import com.cloud.utils.component.AdapterBase;
@@ -381,8 +379,6 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         if (isISO) {
             desc = Upload.Type.ISO.toString();
         }
-        eventId = eventId == null ? 0 : eventId;
-
         if (!_accountMgr.isRootAdmin(caller.getId()) && _disableExtraction) {
             throw new PermissionDeniedException("Extraction has been disabled by admin");
         }
@@ -628,7 +624,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         TemplateDataStoreVO srcTmpltStore = _tmplStoreDao.findByStoreTemplate(srcSecStore.getId(), tmpltId);
 
         _resourceLimitMgr.checkResourceLimit(account, ResourceType.template);
-        _resourceLimitMgr.checkResourceLimit(account, ResourceType.secondary_storage, new Long(srcTmpltStore.getSize()));
+        _resourceLimitMgr.checkResourceLimit(account, ResourceType.secondary_storage, new Long(srcTmpltStore.getSize()).longValue());
 
         // Event details
         String copyEventType;
@@ -649,6 +645,9 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
             TemplateDataStoreVO dstTmpltStore = _tmplStoreDao.findByStoreTemplate(dstSecStore.getId(), tmpltId);
             if (dstTmpltStore != null && dstTmpltStore.getDownloadState() == Status.DOWNLOADED) {
                 return true; // already downloaded on this image store
+            }
+            if (dstTmpltStore != null && dstTmpltStore.getDownloadState() != Status.DOWNLOAD_IN_PROGRESS) {
+                _tmplStoreDao.removeByTemplateStore(tmpltId, dstSecStore.getId());
             }
 
             AsyncCallFuture<TemplateApiResult> future = _tmpltSvr.copyTemplate(srcTemplate, dstSecStore);
@@ -1352,15 +1351,11 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
     @DB
     @ActionEvent(eventType = EventTypes.EVENT_TEMPLATE_CREATE, eventDescription = "creating template", async = true)
     public VirtualMachineTemplate createPrivateTemplate(CreateTemplateCmd command) throws CloudRuntimeException {
-        Long userId = CallContext.current().getCallingUserId();
-        if (userId == null) {
-            userId = User.UID_SYSTEM;
-        }
         final long templateId = command.getEntityId();
         Long volumeId = command.getVolumeId();
         Long snapshotId = command.getSnapshotId();
         VMTemplateVO privateTemplate = null;
-        final Long accountId = null;
+        final Long accountId = CallContext.current().getCallingAccountId();
         SnapshotVO snapshot = null;
         VolumeVO volume = null;
 
@@ -1412,28 +1407,6 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
                 }
 
                 privateTemplate = _tmpltDao.findById(templateId);
-                if (snapshotId != null) {
-                    //getting the prent volume
-                    long parentVolumeId = _snapshotDao.findById(snapshotId).getVolumeId();
-                    VolumeVO parentVolume = _volumeDao.findById(parentVolumeId);
-
-                    if (parentVolume != null && parentVolume.getIsoId() != null && parentVolume.getIsoId() != 0) {
-                        privateTemplate.setSourceTemplateId(parentVolume.getIsoId());
-                        _tmpltDao.update(privateTemplate.getId(), privateTemplate);
-                    } else if (parentVolume != null && parentVolume.getTemplateId() != null) {
-                        privateTemplate.setSourceTemplateId(parentVolume.getTemplateId());
-                        _tmpltDao.update(privateTemplate.getId(), privateTemplate);
-                    }
-                } else if (volumeId != null) {
-                    VolumeVO parentVolume = _volumeDao.findById(volumeId);
-                    if (parentVolume.getIsoId() != null && parentVolume.getIsoId() != 0) {
-                        privateTemplate.setSourceTemplateId(parentVolume.getIsoId());
-                        _tmpltDao.update(privateTemplate.getId(), privateTemplate);
-                    } else if (parentVolume.getTemplateId() != null) {
-                        privateTemplate.setSourceTemplateId(parentVolume.getTemplateId());
-                        _tmpltDao.update(privateTemplate.getId(), privateTemplate);
-                    }
-                }
                 TemplateDataStoreVO srcTmpltStore = _tmplStoreDao.findByStoreTemplate(store.getId(), templateId);
                 UsageEventVO usageEvent =
                         new UsageEventVO(EventTypes.EVENT_TEMPLATE_CREATE, privateTemplate.getAccountId(), zoneId, privateTemplate.getId(), privateTemplate.getName(), null,
@@ -1564,13 +1537,16 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
             }
 
             hyperType = _volumeDao.getHypervisorType(volumeId);
+            if (HypervisorType.LXC.equals(hyperType)) {
+                throw new InvalidParameterValueException("Template creation is not supported for LXC volume: " + volumeId);
+            }
         } else { // create template from snapshot
             snapshot = _snapshotDao.findById(snapshotId);
             if (snapshot == null) {
                 throw new InvalidParameterValueException("Failed to create private template record, unable to find snapshot " + snapshotId);
             }
-
-            volume = _volumeDao.findById(snapshot.getVolumeId());
+            // Volume could be removed so find including removed to record source template id.
+            volume = _volumeDao.findByIdIncludingRemoved(snapshot.getVolumeId());
 
             // check permissions
             _accountMgr.checkAccess(caller, null, true, snapshot);
@@ -1593,7 +1569,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         }
 
         _resourceLimitMgr.checkResourceLimit(templateOwner, ResourceType.template);
-        _resourceLimitMgr.checkResourceLimit(templateOwner, ResourceType.secondary_storage, new Long(volume != null ? volume.getSize() : snapshot.getSize()));
+        _resourceLimitMgr.checkResourceLimit(templateOwner, ResourceType.secondary_storage, new Long(volume != null ? volume.getSize() : snapshot.getSize()).longValue());
 
         if (!isAdmin || featured == null) {
             featured = Boolean.FALSE;
@@ -1604,7 +1580,6 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
             throw new InvalidParameterValueException("GuestOS with ID: " + guestOSId + " does not exist.");
         }
 
-        String uniqueName = Long.valueOf((userId == null) ? 1 : userId).toString() + UUID.nameUUIDFromBytes(name.getBytes()).toString();
         Long nextTemplateId = _tmpltDao.getNextInSequence(Long.class, "id");
         String description = cmd.getDisplayText();
         boolean isExtractable = false;
@@ -1612,15 +1587,10 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         if (volume != null) {
             VMTemplateVO template = ApiDBUtils.findTemplateById(volume.getTemplateId());
             isExtractable = template != null && template.isExtractable() && template.getTemplateType() != Storage.TemplateType.SYSTEM;
-            if (template != null) {
-                sourceTemplateId = template.getId();
-            } else if (volume.getVolumeType() == Volume.Type.ROOT) { // vm
-                // created
-                // out
-                // of blank
-                // template
-                UserVm userVm = ApiDBUtils.findUserVmById(volume.getInstanceId());
-                sourceTemplateId = userVm.getIsoId();
+            if (volume.getIsoId() != null && volume.getIsoId() != 0) {
+                sourceTemplateId = volume.getIsoId();
+            } else if (volume.getTemplateId() != null) {
+                sourceTemplateId = volume.getTemplateId();
             }
         }
         String templateTag = cmd.getTemplateTag();
@@ -1629,10 +1599,9 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
                 s_logger.debug("Adding template tag: " + templateTag);
             }
         }
-        privateTemplate =
-                new VMTemplateVO(nextTemplateId, uniqueName, name, ImageFormat.RAW, isPublic, featured, isExtractable, TemplateType.USER, null, null, requiresHvmValue,
-                        bitsValue, templateOwner.getId(), null, description, passwordEnabledValue, guestOS.getId(), true, hyperType, templateTag, cmd.getDetails());
-        privateTemplate.setDynamicallyScalable(isDynamicScalingEnabled);
+        privateTemplate = new VMTemplateVO(nextTemplateId, name, ImageFormat.RAW, isPublic, featured, isExtractable,
+                TemplateType.USER, null, requiresHvmValue, bitsValue, templateOwner.getId(), null, description,
+                passwordEnabledValue, guestOS.getId(), true, hyperType, templateTag, cmd.getDetails(), false, isDynamicScalingEnabled);
 
         if (sourceTemplateId != null) {
             if (s_logger.isDebugEnabled()) {
@@ -1776,6 +1745,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         Boolean isDynamicallyScalable = cmd.isDynamicallyScalable();
         Boolean isRoutingTemplate = cmd.isRoutingType();
         Boolean bootable = cmd.isBootable();
+        Boolean requiresHvm = cmd.getRequiresHvm();
         Integer sortKey = cmd.getSortKey();
         Map details = cmd.getDetails();
         Account account = CallContext.current().getCallingAccount();
@@ -1799,7 +1769,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
         }
 
         boolean updateNeeded =
-                !(name == null && displayText == null && format == null && guestOSId == null && passwordEnabled == null && bootable == null && sortKey == null &&
+                !(name == null && displayText == null && format == null && guestOSId == null && passwordEnabled == null && bootable == null && requiresHvm == null && sortKey == null &&
                         isDynamicallyScalable == null && isRoutingTemplate == null && details == null);
         if (!updateNeeded) {
             return template;
@@ -1846,6 +1816,10 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
 
         if (bootable != null) {
             template.setBootable(bootable);
+        }
+
+        if (requiresHvm != null) {
+            template.setRequiresHvm(requiresHvm);
         }
 
         if (isDynamicallyScalable != null) {

@@ -128,6 +128,8 @@ public class GloboNetworkElement extends ExternalLoadBalancerDeviceManagerImpl i
         methodList.add(method);
         method = new LbStickinessMethod(new StickinessMethodType("Source-ip with persistence between ports"), "This is source based sticky method with stickiness between ports");
         methodList.add(method);
+        method = new LbStickinessMethod(new StickinessMethodType("Priority Failover"), "This is a priority failover stickiness");
+        methodList.add(method);
 
         Gson gson = new Gson();
         String stickyMethodList = gson.toJson(methodList);

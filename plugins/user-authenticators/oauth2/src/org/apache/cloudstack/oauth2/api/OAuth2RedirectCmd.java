@@ -20,14 +20,16 @@ import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import org.apache.cloudstack.api.APICommand;
-import org.apache.cloudstack.api.ApiErrorCode;
+import org.apache.cloudstack.api.ApiServerService;
 import org.apache.cloudstack.api.BaseCmd;
-import org.apache.cloudstack.api.Parameter;
+import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.ServerApiException;
+import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.auth.APIAuthenticationType;
 import org.apache.cloudstack.api.auth.APIAuthenticator;
 import org.apache.cloudstack.api.auth.PluggableAPIAuthenticator;
@@ -35,7 +37,6 @@ import org.apache.cloudstack.oauth2.OAuth2Manager;
 import org.apache.cloudstack.oauth2.response.OAuth2UrlResponse;
 import org.apache.log4j.Logger;
 
-import com.cloud.api.ApiServerService;
 import com.cloud.api.response.ApiResponseSerializer;
 import com.cloud.user.Account;
 import com.cloud.utils.HttpUtils;
@@ -49,7 +50,6 @@ public class OAuth2RedirectCmd extends BaseCmd implements APIAuthenticator {
     @Inject
     ApiServerService _apiServer;
 
-    @Inject
     OAuth2Manager _oauth2Manager;
 
     @Parameter(name = "redirect_uri", type = CommandType.STRING, required = false, description = "URL the user is returned to")
@@ -62,8 +62,14 @@ public class OAuth2RedirectCmd extends BaseCmd implements APIAuthenticator {
     }
 
     @Override
-    public String authenticate(final String command, final Map<String, Object[]> params, final HttpSession session, final String remoteAddress, final String responseType,
-            final StringBuffer auditTrailSb, final HttpServletResponse resp) throws ServerApiException {
+    public String authenticate(String command,
+                               Map<String, Object[]> params,
+                               HttpSession session,
+                               String remoteAddress,
+                               String responseType,
+                               StringBuilder auditTrailSb,
+                               HttpServletRequest req,
+                               HttpServletResponse resp) throws ServerApiException {
         // build redirect url
         Object[] redirectUriObj = params.get("redirect_uri");
         String redirectUri = null;
@@ -89,6 +95,7 @@ public class OAuth2RedirectCmd extends BaseCmd implements APIAuthenticator {
     public long getEntityOwnerId() {
         return Account.ACCOUNT_TYPE_NORMAL;
     }
+
 
     @Override
     public APIAuthenticationType getAPIType() {

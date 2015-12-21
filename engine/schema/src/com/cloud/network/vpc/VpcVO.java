@@ -101,7 +101,7 @@ public class VpcVO implements Vpc {
         state = State.Enabled;
         this.networkDomain = networkDomain;
         vpcOfferingId = vpcOffId;
-        usesDistributedRouter = useDistributedRouter;
+        this.usesDistributedRouter = useDistributedRouter;
         this.regionLevelVpc = regionLevelVpc;
     }
 

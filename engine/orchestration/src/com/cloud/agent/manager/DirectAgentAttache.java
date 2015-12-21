@@ -47,16 +47,14 @@ public class DirectAgentAttache extends AgentAttache {
             "Interval to wait before retrying a host ping while waiting for check results", true);
     ServerResource _resource;
     List<ScheduledFuture<?>> _futures = new ArrayList<ScheduledFuture<?>>();
-    AgentManagerImpl _mgr;
     long _seq = 0;
     LinkedList<Task> tasks = new LinkedList<Task>();
     AtomicInteger _outstandingTaskCount;
     AtomicInteger _outstandingCronTaskCount;
 
-    public DirectAgentAttache(AgentManagerImpl agentMgr, long id, String name, ServerResource resource, boolean maintenance, AgentManagerImpl mgr) {
+    public DirectAgentAttache(AgentManagerImpl agentMgr, long id, String name, ServerResource resource, boolean maintenance) {
         super(agentMgr, id, name, maintenance);
         _resource = resource;
-        _mgr = mgr;
         _outstandingTaskCount = new AtomicInteger(0);
         _outstandingCronTaskCount = new AtomicInteger(0);
     }
@@ -101,7 +99,7 @@ public class DirectAgentAttache extends AgentAttache {
             if (answers != null && answers[0] instanceof StartupAnswer) {
                 StartupAnswer startup = (StartupAnswer)answers[0];
                 int interval = startup.getPingInterval();
-                _futures.add(_agentMgr.getCronJobPool().scheduleAtFixedRate(producePingTask(), interval, interval, TimeUnit.SECONDS));
+                _futures.add(_agentMgr.getCronJobPool().scheduleAtFixedRate(new PingTask(), interval, interval, TimeUnit.SECONDS));
             }
         } else {
             Command[] cmds = req.getCommands();
@@ -121,7 +119,7 @@ public class DirectAgentAttache extends AgentAttache {
             StartupAnswer startup = (StartupAnswer)answers[0];
             int interval = startup.getPingInterval();
             s_logger.info("StartupAnswer received " + startup.getHostId() + " Interval = " + interval);
-            _futures.add(_agentMgr.getCronJobPool().scheduleAtFixedRate(producePingTask(), interval, interval, TimeUnit.SECONDS));
+            _futures.add(_agentMgr.getCronJobPool().scheduleAtFixedRate(new PingTask(), interval, interval, TimeUnit.SECONDS));
         }
     }
 
@@ -154,9 +152,6 @@ public class DirectAgentAttache extends AgentAttache {
         }
     }
 
-    PingTask producePingTask() {
-        return new PingTask();
-    }
     protected class PingTask extends ManagedContextRunnable {
         @Override
         protected synchronized void runInContext() {
@@ -169,13 +164,13 @@ public class DirectAgentAttache extends AgentAttache {
                 ServerResource resource = _resource;
 
                 if (resource != null) {
-                    PingCommand cmd = null;
+                    PingCommand cmd = resource.getCurrentStatus(_id);
                     int retried = 0;
-                    while ( cmd == null && ++retried < _HostPingRetryCount.value())
-                    {
-                        cmd = resource.getCurrentStatus(_id);
+                    while (cmd == null && ++retried <= _HostPingRetryCount.value()) {
                         Thread.sleep(1000*_HostPingRetryTimer.value());
+                        cmd = resource.getCurrentStatus(_id);
                     }
+
                     if (cmd == null) {
                         s_logger.warn("Unable to get current status on " + _id + "(" + _name + ")");
                         return;
@@ -189,7 +184,7 @@ public class DirectAgentAttache extends AgentAttache {
                         s_logger.trace("SeqA " + _id + "-" + seq + ": " + new Request(_id, -1, cmd, false).toString());
                     }
 
-                    _mgr.handleCommands(DirectAgentAttache.this, seq, new Command[] {cmd});
+                    _agentMgr.handleCommands(DirectAgentAttache.this, seq, new Command[] {cmd});
                 } else {
                     s_logger.debug("Unable to send ping because agent is disconnected " + _id + "(" + _name + ")");
                 }
@@ -312,9 +307,10 @@ public class DirectAgentAttache extends AgentAttache {
                         } else {
                             answer = new Answer(cmds[i], false, "Agent is disconnected");
                         }
-                    } catch (Exception e) {
-                        s_logger.warn(log(seq, "Exception Caught while executing command"), e);
-                        answer = new Answer(cmds[i], false, e.toString());
+                    } catch (Throwable t) {
+                        // Catch Throwable as all exceptions will otherwise be eaten by the executor framework
+                        s_logger.warn(log(seq, "Throwable caught while executing command"), t);
+                        answer = new Answer(cmds[i], false, t.toString());
                     }
                     answers.add(answer);
                     if (!answer.getResult() && stopOnError) {
@@ -331,8 +327,9 @@ public class DirectAgentAttache extends AgentAttache {
                 }
 
                 processAnswers(seq, resp);
-            } catch (Exception e) {
-                s_logger.warn(log(seq, "Exception caught "), e);
+            } catch (Throwable t) {
+                // This is pretty serious as processAnswers might not be called and the calling process is stuck waiting for the full timeout
+                s_logger.error(log(seq, "Throwable caught in runInContext, this will cause the management to become unpredictable"), t);
             } finally {
                 _outstandingTaskCount.decrementAndGet();
                 scheduleFromQueue();

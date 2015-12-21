@@ -1088,6 +1088,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             lbPersistence = "source-ip";
         } else if ("Source-ip with persistence between ports".equals(persistencePolicy.getMethodName())) {
             lbPersistence = "source-ip com persist. entre portas";
+        } else if ("Priority Failover".equals(persistencePolicy.getMethodName())) {
+            lbPersistence = "Priority_Failover";
         } else {
             throw new InvalidParameterValueException("Invalid persistence policy provided.");
         }

@@ -109,7 +109,7 @@ under the License.
 
    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
       <param name="Target" value="System.out"/>
-      <param name="Threshold" value="INFO"/>
+      <param name="Threshold" value="DEBUG"/>
       <layout class="org.apache.log4j.EnhancedPatternLayout">
          <param name="ConversionPattern" value="%-5p [%c{1.}] (%t:%x) %m%n"/>
       </layout>

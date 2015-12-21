@@ -117,16 +117,18 @@ get_boot_params() {
           if [ ! -e /dev/vport0p1 ]; then
             log_it "/dev/vport0p1 not loaded, perhaps guest kernel is too old." && exit 2
           fi
-          while read line; do
-            if [[ $line == cmdline:* ]]; then
-              cmd=${line//cmdline:/}
-              echo $cmd > /var/cache/cloud/cmdline
-            elif [[ $line == pubkey:* ]]; then
-              pubkey=${line//pubkey:/}
-              echo $pubkey > /var/cache/cloud/authorized_keys
-              echo $pubkey > /root/.ssh/authorized_keys
-            fi
-          done < /dev/vport0p1
+          while [ -z "$cmd" ]; do
+            while read line; do
+              if [[ $line == cmdline:* ]]; then
+                cmd=${line//cmdline:/}
+                echo $cmd > /var/cache/cloud/cmdline
+              elif [[ $line == pubkey:* ]]; then
+                pubkey=${line//pubkey:/}
+                echo $pubkey > /var/cache/cloud/authorized_keys
+                echo $pubkey > /root/.ssh/authorized_keys
+              fi
+            done < /dev/vport0p1
+	  done
           chmod go-rwx /root/.ssh/authorized_keys
           ;;
      vmware)
@@ -139,6 +141,15 @@ get_boot_params() {
           sleep 5
           cp -f /var/opt/hyperv/.kvp_pool_0 /var/cache/cloud/cmdline
           cat /dev/null > /var/opt/hyperv/.kvp_pool_0
+          ;;
+     virtualbox)
+          # Virtualbox is used to test the virtual router
+          # get the commandline from a dmistring  (yes, hacky!)
+          dmidecode | grep cmdline | sed 's/^.*cmdline://' > /var/cache/cloud/cmdline
+          RV=$?
+          if [ $RV -ne 0 ] ; then
+            log_it "Failed to get cmdline from a virtualbox dmi property"
+          fi
           ;;
   esac
 
@@ -386,23 +397,19 @@ setup_interface() {
 }
 
 setup_interface_ipv6() {
-  #sysctl -w net.ipv6.conf.all.disable_ipv6=0
-  #sysctl -w net.ipv6.conf.all.forwarding=1
-  #sysctl -w net.ipv6.conf.all.accept_ra=1
-  # write the changes in /etc/sysctl.conf to prevent the values from being overriden
-  sed -i 's/ipv6 = 1/ipv6 = 0/g' /etc/sysctl.conf
-  sed -i 's/forwarding = 0/forwarding = 1/g' /etc/sysctl.conf
-  sed -i 's/accept_ra = 0/accept_ra = 2/g' /etc/sysctl.conf
+  #sysctl net.ipv6.conf.all.disable_ipv6=0
+  #sysctl net.ipv6.conf.all.forwarding=1
+  #sysctl net.ipv6.conf.all.accept_ra=1
 
-  sysctl -w
-  
+  sed  -i "s/net.ipv6.conf.all.disable_ipv6 =.*$/net.ipv6.conf.all.disable_ipv6 = 0/" /etc/sysctl.conf
+  sed  -i "s/net.ipv6.conf.all.forwarding =.*$/net.ipv6.conf.all.forwarding = 1/" /etc/sysctl.conf
+  sed  -i "s/net.ipv6.conf.all.accept_ra =.*$/net.ipv6.conf.all.accept_ra = 1/" /etc/sysctl.conf
+
   local intfnum=$1
   local ipv6="$2"
   local prelen="$3"
   local intf=eth${intfnum}
 
-  ip=$(ifconfig $intf | awk '/inet6 addr.*Scope:Global/ {print $3}' | cut -d\/ -f1)
-  
   echo "iface $intf inet6 static" >> /etc/network/interfaces
   echo "  address $ipv6 " >> /etc/network/interfaces
   echo "  netmask $prelen" >> /etc/network/interfaces
@@ -809,7 +816,8 @@ rm -rf /etc/failure_config
 setup_apache2() {
   clean_ipalias_config
   log_it "Setting up apache web server"
-  local ip=$1
+  #local ip=$1
+  [[ $(echo $1 | awk -F\. '{print NF}') > 1 ]] && local ip="$1" || local ip="[$1]"
   [ -f /etc/apache2/sites-available/default ] && sed -i -e "s/<VirtualHost.*>/<VirtualHost $ip:80>/" /etc/apache2/sites-available/default
   [ -f /etc/apache2/sites-available/default-ssl ] && sed -i -e "s/<VirtualHost.*>/<VirtualHost $ip:443>/" /etc/apache2/sites-available/default-ssl
   [ -f /etc/apache2/ports.conf ] && sed -i -e "s/Listen .*:80/Listen $ip:80/g" /etc/apache2/ports.conf
@@ -888,6 +896,7 @@ setup_redundant_router() {
     then
         (crontab -l; echo -e "SHELL=/bin/bash\nPATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin\n*/1 * * * * $rrouter_bin_path/check_heartbeat.sh 2>&1 > /dev/null") | crontab
     fi
+    load_modules
 }
 
 setup_aesni() {
@@ -895,6 +904,13 @@ setup_aesni() {
   then
     modprobe aesni_intel
   fi
+}
+
+load_modules() {
+
+ #load nf modules for ftp
+ modprobe nf_nat_ftp
+ modprobe nf_conntrack_ftp
 }
 
 setup_router() {
@@ -952,8 +968,7 @@ setup_router() {
   
   setup_aesni
   setup_dnsmasq
-  [ -n $ETH0_IP ] && setup_apache2 $ETH0_IP
-  [ -z $ETH0_IP ] && [ -n $ETH0_IP6 ] && setup_apache2 $ETH0_IP6
+  setup_apache2 $ETH0_IP
 
   sed -i  /gateway/d /etc/hosts
   echo "$ETH0_IP $NAME" >> /etc/hosts
@@ -972,6 +987,17 @@ setup_router() {
 #for old templates
   cp /etc/iptables/iptables-router /etc/iptables/rules
   setup_sshd $ETH1_IP "eth1"
+  load_modules
+
+  #Only allow DNS service for current network
+  sed -i "s/-A INPUT -i eth0 -p udp -m udp --dport 53 -j ACCEPT/-A INPUT -i eth0 -p udp -m udp --dport 53 -s $DHCP_RANGE\/$CIDR_SIZE -j ACCEPT/g" /etc/iptables/rules.v4
+  sed -i "s/-A INPUT -i eth0 -p udp -m udp --dport 53 -j ACCEPT/-A INPUT -i eth0 -p udp -m udp --dport 53 -s $DHCP_RANGE\/$CIDR_SIZE -j ACCEPT/g" /etc/iptables/rules
+  sed -i "s/-A INPUT -i eth0 -p tcp -m tcp --dport 53 -j ACCEPT/-A INPUT -i eth0 -p tcp -m tcp --dport 53 -s $DHCP_RANGE\/$CIDR_SIZE -j ACCEPT/g" /etc/iptables/rules.v4
+  sed -i "s/-A INPUT -i eth0 -p tcp -m tcp --dport 53 -j ACCEPT/-A INPUT -i eth0 -p tcp -m tcp --dport 53 -s $DHCP_RANGE\/$CIDR_SIZE -j ACCEPT/g" /etc/iptables/rules
+
+  #setup hourly logrotate
+  mv -n /etc/cron.daily/logrotate /etc/cron.hourly 2>&1
+  
 }
 
 
@@ -1071,6 +1097,7 @@ EOF
   else
       echo 0 > /var/cache/cloud/dnsmasq_managed_lease
   fi
+  load_modules
 }
 
 
@@ -1079,13 +1106,17 @@ setup_dhcpsrvr() {
   log_it "Setting up dhcp server system vm"
   setup_common eth0 eth1
   setup_dnsmasq
-  [ -n $ETH0_IP ] && setup_apache2 $ETH0_IP
-  [ -z $ETH0_IP ] && [ -n $ETH0_IP6 ] && setup_apache2 $ETH0_IP6
+  #setup_apache2 $ETH0_IP
+
+  [[ $ETH0_IP ]] && ETH0_IPVERSION=$ETH0_IP
+  [[ $ETH0_IP6 ]] && ETH0_IPVERSION=$ETH0_IP6
+  setup_apache2 $ETH0_IPVERSION
 
   sed -i  /gateway/d /etc/hosts
-  [ $ETH0_IP ] && echo "$ETH0_IP $NAME" >> /etc/hosts
-  [ $ETH0_IP6 ] && echo "$ETH0_IP6 $NAME" >> /etc/hosts
-
+  #[ $ETH0_IP ] && echo "$ETH0_IP $NAME" >> /etc/hosts
+  #[ $ETH0_IP6 ] && echo "$ETH0_IP6 $NAME" >> /etc/hosts
+  [ $ETH0_IPVERSION ] && echo "$ETH0_IPVERSION $NAME" >> /etc/hosts
+  
   enable_svc dnsmasq 1
   enable_svc haproxy 0
   enable_irqbalance 0
@@ -1154,6 +1185,7 @@ setup_secstorage() {
   enable_svc dnsmasq 0
   enable_svc cloud-passwd-srvr 0
   enable_svc cloud 1
+  rm /etc/logrotate.d/cloud
 }
 
 setup_console_proxy() {
@@ -1180,6 +1212,7 @@ setup_console_proxy() {
   enable_svc cloud-passwd-srvr 0
   enable_svc cloud 1
   chkconfig nfs-common off
+  rm /etc/logrotate.d/cloud
 }
 
 setup_elbvm() {
@@ -1377,7 +1410,7 @@ for i in $CMDLINE
           DOMAIN=$VALUE
           ;;
       dnssearchorder)
-          DNS_SEARCH_ORDER=$DOMAIN,$VALUE
+          DNS_SEARCH_ORDER=$VALUE
           ;;
       useextdns)
         USE_EXTERNAL_DNS=$VALUE

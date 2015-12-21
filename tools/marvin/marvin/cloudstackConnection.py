@@ -267,6 +267,8 @@ class CSConnection(object):
             for param, value in payload.items():
                 if value is None:
                     payload.pop(param)
+                elif param == 'typeInfo':
+                    payload.pop(param)
                 elif isinstance(value, list):
                     if len(value) == 0:
                         payload.pop(param)
@@ -338,8 +340,7 @@ class CSConnection(object):
             '''
             1. Verify the Inputs Provided
             '''
-            if (cmd is None or cmd == '')or \
-                    (response_type is None or response_type == ''):
+            if (cmd is None or cmd == ''):
                 self.logger.exception("marvinRequest : Invalid Command Input")
                 raise InvalidParameterException("Invalid Parameter")
 

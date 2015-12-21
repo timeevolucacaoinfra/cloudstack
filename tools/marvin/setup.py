@@ -27,13 +27,7 @@ except ImportError:
         raise RuntimeError("python setuptools is required to build Marvin")
 
 
-VERSION = '4.4.1'
-
-import os
-
-
-def read(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read().strip()
+VERSION = "4.5.2"
 
 setup(name="Marvin",
       version=VERSION,
@@ -61,6 +55,7 @@ setup(name="Marvin",
       py_modules=['marvin.marvinPlugin'],
       zip_safe=False,
       entry_points={
-          'nose.plugins': ['marvinPlugin = marvin.marvinPlugin:MarvinPlugin']
+          'nose.plugins': ['marvinPlugin = marvin.marvinPlugin:MarvinPlugin'],
+          'console_scripts': ['marvincli = marvin.deployAndRun:main']
       },
       )

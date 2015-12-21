@@ -27,7 +27,7 @@
         regionSelector: {
             dataProvider: function(args) {
                 $.ajax({
-                    url: createURL('listRegions&listAll=true'),
+                    url: createURL('listRegions'),
                     success: function(json) {
                         var regions = json.listregionsresponse.region;
 
@@ -55,7 +55,7 @@
                             label: 'label.name'
                         },
                         id: {
-                            label: 'ID'
+                            label: 'label.id'
                         },
                         endpoint: {
                             label: 'label.endpoint'
@@ -130,7 +130,7 @@
                     },
                     dataProvider: function(args) {
                         $.ajax({
-                            url: createURL('listRegions&listAll=true'),
+                            url: createURL('listRegions'),
                             success: function(json) {
                                 var items = json.listregionsresponse.region;
                                 args.response.success({
@@ -152,7 +152,7 @@
                             label: 'label.regionlevelvpc'
                         }, {
                             path: 'regions.portableIpRanges',
-                            label: 'Portable IP',
+                            label: 'label.portable.ip',
                             preFilter: function(args) {
                                 if (isAdmin())
                                     return true;
@@ -246,7 +246,7 @@
                                 }],
                                 dataProvider: function(args) {
                                     $.ajax({
-                                        url: createURL('listRegions&listAll=true'),
+                                        url: createURL('listRegions'),
                                         data: {
                                             id: args.context.regions[0].id
                                         },
@@ -274,7 +274,7 @@
                 title: 'GSLB',
                 listView: {
                     id: 'GSLB',
-                    label: 'GSLB',
+                    label: 'label.gslb',
                     fields: {
                         name: {
                             label: 'label.name'
@@ -377,6 +377,9 @@
                                                                 });
                                                             }
                                                         }
+                                                        array1.sort(function(a, b) {
+                                                            return a.description.localeCompare(b.description);
+                                                        });
                                                         args.response.success({
                                                             data: array1
                                                         });
@@ -476,7 +479,7 @@
                         name: 'label.gslb.details',
                         viewAll: {
                             path: 'regions.lbUnderGSLB',
-                            label: 'assigned load balancing'
+                            label: 'label.gslb.assigned.lb'
                         },
                         actions: {                            
                         	edit: {

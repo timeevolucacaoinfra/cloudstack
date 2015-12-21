@@ -16,8 +16,14 @@
 // under the License.
 package org.apache.cloudstack.storage.datastore.db;
 
-import java.util.Date;
-import java.util.UUID;
+import com.cloud.hypervisor.Hypervisor.HypervisorType;
+import com.cloud.storage.ScopeType;
+import com.cloud.storage.Storage.StoragePoolType;
+import com.cloud.storage.StoragePool;
+import com.cloud.storage.StoragePoolStatus;
+import com.cloud.utils.UriUtils;
+import com.cloud.utils.db.Encrypt;
+import com.cloud.utils.db.GenericDao;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -28,14 +34,8 @@ import javax.persistence.Table;
 import javax.persistence.TableGenerator;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-
-import com.cloud.hypervisor.Hypervisor.HypervisorType;
-import com.cloud.storage.ScopeType;
-import com.cloud.storage.Storage.StoragePoolType;
-import com.cloud.storage.StoragePool;
-import com.cloud.storage.StoragePoolStatus;
-import com.cloud.utils.UriUtils;
-import com.cloud.utils.db.GenericDao;
+import java.util.Date;
+import java.util.UUID;
 
 @Entity
 @Table(name = "storage_pool")
@@ -98,6 +98,7 @@ public class StoragePoolVO implements StoragePool {
     @Column(name = "port")
     private int port;
 
+    @Encrypt
     @Column(name = "user_info")
     private String userInfo;
 
@@ -129,23 +130,23 @@ public class StoragePoolVO implements StoragePool {
     }
 
     public StoragePoolVO() {
-        this.status = StoragePoolStatus.Initial;
+        status = StoragePoolStatus.Initial;
     }
 
     public StoragePoolVO(long poolId, String name, String uuid, StoragePoolType type, long dataCenterId, Long podId, long availableBytes, long capacityBytes,
             String hostAddress, int port, String hostPath) {
         this.name = name;
-        this.id = poolId;
+        id = poolId;
         this.uuid = uuid;
-        this.poolType = type;
+        poolType = type;
         this.dataCenterId = dataCenterId;
-        this.usedBytes = availableBytes;
+        usedBytes = availableBytes;
         this.capacityBytes = capacityBytes;
         this.hostAddress = hostAddress;
         this.port = port;
         this.podId = podId;
-        this.setStatus(StoragePoolStatus.Initial);
-        this.setPath(hostPath);
+        setStatus(StoragePoolStatus.Initial);
+        setPath(hostPath);
     }
 
     public StoragePoolVO(StoragePoolVO that) {
@@ -153,12 +154,12 @@ public class StoragePoolVO implements StoragePool {
     }
 
     public StoragePoolVO(StoragePoolType type, String hostAddress, int port, String path) {
-        this.poolType = type;
+        poolType = type;
         this.hostAddress = hostAddress;
         this.port = port;
-        this.setStatus(StoragePoolStatus.Initial);
-        this.uuid = UUID.randomUUID().toString();
-        this.setPath(path);
+        setStatus(StoragePoolStatus.Initial);
+        uuid = UUID.randomUUID().toString();
+        setPath(path);
     }
 
     @Override
@@ -177,7 +178,7 @@ public class StoragePoolVO implements StoragePool {
     }
 
     public void setPoolType(StoragePoolType protocol) {
-        this.poolType = protocol;
+        poolType = protocol;
     }
 
     @Override
@@ -258,14 +259,17 @@ public class StoragePoolVO implements StoragePool {
     }
 
     public void setHostAddress(String host) {
-        this.hostAddress = host;
+        hostAddress = host;
     }
 
     @Override
     public String getPath() {
         String updatedPath = path;
-        if (this.poolType == StoragePoolType.SMB) {
+        if (poolType == StoragePoolType.SMB) {
             updatedPath = UriUtils.getUpdateUri(updatedPath, false);
+            if (updatedPath.contains("password") && updatedPath.contains("?")) {
+                updatedPath = updatedPath.substring(0, updatedPath.indexOf('?'));
+            }
         }
 
         return updatedPath;
@@ -285,7 +289,7 @@ public class StoragePoolVO implements StoragePool {
     }
 
     public void setDataCenterId(long dcId) {
-        this.dataCenterId = dcId;
+        dataCenterId = dcId;
     }
 
     public void setPodId(Long podId) {
@@ -327,9 +331,10 @@ public class StoragePoolVO implements StoragePool {
     }
 
     public ScopeType getScope() {
-        return this.scope;
+        return scope;
     }
 
+    @Override
     public HypervisorType getHypervisor() {
         return hypervisor;
     }
@@ -344,7 +349,7 @@ public class StoragePoolVO implements StoragePool {
             return false;
         }
         StoragePoolVO that = (StoragePoolVO)obj;
-        return this.id == that.id;
+        return id == that.id;
     }
 
     @Override
@@ -359,7 +364,7 @@ public class StoragePoolVO implements StoragePool {
 
     @Override
     public boolean isShared() {
-        return this.scope == ScopeType.HOST ? false : true;
+        return scope == ScopeType.HOST ? false : true;
     }
 
     @Override

@@ -14,13 +14,14 @@
 // KIND, either express or implied.  See the License for the
 // specific language governing permissions and limitations
 // under the License.
-var g_mySession = null;
+
 var g_sessionKey = null;
 var g_role = null; // roles - root, domain-admin, ro-admin, user
 var g_username = null;
 var g_userid = null;
 var g_account = null;
 var g_domainid = null;
+var g_hostid = null;
 var g_loginCmdText = null;
 var g_enableLogging = false;
 var g_timezoneoffset = null;
@@ -31,6 +32,8 @@ var g_regionsecondaryenabled = null;
 var g_userPublicTemplateEnabled = "true";
 var g_cloudstackversion = null;
 var g_queryAsyncJobResultInterval = 3000;
+var g_idpList = null;
+var g_appendIdpDomain = false;
 
 //keyboard keycode
 var keycode_Enter = 13;
@@ -48,6 +51,56 @@ var md5HashedLogin = false;
 //page size for API call (e.g."listXXXXXXX&pagesize=N" )
 var pageSize = 20;
 //var pageSize = 1; //for testing only
+
+function to_json_array(str) {
+    var simple_array = str.split(",");
+    var json_array = [];
+
+    $.each(simple_array, function(index, value) {
+        if ($.trim(value).length > 0) {
+            var obj = {
+                          id: value,
+                          name: value
+                      };
+
+            json_array.push(obj);
+        }
+    });
+
+    return json_array;
+}
+
+function _tag_equals(tag1, tag2) {
+    return (tag1.name == tag2.name) && (tag1.id == tag2.id);
+}
+
+function _tag_array_contains(tag, tags)
+{
+    for (var i = 0; i < tags.length; i++)
+    {
+        if (_tag_equals(tags[i], tag)) return true;
+    }
+
+    return false;
+}
+
+function unique_tags(tags)
+{
+    var unique = [];
+
+    if (tags != null)
+    {
+        for (var i = 0; i < tags.length; i++)
+        {
+            if (!_tag_array_contains(tags[i], unique))
+            {
+                unique.push(tags[i]);
+            }
+        }
+    }
+
+    return unique;
+}
 
 //async action
 var pollAsyncJobResult = function(args) {
@@ -118,7 +171,10 @@ var pollAsyncJobResult = function(args) {
 
     function createURL(apiName, options) {
         if (!options) options = {};
-        var urlString = clientApiUrl + "?" + "command=" + apiName + "&response=json&sessionkey=" + g_sessionKey;
+        var urlString = clientApiUrl + "?" + "command=" + apiName + "&response=json";
+        if (g_sessionKey) {
+            urlString += "&sessionkey=" + g_sessionKey;
+        }
 
         if (cloudStack.context && cloudStack.context.projects && !options.ignoreProject) {
             urlString = urlString + '&projectid=' + cloudStack.context.projects[0].id;
@@ -212,7 +268,7 @@ var addGuestNetworkDialog = {
                                     if (items != null) {
                                         for (var i = 0; i < items.length; i++) {
                                             if (items[i].networktype == 'Advanced') {
-                                                addGuestNetworkDialog.zoneObjs.push(items[i]);
+                                                addGuestNetworkDialog.zoneObjs.push(items[i]); 
                                             }
                                         }
                                     }
@@ -238,42 +294,44 @@ var addGuestNetworkDialog = {
                         if ('physicalNetworks' in args.context) { //Infrastructure menu > zone detail > guest traffic type > network tab (only shown in advanced zone) > add guest network dialog
                             addGuestNetworkDialog.physicalNetworkObjs = args.context.physicalNetworks;
                         } else { //Network menu > guest network section > add guest network dialog
-                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();
-                            $.ajax({
-                                url: createURL('listPhysicalNetworks'),
-                                data: {
-                                    zoneid: selectedZoneId
-                                },
-                                async: false,
-                                success: function(json) {                                    
-                                	var items = [];
-                                	var physicalnetworks = json.listphysicalnetworksresponse.physicalnetwork;
-                                	if (physicalnetworks != null) {
-                                	    for (var i = 0; i < physicalnetworks.length; i++) {
-                                	    	$.ajax({
-                                	    		url: createURL('listTrafficTypes'),
-                                	    		data: {
-                                	    			physicalnetworkid: physicalnetworks[i].id
-                                	    		},
-                                	    		async: false,
-                                	    		success: function(json) {                                	    			
-                                	    			var traffictypes = json.listtraffictypesresponse.traffictype;
-                                	    			if (traffictypes != null) {
-                                	    				for (var k = 0; k < traffictypes.length; k++) {
-                                	    					if (traffictypes[k].traffictype == 'Guest') {
-                                	    						items.push(physicalnetworks[i]);
-                                	    						break;
-                                	    					}
-                                	    				}
-                                	    			} 
-                                	    		}
-                                	    	});
-                                	    }	
-                                	}  
-                                	
-                                	addGuestNetworkDialog.physicalNetworkObjs = items;                                	
-                                }
-                            });
+                            var selectedZoneId = args.$form.find('.form-item[rel=zoneId]').find('select').val();                           
+                            if (selectedZoneId != undefined && selectedZoneId.length > 0) {
+	                            $.ajax({
+	                                url: createURL('listPhysicalNetworks'),
+	                                data: {
+	                                    zoneid: selectedZoneId
+	                                },
+	                                async: false,
+	                                success: function(json) {                                    
+	                                	var items = [];
+	                                	var physicalnetworks = json.listphysicalnetworksresponse.physicalnetwork;
+	                                	if (physicalnetworks != null) {
+	                                	    for (var i = 0; i < physicalnetworks.length; i++) {
+	                                	    	$.ajax({
+	                                	    		url: createURL('listTrafficTypes'),
+	                                	    		data: {
+	                                	    			physicalnetworkid: physicalnetworks[i].id
+	                                	    		},
+	                                	    		async: false,
+	                                	    		success: function(json) {                                	    			
+	                                	    			var traffictypes = json.listtraffictypesresponse.traffictype;
+	                                	    			if (traffictypes != null) {
+	                                	    				for (var k = 0; k < traffictypes.length; k++) {
+	                                	    					if (traffictypes[k].traffictype == 'Guest') {
+	                                	    						items.push(physicalnetworks[i]);
+	                                	    						break;
+	                                	    					}
+	                                	    				}
+	                                	    			} 
+	                                	    		}
+	                                	    	});
+	                                	    }	
+	                                	}  
+	                                	
+	                                	addGuestNetworkDialog.physicalNetworkObjs = items;                                	
+	                                }
+	                            });
+                            }
                         }
                         var items = [];
                         if (addGuestNetworkDialog.physicalNetworkObjs != null) {
@@ -430,6 +488,9 @@ var addGuestNetworkDialog = {
                                 }
                             });
                         }
+                        items.sort(function(a, b) {
+                            return a.description.localeCompare(b.description);
+                        });
                         args.response.success({
                             data: items
                         });
@@ -474,7 +535,7 @@ var addGuestNetworkDialog = {
                 networkOfferingId: {
                     label: 'label.network.offering',
                     docID: 'helpGuestNetworkZoneNetworkOffering',
-                    dependsOn: ['zoneId', 'scope'],
+                    dependsOn: ['zoneId', 'physicalNetworkId', 'scope'],
                     select: function(args) {                    	
                     	if(args.$form.find('.form-item[rel=zoneId]').find('select').val() == null || args.$form.find('.form-item[rel=zoneId]').find('select').val().length == 0) {
                     		args.response.success({
@@ -795,10 +856,13 @@ var addGuestNetworkDialog = {
             var property;
             for (property in json) {
                 var errorObj = json[property];
-                if (errorObj.errorcode == 401 && errorObj.errortext == "unable to verify user credentials and/or request signature")
+                if (errorObj.errorcode == 401 && errorObj.errortext == "unable to verify user credentials and/or request signature") {
+                    $('#container').hide();
+
                     return _l('label.session.expired');
-                else
+                } else {
                     return _s(errorObj.errortext);
+                }
             }
         } else {
             return "";
@@ -912,6 +976,40 @@ cloudStack.converters = {
         } else {
             return (bytes / 1024 / 1024 / 1024 / 1024).toFixed(2) + " TB";
         }
+    },
+    toBytes: function(str) {
+        if (str === undefined) {
+            return "0";
+        }
+
+        var res = str.split(" ");
+
+        if (res.length === 1) {
+            // assume a number in GB
+
+            return parseInt(str, 10) * 1024 * 1024 * 1024;
+        }
+
+        // assume first string is a number and second string is a unit of size
+
+        if (res[1] === "KB") {
+            return parseInt(res[0], 10) * 1024;
+        }
+
+        if (res[1] === "MB") {
+            return parseInt(res[0], 10) * 1024 * 1024;
+        }
+
+        if (res[1] === "GB") {
+            return parseInt(res[0], 10) * 1024 * 1024 * 1024;
+        }
+
+        if (res[1] === "TB") {
+            return parseInt(res[0], 10) * 1024 * 1024 * 1024 * 1024;
+        }
+
+        // assume GB
+        return parseInt(res[0], 10) * 1024 * 1024 * 1024;
     },
     toLocalDate: function(UtcDate) {
         var localDate = "";
@@ -1027,39 +1125,39 @@ cloudStack.converters = {
 
                 // These are old values -- can be removed in the future
             case 8:
-                return "User VM";
+                return _l('label.user.vm');
             case 11:
-                return "Routing Host";
+                return _l('label.routing.host');
             case 12:
-                return "Storage";
+                return _l('label.menu.storage');
             case 13:
-                return "Usage Server";
+                return _l('label.usage.server');
             case 14:
-                return "Management Server";
+                return _l('label.management.server');
             case 15:
-                return "Domain Router";
+                return _l('label.domain.router');
             case 16:
-                return "Console Proxy";
+                return _l('label.console.proxy');
             case 17:
-                return "User VM";
+                return _l('label.user.vm');
             case 18:
-                return "VLAN";
+                return _l('label.vlan');
             case 19:
-                return "Secondary Storage VM";
+                return _l('label.secondary.storage.vm');
             case 20:
-                return "Usage Server";
+                return _l('label.usage.server');
             case 21:
-                return "Storage";
+                return _l('label.menu.storage');
             case 22:
-                return "Update Resource Count";
+                return _l('label.action.update.resource.count');
             case 23:
-                return "Usage Sanity Result";
+                return _l('label.usage.sanity.result');
             case 24:
-                return "Direct Attached Public IP";
+                return _l('label.direct.attached.public.ip');
             case 25:
-                return "Local Storage";
+                return _l('label.local.storage');
             case 26:
-                return "Resource Limit Exceeded";
+                return _l('label.resource.limit.exceeded');
         }
     },
 
@@ -1086,25 +1184,25 @@ cloudStack.converters = {
             case 9:
                 return _l('label.local.storage');
             case 10:
-                return "Routing Host";
+                return _l('label.routing.host');
             case 11:
-                return "Storage";
+                return _l('label.menu.storage');
             case 12:
-                return "Usage Server";
+                return _l('label.usage.server');
             case 13:
-                return "Management Server";
+                return _l('label.management.server');
             case 14:
-                return "Domain Router";
+                return _l('label.domain.router');
             case 15:
-                return "Console Proxy";
+                return _l('label.console.proxy');
             case 16:
-                return "User VM";
+                return _l('label.user.vm');
             case 17:
-                return "VLAN";
+                return _l('label.vlan');
             case 18:
-                return "Secondary Storage VM";
+                return _l('label.secondary.storage.vm');
             case 19:
-                return "GPU";
+                return _l('label.gpu');
         }
     },
 
@@ -1380,7 +1478,7 @@ var processPropertiesInImagestoreObject = function(jsonObj) {
         }
         return vmName;
     }
-
+  
 var timezoneMap = new Object();
 timezoneMap["Etc/GMT+12"] = "Etc/GMT+12 [GMT-12:00]";
 timezoneMap["Etc/GMT+11"] = "Etc/GMT+11 [GMT-11:00]";

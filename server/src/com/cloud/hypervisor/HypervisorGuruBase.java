@@ -16,21 +16,26 @@
 // under the License.
 package com.cloud.hypervisor;
 
-import com.cloud.network.dao.NetworkVO;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.inject.Inject;
+
+import org.apache.log4j.Logger;
 
 import com.cloud.agent.api.Command;
 import com.cloud.agent.api.to.DiskTO;
 import com.cloud.agent.api.to.NicTO;
 import com.cloud.agent.api.to.VirtualMachineTO;
 import com.cloud.gpu.GPU;
+import com.cloud.network.dao.NetworkDao;
+import com.cloud.network.dao.NetworkVO;
 import com.cloud.offering.ServiceOffering;
 import com.cloud.resource.ResourceManager;
 import com.cloud.server.ConfigurationServer;
 import com.cloud.service.ServiceOfferingDetailsVO;
+import com.cloud.service.dao.ServiceOfferingDao;
 import com.cloud.service.dao.ServiceOfferingDetailsDao;
 import com.cloud.storage.dao.VMTemplateDetailsDao;
 import com.cloud.utils.Pair;
@@ -42,12 +47,12 @@ import com.cloud.vm.VMInstanceVO;
 import com.cloud.vm.VirtualMachine;
 import com.cloud.vm.VirtualMachineProfile;
 import com.cloud.vm.dao.NicDao;
-import com.cloud.network.dao.NetworkDao;
 import com.cloud.vm.dao.NicSecondaryIpDao;
 import com.cloud.vm.dao.UserVmDetailsDao;
 import com.cloud.vm.dao.VMInstanceDao;
 
 public abstract class HypervisorGuruBase extends AdapterBase implements HypervisorGuru {
+    public static final Logger s_logger = Logger.getLogger(HypervisorGuruBase.class);
 
     @Inject
     VMTemplateDetailsDao _templateDetailsDao;
@@ -67,6 +72,8 @@ public abstract class HypervisorGuruBase extends AdapterBase implements Hypervis
     ResourceManager _resourceMgr;
     @Inject
     ServiceOfferingDetailsDao _serviceOfferingDetailsDao;
+    @Inject
+    ServiceOfferingDao _serviceOfferingDao;
 
     protected HypervisorGuruBase() {
         super();
@@ -94,30 +101,41 @@ public abstract class HypervisorGuruBase extends AdapterBase implements Hypervis
         NetworkVO network = _networkDao.findById(profile.getNetworkId());
         to.setNetworkUuid(network.getUuid());
 
-        // Workaround to make sure the TO has the UUID we need for Niciri integration
+        // Workaround to make sure the TO has the UUID we need for Nicira integration
         NicVO nicVO = _nicDao.findById(profile.getId());
-        to.setUuid(nicVO.getUuid());
+        if (nicVO != null) {
+            to.setUuid(nicVO.getUuid());
+            // disable pxe on system vm nics to speed up boot time
+            if (nicVO.getVmType() != VirtualMachine.Type.User) {
+                to.setPxeDisable(true);
+            }
+            List<String> secIps = null;
+            if (nicVO.getSecondaryIp()) {
+                secIps = _nicSecIpDao.getSecondaryIpAddressesForNic(nicVO.getId());
+            }
+            to.setNicSecIps(secIps);
+        } else {
+            s_logger.warn("Unabled to load NicVO for NicProfile " + profile.getId());
+            //Workaround for dynamically created nics
+            //FixMe: uuid and secondary IPs can be made part of nic profile
+            to.setUuid(UUID.randomUUID().toString());
+        }
+
         //check whether the this nic has secondary ip addresses set
         //set nic secondary ip address in NicTO which are used for security group
         // configuration. Use full when vm stop/start
-        List<String> secIps = null;
-        if (nicVO.getSecondaryIp()) {
-            secIps = _nicSecIpDao.getSecondaryIpAddressesForNic(nicVO.getId());
-        }
-        to.setNicSecIps(secIps);
         return to;
     }
 
     protected VirtualMachineTO toVirtualMachineTO(VirtualMachineProfile vmProfile) {
-
-        ServiceOffering offering = vmProfile.getServiceOffering();
+        ServiceOffering offering = _serviceOfferingDao.findById(vmProfile.getId(), vmProfile.getServiceOfferingId());
         VirtualMachine vm = vmProfile.getVirtualMachine();
         Long minMemory = (long)(offering.getRamSize() / vmProfile.getMemoryOvercommitRatio());
         int minspeed = (int)(offering.getSpeed() / vmProfile.getCpuOvercommitRatio());
         int maxspeed = (offering.getSpeed());
         VirtualMachineTO to =
-            new VirtualMachineTO(vm.getId(), vm.getInstanceName(), vm.getType(), offering.getCpu(), minspeed, maxspeed, minMemory * 1024l * 1024l,
-                offering.getRamSize() * 1024l * 1024l, null, null, vm.isHaEnabled(), vm.limitCpuUse(), vm.getVncPassword());
+                new VirtualMachineTO(vm.getId(), vm.getInstanceName(), vm.getType(), offering.getCpu(), minspeed, maxspeed, minMemory * 1024l * 1024l,
+                        offering.getRamSize() * 1024l * 1024l, null, null, vm.isHaEnabled(), vm.limitCpuUse(), vm.getVncPassword());
         to.setBootArgs(vmProfile.getBootArgs());
 
         List<NicProfile> nicProfiles = vmProfile.getNics();
@@ -178,4 +196,10 @@ public abstract class HypervisorGuruBase extends AdapterBase implements Hypervis
     public List<Command> finalizeExpungeVolumes(VirtualMachine vm) {
         return null;
     }
+
+    @Override
+    public Map<String, String> getClusterSettings(long vmId) {
+        return null;
+    }
+
 }

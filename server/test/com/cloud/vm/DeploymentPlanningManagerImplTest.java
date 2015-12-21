@@ -76,11 +76,14 @@ import com.cloud.deploy.PlannerHostReservationVO;
 import com.cloud.deploy.dao.PlannerHostReservationDao;
 import com.cloud.exception.AffinityConflictException;
 import com.cloud.exception.InsufficientServerCapacityException;
+import com.cloud.gpu.dao.HostGpuGroupsDao;
 import com.cloud.host.dao.HostDao;
+import com.cloud.host.dao.HostTagsDao;
 import com.cloud.hypervisor.Hypervisor.HypervisorType;
 import com.cloud.resource.ResourceManager;
 import com.cloud.service.ServiceOfferingVO;
 import com.cloud.service.dao.ServiceOfferingDetailsDao;
+import com.cloud.storage.Storage.ProvisioningType;
 import com.cloud.storage.StorageManager;
 import com.cloud.storage.dao.DiskOfferingDao;
 import com.cloud.storage.dao.GuestOSCategoryDao;
@@ -163,7 +166,8 @@ public class DeploymentPlanningManagerImplTest {
     @Test
     public void dataCenterAvoidTest() throws InsufficientServerCapacityException, AffinityConflictException {
         ServiceOfferingVO svcOffering =
-            new ServiceOfferingVO("testOffering", 1, 512, 500, 1, 1, false, false, false, "test dpm", false, false, null, false, VirtualMachine.Type.User, domainId,
+            new ServiceOfferingVO("testOffering", 1, 512, 500, 1, 1, false, false, false, "test dpm",
+                    ProvisioningType.THIN, false, false, null, false, VirtualMachine.Type.User, domainId,
                 null, "FirstFitPlanner");
         Mockito.when(vmProfile.getServiceOffering()).thenReturn(svcOffering);
 
@@ -177,7 +181,8 @@ public class DeploymentPlanningManagerImplTest {
     @Test
     public void plannerCannotHandleTest() throws InsufficientServerCapacityException, AffinityConflictException {
         ServiceOfferingVO svcOffering =
-            new ServiceOfferingVO("testOffering", 1, 512, 500, 1, 1, false, false, false, "test dpm", false, false, null, false, VirtualMachine.Type.User, domainId,
+            new ServiceOfferingVO("testOffering", 1, 512, 500, 1, 1, false, false, false, "test dpm",
+                    ProvisioningType.THIN, false, false, null, false, VirtualMachine.Type.User, domainId,
                 null, "UserDispersingPlanner");
         Mockito.when(vmProfile.getServiceOffering()).thenReturn(svcOffering);
 
@@ -192,7 +197,8 @@ public class DeploymentPlanningManagerImplTest {
     @Test
     public void emptyClusterListTest() throws InsufficientServerCapacityException, AffinityConflictException {
         ServiceOfferingVO svcOffering =
-            new ServiceOfferingVO("testOffering", 1, 512, 500, 1, 1, false, false, false, "test dpm", false, false, null, false, VirtualMachine.Type.User, domainId,
+            new ServiceOfferingVO("testOffering", 1, 512, 500, 1, 1, false, false, false, "test dpm",
+                ProvisioningType.THIN, false, false, null, false, VirtualMachine.Type.User, domainId,
                 null, "FirstFitPlanner");
         Mockito.when(vmProfile.getServiceOffering()).thenReturn(svcOffering);
 
@@ -233,6 +239,11 @@ public class DeploymentPlanningManagerImplTest {
         @Bean
         public VirtualMachineProfileImpl virtualMachineProfileImpl() {
             return Mockito.mock(VirtualMachineProfileImpl.class);
+        }
+
+        @Bean
+        public HostTagsDao hostTagsDao() {
+            return Mockito.mock(HostTagsDao.class);
         }
 
         @Bean
@@ -383,6 +394,11 @@ public class DeploymentPlanningManagerImplTest {
         @Bean
         public AffinityGroupService affinityGroupService() {
             return Mockito.mock(AffinityGroupService.class);
+        }
+
+        @Bean
+        public HostGpuGroupsDao hostGpuGroupsDap() {
+            return Mockito.mock(HostGpuGroupsDao.class);
         }
 
         public static class Library implements TypeFilter {

@@ -53,6 +53,7 @@ import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.User;
 import com.cloud.uservm.UserVm;
+import com.cloud.utils.ConstantTimeComparator;
 import com.cloud.utils.Pair;
 import com.cloud.utils.Ternary;
 import com.cloud.utils.db.EntityManager;
@@ -237,9 +238,7 @@ public class ConsoleProxyServlet extends HttpServlet {
         try {
             resp.sendRedirect(composeThumbnailUrl(rootUrl, vm, host, w, h));
         } catch (IOException e) {
-            if (s_logger.isInfoEnabled()) {
-                s_logger.info("Client may already close the connection");
-            }
+            s_logger.info("Client may already close the connection", e);
         }
     }
 
@@ -312,7 +311,7 @@ public class ConsoleProxyServlet extends HttpServlet {
 
         String sid = req.getParameter("sid");
         if (sid == null || !sid.equals(vm.getVncPassword())) {
-            s_logger.warn("sid " + sid + " in url does not match stored sid " + vm.getVncPassword());
+            s_logger.warn("sid " + sid + " in url does not match stored sid.");
             sendResponse(resp, "failed");
             return;
         }
@@ -501,9 +500,7 @@ public class ConsoleProxyServlet extends HttpServlet {
             resp.setContentType("text/html");
             resp.getWriter().print(content);
         } catch (IOException e) {
-            if (s_logger.isInfoEnabled()) {
-                s_logger.info("Client may already close the connection");
-            }
+            s_logger.info("Client may already close the connection", e);
         }
     }
 
@@ -657,7 +654,7 @@ public class ConsoleProxyServlet extends HttpServlet {
             mac.update(unsignedRequest.getBytes());
             byte[] encryptedBytes = mac.doFinal();
             String computedSignature = Base64.encodeBase64String(encryptedBytes);
-            boolean equalSig = signature.equals(computedSignature);
+            boolean equalSig = ConstantTimeComparator.compareStrings(signature, computedSignature);
             if (!equalSig) {
                 s_logger.debug("User signature: " + signature + " is not equaled to computed signature: " + computedSignature);
             }
@@ -678,7 +675,7 @@ public class ConsoleProxyServlet extends HttpServlet {
         if (content == null || content.isEmpty())
             return content;
 
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < content.length(); i++) {
             char c = content.charAt(i);
             switch (c) {

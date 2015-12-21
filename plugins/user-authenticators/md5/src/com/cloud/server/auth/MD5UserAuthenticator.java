@@ -15,20 +15,19 @@
 
 package com.cloud.server.auth;
 
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Map;
-
-import javax.ejb.Local;
-import javax.inject.Inject;
-
-import org.apache.log4j.Logger;
-
 import com.cloud.user.UserAccount;
 import com.cloud.user.dao.UserAccountDao;
 import com.cloud.utils.Pair;
 import com.cloud.utils.exception.CloudRuntimeException;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import javax.ejb.Local;
+import javax.inject.Inject;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 /**
  * Simple UserAuthenticator that performs a MD5 hash of the password before
@@ -47,6 +46,12 @@ public class MD5UserAuthenticator extends DefaultUserAuthenticator {
         if (s_logger.isDebugEnabled()) {
             s_logger.debug("Retrieving user: " + username);
         }
+
+        if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
+            s_logger.debug("Username or Password cannot be empty");
+            return new Pair<Boolean, ActionOnFailedAuthentication>(false, null);
+        }
+
         UserAccount user = _userAccountDao.getUserAccount(username, domainId);
         if (user == null) {
             s_logger.debug("Unable to find user with " + username + " in domain " + domainId);
@@ -61,23 +66,22 @@ public class MD5UserAuthenticator extends DefaultUserAuthenticator {
     }
 
     @Override
-    public String encode(String password) {
-        MessageDigest md5 = null;
+    public String encode(final String password) {
         try {
-            md5 = MessageDigest.getInstance("MD5");
+            final MessageDigest md5 = MessageDigest.getInstance("MD5");
+            md5.reset();
+            BigInteger pwInt = new BigInteger(1, md5.digest(password.getBytes()));
+            String pwStr = pwInt.toString(16);
+            int padding = 32 - pwStr.length();
+            StringBuilder sb = new StringBuilder(32);
+            for (int i = 0; i < padding; i++) {
+                sb.append('0'); // make sure the MD5 password is 32 digits long
+            }
+            sb.append(pwStr);
+            return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new CloudRuntimeException("Unable to hash password", e);
         }
 
-        md5.reset();
-        BigInteger pwInt = new BigInteger(1, md5.digest(password.getBytes()));
-        String pwStr = pwInt.toString(16);
-        int padding = 32 - pwStr.length();
-        StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < padding; i++) {
-            sb.append('0'); // make sure the MD5 password is 32 digits long
-        }
-        sb.append(pwStr);
-        return sb.toString();
     }
 }

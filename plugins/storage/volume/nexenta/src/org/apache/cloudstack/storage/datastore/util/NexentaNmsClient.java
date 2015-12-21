@@ -45,9 +45,12 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.BasicClientConnectionManager;
 import org.apache.log4j.Logger;
 
-import com.cloud.utils.exception.CloudRuntimeException;
+import org.apache.cloudstack.utils.security.SSLUtils;
+
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+
+import com.cloud.utils.exception.CloudRuntimeException;
 
 public class NexentaNmsClient {
     private static final Logger logger = Logger.getLogger(NexentaNmsClient.class);
@@ -79,7 +82,7 @@ public class NexentaNmsClient {
 
     protected DefaultHttpClient getHttpsClient() {
         try {
-            SSLContext sslContext = SSLContext.getInstance("SSL");
+            SSLContext sslContext = SSLUtils.getSSLContext();
             X509TrustManager tm = new X509TrustManager() {
                 @Override
                 public void checkClientTrusted(X509Certificate[] xcs, String string) throws CertificateException {
@@ -123,7 +126,7 @@ public class NexentaNmsClient {
         private Object[] params;
 
         NmsRequest(String object, String method) {
-            this(method, object, null);
+            this(object, method, (Object[])null);
         }
 
         NmsRequest(String object, String method, Object... params) {
@@ -132,6 +135,7 @@ public class NexentaNmsClient {
             this.params = params;
         }
 
+        @Override
         public String toString() {
             StringBuffer b = new StringBuffer();
             b.append("Request to ").append(object).append(" method ").append(method);
@@ -195,10 +199,13 @@ public class NexentaNmsClient {
             if (!isSuccess(status)) {
                 throw new CloudRuntimeException("Failed on JSON-RPC API call. HTTP error code = " + status);
             }
-            BufferedReader buffer = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-            String tmp;
-            while ((tmp = buffer.readLine()) != null) {
-                sb.append(tmp);
+            try(BufferedReader buffer = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));) {
+                String tmp;
+                while ((tmp = buffer.readLine()) != null) {
+                    sb.append(tmp);
+                }
+            }catch (IOException ex) {
+                throw new CloudRuntimeException(ex.getMessage());
             }
         } catch (ClientProtocolException ex) {
             throw new CloudRuntimeException(ex.getMessage());

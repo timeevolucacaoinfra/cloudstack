@@ -247,8 +247,12 @@ public class RoleBasedAPIAccessChecker extends AdapterBase implements APIChecker
             try {
                 cmdObj = (BaseCmd) cmdClass.newInstance();
                 if (cmdObj instanceof BaseListCmd) {
-                    accessType = AccessType.ListEntry;
-                    addAccountScopedUseEntry = true;
+                    if (permissionScope == PermissionScope.ACCOUNT) {
+                        accessType = AccessType.UseEntry;
+                    } else {
+                        accessType = AccessType.ListEntry;
+                        addAccountScopedUseEntry = true;
+                    }
                 } else {
                     accessType = AccessType.OperateEntry;
                 }

@@ -55,7 +55,6 @@ public class RemoveRecordCommand extends Command {
     public boolean isIpv6() {
         return isIpv6;
     }
-
     public void setIpv6(boolean isIpv6) {
         this.isIpv6 = isIpv6;
     }

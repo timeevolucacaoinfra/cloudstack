@@ -115,6 +115,7 @@ class TestPublicIP(cloudstackTestCase):
             raise Exception("Warning: Exception during cleanup : %s" % e)
         return
 
+
     @attr(tags = ["advanced", "advancedns", "smoke"], required_hardware="false")
     def test_public_ip_admin_account(self):
         """Test for Associate/Disassociate public IP address for admin account"""
@@ -383,12 +384,13 @@ class TestPortForwarding(cloudstackTestCase):
 
         try:
             nat_rule.delete(self.apiclient)
-            list_nat_rule_response = list_nat_rules(
-                                                self.apiclient,
-                                                id=nat_rule.id
-                                                )
-        except CloudstackAPIException:
-            self.fail("Nat Rule Deletion or Listing Failed")
+        except Exception as e:
+            self.fail("NAT Rule Deletion Failed: %s" % e)
+
+        # NAT rule listing should fail as the nat rule does not exist
+        with self.assertRaises(Exception):
+            list_nat_rules(self.apiclient,
+                           id=nat_rule.id)
 
         # Check if the Public SSH port is inaccessible
         with self.assertRaises(Exception):
@@ -607,10 +609,9 @@ class TestRebootRouter(cloudstackTestCase):
                                      self.services["natrule"],
                                      ipaddressid=self.public_ip.ipaddress.id
                                      )
-        self.cleanup = [
-                        self.vm_1,
+        self.cleanup = [self.nat_rule,
                         lb_rule,
-                        self.nat_rule,
+                        self.vm_1,
                         self.service_offering,
                         self.account,
                         ]
@@ -632,8 +633,7 @@ class TestRebootRouter(cloudstackTestCase):
         routers = list_routers(
                                 self.apiclient,
                                 account=self.account.name,
-                                domainid=self.account.domainid,
-                                listall=True
+                                domainid=self.account.domainid
                                )
         self.assertEqual(
                             isinstance(routers, list),
@@ -783,7 +783,6 @@ class TestReleaseIP(cloudstackTestCase):
 
         retriesCount = 10
         isIpAddressDisassociated = False
-
         while retriesCount > 0:
             listResponse = list_publicIP(
                                     self.apiclient,
@@ -951,8 +950,7 @@ class TestDeleteAccount(cloudstackTestCase):
             routers = list_routers(
                           self.apiclient,
                           account=self.account.name,
-                          domainid=self.account.domainid,
-                          listall=True
+                          domainid=self.account.domainid
                         )
             self.assertEqual(
                              routers,

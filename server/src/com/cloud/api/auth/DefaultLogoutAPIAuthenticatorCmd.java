@@ -16,12 +16,8 @@
 // under the License.
 package com.cloud.api.auth;
 
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
+import com.cloud.api.response.ApiResponseSerializer;
+import com.cloud.user.Account;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseCmd;
@@ -32,8 +28,11 @@ import org.apache.cloudstack.api.auth.PluggableAPIAuthenticator;
 import org.apache.cloudstack.api.response.LogoutCmdResponse;
 import org.apache.log4j.Logger;
 
-import com.cloud.api.response.ApiResponseSerializer;
-import com.cloud.user.Account;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.util.List;
+import java.util.Map;
 
 @APICommand(name = "logout", description = "Logs out the user", responseObject = LogoutCmdResponse.class, entityType = {})
 public class DefaultLogoutAPIAuthenticatorCmd extends BaseCmd implements APIAuthenticator {
@@ -62,7 +61,7 @@ public class DefaultLogoutAPIAuthenticatorCmd extends BaseCmd implements APIAuth
     }
 
     @Override
-    public String authenticate(String command, Map<String, Object[]> params, HttpSession session, String remoteAddress, String responseType, StringBuffer auditTrailSb, final HttpServletResponse resp) throws ServerApiException {
+    public String authenticate(String command, Map<String, Object[]> params, HttpSession session, String remoteAddress, String responseType, StringBuilder auditTrailSb, final HttpServletRequest req, final HttpServletResponse resp) throws ServerApiException {
         auditTrailSb.append("=== Logging out ===");
         LogoutCmdResponse response = new LogoutCmdResponse();
         response.setDescription("success");

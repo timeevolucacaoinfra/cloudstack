@@ -2,12 +2,13 @@
 {
 	rotate 7
 	daily
+	size 50M
 	missingok
 	notifempty
 	delaycompress
 	compress
 	postrotate
-		/usr/sbin/invoke-rc.d rsyslog reload > /dev/null
+		/usr/sbin/invoke-rc.d rsyslog rotate > /dev/null
 	endscript
 }
 
@@ -26,12 +27,13 @@
 {
 	rotate 10
 	daily
+	size 50M
 	missingok
 	notifempty
 	compress
 	delaycompress
 	sharedscripts
 	postrotate
-		/usr/sbin/nvoke-rc.d rsyslog reload > /dev/null
+		/usr/sbin/invoke-rc.d rsyslog rotate > /dev/null
 	endscript
 }

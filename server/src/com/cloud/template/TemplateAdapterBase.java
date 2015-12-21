@@ -231,7 +231,7 @@ public abstract class TemplateAdapterBase extends AdapterBase implements Templat
         if (hypervisorType.equals(Hypervisor.HypervisorType.XenServer)) {
             if (details == null || !details.containsKey("hypervisortoolsversion") || details.get("hypervisortoolsversion") == null ||
                 ((String)details.get("hypervisortoolsversion")).equalsIgnoreCase("none")) {
-                String hpvs = _configDao.getValue(Config.XenPVdriverVersion.key());
+                String hpvs = _configDao.getValue(Config.XenServerPVdriverVersion.key());
                 if (hpvs != null) {
                     if (details == null) {
                         details = new HashMap<String, String>();
@@ -363,7 +363,7 @@ public abstract class TemplateAdapterBase extends AdapterBase implements Templat
         Account account = CallContext.current().getCallingAccount();
         Long zoneId = cmd.getZoneId();
 
-        VMTemplateVO template = _tmpltDao.findById(templateId.longValue());
+        VMTemplateVO template = _tmpltDao.findById(templateId);
         if (template == null) {
             throw new InvalidParameterValueException("unable to find template with id " + templateId);
         }
@@ -388,7 +388,7 @@ public abstract class TemplateAdapterBase extends AdapterBase implements Templat
         Long userId = CallContext.current().getCallingUserId();
         Long zoneId = cmd.getZoneId();
 
-        VMTemplateVO template = _tmpltDao.findById(templateId.longValue());
+        VMTemplateVO template = _tmpltDao.findById(templateId);
         if (template == null) {
             throw new InvalidParameterValueException("unable to find template with id " + templateId);
         }
@@ -402,7 +402,7 @@ public abstract class TemplateAdapterBase extends AdapterBase implements Templat
         Account account = CallContext.current().getCallingAccount();
         Long zoneId = cmd.getZoneId();
 
-        VMTemplateVO template = _tmpltDao.findById(templateId.longValue());
+        VMTemplateVO template = _tmpltDao.findById(templateId);
         if (template == null) {
             throw new InvalidParameterValueException("unable to find iso with id " + templateId);
         }

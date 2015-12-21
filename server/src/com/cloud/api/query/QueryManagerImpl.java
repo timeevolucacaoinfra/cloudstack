@@ -26,9 +26,9 @@ import java.util.Set;
 import javax.ejb.Local;
 import javax.inject.Inject;
 
-import org.apache.log4j.Logger;
-import org.springframework.stereotype.Component;
-
+import com.cloud.utils.StringUtils;
+import com.cloud.vm.VMInstanceVO;
+import com.cloud.vm.dao.VMInstanceDao;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.affinity.AffinityGroupDomainMapVO;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
@@ -39,6 +39,7 @@ import org.apache.cloudstack.api.BaseListProjectAndAccountResourcesCmd;
 import org.apache.cloudstack.api.ResourceDetail;
 import org.apache.cloudstack.api.ResponseObject.ResponseView;
 import org.apache.cloudstack.api.command.admin.account.ListAccountsCmdByAdmin;
+import org.apache.cloudstack.api.command.admin.host.ListHostTagsCmd;
 import org.apache.cloudstack.api.command.admin.host.ListHostsCmd;
 import org.apache.cloudstack.api.command.admin.internallb.ListInternalLBVMsCmd;
 import org.apache.cloudstack.api.command.admin.iso.ListIsosCmdByAdmin;
@@ -46,6 +47,7 @@ import org.apache.cloudstack.api.command.admin.router.ListRoutersCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListImageStoresCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListSecondaryStagingStoresCmd;
 import org.apache.cloudstack.api.command.admin.storage.ListStoragePoolsCmd;
+import org.apache.cloudstack.api.command.admin.storage.ListStorageTagsCmd;
 import org.apache.cloudstack.api.command.admin.template.ListTemplatesCmdByAdmin;
 import org.apache.cloudstack.api.command.admin.user.ListUsersCmd;
 import org.apache.cloudstack.api.command.admin.vm.ListVMsCmdByAdmin;
@@ -74,6 +76,7 @@ import org.apache.cloudstack.api.response.DiskOfferingResponse;
 import org.apache.cloudstack.api.response.DomainRouterResponse;
 import org.apache.cloudstack.api.response.EventResponse;
 import org.apache.cloudstack.api.response.HostResponse;
+import org.apache.cloudstack.api.response.HostTagResponse;
 import org.apache.cloudstack.api.response.ImageStoreResponse;
 import org.apache.cloudstack.api.response.InstanceGroupResponse;
 import org.apache.cloudstack.api.response.ListResponse;
@@ -85,6 +88,7 @@ import org.apache.cloudstack.api.response.ResourceTagResponse;
 import org.apache.cloudstack.api.response.SecurityGroupResponse;
 import org.apache.cloudstack.api.response.ServiceOfferingResponse;
 import org.apache.cloudstack.api.response.StoragePoolResponse;
+import org.apache.cloudstack.api.response.StorageTagResponse;
 import org.apache.cloudstack.api.response.TemplateResponse;
 import org.apache.cloudstack.api.response.UserResponse;
 import org.apache.cloudstack.api.response.UserVmResponse;
@@ -98,6 +102,8 @@ import org.apache.cloudstack.engine.subsystem.api.storage.DataStoreManager;
 import org.apache.cloudstack.engine.subsystem.api.storage.TemplateState;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.query.QueryService;
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
 
 import com.cloud.api.query.dao.AccountJoinDao;
 import com.cloud.api.query.dao.AffinityGroupJoinDao;
@@ -106,6 +112,7 @@ import com.cloud.api.query.dao.DataCenterJoinDao;
 import com.cloud.api.query.dao.DiskOfferingJoinDao;
 import com.cloud.api.query.dao.DomainRouterJoinDao;
 import com.cloud.api.query.dao.HostJoinDao;
+import com.cloud.api.query.dao.HostTagDao;
 import com.cloud.api.query.dao.ImageStoreJoinDao;
 import com.cloud.api.query.dao.InstanceGroupJoinDao;
 import com.cloud.api.query.dao.ProjectAccountJoinDao;
@@ -115,6 +122,7 @@ import com.cloud.api.query.dao.ResourceTagJoinDao;
 import com.cloud.api.query.dao.SecurityGroupJoinDao;
 import com.cloud.api.query.dao.ServiceOfferingJoinDao;
 import com.cloud.api.query.dao.StoragePoolJoinDao;
+import com.cloud.api.query.dao.StorageTagDao;
 import com.cloud.api.query.dao.TemplateJoinDao;
 import com.cloud.api.query.dao.UserAccountJoinDao;
 import com.cloud.api.query.dao.UserVmJoinDao;
@@ -127,6 +135,7 @@ import com.cloud.api.query.vo.DiskOfferingJoinVO;
 import com.cloud.api.query.vo.DomainRouterJoinVO;
 import com.cloud.api.query.vo.EventJoinVO;
 import com.cloud.api.query.vo.HostJoinVO;
+import com.cloud.api.query.vo.HostTagVO;
 import com.cloud.api.query.vo.ImageStoreJoinVO;
 import com.cloud.api.query.vo.InstanceGroupJoinVO;
 import com.cloud.api.query.vo.ProjectAccountJoinVO;
@@ -136,6 +145,7 @@ import com.cloud.api.query.vo.ResourceTagJoinVO;
 import com.cloud.api.query.vo.SecurityGroupJoinVO;
 import com.cloud.api.query.vo.ServiceOfferingJoinVO;
 import com.cloud.api.query.vo.StoragePoolJoinVO;
+import com.cloud.api.query.vo.StorageTagVO;
 import com.cloud.api.query.vo.TemplateJoinVO;
 import com.cloud.api.query.vo.UserAccountJoinVO;
 import com.cloud.api.query.vo.UserVmJoinVO;
@@ -240,6 +250,9 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
     private UserVmDao _userVmDao;
 
     @Inject
+    private VMInstanceDao _vmInstanceDao;
+
+    @Inject
     private SecurityGroupJoinDao _securityGroupJoinDao;
 
     @Inject
@@ -283,6 +296,12 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
     @Inject
     private StoragePoolJoinDao _poolJoinDao;
+
+    @Inject
+    private StorageTagDao _storageTagDao;
+
+    @Inject
+    private HostTagDao _hostTagDao;
 
     @Inject
     private ImageStoreJoinDao _imageStoreJoinDao;
@@ -375,23 +394,27 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
     private Pair<List<UserAccountJoinVO>, Integer> searchForUsersInternal(ListUsersCmd cmd) throws PermissionDeniedException {
         Account caller = CallContext.current().getCallingAccount();
 
-        // TODO: Integrate with ACL checkAccess refactoring
-        Long domainId = cmd.getDomainId();
-        if (domainId != null) {
-            Domain domain = _domainDao.findById(domainId);
-            if (domain == null) {
-                throw new InvalidParameterValueException("Unable to find domain by id=" + domainId);
-            }
+        List<Long> permittedAccounts = new ArrayList<Long>();
 
-            _accountMgr.checkAccess(caller, domain);
-        } else {
-            // default domainId to the caller's domain
-            domainId = caller.getDomainId();
+        boolean listAll = cmd.listAll();
+        Long id = cmd.getId();
+        if (caller.getType() == Account.ACCOUNT_TYPE_NORMAL) {
+            long currentId = CallContext.current().getCallingUser().getId();
+            if (id != null && currentId != id.longValue()) {
+                throw new PermissionDeniedException("Calling user is not authorized to see the user requested by id");
+            }
+            id = currentId;
         }
+        Ternary<Long, Boolean, ListProjectResourcesCriteria> domainIdRecursiveListProject = new Ternary<Long, Boolean, ListProjectResourcesCriteria>(
+                cmd.getDomainId(), cmd.isRecursive(), null);
+        _accountMgr.buildACLSearchParameters(caller, id, cmd.getAccountName(), null, permittedAccounts,
+                domainIdRecursiveListProject, listAll, false);
+        Long domainId = domainIdRecursiveListProject.first();
+        Boolean isRecursive = domainIdRecursiveListProject.second();
+        ListProjectResourcesCriteria listProjectResourcesCriteria = domainIdRecursiveListProject.third();
 
         Filter searchFilter = new Filter(UserAccountJoinVO.class, "id", true, cmd.getStartIndex(), cmd.getPageSizeVal());
 
-        Long id = cmd.getId();
         Object username = cmd.getUsername();
         Object type = cmd.getAccountType();
         Object accountName = cmd.getAccountName();
@@ -399,6 +422,8 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         Object keyword = cmd.getKeyword();
 
         SearchBuilder<UserAccountJoinVO> sb = _userAccountJoinDao.createSearchBuilder();
+        _accountMgr.buildACLViewSearchBuilder(sb, domainId, isRecursive, permittedAccounts,
+                listProjectResourcesCriteria);
         sb.and("username", sb.entity().getUsername(), SearchCriteria.Op.LIKE);
         if (id != null && id == 1) {
             // system user should NOT be searchable
@@ -422,6 +447,11 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         }
 
         SearchCriteria<UserAccountJoinVO> sc = sb.create();
+
+        // building ACL condition
+        _accountMgr.buildACLViewSearchCriteria(sc, domainId, isRecursive, permittedAccounts,
+                listProjectResourcesCriteria);
+
         if (keyword != null) {
             SearchCriteria<UserAccountJoinVO> ssc = _userAccountJoinDao.createSearchCriteria();
             ssc.addOr("username", SearchCriteria.Op.LIKE, "%" + keyword + "%");
@@ -623,9 +653,8 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         sb.and("value", sb.entity().getValue(), SearchCriteria.Op.EQ);
 
         if (resourceId != null) {
-            sb.and().op("resourceId", sb.entity().getResourceId(), SearchCriteria.Op.EQ);
-            sb.or("resourceUuid", sb.entity().getResourceUuid(), SearchCriteria.Op.EQ);
-            sb.cp();
+            sb.and("resourceId", sb.entity().getResourceId(), SearchCriteria.Op.EQ);
+            sb.and("resourceUuid", sb.entity().getResourceUuid(), SearchCriteria.Op.EQ);
         }
 
         sb.and("resourceType", sb.entity().getResourceType(), SearchCriteria.Op.EQ);
@@ -645,8 +674,13 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         }
 
         if (resourceId != null) {
-            sc.setParameters("resourceId", resourceId);
-            sc.setParameters("resourceUuid", resourceId);
+            try {
+                long rid = Long.parseLong(resourceId);
+                sc.setParameters("resourceId", rid);
+            } catch (NumberFormatException ex) {
+                // internal id instead of resource id is passed
+                sc.setParameters("resourceUuid", resourceId);
+            }
         }
 
         if (resourceType != null) {
@@ -857,10 +891,10 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
         if (tags != null && !tags.isEmpty()) {
             SearchCriteria<UserVmJoinVO> tagSc = _userVmJoinDao.createSearchCriteria();
-            for (String key : tags.keySet()) {
+            for (Map.Entry<String,String> entry : tags.entrySet()) {
                 SearchCriteria<UserVmJoinVO> tsc = _userVmJoinDao.createSearchCriteria();
-                tsc.addAnd("tagKey", SearchCriteria.Op.EQ, key);
-                tsc.addAnd("tagValue", SearchCriteria.Op.EQ, tags.get(key));
+                tsc.addAnd("tagKey", SearchCriteria.Op.EQ,entry.getKey());
+                tsc.addAnd("tagValue", SearchCriteria.Op.EQ, entry.getValue());
                 tagSc.addOr("tagKey", SearchCriteria.Op.SC, tsc);
             }
             sc.addAnd("tagKey", SearchCriteria.Op.SC, tagSc);
@@ -887,11 +921,8 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             sc.setParameters("display", display);
         }
 
-        if (ids != null) {
-            List<?> idList = (ids instanceof List<?> ? (List<?>)ids : null);
-            if (idList != null && !idList.isEmpty()) {
-                sc.setParameters("idIN", idList.toArray());
-            }
+        if (ids != null && !ids.isEmpty()) {
+            sc.setParameters("idIN", ids.toArray());
         }
 
         if (templateId != null) {
@@ -1719,9 +1750,6 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         // display UserVM volumes only
         sb.and().op("type", sb.entity().getVmType(), SearchCriteria.Op.NIN);
         sb.or("nulltype", sb.entity().getVmType(), SearchCriteria.Op.NULL);
-        if (!(cmd instanceof ListVolumesCmdByAdmin)) {
-            sb.and("displayVolume", sb.entity().isDisplayVolume(), SearchCriteria.Op.EQ);
-        }
         sb.cp();
 
         // now set the SC criteria...
@@ -1781,10 +1809,6 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
         if (storageId != null) {
             sc.setParameters("storageId", storageId);
-        }
-
-        if (!(cmd instanceof ListVolumesCmdByAdmin)) {
-            sc.setParameters("displayVolume", 1);
         }
 
         // Don't return DomR and ConsoleProxy volumes
@@ -2131,6 +2155,88 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
     }
 
     @Override
+    public ListResponse<StorageTagResponse> searchForStorageTags(ListStorageTagsCmd cmd) {
+        Pair<List<StorageTagVO>, Integer> result = searchForStorageTagsInternal(cmd);
+        ListResponse<StorageTagResponse> response = new ListResponse<StorageTagResponse>();
+        List<StorageTagResponse> tagResponses = ViewResponseHelper.createStorageTagResponse(result.first().toArray(new StorageTagVO[result.first().size()]));
+
+        response.setResponses(tagResponses, result.second());
+
+        return response;
+    }
+
+    private Pair<List<StorageTagVO>, Integer> searchForStorageTagsInternal(ListStorageTagsCmd cmd) {
+        Filter searchFilter = new Filter(StorageTagVO.class, "id", Boolean.TRUE, null, null);
+
+        SearchBuilder<StorageTagVO> sb = _storageTagDao.createSearchBuilder();
+
+        sb.select(null, Func.DISTINCT, sb.entity().getId()); // select distinct
+
+        SearchCriteria<StorageTagVO> sc = sb.create();
+
+        // search storage tag details by ids
+        Pair<List<StorageTagVO>, Integer> uniqueTagPair = _storageTagDao.searchAndCount(sc, searchFilter);
+        Integer count = uniqueTagPair.second();
+
+        if (count.intValue() == 0) {
+            return uniqueTagPair;
+        }
+
+        List<StorageTagVO> uniqueTags = uniqueTagPair.first();
+        Long[] vrIds = new Long[uniqueTags.size()];
+        int i = 0;
+
+        for (StorageTagVO v : uniqueTags) {
+            vrIds[i++] = v.getId();
+        }
+
+        List<StorageTagVO> vrs = _storageTagDao.searchByIds(vrIds);
+
+        return new Pair<List<StorageTagVO>, Integer>(vrs, count);
+    }
+
+    @Override
+    public ListResponse<HostTagResponse> searchForHostTags(ListHostTagsCmd cmd) {
+        Pair<List<HostTagVO>, Integer> result = searchForHostTagsInternal(cmd);
+        ListResponse<HostTagResponse> response = new ListResponse<HostTagResponse>();
+        List<HostTagResponse> tagResponses = ViewResponseHelper.createHostTagResponse(result.first().toArray(new HostTagVO[result.first().size()]));
+
+        response.setResponses(tagResponses, result.second());
+
+        return response;
+    }
+
+    private Pair<List<HostTagVO>, Integer> searchForHostTagsInternal(ListHostTagsCmd cmd) {
+        Filter searchFilter = new Filter(HostTagVO.class, "id", Boolean.TRUE, null, null);
+
+        SearchBuilder<HostTagVO> sb = _hostTagDao.createSearchBuilder();
+
+        sb.select(null, Func.DISTINCT, sb.entity().getId()); // select distinct
+
+        SearchCriteria<HostTagVO> sc = sb.create();
+
+        // search host tag details by ids
+        Pair<List<HostTagVO>, Integer> uniqueTagPair = _hostTagDao.searchAndCount(sc, searchFilter);
+        Integer count = uniqueTagPair.second();
+
+        if (count.intValue() == 0) {
+            return uniqueTagPair;
+        }
+
+        List<HostTagVO> uniqueTags = uniqueTagPair.first();
+        Long[] vrIds = new Long[uniqueTags.size()];
+        int i = 0;
+
+        for (HostTagVO v : uniqueTags) {
+            vrIds[i++] = v.getId();
+        }
+
+        List<HostTagVO> vrs = _hostTagDao.searchByIds(vrIds);
+
+        return new Pair<List<HostTagVO>, Integer>(vrs, count);
+    }
+
+    @Override
     public ListResponse<ImageStoreResponse> searchForImageStores(ListImageStoresCmd cmd) {
         Pair<List<ImageStoreJoinVO>, Integer> result = searchForImageStoresInternal(cmd);
         ListResponse<ImageStoreResponse> response = new ListResponse<ImageStoreResponse>();
@@ -2413,9 +2519,25 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         return _diskOfferingJoinDao.searchAndCount(sc, searchFilter);
     }
 
+    private List<ServiceOfferingJoinVO> filterOfferingsOnCurrentTags(List<ServiceOfferingJoinVO> offerings, ServiceOfferingVO currentVmOffering){
+        if(currentVmOffering == null) return offerings;
+        List<String> currentTagsList = StringUtils.csvTagsToList(currentVmOffering.getTags());
+
+        // New offerings should be a subset of existing storage tags. Discard offerings who are not.
+        List<ServiceOfferingJoinVO> filteredOfferings = new ArrayList<>();
+        for (ServiceOfferingJoinVO offering : offerings){
+            List<String> tags = StringUtils.csvTagsToList(offering.getTags());
+            if(currentTagsList.containsAll(tags)){
+                filteredOfferings.add(offering);
+            }
+        }
+        return filteredOfferings;
+    }
+
     @Override
     public ListResponse<ServiceOfferingResponse> searchForServiceOfferings(ListServiceOfferingsCmd cmd) {
         Pair<List<ServiceOfferingJoinVO>, Integer> result = searchForServiceOfferingsInternal(cmd);
+         result.first();
         ListResponse<ServiceOfferingResponse> response = new ListResponse<ServiceOfferingResponse>();
         List<ServiceOfferingResponse> offeringResponses =
             ViewResponseHelper.createServiceOfferingResponse(result.first().toArray(new ServiceOfferingJoinVO[result.first().size()]));
@@ -2425,11 +2547,11 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
     private Pair<List<ServiceOfferingJoinVO>, Integer> searchForServiceOfferingsInternal(ListServiceOfferingsCmd cmd) {
         // Note
-        // The list method for offerings is being modified in accordance with
+        // The filteredOfferings method for offerings is being modified in accordance with
         // discussion with Will/Kevin
         // For now, we will be listing the following based on the usertype
-        // 1. For root, we will list all offerings
-        // 2. For domainAdmin and regular users, we will list everything in
+        // 1. For root, we will filteredOfferings all offerings
+        // 2. For domainAdmin and regular users, we will filteredOfferings everything in
         // their domains+parent domains ... all the way
         // till
         // root
@@ -2445,6 +2567,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         Long domainId = cmd.getDomainId();
         Boolean isSystem = cmd.getIsSystem();
         String vmTypeStr = cmd.getSystemVmType();
+        ServiceOfferingVO currentVmOffering = null;
 
         SearchCriteria<ServiceOfferingJoinVO> sc = _srvOfferingJoinDao.createSearchCriteria();
         if (!_accountMgr.isRootAdmin(caller.getId()) && isSystem) {
@@ -2463,7 +2586,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         }
 
         if (vmId != null) {
-            UserVmVO vmInstance = _userVmDao.findById(vmId);
+            VMInstanceVO vmInstance = _vmInstanceDao.findById(vmId);
             if ((vmInstance == null) || (vmInstance.getRemoved() != null)) {
                 InvalidParameterValueException ex = new InvalidParameterValueException("unable to find a virtual machine with specified id");
                 ex.addProxyObject(vmId.toString(), "vmId");
@@ -2472,14 +2595,18 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
             _accountMgr.checkAccess(caller, null, true, vmInstance);
 
-            ServiceOfferingVO offering = _srvOfferingDao.findByIdIncludingRemoved(vmInstance.getId(), vmInstance.getServiceOfferingId());
-            sc.addAnd("id", SearchCriteria.Op.NEQ, offering.getId());
+            currentVmOffering = _srvOfferingDao.findByIdIncludingRemoved(vmInstance.getId(), vmInstance.getServiceOfferingId());
+            sc.addAnd("id", SearchCriteria.Op.NEQ, currentVmOffering.getId());
 
-            // Only return offerings with the same Guest IP type and storage
-            // pool preference
-            // sc.addAnd("guestIpType", SearchCriteria.Op.EQ,
-            // offering.getGuestIpType());
-            sc.addAnd("useLocalStorage", SearchCriteria.Op.EQ, offering.getUseLocalStorage());
+            // 1. Only return offerings with the same storage type
+            sc.addAnd("useLocalStorage", SearchCriteria.Op.EQ, currentVmOffering.getUseLocalStorage());
+
+            // 2.In case vm is running return only offerings greater than equal to current offering compute.
+            if(vmInstance.getState() == VirtualMachine.State.Running){
+                sc.addAnd("cpu", Op.GTEQ, currentVmOffering.getCpu());
+                sc.addAnd("speed", Op.GTEQ, currentVmOffering.getSpeed());
+                sc.addAnd("ramSize", Op.GTEQ, currentVmOffering.getRamSize());
+            }
         }
 
         // boolean includePublicOfferings = false;
@@ -2554,7 +2681,11 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             sc.addAnd("vmType", SearchCriteria.Op.EQ, vmTypeStr);
         }
 
-        return _srvOfferingJoinDao.searchAndCount(sc, searchFilter);
+        Pair<List<ServiceOfferingJoinVO>, Integer> result = _srvOfferingJoinDao.searchAndCount(sc, searchFilter);
+
+        //Couldn't figure out a smart way to filter offerings based on tags in sql so doing it in Java.
+        List<ServiceOfferingJoinVO> filteredOfferings = filterOfferingsOnCurrentTags(result.first(), currentVmOffering);
+        return new Pair<>(filteredOfferings, result.second());
     }
 
     @Override
@@ -2744,9 +2875,9 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         if (resourceTags != null && !resourceTags.isEmpty()) {
             int count = 0;
             sc.setJoinParameters("tagSearch", "resourceType", ResourceObjectType.Zone.toString());
-            for (String key : resourceTags.keySet()) {
-                sc.setJoinParameters("tagSearch", "key" + String.valueOf(count), key);
-                sc.setJoinParameters("tagSearch", "value" + String.valueOf(count), resourceTags.get(key));
+            for (Map.Entry<String,String> entry : resourceTags.entrySet()) {
+                sc.setJoinParameters("tagSearch", "key" + String.valueOf(count), entry.getKey());
+                sc.setJoinParameters("tagSearch", "value" + String.valueOf(count), entry.getValue());
                 count++;
             }
         }
@@ -2864,7 +2995,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         VMTemplateVO template = null;
 
         Boolean isAscending = Boolean.parseBoolean(_configDao.getValue("sortkey.algorithm"));
-        isAscending = (isAscending == null ? true : isAscending);
+        isAscending = (isAscending == null ? Boolean.TRUE : isAscending);
         Filter searchFilter = new Filter(TemplateJoinVO.class, "sortKey", isAscending, startIndex, pageSize);
 
         SearchBuilder<TemplateJoinVO> sb = _templateJoinDao.createSearchBuilder();
@@ -2894,8 +3025,7 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
             // if template is not public, perform permission check here
             if (!template.isPublicTemplate() && caller.getType() != Account.ACCOUNT_TYPE_ADMIN) {
-                Account owner = _accountMgr.getAccount(template.getAccountId());
-                _accountMgr.checkAccess(caller, null, true, owner);
+                _accountMgr.checkAccess(caller, null, false, template);
             }
 
             // if templateId is specified, then we will just use the id to
@@ -3004,10 +3134,10 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             // add tags criteria
             if (tags != null && !tags.isEmpty()) {
                 SearchCriteria<TemplateJoinVO> scc = _templateJoinDao.createSearchCriteria();
-                for (String key : tags.keySet()) {
+                for (Map.Entry<String,String>entry : tags.entrySet()) {
                     SearchCriteria<TemplateJoinVO> scTag = _templateJoinDao.createSearchCriteria();
-                    scTag.addAnd("tagKey", SearchCriteria.Op.EQ, key);
-                    scTag.addAnd("tagValue", SearchCriteria.Op.EQ, tags.get(key));
+                    scTag.addAnd("tagKey", SearchCriteria.Op.EQ, entry.getKey());
+                    scTag.addAnd("tagValue", SearchCriteria.Op.EQ, entry.getValue());
                     if (isIso) {
                         scTag.addAnd("tagResourceType", SearchCriteria.Op.EQ, ResourceObjectType.ISO);
                     } else {

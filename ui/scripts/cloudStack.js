@@ -31,9 +31,12 @@
                 sections = ["dashboard", "instances", "storage", "network", "loadbalancer", "templates", "accounts", "events", "regions", "affinityGroups"];
             }
 
-            if (cloudStack.plugins.length) {
-                sections.push('plugins');
-            }
+            $.each(cloudStack.plugins, function(idx, plugin) {
+                if (cloudStack.sections.hasOwnProperty(plugin) && !cloudStack.sections[plugin].showOnNavigation) {
+                    sections.push('plugins');
+                    return false;
+                }
+            });
 
             return sections;
         },
@@ -94,26 +97,6 @@
                     message: parseXMLHttpResponse(data),
                     clickAction: clickAction
                 });
-            },
-            beforeSend: function(XMLHttpRequest) {
-                if (g_mySession == $.cookie("JSESSIONID")) {
-                    return true;
-                } else {
-                    var clickAction = function() {
-                        $('#user-options a').eq(0).trigger('click');
-                    };
-
-                    if ($('.notification-box:visible').size()) {
-                        $('.notification-box, div.overlay:first').remove();
-                    }
-
-                    cloudStack.dialog.notice({
-                        message: _l('label.session.expired'),
-                        clickAction: clickAction
-                    }).closest('.ui-dialog').overlay();
-
-                    return false;
-                }
             }
         });
 
@@ -125,21 +108,11 @@
             // Use this for checking the session, to bypass login screen
             bypassLoginCheck: function(args) { //determine to show or bypass login screen
                 if (g_loginResponse == null) { //show login screen
-                    /*
-           but if this is a 2nd browser window (of the same domain), login screen still won't show because $.cookie('sessionKey') is valid for 2nd browser window (of the same domain) as well.
-           i.e. calling listCapabilities API with g_sessionKey from $.cookie('sessionKey') will succeed,
-           then userValid will be set to true, then an user object (instead of "false") will be returned, then login screen will be bypassed.
-           */
                     var unBoxCookieValue = function (cookieName) {
-                        var cookieValue = $.cookie(cookieName);
-                        if (cookieValue && cookieValue.length > 2 && cookieValue[0] === '"' && cookieValue[cookieValue.length-1] === '"') {
-                            cookieValue = cookieValue.slice(1, cookieValue.length-1);
-                            $.cookie(cookieName, cookieValue, { expires: 1 });
-                        }
-                        return cookieValue;
+                        return decodeURIComponent($.cookie(cookieName)).replace(/"([^"]+(?="))"/g, '$1');
                     };
-                    g_mySession = $.cookie('JSESSIONID');
-                    g_sessionKey = unBoxCookieValue('sessionKey');
+                    // sessionkey is a HttpOnly cookie now, no need to pass as API param
+                    g_sessionKey = null;
                     g_role = unBoxCookieValue('role');
                     g_userid = unBoxCookieValue('userid');
                     g_domainid = unBoxCookieValue('domainid');
@@ -147,12 +120,7 @@
                     g_username = unBoxCookieValue('username');
                     g_userfullname = unBoxCookieValue('userfullname');
                     g_timezone = unBoxCookieValue('timezone');
-                    if ($.cookie('timezoneoffset') != null)
-                        g_timezoneoffset = isNaN(unBoxCookieValue('timezoneoffset')) ? null : parseFloat(unBoxCookieValue('timezoneoffset'));
-                    else
-                        g_timezoneoffset = null;
-                } else { //single-sign-on	(bypass login screen)
-                    g_mySession = $.cookie('JSESSIONID');
+                } else { //single-sign-on (bypass login screen)
                     g_sessionKey = encodeURIComponent(g_loginResponse.sessionkey);
                     g_role = g_loginResponse.type;
                     g_username = g_loginResponse.username;
@@ -161,10 +129,6 @@
                     g_domainid = g_loginResponse.domainid;
                     g_userfullname = g_loginResponse.firstname + ' ' + g_loginResponse.lastname;
                     g_timezone = g_loginResponse.timezone;
-                    if (g_loginResponse.timezoneoffset != null)
-                        g_timezoneoffset = isNaN(g_loginResponse.timezoneoffset) ? null : parseFloat(g_loginResponse.timezoneoffset);
-                    else
-                        g_timezoneoffset = null;
                 }
 
                 var userValid = false;
@@ -173,37 +137,15 @@
                     dataType: "json",
                     async: false,
                     success: function(json) {
-                        g_capabilities = json.listcapabilitiesresponse.capability;
-                        $.cookie('capabilities', g_capabilities, {
-                            expires: 1
-                        });
-
-                        g_supportELB = json.listcapabilitiesresponse.capability.supportELB.toString(); //convert boolean to string if it's boolean
-                        $.cookie('supportELB', g_supportELB, {
-                            expires: 1
-                        });
-
-                        g_kvmsnapshotenabled = json.listcapabilitiesresponse.capability.kvmsnapshotenabled; //boolean
-                        $.cookie('kvmsnapshotenabled', g_kvmsnapshotenabled, {
-                            expires: 1
-                        });                        
-                                               
-                        g_regionsecondaryenabled = json.listcapabilitiesresponse.capability.regionsecondaryenabled; //boolean
-                        $.cookie('regionsecondaryenabled', g_regionsecondaryenabled, {
-                            expires: 1
-                        }); 
-                                              
+                        g_capabilities = json.listcapabilitiesresponse.capability;                        
+                        g_supportELB = json.listcapabilitiesresponse.capability.supportELB.toString(); //convert boolean to string if it's boolean   
+                        g_kvmsnapshotenabled = json.listcapabilitiesresponse.capability.kvmsnapshotenabled; //boolean          
+                        g_regionsecondaryenabled = json.listcapabilitiesresponse.capability.regionsecondaryenabled; //boolean    
                         if (json.listcapabilitiesresponse.capability.userpublictemplateenabled != null) {
-                            g_userPublicTemplateEnabled = json.listcapabilitiesresponse.capability.userpublictemplateenabled.toString(); //convert boolean to string if it's boolean
-                            $.cookie('userpublictemplateenabled', g_userPublicTemplateEnabled, {
-                                expires: 1
-                            });
+                            g_userPublicTemplateEnabled = json.listcapabilitiesresponse.capability.userpublictemplateenabled.toString(); //convert boolean to string if it's boolean                            
                         }
-
                         g_userProjectsEnabled = json.listcapabilitiesresponse.capability.allowusercreateprojects;
-                        $.cookie('userProjectsEnabled', g_userProjectsEnabled, {
-                            expires: 1
-                        });
+                       
 
                         g_cloudstackversion = json.listcapabilitiesresponse.capability.cloudstackversion;
 
@@ -222,7 +164,25 @@
                         return true;
                     }
                 });
-               
+
+                // Populate IDP list
+                // $.ajax({
+                //     type: 'GET',
+                //     url: createURL('listIdps'),
+                //     dataType: 'json',
+                //     async: false,
+                //     success: function(data, textStatus, xhr) {
+                //         if (data && data.listidpsresponse && data.listidpsresponse.idp) {
+                //             var idpList = data.listidpsresponse.idp.sort(function (a, b) {
+                //                 return a.orgName.localeCompare(b.orgName);
+                //             });
+                //             g_idpList = idpList;
+                //         }
+                //     },
+                //     error: function(xhr) {
+                //     },
+                // });
+
                 return userValid ? {
                     user: {
                         userid: g_userid,
@@ -402,7 +362,6 @@
                     url: createURL('logout'),
                     async: false,
                     success: function() {
-                        g_mySession = null;
                         g_sessionKey = null;
                         g_username = null;
                         g_account = null;
@@ -414,16 +373,14 @@
                         g_regionsecondaryenabled = null;
                         g_loginCmdText = null;
 
-                        $.cookie('JSESSIONID', null);
-                        $.cookie('sessionKey', null);
-                        $.cookie('username', null);
-                        $.cookie('account', null);
-                        $.cookie('domainid', null);
-                        $.cookie('role', null);
-                        $.cookie('networktype', null);
-                        $.cookie('timezoneoffset', null);
-                        $.cookie('timezone', null);
-                        $.cookie('supportELB', null);
+                        // Remove any cookies
+                        var cookies = document.cookie.split(";");
+                        for (var i = 0; i < cookies.length; i++) {
+                            var cookieName = $.trim(cookies[i].split("=")[0]);
+                            if (['login-option', 'lang'].indexOf(cookieName) < 0) {
+                                $.cookie(cookieName, null);
+                            }
+                        }
 
                         if (onLogoutCallback()) { //onLogoutCallback() will set g_loginResponse(single-sign-on variable) to null, then bypassLoginCheck() will show login screen.
                             document.location.reload(); //when onLogoutCallback() returns true, reload the current document.
@@ -438,6 +395,37 @@
                         return true;
                     }
                 });
+            },
+
+            samlLoginAction: function(args) {
+                g_sessionKey = null;
+                g_username = null;
+                g_account = null;
+                g_domainid = null;
+                g_timezoneoffset = null;
+                g_timezone = null;
+                g_supportELB = null;
+                g_kvmsnapshotenabled = null;
+                g_regionsecondaryenabled = null;
+                g_loginCmdText = null;
+
+                // Remove any cookies
+                var cookies = document.cookie.split(";");
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookieName = $.trim(cookies[i].split("=")[0]);
+                    if (['login-option', 'lang'].indexOf(cookieName) < 0) {
+                        $.cookie(cookieName, null);
+                    }
+                }
+
+                var url = 'samlSso';
+                if (args.data.idpid) {
+                    url = url + '&idpid=' + args.data.idpid;
+                }
+                if (args.data.domain) {
+                    url = url + '&domain=' + args.data.domain;
+                }
+                window.location.href = createURL(url);
             },
 
             // Show cloudStack main UI widget
@@ -501,10 +489,14 @@
         // Localization
         if (!$.isFunction(cloudStack.localizationFn)) { // i.e., localize is overridden by a plugin/module
             cloudStack.localizationFn = function(str) {
-                return dictionary[str];
+                var localized = dictionary[str];
+
+                return localized ? localized : str;
             };
         }
 
+		// Localize validation messages
+        cloudStack.localizeValidatorMessages();
         document.title = _l('label.app.name');
 
         var stopLogin = false;

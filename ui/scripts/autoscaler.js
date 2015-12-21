@@ -557,13 +557,13 @@
 
             scaleUpPolicy: {
                 title: 'ScaleUp Policy',
-                label: 'SCALE UP POLICY',
+                label: 'label.scale.up.policy',
                 noSelect: true,
                 noHeaderActionsColumn: true,
                 ignoreEmptyFields: true,
                 fields: {
                     'counterid': {
-                        label: 'Counter',
+                        label: 'label.counter',
                         select: function(args) {
                             $.ajax({
                                 url: createURL("listCounters"),
@@ -585,7 +585,7 @@
                         }
                     },
                     'relationaloperator': {
-                        label: 'Operator',
+                        label: 'label.operator',
                         select: function(args) {
                             args.response.success({
                                 data: [{
@@ -609,7 +609,7 @@
                     },
                     'threshold': {
                         edit: true,
-                        label: 'Threshold'
+                        label: 'label.threshold'
                     },
                     'add-scaleUpcondition': {
                         label: 'label.add',
@@ -667,7 +667,7 @@
                 ignoreEmptyFields: true,
                 fields: {
                     'counterid': {
-                        label: 'Counter',
+                        label: 'label.counter',
                         select: function(args) {
                             $.ajax({
                                 url: createURL("listCounters"),
@@ -689,7 +689,7 @@
                         }
                     },
                     'relationaloperator': {
-                        label: 'Operator',
+                        label: 'label.operator',
                         select: function(args) {
                             args.response.success({
                                 data: [{
@@ -713,7 +713,7 @@
                     },
                     'threshold': {
                         edit: true,
-                        label: 'Threshold'
+                        label: 'label.threshold'
                     },
                     'add-scaleDowncondition': {
                         label: 'label.add',

@@ -34,9 +34,10 @@ usage() {
 }
 
 fw_egress_remove_backup() {
-  sudo iptables -D FW_OUTBOUND -j _FW_EGRESS_RULES 
-  sudo iptables -F _FW_EGRESS_RULES 
-  sudo iptables -X _FW_EGRESS_RULES 
+  # remove backup rules, ignore errors as they could not be present
+  sudo iptables -D FW_OUTBOUND -j _FW_EGRESS_RULES >/dev/null 2>&1
+  sudo iptables -F _FW_EGRESS_RULES >/dev/null 2>&1
+  sudo iptables -X _FW_EGRESS_RULES >/dev/null 2>&1
 }
 
 fw_egress_save() {
@@ -145,11 +146,11 @@ fi
 
 success=0
 
-if [ "$pvalue" == "0" -o "$pvalue" == "2" ]
+if [ "$pvalue" == "1" -o "$pvalue" == "2" ]
   then
-     target="ACCEPT"
-  else
      target="DROP"
+  else
+     target="ACCEPT"
   fi
 
 fw_egress_chain
@@ -172,7 +173,7 @@ then
   fw_egress_backup_restore
 else
   logger -t cloud "deleting backup for guest network"
-    if [ "$pvalue" == "1" -o "$pvalue" == "2" ]
+    if [ "$pvalue" == "1" ]
        then
        #Adding default policy rule
        sudo iptables -A FW_EGRESS_RULES  -j ACCEPT

@@ -32,15 +32,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import junit.framework.Assert;
-
+import com.cloud.user.User;
 import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-
 import org.apache.cloudstack.api.command.admin.vlan.DedicatePublicIpRangeCmd;
 import org.apache.cloudstack.api.command.admin.vlan.ReleasePublicIpRangeCmd;
 import org.apache.cloudstack.context.CallContext;
@@ -57,6 +57,8 @@ import com.cloud.dc.dao.DataCenterDao;
 import com.cloud.dc.dao.VlanDao;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.IpAddressManager;
+import com.cloud.network.Network;
+import com.cloud.network.NetworkModel;
 import com.cloud.network.Network.Capability;
 import com.cloud.network.dao.FirewallRulesDao;
 import com.cloud.network.dao.IPAddressDao;
@@ -105,8 +107,16 @@ public class ConfigurationManagerTest {
     FirewallRulesDao _firewallDao;
     @Mock
     IpAddressManager _ipAddrMgr;
+    @Mock
+    NetworkModel _networkModel;
 
     VlanVO vlan = new VlanVO(Vlan.VlanType.VirtualNetwork, "vlantag", "vlangateway", "vlannetmask", 1L, "iprange", 1L, 1L, null, null, null);
+
+    @Mock
+    Network network;
+
+    @Mock
+    Account account;
 
     @Before
     public void setup() throws Exception {
@@ -122,13 +132,14 @@ public class ConfigurationManagerTest {
         configurationMgr._zoneDao = _zoneDao;
         configurationMgr._firewallDao = _firewallDao;
         configurationMgr._ipAddrMgr = _ipAddrMgr;
+        configurationMgr._networkModel = _networkModel;
 
         Account account = new AccountVO("testaccount", 1, "networkdomain", (short)0, UUID.randomUUID().toString());
         when(configurationMgr._accountMgr.getAccount(anyLong())).thenReturn(account);
         when(configurationMgr._accountDao.findActiveAccount(anyString(), anyLong())).thenReturn(account);
         when(configurationMgr._accountMgr.getActiveAccountById(anyLong())).thenReturn(account);
 
-        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString());
+        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString(), User.Source.UNKNOWN);
         CallContext.register(user, account);
 
         when(configurationMgr._publicIpAddressDao.countIPs(anyLong(), anyLong(), anyBoolean())).thenReturn(1);
@@ -512,5 +523,14 @@ public class ConfigurationManagerTest {
         public long getEntityOwnerId() {
             return 1;
         }
+    }
+
+    @Test
+    public void getVlanAccount() {
+        Mockito.when(_vlanDao.findById(42l)).thenReturn(vlan);
+        Mockito.when(_networkModel.getNetwork(1l)).thenReturn(network);
+        Mockito.when(network.getAccountId()).thenReturn(1l);
+        Mockito.when(_accountMgr.getAccount(1l)).thenReturn(account);
+        Assert.assertNotNull(configurationMgr.getVlanAccount(42l));
     }
 }

@@ -30,6 +30,7 @@ import org.apache.commons.net.util.SubnetUtils;
 import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.math.BigInteger;
@@ -57,6 +58,7 @@ public class NetUtils {
     public final static int VPN_PORT = 500;
     public final static int VPN_NATT_PORT = 4500;
     public final static int VPN_L2TP_PORT = 1701;
+    public final static int HAPROXY_STATS_PORT = 8081;
 
     public final static String UDP_PROTO = "udp";
     public final static String TCP_PROTO = "tcp";
@@ -174,7 +176,8 @@ public class NetUtils {
                 }catch (Exception e) {
                     s_logger.error("getDefaultHostIp:Exception:"+e.getMessage());
                 }
-            } catch (Exception e) {
+            } catch (IOException e) {
+                s_logger.debug("Caught IOException", e);
             }
             return null;
         } else {
@@ -191,8 +194,16 @@ public class NetUtils {
                 return null;
             }
 
-            String[] info = NetUtils.getNetworkParams(nic);
-            return info[0];
+            String[] info = null;
+            try {
+                info = NetUtils.getNetworkParams(nic);
+            } catch (NullPointerException ignored) {
+                s_logger.debug("Caught NullPointerException when trying to getDefaultHostIp");
+            }
+            if (info != null) {
+                return info[0];
+            }
+            return null;
         }
     }
 
@@ -427,7 +438,8 @@ public class NetUtils {
         try {
             byte[] mac = nic.getHardwareAddress();
             result[1] = byte2Mac(mac);
-        } catch (Exception e) {
+        } catch (SocketException e) {
+            s_logger.debug("Caught exception when trying to get the mac address ", e);
         }
 
         result[2] = prefix2Netmask(addr.getNetworkPrefixLength());
@@ -488,7 +500,10 @@ public class NetUtils {
             return false;
         } else {
             InetAddress ip = parseIpAddress(ipAddress);
-            return ip.isSiteLocalAddress();
+            if(ip != null) {
+                return ip.isSiteLocalAddress();
+            }
+            return false;
         }
     }
 
@@ -503,6 +518,10 @@ public class NetUtils {
     }
 
     public static boolean isValidIp(final String ip) {
+        if (ip.endsWith(".")) {
+            return false;
+        }
+
         final String[] ipAsList = ip.split("\\.");
 
         // The IP address must have four octets
@@ -1251,16 +1270,21 @@ public class NetUtils {
         while (next.compareTo(gap) >= 0) {
             next = new BigInteger(gap.bitLength(), s_rand);
         }
+        InetAddress resultAddr = null;
         BigInteger startInt = convertIPv6AddressToBigInteger(start);
-        BigInteger resultInt = startInt.add(next);
-        InetAddress resultAddr;
-        try {
-            resultAddr = InetAddress.getByAddress(resultInt.toByteArray());
-        } catch (UnknownHostException e) {
-            return null;
+        if (startInt != null) {
+            BigInteger resultInt = startInt.add(next);
+            try {
+                resultAddr = InetAddress.getByAddress(resultInt.toByteArray());
+            } catch (UnknownHostException e) {
+                return null;
+            }
         }
-        IPv6Address ip = IPv6Address.fromInetAddress(resultAddr);
-        return ip.toString();
+        if( resultAddr != null) {
+            IPv6Address ip = IPv6Address.fromInetAddress(resultAddr);
+            return ip.toString();
+        }
+        return null;
     }
 
     //RFC3315, section 9.4
@@ -1299,10 +1323,16 @@ public class NetUtils {
         }
         BigInteger startInt = convertIPv6AddressToBigInteger(start);
         BigInteger endInt = convertIPv6AddressToBigInteger(end);
-        if (startInt.compareTo(endInt) > 0) {
-            return null;
+        if (endInt != null) {
+            if (startInt != null)
+            {
+                if(startInt.compareTo(endInt) > 0) {
+                    return null;
+                }
+            }
+            return endInt.subtract(startInt).add(BigInteger.ONE);
         }
-        return endInt.subtract(startInt).add(BigInteger.ONE);
+        return null;
     }
 
     public static boolean isIp6InRange(String ip6, String ip6Range) {
@@ -1420,10 +1450,10 @@ public class NetUtils {
     public static boolean isSameIsolationId(String one, String other) {
         // check nulls
         // check empty strings
-        if ((one == null || one.equals("")) && (other == null || other.equals(""))) {
+        if ((one == null || one.isEmpty()) && (other == null || other.isEmpty())) {
             return true;
         }
-        if ((one == null || other == null) && !(one == null && other == null)) {
+        if (one == null || other == null) {
             return false;
         }
         // check 'untagged'

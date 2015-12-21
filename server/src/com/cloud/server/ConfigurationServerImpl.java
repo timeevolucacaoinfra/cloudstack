@@ -43,6 +43,7 @@ import javax.crypto.SecretKey;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
+import com.cloud.utils.nio.Link;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -96,6 +97,7 @@ import com.cloud.offerings.dao.NetworkOfferingServiceMapDao;
 import com.cloud.service.ServiceOfferingVO;
 import com.cloud.service.dao.ServiceOfferingDao;
 import com.cloud.storage.DiskOfferingVO;
+import com.cloud.storage.Storage.ProvisioningType;
 import com.cloud.storage.dao.DiskOfferingDao;
 import com.cloud.test.IPRangeConfig;
 import com.cloud.user.Account;
@@ -201,9 +203,9 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                     String instance = "DEFAULT";
                     String component = c.getComponent();
                     String value = c.getDefaultValue();
-                    value = ("Hidden".equals(category) || "Secure".equals(category)) ? DBEncryptionUtil.encrypt(value) : value;
                     String description = c.getDescription();
                     ConfigurationVO configVO = new ConfigurationVO(category, instance, component, name, value, description);
+                    configVO.setDefaultValue(value);
                     _configDao.persist(configVO);
                 }
             }
@@ -217,15 +219,18 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
             _configDao.update("secstorage.secure.copy.cert", "realhostip");
             s_logger.debug("ConfigurationServer made secondary storage copy use realhostip.");
 
+            _configDao.update("user.password.encoders.exclude", "MD5,LDAP,PLAINTEXT");
+            s_logger.debug("Configuration server excluded insecure encoders");
+
             // Save default service offerings
-            createServiceOffering(User.UID_SYSTEM, "Small Instance", 1, 512, 500, "Small Instance", false, false, null);
-            createServiceOffering(User.UID_SYSTEM, "Medium Instance", 1, 1024, 1000, "Medium Instance", false, false, null);
+            createServiceOffering(User.UID_SYSTEM, "Small Instance", 1, 512, 500, "Small Instance", ProvisioningType.THIN, false, false, null);
+            createServiceOffering(User.UID_SYSTEM, "Medium Instance", 1, 1024, 1000, "Medium Instance", ProvisioningType.THIN, false, false, null);
             // Save default disk offerings
-            createdefaultDiskOffering(null, "Small", "Small Disk, 5 GB", 5, null, false, false);
-            createdefaultDiskOffering(null, "Medium", "Medium Disk, 20 GB", 20, null, false, false);
-            createdefaultDiskOffering(null, "Large", "Large Disk, 100 GB", 100, null, false, false);
-            createdefaultDiskOffering(null, "Large", "Large Disk, 100 GB", 100, null, false, false);
-            createdefaultDiskOffering(null, "Custom", "Custom Disk", 0, null, true, false);
+            createdefaultDiskOffering(null, "Small", "Small Disk, 5 GB", ProvisioningType.THIN, 5, null, false, false);
+            createdefaultDiskOffering(null, "Medium", "Medium Disk, 20 GB", ProvisioningType.THIN, 20, null, false, false);
+            createdefaultDiskOffering(null, "Large", "Large Disk, 100 GB", ProvisioningType.THIN, 100, null, false, false);
+            createdefaultDiskOffering(null, "Large", "Large Disk, 100 GB", ProvisioningType.THIN, 100, null, false, false);
+            createdefaultDiskOffering(null, "Custom", "Custom Disk", ProvisioningType.THIN, 0, null, true, false);
 
             // Save the mount parent to the configuration table
             String mountParent = getMountParent();
@@ -360,12 +365,12 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
             @Override
             public void doInTransactionWithoutResult(TransactionStatus status) {
                 TransactionLegacy txn = TransactionLegacy.currentTxn();
-                String pvdriverversion = Config.XenPVdriverVersion.getDefaultValue();
+                String pvdriverversion = Config.XenServerPVdriverVersion.getDefaultValue();
                 PreparedStatement pstmt = null;
                 ResultSet rs1 = null;
                 ResultSet rs2 = null;
                 try {
-                    String oldValue = _configDao.getValue(Config.XenPVdriverVersion.key());
+                    String oldValue = _configDao.getValue(Config.XenServerPVdriverVersion.key());
                     if (oldValue == null) {
                         String sql = "select resource from host where hypervisor_type='XenServer' and removed is null and status not in ('Error', 'Removed') group by resource";
                         pstmt = txn.prepareAutoCloseStatement(sql);
@@ -374,17 +379,17 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                             String resouce = rs1.getString(1); //resource column
                             if (resouce == null)
                                 continue;
-                            if (resouce.equalsIgnoreCase("com.cloud.hypervisor.xen.resource.XenServer56Resource")
-                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xen.resource.XenServer56FP1Resource")
-                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xen.resource.XenServer56SP2Resource")
-                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xen.resource.XenServer600Resource")
-                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xen.resource.XenServer602Resource")) {
+                            if (resouce.equalsIgnoreCase("com.cloud.hypervisor.xenserver.resource.XenServer56Resource")
+                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xenserver.resource.XenServer56FP1Resource")
+                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xenserver.resource.XenServer56SP2Resource")
+                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xenserver.resource.XenServer600Resource")
+                                    || resouce.equalsIgnoreCase("com.cloud.hypervisor.xenserver.resource.XenServer602Resource")) {
                                 pvdriverversion = "xenserver56";
                                 break;
                             }
                         }
-                        _configDao.getValueAndInitIfNotExist(Config.XenPVdriverVersion.key(), Config.XenPVdriverVersion.getCategory(), pvdriverversion,
-                                Config.XenPVdriverVersion.getDescription());
+                        _configDao.getValueAndInitIfNotExist(Config.XenServerPVdriverVersion.key(), Config.XenServerPVdriverVersion.getCategory(), pvdriverversion,
+                                Config.XenServerPVdriverVersion.getDescription());
                         sql = "select id from vm_template where hypervisor_type='XenServer'  and format!='ISO' and removed is null";
                         pstmt = txn.prepareAutoCloseStatement(sql);
                         rs2 = pstmt.executeQuery();
@@ -439,13 +444,15 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
             if (propsFile == null) {
                 return null;
             } else {
-                final FileInputStream finputstream = new FileInputStream(propsFile);
                 final Properties props = new Properties();
-                props.load(finputstream);
-                finputstream.close();
+                try(final FileInputStream finputstream = new FileInputStream(propsFile);) {
+                    props.load(finputstream);
+                }catch (IOException e) {
+                    s_logger.error("getEnvironmentProperty:Exception:" + e.getMessage());
+                }
                 return props.getProperty("mount.parent");
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             return null;
         }
     }
@@ -463,6 +470,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                     PreparedStatement stmt = txn.prepareAutoCloseStatement(insertSql);
                     stmt.executeUpdate();
                 } catch (SQLException ex) {
+                    s_logger.debug("Looks like system account already exists");
                 }
                 // insert system user
                 insertSql = "INSERT INTO `cloud`.`user` (id, uuid, username, password, account_id, firstname, lastname, created, user.default)"
@@ -472,6 +480,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                     PreparedStatement stmt = txn.prepareAutoCloseStatement(insertSql);
                     stmt.executeUpdate();
                 } catch (SQLException ex) {
+                    s_logger.debug("Looks like system user already exists");
                 }
 
                 // insert admin user, but leave the account disabled until we set a
@@ -488,6 +497,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                     PreparedStatement stmt = txn.prepareAutoCloseStatement(insertSql);
                     stmt.executeUpdate();
                 } catch (SQLException ex) {
+                    s_logger.debug("Looks like admin account already exists");
                 }
 
                 // now insert the user
@@ -498,6 +508,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                     PreparedStatement stmt = txn.prepareAutoCloseStatement(insertSql);
                     stmt.executeUpdate();
                 } catch (SQLException ex) {
+                    s_logger.debug("Looks like admin user already exists");
                 }
 
                 try {
@@ -508,7 +519,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                         stmt.executeQuery();
                         tableName = "network_group";
                     } catch (Exception ex) {
-                        // if network_groups table exists, create the default security group there
+                        // Ignore in case of exception, table must not exist
                     }
 
                     insertSql = "SELECT * FROM " + tableName + " where account_id=2 and name='default'";
@@ -610,7 +621,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
 
         if (null != confFile) {
             confPath = confFile.getParent();
-            keystorePath = confPath + "/cloud.keystore";
+            keystorePath = confPath + Link.keystoreFile;
             keystoreFile = new File(keystorePath);
         }
 
@@ -625,17 +636,10 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                 }
                 String base64Keystore = getBase64Keystore(keystorePath);
                 ConfigurationVO configVO =
-                        new ConfigurationVO("Hidden", "DEFAULT", "management-server", "ssl.keystore", DBEncryptionUtil.encrypt(base64Keystore),
+                        new ConfigurationVO("Hidden", "DEFAULT", "management-server", "ssl.keystore", base64Keystore,
                                 "SSL Keystore for the management servers");
                 _configDao.persist(configVO);
                 s_logger.info("Stored SSL keystore to database.");
-            } else if (null != keystoreFile && keystoreFile.exists()) { // and dbExisted
-                // Check if they are the same one, otherwise override with local keystore
-                String base64Keystore = getBase64Keystore(keystorePath);
-                if (base64Keystore.compareTo(dbString) != 0) {
-                    _configDao.update("ssl.keystore", "Hidden", base64Keystore);
-                    s_logger.info("Updated database keystore with local one.");
-                }
             } else { // !keystoreFile.exists() and dbExisted
                 // Export keystore to local file
                 byte[] storeBytes = Base64.decodeBase64(dbString);
@@ -645,6 +649,7 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                     fo.write(storeBytes);
                     fo.close();
                     Script script = new Script(true, "cp", 5000, null);
+                    script.add("-f");
                     script.add(tmpKeystorePath);
 
                     //There is a chance, although small, that the keystorePath is null. In that case, do not add it to the script.
@@ -737,11 +742,14 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                 s_logger.info("Systemvm keypairs not found in database. Need to store them in the database");
             }
             // FIXME: take a global database lock here for safety.
-            Script.runSimpleBashScript("if [ -f " + privkeyfile + " ]; then rm -f " + privkeyfile + "; fi; ssh-keygen -t rsa -N '' -f " + privkeyfile + " -q");
+            boolean onWindows = isOnWindows();
+            if(!onWindows) {
+                Script.runSimpleBashScript("if [ -f " + privkeyfile + " ]; then rm -f " + privkeyfile + "; fi; ssh-keygen -t rsa -N '' -f " + privkeyfile + " -q");
+            }
 
             byte[] arr1 = new byte[4094]; // configuration table column value size
-            try {
-                new DataInputStream(new FileInputStream(privkeyfile)).readFully(arr1);
+            try (DataInputStream dis = new DataInputStream(new FileInputStream(privkeyfile))) {
+                dis.readFully(arr1);
             } catch (EOFException e) {
             } catch (Exception e) {
                 s_logger.error("Cannot read the private key file", e);
@@ -749,8 +757,8 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
             }
             String privateKey = new String(arr1).trim();
             byte[] arr2 = new byte[4094]; // configuration table column value size
-            try {
-                new DataInputStream(new FileInputStream(pubkeyfile)).readFully(arr2);
+            try (DataInputStream dis = new DataInputStream(new FileInputStream(pubkeyfile))) {
+                dis.readFully(arr2);
             } catch (EOFException e) {
             } catch (Exception e) {
                 s_logger.warn("Cannot read the public key file", e);
@@ -836,10 +844,10 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
         }
 
         if (keyfile.exists()) {
-            try {
-                FileOutputStream kStream = new FileOutputStream(keyfile);
-                kStream.write(key.getBytes());
-                kStream.close();
+            try (FileOutputStream kStream = new FileOutputStream(keyfile);){
+                if (kStream != null) {
+                    kStream.write(key.getBytes());
+                }
             } catch (FileNotFoundException e) {
                 s_logger.warn("Failed to write  key to " + keyfile.getAbsolutePath());
                 throw new CloudRuntimeException("Failed to update keypairs on disk: cannot find  key file " + keyPath);
@@ -872,7 +880,8 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
     }
 
     protected void injectSshKeysIntoSystemVmIsoPatch(String publicKeyPath, String privKeyPath) {
-        String injectScript = "scripts/vm/systemvm/injectkeys.sh";
+        s_logger.info("Trying to inject public and private keys into systemvm iso");
+        String injectScript = getInjectScript();
         String scriptPath = Script.findScript("", injectScript);
         String systemVmIsoPath = Script.findScript("", "vms/systemvm.iso");
         if (scriptPath == null) {
@@ -881,17 +890,40 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
         if (systemVmIsoPath == null) {
             throw new CloudRuntimeException("Unable to find systemvm iso vms/systemvm.iso");
         }
-        final Script command = new Script("/bin/bash", s_logger);
+        Script command = null;
+        if(isOnWindows()) {
+            command = new Script("python", s_logger);
+        } else {
+            command = new Script("/bin/bash", s_logger);
+        }
         command.add(scriptPath);
         command.add(publicKeyPath);
         command.add(privKeyPath);
         command.add(systemVmIsoPath);
 
         final String result = command.execute();
+        s_logger.info("Injected public and private keys into systemvm iso with result : " + result);
         if (result != null) {
             s_logger.warn("Failed to inject generated public key into systemvm iso " + result);
             throw new CloudRuntimeException("Failed to inject generated public key into systemvm iso " + result);
         }
+    }
+
+    protected String getInjectScript() {
+        String injectScript = null;
+        boolean onWindows = isOnWindows();
+        if(onWindows) {
+            injectScript = "scripts/vm/systemvm/injectkeys.py";
+        } else {
+            injectScript = "scripts/vm/systemvm/injectkeys.sh";
+        }
+        return injectScript;
+    }
+
+    protected boolean isOnWindows() {
+        String os = System.getProperty("os.name", "generic").toLowerCase();
+        boolean onWindows = (os != null && os.startsWith("windows"));
+        return onWindows;
     }
 
     @DB
@@ -999,24 +1031,24 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
         return pod;
     }
 
-    private DiskOfferingVO createdefaultDiskOffering(Long domainId, String name, String description, int numGibibytes, String tags, boolean isCustomized,
-            boolean isSystemUse) {
+    private DiskOfferingVO createdefaultDiskOffering(Long domainId, String name, String description, ProvisioningType provisioningType,
+            int numGibibytes, String tags, boolean isCustomized, boolean isSystemUse) {
         long diskSize = numGibibytes;
         diskSize = diskSize * 1024 * 1024 * 1024;
         tags = cleanupTags(tags);
 
-        DiskOfferingVO newDiskOffering = new DiskOfferingVO(domainId, name, description, diskSize, tags, isCustomized, null, null, null);
+        DiskOfferingVO newDiskOffering = new DiskOfferingVO(domainId, name, description, provisioningType, diskSize, tags, isCustomized, null, null, null);
         newDiskOffering.setUniqueName("Cloud.Com-" + name);
         newDiskOffering.setSystemUse(isSystemUse);
         newDiskOffering = _diskOfferingDao.persistDeafultDiskOffering(newDiskOffering);
         return newDiskOffering;
     }
 
-    private ServiceOfferingVO createServiceOffering(long userId, String name, int cpu, int ramSize, int speed, String displayText, boolean localStorageRequired,
-            boolean offerHA, String tags) {
+    private ServiceOfferingVO createServiceOffering(long userId, String name, int cpu, int ramSize, int speed, String displayText,
+            ProvisioningType provisioningType, boolean localStorageRequired, boolean offerHA, String tags) {
         tags = cleanupTags(tags);
         ServiceOfferingVO offering =
-                new ServiceOfferingVO(name, cpu, ramSize, speed, null, null, offerHA, displayText, localStorageRequired, false, tags, false, null, false);
+                new ServiceOfferingVO(name, cpu, ramSize, speed, null, null, offerHA, displayText, provisioningType, localStorageRequired, false, tags, false, null, false);
         offering.setUniqueName("Cloud.Com-" + name);
         offering = _serviceOfferingDao.persistSystemServiceOffering(offering);
         return offering;
@@ -1153,9 +1185,9 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
 
                 // Offering #5
                 NetworkOfferingVO defaultNetscalerNetworkOffering =
-                    new NetworkOfferingVO(NetworkOffering.DefaultSharedEIPandELBNetworkOffering,
-                        "Offering for Shared networks with Elastic IP and Elastic LB capabilities", TrafficType.Guest, false, true, null, null, true,
-                        Availability.Optional, null, Network.GuestType.Shared, true, false, false, false, true, true, true, false, false, true, true, false, false, false);
+                        new NetworkOfferingVO(NetworkOffering.DefaultSharedEIPandELBNetworkOffering,
+                                "Offering for Shared networks with Elastic IP and Elastic LB capabilities", TrafficType.Guest, false, true, null, null, true,
+                                Availability.Optional, null, Network.GuestType.Shared, true, false, false, false, true, true, true, false, false, true, true, false, false, false);
 
                 defaultNetscalerNetworkOffering.setState(NetworkOffering.State.Enabled);
                 defaultNetscalerNetworkOffering = _networkOfferingDao.persistDefaultNetworkOffering(defaultNetscalerNetworkOffering);
@@ -1188,9 +1220,9 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                 defaultVpcNetworkOfferingProviders.put(Service.PortForwarding, Provider.VPCVirtualRouter);
                 defaultVpcNetworkOfferingProviders.put(Service.Vpn, Provider.VPCVirtualRouter);
 
-                for (Service service : defaultVpcNetworkOfferingProviders.keySet()) {
-                    NetworkOfferingServiceMapVO offService =
-                            new NetworkOfferingServiceMapVO(defaultNetworkOfferingForVpcNetworks.getId(), service, defaultVpcNetworkOfferingProviders.get(service));
+                for (Map.Entry<Service,Provider> entry : defaultVpcNetworkOfferingProviders.entrySet()) {
+                     NetworkOfferingServiceMapVO offService =
+                            new NetworkOfferingServiceMapVO(defaultNetworkOfferingForVpcNetworks.getId(), entry.getKey(), entry.getValue());
                     _ntwkOfferingServiceMapDao.persist(offService);
                     s_logger.trace("Added service for the network offering: " + offService);
                 }
@@ -1215,9 +1247,9 @@ public class ConfigurationServerImpl extends ManagerBase implements Configuratio
                 defaultVpcNetworkOfferingProvidersNoLB.put(Service.PortForwarding, Provider.VPCVirtualRouter);
                 defaultVpcNetworkOfferingProvidersNoLB.put(Service.Vpn, Provider.VPCVirtualRouter);
 
-                for (Service service : defaultVpcNetworkOfferingProvidersNoLB.keySet()) {
+                for (Map.Entry<Service,Provider> entry : defaultVpcNetworkOfferingProvidersNoLB.entrySet()) {
                     NetworkOfferingServiceMapVO offService =
-                            new NetworkOfferingServiceMapVO(defaultNetworkOfferingForVpcNetworksNoLB.getId(), service, defaultVpcNetworkOfferingProvidersNoLB.get(service));
+                            new NetworkOfferingServiceMapVO(defaultNetworkOfferingForVpcNetworksNoLB.getId(), entry.getKey(), entry.getValue());
                     _ntwkOfferingServiceMapDao.persist(offService);
                     s_logger.trace("Added service for the network offering: " + offService);
                 }

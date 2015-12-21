@@ -50,7 +50,6 @@ public class VirtualMachineTO {
     String platformEmulator;
     String bootArgs;
     String[] bootupScripts;
-    boolean rebootOnCrash;
     boolean enableHA;
     boolean limitCpuUse;
     boolean enableDynamicallyScaleVm;
@@ -67,7 +66,7 @@ public class VirtualMachineTO {
     public VirtualMachineTO(long id, String instanceName, VirtualMachine.Type type, int cpus, Integer speed, long minRam, long maxRam, BootloaderType bootloader,
             String os, boolean enableHA, boolean limitCpuUse, String vncPassword) {
         this.id = id;
-        this.name = instanceName;
+        name = instanceName;
         this.type = type;
         this.cpus = cpus;
         this.speed = speed;
@@ -83,7 +82,7 @@ public class VirtualMachineTO {
     public VirtualMachineTO(long id, String instanceName, VirtualMachine.Type type, int cpus, Integer minSpeed, Integer maxSpeed, long minRam, long maxRam,
             BootloaderType bootloader, String os, boolean enableHA, boolean limitCpuUse, String vncPassword) {
         this.id = id;
-        this.name = instanceName;
+        name = instanceName;
         this.type = type;
         this.cpus = cpus;
         this.minSpeed = minSpeed;

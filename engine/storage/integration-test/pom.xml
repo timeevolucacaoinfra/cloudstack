@@ -16,7 +16,7 @@
   <parent>
     <groupId>org.apache.cloudstack</groupId>
     <artifactId>cloud-engine</artifactId>
-    <version>4.4.2</version>
+    <version>4.5.2</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <dependencies>
@@ -58,7 +58,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.cloudstack</groupId>
-      <artifactId>cloud-plugin-hypervisor-xen</artifactId>
+      <artifactId>cloud-plugin-hypervisor-xenserver</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

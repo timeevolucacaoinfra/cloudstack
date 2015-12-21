@@ -1,5 +1,7 @@
 #!/bin/bash
 
+BASEDIR=$(pwd)
+
 pkg_path(){
     [ -f /etc/redhat-release ] || return 1
     package=${1}
@@ -37,6 +39,7 @@ gen_tag(){
 gen_package(){
     tag=${1}
     REPOPATH=${2}
+    BUILDDIR="${BASEDIR}/dist/rpmbuild"
 
     [[ ! -f /etc/redhat-release ]] && echo "Opss... run this option only in RedHat OS. Exiting..." && return 1
     [[ ! -d ${REPOPATH} ]] && echo "The directory ${REPOPATH} does not exist... exiting." && return 1
@@ -44,7 +47,6 @@ gen_package(){
     # export some shell environments variables
     export MAVEN_OPTS="-XX:MaxPermSize=800m -Xmx2g"
 
-    # git checkout ${tag}
     (cd packaging/centos63; ./package.sh -t ${tag})
 
     [[ $? -ne 0 ]] && echo "Failed to compile package. Please, fix errors." && return 1
@@ -52,19 +54,16 @@ gen_package(){
     # keep last 3 builds
     echo "Removing old packages from yum repo ${REPOPATH}"
     rpms='agent awsapi baremetal-agent cli common management usage'
-    for f in ${rpms}; do rm -f $(ls -1t cloudstack-${f}* 2>/dev/null | awk 'NR>5 {print}') ; done
+    for f in ${rpms}; do rm -f $(ls -1t ${REPOPATH}/cloudstack-${f}* 2>/dev/null | awk 'NR>5 {print}') ; done
 
-    BUILDDIR='dist/rpmbuild'
     echo -n "Copying files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH..."
-    if mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH;
-    then
-        echo "rpm file copied with success"
+    if mv ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm $REPOPATH; then
+        echo "done"
     else
-        echo "failed to copy rpm file"
+        echo -e "\nFailed to copy rpm file"
         exit 1
     fi
-    [[ $? -ne 0 ]] && echo "Failed to copy files ${BUILDDIR}/RPMS/x86_64/cloudstack-[a-z]*-${tag}.el6.x86_64.rpm to $REPOPATH... Please, fix errors." && return 1
-    echo "done"
+
     # Create yum repo
     echo "Creating yum repo..."
     whoami=$(whoami)

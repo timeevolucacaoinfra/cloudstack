@@ -24,7 +24,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.UUID;
 
+import com.cloud.network.dao.LoadBalancerNetworkMapDao;
 import com.cloud.network.dao.LoadBalancerOptionsDao;
+import com.cloud.network.dao.LoadBalancerPortMapDao;
+import com.cloud.user.User;
 import org.apache.cloudstack.api.command.user.loadbalancer.UpdateLoadBalancerRuleCmd;
 import org.apache.cloudstack.context.CallContext;
 import org.junit.After;
@@ -45,8 +48,6 @@ import com.cloud.network.dao.LBHealthCheckPolicyDao;
 import com.cloud.network.dao.LBStickinessPolicyDao;
 import com.cloud.network.dao.LoadBalancerCertMapDao;
 import com.cloud.network.dao.LoadBalancerDao;
-import com.cloud.network.dao.LoadBalancerNetworkMapDao;
-import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.cloud.network.dao.LoadBalancerVMMapDao;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkDao;
@@ -90,7 +91,7 @@ public class UpdateLoadBalancerTest {
         updateLbRuleCmd = new UpdateLoadBalancerRuleCmd();
 
         AccountVO account = new AccountVO(accountName, domainId, "networkDomain", Account.ACCOUNT_TYPE_NORMAL, "uuid");
-        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString());
+        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString(), User.Source.UNKNOWN);
         CallContext.register(user, account);
     }
 

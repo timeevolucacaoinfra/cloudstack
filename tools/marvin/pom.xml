@@ -16,7 +16,7 @@
   <parent>
     <groupId>org.apache.cloudstack</groupId>
     <artifactId>cloud-tools</artifactId>
-    <version>4.4.2</version>
+    <version>4.5.2</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
   <build>
@@ -72,7 +72,8 @@
               <workingDirectory>${exec.workingdir}</workingDirectory>
               <executable>python</executable>
               <arguments>
-                <argument>setup.py</argument>
+                <argument>mvn-setup.py</argument>
+                <argument>${project.version}</argument>
                 <argument>sdist</argument>
               </arguments>
             </configuration>
@@ -125,7 +126,8 @@
                   <workingDirectory>${exec.workingdir}</workingDirectory>
                   <executable>python</executable>
                   <arguments>
-                    <argument>setup.py</argument>
+                    <argument>mvn-setup.py</argument>
+                    <argument>${project.version}</argument>
                     <argument>sdist</argument>
                   </arguments>
                 </configuration>
@@ -141,9 +143,9 @@
                   <executable>pip</executable>
                   <arguments>
                     <argument>install</argument>
-                    <argument>--upgrade</argument>
                     <argument>--allow-external</argument>
-                    <argument>Marvin-4.4.1.tar.gz</argument>
+                    <argument>--upgrade</argument>
+                    <argument>Marvin-${project.version}.tar.gz</argument>
                   </arguments>
                 </configuration>
               </execution>

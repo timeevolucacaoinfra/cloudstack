@@ -19,11 +19,6 @@
 
 package com.cloud.utils.script;
 
-import com.cloud.utils.PropertiesUtil;
-import com.cloud.utils.concurrency.NamedThreadFactory;
-import com.cloud.utils.script.OutputInterpreter.TimedOutLogger;
-import org.apache.log4j.Logger;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +37,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.log4j.Logger;
+
+import com.cloud.utils.PropertiesUtil;
+import com.cloud.utils.concurrency.NamedThreadFactory;
+import com.cloud.utils.script.OutputInterpreter.TimedOutLogger;
 
 public class Script implements Callable<String> {
     private static final Logger s_logger = Logger.getLogger(Script.class);
@@ -167,6 +169,16 @@ public class Script implements Callable<String> {
         return buildCommandLine(command);
     }
 
+    static String stackTraceAsString(Throwable throwable) {
+        //TODO: a StringWriter is bit to heavy weight
+        try(StringWriter out = new StringWriter(); PrintWriter writer = new PrintWriter(out);) {
+            throwable.printStackTrace(writer);
+            return out.toString();
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
     public String execute(OutputInterpreter interpreter) {
         String[] command = _command.toArray(new String[_command.size()]);
 
@@ -259,28 +271,15 @@ public class Script implements Callable<String> {
             return error;
         } catch (SecurityException ex) {
             _logger.warn("Security Exception....not running as root?", ex);
-            StringWriter writer = new StringWriter();
-            ex.printStackTrace(new PrintWriter(writer));
-            return writer.toString();
+            return stackTraceAsString(ex);
         } catch (Exception ex) {
             _logger.warn("Exception: " + buildCommandLine(command), ex);
-            StringWriter writer = new StringWriter();
-            ex.printStackTrace(new PrintWriter(writer));
-            return writer.toString();
+            return stackTraceAsString(ex);
         } finally {
             if (_process != null) {
-                try {
-                    _process.getErrorStream().close();
-                } catch (IOException ex) {
-                }
-                try {
-                    _process.getOutputStream().close();
-                } catch (IOException ex) {
-                }
-                try {
-                    _process.getInputStream().close();
-                } catch (IOException ex) {
-                }
+                IOUtils.closeQuietly(_process.getErrorStream());
+                IOUtils.closeQuietly(_process.getOutputStream());
+                IOUtils.closeQuietly(_process.getInputStream());
                 _process.destroy();
             }
         }
@@ -309,32 +308,24 @@ public class Script implements Callable<String> {
         public Task(OutputInterpreter interpreter, BufferedReader reader) {
             this.interpreter = interpreter;
             this.reader = reader;
-            this.result = null;
+            result = null;
         }
 
         @Override
         public void run() {
-            done = false;
-            try {
-                result = interpreter.interpret(reader);
-            } catch (IOException ex) {
-                StringWriter writer = new StringWriter();
-                ex.printStackTrace(new PrintWriter(writer));
-                result = writer.toString();
-            } catch (Exception ex) {
-                StringWriter writer = new StringWriter();
-                ex.printStackTrace(new PrintWriter(writer));
-                result = writer.toString();
-            } finally {
-                synchronized (this) {
-                    done = true;
-                    notifyAll();
-                }
+            synchronized(this) {
+                done = false;
                 try {
-                    reader.close();
+                    result = interpreter.interpret(reader);
                 } catch (IOException ex) {
+                    result = stackTraceAsString(ex);
+                } catch (Exception ex) {
+                    result = stackTraceAsString(ex);
+                } finally {
+                        done = true;
+                        notifyAll();
+                        IOUtils.closeQuietly(reader);
                 }
-                ;
             }
         }
 
@@ -349,8 +340,6 @@ public class Script implements Callable<String> {
     public static String findScript(String path, String script) {
         s_logger.debug("Looking for " + script + " in the classpath");
 
-        path = path.replace("/", File.separator);
-
         URL url = ClassLoader.getSystemResource(script);
         s_logger.debug("System resource: " + url);
         File file = null;
@@ -359,6 +348,12 @@ public class Script implements Callable<String> {
             s_logger.debug("Absolute path =  " + file.getAbsolutePath());
             return file.getAbsolutePath();
         }
+
+        if (path == null) {
+            s_logger.warn("No search path specified, unable to look for " + script);
+            return null;
+        }
+        path = path.replace("/", File.separator);
 
         /**
          * Look in WEB-INF/classes of the webapp

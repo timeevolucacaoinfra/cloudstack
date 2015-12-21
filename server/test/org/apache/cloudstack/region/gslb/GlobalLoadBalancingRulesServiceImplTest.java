@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.cloud.user.User;
 import junit.framework.Assert;
 import junit.framework.TestCase;
 
@@ -70,7 +71,7 @@ public class GlobalLoadBalancingRulesServiceImplTest extends TestCase {
     public void setUp() {
         Account account = new AccountVO("testaccount", 1, "networkdomain", (short)0, UUID.randomUUID().toString());
 
-        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString());
+        UserVO user = new UserVO(1, "testuser", "password", "firstname", "lastName", "email", "timezone", UUID.randomUUID().toString(), User.Source.UNKNOWN);
 
         CallContext.register(user, account);
     }
@@ -720,7 +721,9 @@ public class GlobalLoadBalancingRulesServiceImplTest extends TestCase {
         gslbServiceImpl._globalConfigDao = Mockito.mock(ConfigurationDao.class);
         gslbServiceImpl._ipAddressDao = Mockito.mock(IPAddressDao.class);
         gslbServiceImpl._agentMgr = Mockito.mock(AgentManager.class);
-        gslbServiceImpl._gslbProvider = Mockito.mock(GslbServiceProvider.class);
+        List<GslbServiceProvider> mockGslbProviders = new ArrayList<GslbServiceProvider>();
+        mockGslbProviders.add(Mockito.mock(GslbServiceProvider.class));
+        gslbServiceImpl._gslbProviders = mockGslbProviders;
 
         RemoveFromGlobalLoadBalancerRuleCmd removeFromGslbCmd = new RemoveFromGlobalLoadBalancerRuleCmdExtn();
         Class<?> _class = removeFromGslbCmd.getClass().getSuperclass();

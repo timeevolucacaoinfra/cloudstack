@@ -66,7 +66,6 @@ public class Upgrade430to440 implements DbUpgrade {
         updateVlanUris(conn);
     }
 
-
     private void addExtractTemplateAndVolumeColumns(Connection conn) {
 
         try (PreparedStatement selectTemplateInfostmt = conn.prepareStatement("SELECT *  FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'cloud' AND TABLE_NAME = 'template_store_ref' AND COLUMN_NAME = 'download_url_created'");

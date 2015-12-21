@@ -185,3 +185,4 @@ public class RoleBasedEntityQuerySelector extends AdapterBase implements QuerySe
     }
 
 }
+

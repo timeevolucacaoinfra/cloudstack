@@ -99,7 +99,7 @@
 	
 	                // Add primary IP as default
 	                ipSelection.push({
-	                    id: -1,
+	                    id: primaryIp,
 	                    description: primaryIp + ' (Primary)'
 	                });
 	
@@ -249,6 +249,7 @@
                 disallowedActions.push('disableStaticNAT');
                 disallowedActions.push('remove');
             } else { //non-sourceNAT IP supports staticNAT
+            	disallowedActions.push('enableVPN');
             	 if (ipObj.isstaticnat) {
                      disallowedActions.push('enableStaticNAT');
                  } else {
@@ -397,8 +398,7 @@
                     }),
                     data: {
                         supportedServices: 'SecurityGroup',
-                        listAll: true,
-                        details: 'min'
+                        listAll: true
                     },
                     async: false,
                     success: function(json) {
@@ -559,7 +559,7 @@
                                     },
 
                                     vlan: {
-                                        label: 'VLAN',
+                                        label: 'label.vlan',
                                         validation: {
                                             required: true
                                         },
@@ -655,6 +655,9 @@
                                                                 id: this.id,
                                                                 description: this.path
                                                             });
+                                                        });
+                                                        items.sort(function(a, b) {
+                                                            return a.description.localeCompare(b.description);
                                                         });
                                                         args.response.success({
                                                             data: items
@@ -752,7 +755,7 @@
                             },
                             messages: {
                                 notification: function() {
-                                    return 'Add Isolated Guest Network';
+                                    return 'label.add.isolated.guest.network';
                                 }
                             }
                         },
@@ -832,6 +835,9 @@
                                                     });
                                                 }
                                             }
+                                            array1.sort(function(a, b) {
+                                                return a.description.localeCompare(b.description);
+                                            });
                                             args.response.success({
                                                 data: array1
                                             });
@@ -915,7 +921,7 @@
                                     };
 
                                     //args.data.networkdomain is null when networkdomain field is hidden
-                                    if (args.data.networkdomain != null && args.data.networkdomain != args.context.networks[0].networkdomain) {
+                                    if (args.data.networkdomain != null && args.data.networkdomain.length > 0 && args.data.networkdomain != args.context.networks[0].networkdomain) {
                                         $.extend(data, {
                                             networkdomain: args.data.networkdomain
                                         });
@@ -923,7 +929,7 @@
 
                                     var oldcidr;
                                     $.ajax({
-                                        url: createURL("listNetworks&id=" + args.context.networks[0].id),
+                                        url: createURL("listNetworks&id=" + args.context.networks[0].id + "&listAll=true"),
                                         dataType: "json",
                                         async: false,
                                         success: function(json) {
@@ -947,7 +953,7 @@
 
                                         if (args.context.networks[0].type == "Isolated") { //Isolated network
                                             cloudStack.dialog.confirm({
-                                                message: 'Do you want to keep the current guest network CIDR unchanged?',
+                                                message: 'message.confirm.current.guest.CIDR.unchanged',
                                                 action: function() { //"Yes"	button is clicked
                                                     $.extend(data, {
                                                         changecidr: false
@@ -1086,6 +1092,7 @@
                                     confirm: function(args) {
                                         return 'message.action.delete.network';
                                     },
+				    isWarning: true,
                                     notification: function(args) {
                                         return 'label.action.delete.network';
                                     }
@@ -1261,7 +1268,7 @@
                                             if (args != null)
                                                 return args;
                                             else
-                                                return 'N/A';
+                                                return _l('label.na');
                                         }
                                     },
                                     
@@ -1393,12 +1400,7 @@
                                         async: true,
                                         success: function(json) {
                                             var jsonObj = json.listnetworksresponse.network[0];
-                                            addExtraPropertiesToGuestNetworkObject(jsonObj);
-                                             
-                                            if (isModuleIncluded("dr")) {
-                                                cloudStack.dr.sharedFunctions.addExtraProperties(jsonObj, "Network"); 
-                                            }
-                                                                                     
+                                            addExtraPropertiesToGuestNetworkObject(jsonObj);                                                                               
                                             args.response.success({
                                                 actionFilter: cloudStack.actionFilter.guestNetwork,
                                                 data: jsonObj
@@ -2103,7 +2105,7 @@
                             },
                             messages: {
                                 notification: function(args) {
-                                    return 'label.acquire.new.secondary.ip';
+                                    return _l('label.acquire.new.secondary.ip');
                                 }
                             },
                             action: function(args) {
@@ -2588,10 +2590,15 @@
                                         success: function(data) {
                                             args.response.success({
                                                 _custom: {
-                                                    getUpdatedItem: function(json) {
+                                                    getUpdatedItem: function(json) {                                                    	
+                                                    	var vpnenabledAndRunning = false;
+                                                    	if (json.queryasyncjobresultresponse.jobresult.remoteaccessvpn.state == "Running") {
+                                                    		vpnenabledAndRunning = true;
+                                                    	}                                                    	
+                                                    	                                                    	
                                                         return {
                                                             vpn: json.queryasyncjobresultresponse.jobresult.remoteaccessvpn,
-                                                            vpnenabled: true
+                                                            vpnenabled: vpnenabledAndRunning
                                                         };
                                                     },
                                                     getActionFilter: function() {
@@ -2614,7 +2621,13 @@
                                         return 'label.enable.vpn';
                                     },
                                     complete: function(args) {
-                                        return _l('message.enabled.vpn') + ' ' + args.vpn.publicip + '.' + '<br/>' + _l('message.enabled.vpn.ip.sec') + '<br/>' + args.vpn.presharedkey;
+                                    	var msg;
+                                    	if (args.vpn.state == "Running") {
+                                    	    msg = _l('message.enabled.vpn') + ' ' + args.vpn.publicip + '.' + '<br/>' + _l('message.enabled.vpn.ip.sec') + '<br/>' + args.vpn.presharedkey;                                	
+                                    	} else {
+                                    		msg = "Remote Access VPN configuration has been generated, but it failed to apply. Please check connectivity of the network element, then re-try.";
+                                    	}   
+                                        return msg;
                                     }
                                 },
                                 notification: {
@@ -3012,6 +3025,9 @@
                                     isstaticnat: {
                                         label: 'label.static.nat',
                                         converter: cloudStack.converters.toBooleanText
+                                    },
+                                    vmipaddress: {
+                                        label: 'label.vm.ip'
                                     },
                                     issystem: {
                                         label: 'label.is.system',
@@ -3572,20 +3588,20 @@
                                                 },
                                                                                                 
                                                 dataProvider: function(args) {
-                                                    var itemData = $.isArray(args.context.multiRule) && args.context.subItemData ? args.context.subItemData : [];
+                                                	var itemData = $.isArray(args.context.multiRule) && args.context.subItemData ? args.context.subItemData : [];
 
+                                                	var data = {};
+                                                    listViewDataProvider(args, data);
+                                                	
                                                     var networkid;
-                                                    if ('vpc' in args.context)
+                                                    if ('vpc' in args.context) {
                                                         networkid = args.context.multiData.tier;
-                                                    else
+                                                    } else {
                                                         networkid = args.context.ipAddresses[0].associatednetworkid;
-
-                                                    var data = {
-                                                        page: args.page,
-                                                        pageSize: pageSize,
-                                                        networkid: networkid,
-                                                        listAll: true
-                                                    };
+                                                    }
+                                                    $.extend(data, {                                                       
+                                                        networkid: networkid                                                        
+                                                    });
 
                                                     if (!args.context.projects) {
                                                         $.extend(data, {
@@ -4337,18 +4353,18 @@
                                                     dataProvider: singleVmSecondaryIPSubselect
                                                 },
                                                 dataProvider: function(args) {
-                                                    var networkid;
-                                                    if ('vpc' in args.context)
+                                                	var data = {};
+                                                    listViewDataProvider(args, data);
+                                                	
+                                                	var networkid;
+                                                    if ('vpc' in args.context) {
                                                         networkid = args.context.multiData.tier;
-                                                    else
+                                                    } else {
                                                         networkid = args.context.ipAddresses[0].associatednetworkid;
-
-                                                    var data = {
-                                                        page: args.page,
-                                                        pageSize: pageSize,
-                                                        listAll: true,
-                                                        networkid: networkid
-                                                    };
+                                                    }                                                    
+                                                    $.extend(data, {
+                                                    	networkid: networkid
+                                                    });    
 
                                                     if (!args.context.projects) {
                                                         $.extend(data, {
@@ -4556,14 +4572,25 @@
                                                             },
                                                             success: function(data) {
                                                                 loadCurrent++;
+                                                                var vms = data.listvirtualmachinesresponse.virtualmachine;
+                                                                                                                                
+                                                                //if this VM is destroyed, data.listvirtualmachinesresponse.virtualmachine will be undefined for regular-user (CLOUDSTACK-3195)
+                                                                if (vms == undefined) {                                                                	
+                                                                	vms = [{
+                                                                        "id": item.virtualmachineid,
+                                                                        "name": item.virtualmachinename,
+                                                                        "displayname": item.virtualmachinedisplayname
+                                                                	}];                                                                	
+                                                                }                                                               
+                                                                
                                                                 $.extend(item, {
-                                                                    _itemData: $.map(data.listvirtualmachinesresponse.virtualmachine, function(vm) {
+                                                                    _itemData: $.map(vms, function(vm) {
                                                                         return $.extend(vm, {
                                                                             _displayName: '<p>VM: ' + vm.name + '</p>' + '<p>IP: ' + item.vmguestip + '</p>' // Also display attached IP
                                                                         });
                                                                     }),
                                                                     _context: {
-                                                                        instances: data.listvirtualmachinesresponse.virtualmachine
+                                                                        instances: vms
                                                                     }
                                                                 });
 
@@ -5408,6 +5435,9 @@
                                                     });
                                                 }
                                             }
+                                            array1.sort(function(a, b) {
+                                                return a.description.localeCompare(b.description);
+                                            });
                                             args.response.success({
                                                 data: array1
                                             });
@@ -5505,9 +5535,7 @@
                                             required: true
                                         },
                                         select: function(args) {
-                                            var data = {
-                                                listAll: true
-                                            };
+                                            var data = {};
                                             $.ajax({
                                                 url: createURL('listZones'),
                                                 data: data,
@@ -5563,14 +5591,10 @@
                                         },
 
                                         select: function(args) {
-                                            var data = {
-                                                listAll: true
-                                            };
+                                            var data = {};
                                             $.ajax({
                                                 url: createURL('listVPCOfferings'),
-                                                data: {
-                                                    listAll: true
-                                                },
+                                                data: {},
                                                 success: function(json) {
                                                       var offerings  = json.listvpcofferingsresponse.vpcoffering ? json.listvpcofferingsresponse.vpcoffering : [];
                                                       var filteredofferings = $.grep(offerings, function(offering) {
@@ -6056,7 +6080,7 @@
                                             var items = [];
                                             items.push({
                                                 id: '',
-                                                description: 'None'
+                                                description: 'label.none'
                                             });
                                             items.push({
                                                 id: 'modp1024',
@@ -6124,7 +6148,7 @@
                                             var items = [];
                                             items.push({
                                                 id: '',
-                                                description: 'None'
+                                                description: 'label.none'
                                             });
                                             items.push({
                                                 id: 'modp1024',
@@ -6392,7 +6416,7 @@
                                             var items = [];
                                             items.push({
                                                 id: '',
-                                                description: 'None'
+                                                description: 'label.none'
                                             });
                                             items.push({
                                                 id: 'modp1024',
@@ -6460,7 +6484,7 @@
                                             var items = [];
                                             items.push({
                                                 id: '',
-                                                description: 'None'
+                                                description: 'label.none'
                                             });
                                             items.push({
                                                 id: 'modp1024',
