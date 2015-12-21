@@ -1220,44 +1220,37 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
         });
 
-        boolean success = false;
+
         FirewallRule.State backupState = loadBalancer.getState();
         try {
             loadBalancer.setState(FirewallRule.State.Add);
             _lbDao.persist(loadBalancer);
             applyLoadBalancerConfig(loadBalancerId);
-            success = true;
-        } catch (ResourceUnavailableException e) {
-            s_logger.warn("Unable to apply the load balancer config because resource is unavaliable.", e);
-            success = false;
-        } finally {
-            if (!success) {
-                final List<Long> vmInstanceIds = new ArrayList<Long>();
-                Transaction.execute(new TransactionCallbackNoReturn() {
-                    @Override
-                    public void doInTransactionWithoutResult(TransactionStatus status) {
-                        for (Long vmId : vmIds) {
-                            vmInstanceIds.add(vmId);
-                        }
+            return true;
+        } catch (ResourceUnavailableException | CloudRuntimeException e) {
+            s_logger.warn("Unable to apply the load balancer config because " + e.getMessage(), e);
+            final List<Long> vmInstanceIds = new ArrayList<Long>();
+            Transaction.execute(new TransactionCallbackNoReturn() {
+                @Override
+                public void doInTransactionWithoutResult(TransactionStatus status) {
+                    for (Long vmId : vmIds) {
+                        vmInstanceIds.add(vmId);
                     }
-                });
-                if (!vmInstanceIds.isEmpty()) {
-                    _lb2VmMapDao.remove(loadBalancer.getId(), vmInstanceIds, null);
-                    s_logger.debug("LB Rollback rule id: " + loadBalancer.getId() + "  while attaching VM: " + vmInstanceIds);
                 }
-                loadBalancer.setState(backupState);
-                _lbDao.persist(loadBalancer);
-                CloudRuntimeException ex = new CloudRuntimeException("Failed to add specified loadbalancerruleid for vms "
-                    + vmInstanceIds);
-                ex.addProxyObject(loadBalancer.getUuid(), "loadBalancerId");
-                // TBD: Also pack in the instanceIds in the exception using the
-                // right VO object or table name.
-                throw ex;
+            });
+            if (!vmInstanceIds.isEmpty()) {
+                _lb2VmMapDao.remove(loadBalancer.getId(), vmInstanceIds, null);
+                s_logger.debug("LB Rollback rule id: " + loadBalancer.getId() + "  while attaching VM: " + vmInstanceIds);
             }
-
+            loadBalancer.setState(backupState);
+            _lbDao.persist(loadBalancer);
+            CloudRuntimeException ex = new CloudRuntimeException("Failed to add specified loadbalancerruleid for vms "
+                    + vmInstanceIds + ". Reason: " + e.getMessage());
+            ex.addProxyObject(loadBalancer.getUuid(), "loadBalancerId");
+            // TBD: Also pack in the instanceIds in the exception using the
+            // right VO object or table name.
+            throw ex;
         }
-
-        return success;
     }
 
     @Override
