@@ -22,6 +22,7 @@ import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import com.cloud.configuration.Resource;
 import org.apache.log4j.Logger;
 
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
@@ -208,6 +209,7 @@ public class ViewResponseHelper {
             if (project.getState() != null) {
                 projectResponse.setState(project.getState().toString());
             }
+            projectResponse.setVmTotal(ApiDBUtils.getResourceCount(Resource.ResourceType.user_vm, project.getProjectAccountId()));
             projectResponse.setDomainId(project.getDomainUuid());
             projectResponse.setDomain(project.getDomainName());
             projectResponse.setOwner(project.getOwner());
