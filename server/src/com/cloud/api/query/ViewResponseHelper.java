@@ -218,7 +218,6 @@ public class ViewResponseHelper {
             projectResponse.setOwner(project.getOwner());
             projectResponse.setObjectName("project");
             prjDataList.put(project.getId(), projectResponse);
-            
         }
         return new ArrayList<>(prjDataList.values());
     }
