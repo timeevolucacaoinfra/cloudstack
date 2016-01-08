@@ -573,7 +573,7 @@ public abstract class CitrixResourceBase implements ServerResource, HypervisorRe
         Connection conn = getConnection();
         String hostPath = "/tmp/";
 
-        s_logger.debug("Copying VR with ip " + routerIp +" config file into host "+ _host.ip );
+        s_logger.info("Copying (SCP) VR with ip " + routerIp +" config file into host "+ _host.ip );
         try {
             SshHelper.scpTo(_host.ip, 22, _username, null, _password.peek(), hostPath, content.getBytes(), filename, null);
         } catch (Exception e) {
