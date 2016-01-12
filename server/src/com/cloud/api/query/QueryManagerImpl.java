@@ -725,8 +725,14 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         if (cmd instanceof ListVMsCmdByAdmin) {
             respView = ResponseView.Full;
         }
-        List<UserVmResponse> vmResponses = ViewResponseHelper.createUserVmResponse(respView, "virtualmachine", cmd.getDetails(),
-                result.first().toArray(new UserVmJoinVO[result.first().size()]));
+        List<UserVmResponse> vmResponses;
+        if (cmd.isSimple()) {
+            vmResponses = ViewResponseHelper.createSimpleUserVmResponse("virtualmachine",
+                    result.first().toArray(new UserVmJoinVO[result.first().size()]));
+        } else {
+            vmResponses = ViewResponseHelper.createUserVmResponse(respView, "virtualmachine", cmd.getDetails(),
+                    result.first().toArray(new UserVmJoinVO[result.first().size()]));
+        }
 
         response.setResponses(vmResponses, result.second());
         return response;

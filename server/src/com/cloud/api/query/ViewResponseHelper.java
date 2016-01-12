@@ -145,6 +145,28 @@ public class ViewResponseHelper {
         return new ArrayList<UserVmResponse>(vmDataList.values());
     }
 
+    public static List<UserVmResponse> createSimpleUserVmResponse(String objectName, UserVmJoinVO... userVms) {
+        Hashtable<Long, UserVmResponse> vmDataList = new Hashtable<>();
+
+        for (UserVmJoinVO userVm : userVms) {
+            UserVmResponse userVmData = new UserVmResponse();
+            userVmData.setName(userVm.getName());
+            userVmData.setId(userVm.getUuid());
+            userVmData.setHostId(userVm.getHostUuid());
+            userVmData.setHostName(userVm.getHostName());
+            userVmData.setHaEnable(userVm.isHaEnabled());
+            userVmData.setInstanceName(userVm.getInstanceName());
+            userVmData.setServiceOfferingId(userVm.getServiceOfferingUuid());
+            userVmData.setServiceOfferingName(userVm.getServiceOfferingName());
+            userVmData.setState(userVm.getState().name());
+            userVmData.setZoneId(userVm.getDataCenterUuid());
+            userVmData.setZoneName(userVm.getDataCenterName());
+            userVmData.setObjectName(objectName);
+            vmDataList.put(userVm.getId(), userVmData);
+        }
+        return new ArrayList<>(vmDataList.values());
+    }
+
     public static List<DomainRouterResponse> createDomainRouterResponse(DomainRouterJoinVO... routers) {
         Account caller = CallContext.current().getCallingAccount();
         Hashtable<Long, DomainRouterResponse> vrDataList = new Hashtable<Long, DomainRouterResponse>();
