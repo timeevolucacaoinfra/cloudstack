@@ -665,14 +665,13 @@ public class GloboNetworkManagerTest {
     }
 
     @Test
-    public void testUpdatePool() {
+    public void testUpdatePools() {
         GloboNetworkManager manager = new GloboNetworkManager();
 
         HostDao mock = mock(HostDao.class);
         HostVO host = createMockHost();
         when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
         manager._hostDao = mock;
-
 
         LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
         LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");

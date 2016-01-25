@@ -2545,12 +2545,18 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     }
 
+
     @Override
     public List<GloboNetworkPoolResponse.Pool> updatePools(List<Long> poolIds, Long lbId, Long zoneId, String healthcheckType,
                                                            String healthcheck, String expectedHealthcheck, Integer maxConn) {
         validateUpdatePool(poolIds, lbId, zoneId, healthcheckType, maxConn );
 
-        UpdatePoolCommand command = new UpdatePoolCommand(poolIds, healthcheckType, healthcheck, expectedHealthcheck, maxConn);
+        LoadBalancer loadBalancer = _lbService.findById(lbId);
+        if ( loadBalancer == null ){
+            throw new CloudRuntimeException("Can not find Load balancer with id: " + lbId);
+        }
+
+        UpdatePoolCommand command = new UpdatePoolCommand(poolIds, healthcheckType, healthcheck, expectedHealthcheck, maxConn, loadBalancer.getName());
 
         Answer answer =  callCommand(command, zoneId);
         handleAnswerIfFail(answer, "Could not update pools " + poolIds);

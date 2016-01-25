@@ -288,25 +288,25 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testBuildHealthCheckStringGivenPathAndHostNull(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null, null);
+        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
         assertEquals("", healthCheck.buildHealthCheckString(null, null));
     }
 
     @Test
     public void testBuildHealthCheckStringGivenPathNullAndHostFilled(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null, null);
+        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
         assertEquals("", healthCheck.buildHealthCheckString(null, "host"));
     }
 
     @Test
     public void testBuildHealthCheckStringGiveFullHTTPPath(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null, null);
+        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
         assertEquals("GET /healtcheck.html", healthCheck.buildHealthCheckString("GET /healtcheck.html", "host"));
     }
 
     @Test
     public void testBuildHealthCheckStringGivenURIandHost(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null, null);
+        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
         assertEquals("GET /healtcheck.html HTTP/1.0\\r\\nHost: host\\r\\n\\r\\n", healthCheck.buildHealthCheckString("/healtcheck.html", "host"));
     }
 
@@ -764,7 +764,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testExecuteUpdatePool() throws GloboNetworkException {
-        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK", 5);
+        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK", 5, "pool.globoi.com");
 
 
         Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "*:*", 10, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 52, 8080);
@@ -786,7 +786,7 @@ public class GloboNetworkResourceTest {
                 "least",
                 "HTTP",
                 "OK",
-                "/heal",
+                "GET /heal HTTP/1.0\\r\\nHost: pool.globoi.com\\r\\n\\r\\n",
                 5,
                 realIPs,
                 Arrays.asList("EQUIP_NAME_2"), //equipNames
@@ -811,7 +811,7 @@ public class GloboNetworkResourceTest {
                 "leastcon",
                 "HTTP",
                 "OK",
-                "/heal",
+                "GET /heal HTTP/1.0\\r\\nHost: pool.globoi.com\\r\\n\\r\\n",
                 5,
                 realIPsNew,
                 Arrays.asList("EQUIP_NAME_2"), //equipNames
