@@ -224,6 +224,9 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
     private DomainDao _domainDao;
 
     @Inject
+    private GloboVmDao _globoVmDao;
+
+    @Inject
     private UserAccountJoinDao _userAccountJoinDao;
 
     @Inject
@@ -3458,44 +3461,28 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
 
 
-    @Inject
-    private GloboVmDao globoVmDao;
-
     @Override
     public List<UserVmResponse> listGloboVm() {
-        List<GloboVmVO> list = globoVmDao.list();
+        List<GloboVmVO> list = _globoVmDao.list();
 
         ArrayList<UserVmResponse> listResponse = new ArrayList<>();
 
         for (GloboVmVO vm : list) {
 
             UserVmResponse vmResponse = new UserVmResponse();
-            vmResponse.setDisplayName("victor-vm");
-            vmResponse.setInstanceName("VM-1");
-            vmResponse.setZoneName("ZABUM");
-            vmResponse.setHostName("HABUM");
-            vmResponse.setOsTypeName("CENT OS");
-            vmResponse.setState("Running");
-            vmResponse.setId("19387098132498573");
-            vmResponse.setHaEnable(true);
+            vmResponse.setDisplayName(vm.getDisplayName());
+            vmResponse.setInstanceName(vm.getInstanceName());
+            vmResponse.setZoneName(vm.getDcName());
+            vmResponse.setHostName(vm.getHostname());
+            vmResponse.setOsTypeName(vm.getOsName());
+            vmResponse.setState(vm.getState());
+            vmResponse.setId(vm.getUuid());
+            vmResponse.setHaEnable(vm.isHaEnabled());
+            vmResponse.setDisplayVm(vm.isDisplayVm());
+            vmResponse.setServiceOfferingName(vm.getServiceOfferingName());
 
-            Set<ResourceTagResponse> tags = new HashSet<ResourceTagResponse>();
-
-            ResourceTagResponse tag = new ResourceTagResponse();
-            tag.setKey("jaja");
-            tag.setValue("aja");
-            tags.add(tag);
-            vmResponse.setTags(tags);
             listResponse.add(vmResponse);
-
-
-
         }
-
-
-
-
-
 
         return listResponse;
     }

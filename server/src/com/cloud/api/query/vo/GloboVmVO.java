@@ -22,6 +22,9 @@ public class GloboVmVO extends BaseViewVO{
     @Column(name = "instance_name", updatable = false, nullable = false, length = 255)
     private String instanceName = null;
 
+    @Column(name = "host_name", updatable = false, nullable = false, length = 255)
+    private String hostname = null;
+
     @Column(name = "state", updatable = false, nullable = false, length = 255)
     private String state = null;
 
@@ -41,6 +44,19 @@ public class GloboVmVO extends BaseViewVO{
     @Column(name = "dc_name", updatable = false, nullable = false, length = 255)
     private String dcName;
 
+    @Column(name = "service_offering_name", updatable = false, nullable = false, length = 255)
+    private String serviceOfferingName;
+
+    @Column(name = "display_vm", updatable = false, nullable = false)
+    private boolean displayVm;
+
+    public String getHostname() {
+        return hostname;
+    }
+
+    public void setHostname(String hostname) {
+        this.hostname = hostname;
+    }
 
     public String getDisplayName() {
         return displayName;
@@ -121,5 +137,13 @@ public class GloboVmVO extends BaseViewVO{
     @Override
     public long getId() {
         return id;
+    }
+
+    public String getServiceOfferingName() {
+        return serviceOfferingName;
+    }
+
+    public boolean isDisplayVm() {
+        return displayVm;
     }
 }

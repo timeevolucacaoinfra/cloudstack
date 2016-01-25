@@ -146,6 +146,7 @@
   <bean id="domainDaoImpl" class="com.cloud.domain.dao.DomainDaoImpl" />
   <bean id="domainRouterDaoImpl" class="com.cloud.vm.dao.DomainRouterDaoImpl" />
   <bean id="domainRouterJoinDaoImpl" class="com.cloud.api.query.dao.DomainRouterJoinDaoImpl" />
+  <bean id="globoVmDaoImpl" class="com.cloud.api.query.dao.GloboVmDaoImpl" />
   <bean id="engineClusterDaoImpl" class="org.apache.cloudstack.engine.datacenter.entity.api.db.dao.EngineClusterDaoImpl" />
   <bean id="engineDataCenterDaoImpl" class="org.apache.cloudstack.engine.datacenter.entity.api.db.dao.EngineDataCenterDaoImpl" />
   <bean id="engineHostDaoImpl" class="org.apache.cloudstack.engine.datacenter.entity.api.db.dao.EngineHostDaoImpl" />
