@@ -37,6 +37,15 @@ public class GloboVmVO extends BaseViewVO{
     @Column(name = "domain_id")
     private long domainId;
 
+    @Column(name = "project_id")
+    private long projectId;
+
+    @Column(name = "project_name", updatable = false, nullable = false, length = 255)
+    private String projectName = null;
+
+    @Column(name = "project_uuid", updatable = false, nullable = false, length = 255)
+    private String projectUuid = null;
+
 
     @Column(name = "os_name", updatable = false, nullable = false, length = 255)
     private String osName;
@@ -132,6 +141,39 @@ public class GloboVmVO extends BaseViewVO{
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+    }
+
+
+    public long getProjectId() {
+        return projectId;
+    }
+
+    public void setProjectId(long projectId) {
+        this.projectId = projectId;
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
+    }
+
+    public String getProjectUuid() {
+        return projectUuid;
+    }
+
+    public void setProjectUuid(String projectUuid) {
+        this.projectUuid = projectUuid;
+    }
+
+    public void setServiceOfferingName(String serviceOfferingName) {
+        this.serviceOfferingName = serviceOfferingName;
+    }
+
+    public void setDisplayVm(boolean displayVm) {
+        this.displayVm = displayVm;
     }
 
     @Override

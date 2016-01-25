@@ -16,8 +16,10 @@
 // under the License.
 package org.apache.cloudstack.query;
 
+import com.cloud.utils.Pair;
 import java.util.List;
 
+import java.util.Map;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
 import org.apache.cloudstack.api.command.admin.host.ListHostsCmd;
 import org.apache.cloudstack.api.command.admin.internallb.ListInternalLBVMsCmd;
@@ -126,5 +128,5 @@ public interface QueryService {
 
     ListResponse<DomainRouterResponse> searchForInternalLbVms(ListInternalLBVMsCmd cmd);
 
-    public List<UserVmResponse> listGloboVm();
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags);
 }

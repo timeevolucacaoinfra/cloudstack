@@ -17,8 +17,11 @@
 package com.cloud.api.query.dao;
 
 import com.cloud.api.query.vo.GloboVmVO;
+import com.cloud.utils.Pair;
+import com.cloud.utils.db.Filter;
 import com.cloud.utils.db.GenericDaoBase;
 import com.cloud.utils.db.SearchBuilder;
+import com.cloud.utils.db.SearchCriteria;
 import java.util.List;
 import javax.ejb.Local;
 import org.apache.log4j.Logger;
@@ -35,9 +38,20 @@ public class GloboVmDaoImpl extends GenericDaoBase<GloboVmVO, Long> implements G
     }
 
     @Override
-    public List<GloboVmVO> list() {
-        SearchBuilder<GloboVmVO> searchBuilder = createSearchBuilder();
+    public Pair<List<GloboVmVO>, Integer> list(long projectId) {
+        Filter searchFilter = new Filter(GloboVmVO.class, "displayName", Boolean.TRUE, 0l, 1000l);
 
-        return listAll();
+        SearchBuilder<GloboVmVO> searchBuilder = createSearchBuilder();
+        searchBuilder.and("projectId", searchBuilder.entity().getProjectId(), SearchCriteria.Op.EQ);
+
+        searchBuilder.done();
+
+        SearchCriteria<GloboVmVO> globoVmVOSearchCriteria = searchBuilder.create();
+
+        globoVmVOSearchCriteria.setParameters("projectId", projectId);
+
+        Pair<List<GloboVmVO>, Integer> listIntegerPair = searchAndCount(globoVmVOSearchCriteria, searchFilter);
+
+        return listIntegerPair;
     }
 }

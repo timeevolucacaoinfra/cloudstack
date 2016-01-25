@@ -1,13 +1,17 @@
 package org.apache.cloudstack.api.command.user.vm;
 
+import com.cloud.utils.Pair;
 import com.cloud.vm.VirtualMachine;
 import java.util.List;
 import javax.inject.Inject;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiCommandJobType;
+
 import org.apache.cloudstack.api.BaseListTaggedResourcesCmd;
+
 import org.apache.cloudstack.api.ResponseObject;
 import org.apache.cloudstack.api.response.ListResponse;
+
 import org.apache.cloudstack.api.response.UserVmResponse;
 import org.apache.cloudstack.query.QueryService;
 
@@ -37,9 +41,9 @@ public class ListGloboVirtualMachinesCmd extends BaseListTaggedResourcesCmd {
 
         ListResponse<UserVmResponse> response = new ListResponse<UserVmResponse>();
 
-        List<UserVmResponse> list = _queryService.listGloboVm();
+        Pair<List<UserVmResponse>, Integer> result = _queryService.listGloboVm(getProjectId(), getTags());
 
-        response.setResponses(list, 1);
+        response.setResponses(result.first(), result.second());
         response.setResponseName(getCommandName());
 
         setResponseObject(response);

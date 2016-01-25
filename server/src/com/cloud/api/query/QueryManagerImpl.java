@@ -3462,12 +3462,12 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
 
     @Override
-    public List<UserVmResponse> listGloboVm() {
-        List<GloboVmVO> list = _globoVmDao.list();
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags) {
+        Pair<List<GloboVmVO>, Integer> result = _globoVmDao.list(projectId.longValue());
 
         ArrayList<UserVmResponse> listResponse = new ArrayList<>();
 
-        for (GloboVmVO vm : list) {
+        for (GloboVmVO vm : result.first()) {
 
             UserVmResponse vmResponse = new UserVmResponse();
             vmResponse.setDisplayName(vm.getDisplayName());
@@ -3484,7 +3484,9 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             listResponse.add(vmResponse);
         }
 
-        return listResponse;
+        Pair<List<UserVmResponse>, Integer> result2 = new Pair<List<UserVmResponse>, Integer>(listResponse, result.second());
+
+        return result2;
     }
 
 }

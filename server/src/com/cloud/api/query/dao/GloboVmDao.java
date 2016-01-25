@@ -17,11 +17,12 @@
 package com.cloud.api.query.dao;
 
 import com.cloud.api.query.vo.GloboVmVO;
+import com.cloud.utils.Pair;
 import com.cloud.utils.db.GenericDao;
 import java.util.List;
 
 public interface GloboVmDao extends GenericDao<GloboVmVO, Long> {
 
 
-    public List<GloboVmVO> list() ;
+    public Pair<List<GloboVmVO>, Integer> list(long projectId) ;
 }
