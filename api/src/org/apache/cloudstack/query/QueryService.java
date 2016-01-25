@@ -126,4 +126,5 @@ public interface QueryService {
 
     ListResponse<DomainRouterResponse> searchForInternalLbVms(ListInternalLBVMsCmd cmd);
 
+    List<UserVmResponse> listGloboVm();
 }

@@ -16,6 +16,8 @@
 // under the License.
 package com.cloud.api.query;
 
+import com.cloud.api.query.dao.GloboVmDao;
+import com.cloud.api.query.vo.GloboVmVO;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -3452,6 +3454,50 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         resourceDetailResponse.setResourceType(resourceType.toString().toString());
         resourceDetailResponse.setObjectName("resourcedetail");
         return resourceDetailResponse;
+    }
+
+
+
+    @Inject
+    private GloboVmDao globoVmDao;
+
+    @Override
+    public List<UserVmResponse> listGloboVm() {
+        List<GloboVmVO> list = globoVmDao.list();
+
+        ArrayList<UserVmResponse> listResponse = new ArrayList<>();
+
+        for (GloboVmVO vm : list) {
+
+            UserVmResponse vmResponse = new UserVmResponse();
+            vmResponse.setDisplayName("victor-vm");
+            vmResponse.setInstanceName("VM-1");
+            vmResponse.setZoneName("ZABUM");
+            vmResponse.setHostName("HABUM");
+            vmResponse.setOsTypeName("CENT OS");
+            vmResponse.setState("Running");
+            vmResponse.setId("19387098132498573");
+            vmResponse.setHaEnable(true);
+
+            Set<ResourceTagResponse> tags = new HashSet<ResourceTagResponse>();
+
+            ResourceTagResponse tag = new ResourceTagResponse();
+            tag.setKey("jaja");
+            tag.setValue("aja");
+            tags.add(tag);
+            vmResponse.setTags(tags);
+            listResponse.add(vmResponse);
+
+
+
+        }
+
+
+
+
+
+
+        return listResponse;
     }
 
 }
