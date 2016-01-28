@@ -3454,4 +3454,13 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         return resourceDetailResponse;
     }
 
+
+
+    @Override
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags) {
+        Pair<List<UserVmResponse>, Integer> result = _userVmJoinDao.list(projectId, tags);
+
+        return result;
+    }
+
 }

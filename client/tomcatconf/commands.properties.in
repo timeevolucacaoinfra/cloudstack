@@ -782,3 +782,6 @@ listGloboNetworkLBCacheGroups=15
 listGloboNetworkPools=15
 getGloboNetworkPool=15
 updateGloboNetworkPool=15
+
+
+listGloboVirtualMachines=15

@@ -145,7 +145,7 @@ public class ViewResponseHelper {
         return new ArrayList<UserVmResponse>(vmDataList.values());
     }
 
-    public static List<UserVmResponse> createSimpleUserVmResponse(String objectName, UserVmJoinVO... userVms) {
+    public static List<UserVmResponse>  createSimpleUserVmResponse(String objectName, UserVmJoinVO... userVms) {
         Hashtable<Long, UserVmResponse> vmDataList = new Hashtable<>();
 
         for (UserVmJoinVO userVm : userVms) {

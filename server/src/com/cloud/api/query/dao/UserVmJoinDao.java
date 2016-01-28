@@ -16,9 +16,11 @@
 // under the License.
 package com.cloud.api.query.dao;
 
+import com.cloud.utils.Pair;
 import java.util.EnumSet;
 import java.util.List;
 
+import java.util.Map;
 import org.apache.cloudstack.api.ApiConstants.VMDetails;
 import org.apache.cloudstack.api.ResponseObject.ResponseView;
 import org.apache.cloudstack.api.response.UserVmResponse;
@@ -39,4 +41,6 @@ public interface UserVmJoinDao extends GenericDao<UserVmJoinVO, Long> {
     List<UserVmJoinVO> searchByIds(Long... ids);
 
     List<UserVmJoinVO> listActiveByIsoId(Long isoId);
+
+    public Pair<List<UserVmResponse>, Integer> list(Long projectId, Map<String, String> tags);
 }
