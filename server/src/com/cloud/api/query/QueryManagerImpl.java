@@ -16,8 +16,6 @@
 // under the License.
 package com.cloud.api.query;
 
-import com.cloud.api.query.dao.GloboVmDao;
-import com.cloud.api.query.vo.GloboVmVO;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -222,9 +220,6 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
     @Inject
     private DomainDao _domainDao;
-
-    @Inject
-    private GloboVmDao _globoVmDao;
 
     @Inject
     private UserAccountJoinDao _userAccountJoinDao;
@@ -3463,30 +3458,9 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
     @Override
     public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags) {
-        Pair<List<GloboVmVO>, Integer> result = _globoVmDao.list(projectId.longValue());
+        Pair<List<UserVmResponse>, Integer> result = _userVmJoinDao.list(projectId, tags);
 
-        ArrayList<UserVmResponse> listResponse = new ArrayList<>();
-
-        for (GloboVmVO vm : result.first()) {
-
-            UserVmResponse vmResponse = new UserVmResponse();
-            vmResponse.setDisplayName(vm.getDisplayName());
-            vmResponse.setInstanceName(vm.getInstanceName());
-            vmResponse.setZoneName(vm.getDcName());
-            vmResponse.setHostName(vm.getHostname());
-            vmResponse.setOsTypeName(vm.getOsName());
-            vmResponse.setState(vm.getState());
-            vmResponse.setId(vm.getUuid());
-            vmResponse.setHaEnable(vm.isHaEnabled());
-            vmResponse.setDisplayVm(vm.isDisplayVm());
-            vmResponse.setServiceOfferingName(vm.getServiceOfferingName());
-
-            listResponse.add(vmResponse);
-        }
-
-        Pair<List<UserVmResponse>, Integer> result2 = new Pair<List<UserVmResponse>, Integer>(listResponse, result.second());
-
-        return result2;
+        return result;
     }
 
 }

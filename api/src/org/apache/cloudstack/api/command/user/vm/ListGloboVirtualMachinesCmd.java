@@ -19,7 +19,7 @@ import org.apache.cloudstack.query.QueryService;
         requestHasSensitiveInfo = false, responseHasSensitiveInfo = true)
 public class ListGloboVirtualMachinesCmd extends BaseListTaggedResourcesCmd {
 
-    private static final String s_name = "listvirtualmachinesresponse";
+    private static final String s_name = "listglobovirtualmachinesresponse";
 
     @Inject
     public QueryService _queryService;
@@ -45,7 +45,7 @@ public class ListGloboVirtualMachinesCmd extends BaseListTaggedResourcesCmd {
 
         response.setResponses(result.first(), result.second());
         response.setResponseName(getCommandName());
-
+        response.setObjectName("virtualmachine");
         setResponseObject(response);
     }
 }
