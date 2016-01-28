@@ -462,8 +462,8 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
                 UserVmResponse vmResponse = new UserVmResponse();
 
                 vmResponse.setId(rs.getString("uuid"));
-                vmResponse.setDisplayName(rs.getString("display_name"));
-                vmResponse.setName(rs.getString("display_name"));
+                vmResponse.setDisplayName(rs.getString("display_name") != null ? rs.getString("display_name") : rs.getString("name"));
+                vmResponse.setName(rs.getString("name"));
                 vmResponse.setInstanceName(rs.getString("instance_name"));
                 vmResponse.setState(rs.getString("state"));
                 vmResponse.setHaEnable(rs.getBoolean("ha_enabled"));
@@ -488,7 +488,7 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
     }
 
     protected String buildListVmsByProjectAndTags(Long projectId, Map<String, String> tags, List<Object> params) {
-        StringBuilder sql = new StringBuilder("SELECT id, uuid, display_name, instance_name, state, ha_enabled, project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name FROM view_globo_vm vm WHERE 1=1");
+        StringBuilder sql = new StringBuilder("SELECT id, uuid, name, display_name, instance_name, state, ha_enabled, project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name FROM view_globo_vm vm WHERE 1=1");
 
         if ( projectId != null) {
             sql.append(" AND vm.project_id = ?");

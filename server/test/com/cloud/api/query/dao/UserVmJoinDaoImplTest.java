@@ -19,7 +19,7 @@ public class UserVmJoinDaoImplTest {
 
         String sql = dao.buildListVmsByProjectAndTags(123l, tags, params);
 
-        assertEquals("SELECT id, uuid, display_name, instance_name, state, ha_enabled, " +
+        assertEquals("SELECT id, uuid, name, display_name, instance_name, state, ha_enabled, " +
                             "project_name, project_id, account_id, domain_id, " +
                             "display_vm, service_offering_uuid, service_offering_name, " +
                             "os_id, os_name, host_name, data_center_id, data_center_name " +
@@ -34,7 +34,7 @@ public class UserVmJoinDaoImplTest {
         tags.put("monitoring", "1");
         sql = dao.buildListVmsByProjectAndTags(33l, tags, params);
 
-        assertEquals("SELECT id, uuid, display_name, instance_name, state, " +
+        assertEquals("SELECT id, uuid, name, display_name, instance_name, state, " +
                 "ha_enabled, project_name, project_id, account_id, " +
                 "domain_id, display_vm, service_offering_uuid, service_offering_name, " +
                 "os_id, os_name, host_name, data_center_id, data_center_name " +
@@ -54,7 +54,7 @@ public class UserVmJoinDaoImplTest {
         tags.put("label", "ABC");
         sql = dao.buildListVmsByProjectAndTags(444l, tags, params);
 
-        assertEquals("SELECT id, uuid, display_name, instance_name, state, ha_enabled, project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name" +
+        assertEquals("SELECT id, uuid, name, display_name, instance_name, state, ha_enabled, project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name" +
                 " FROM view_globo_vm vm WHERE 1=1" +
                 " AND vm.project_id = ?" +
                 " AND vm.uuid IN (SELECT tg.resource_uuid FROM resource_tags tg WHERE 1=1 AND (" +
