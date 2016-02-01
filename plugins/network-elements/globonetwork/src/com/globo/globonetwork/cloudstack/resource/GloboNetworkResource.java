@@ -313,10 +313,13 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     throw new CloudRuntimeException("Could not find pool " + poolId);
                 }
 
+                HealthCheck healthCheckBuilder = new HealthCheck(cmd.getLbHostname());
+                healthCheckBuilder = healthCheckBuilder.build(cmd.getHealthcheckType(), cmd.getHealthcheck(), cmd.getExpectedHealthcheck());
+
                 Pool.Healthcheck healthcheck = pool.getHealthcheck();
-                healthcheck.setExpectedHealthcheck(cmd.getExpectedHealthcheck());
-                healthcheck.setHealthcheckType(cmd.getHealthcheckType());
-                healthcheck.setHealthcheckRequest(cmd.getHealthcheck());
+                healthcheck.setExpectedHealthcheck(healthCheckBuilder.getExpectedHealthCheck());
+                healthcheck.setHealthcheckType(healthCheckBuilder.getHealthCheckType());
+                healthcheck.setHealthcheckRequest(healthCheckBuilder.getHealthCheck());
                 pool.setMaxconn(cmd.getMaxConn());
 
                 pool = savePool(pool, poolResponse.getPoolMembers(),  poolAPI);
@@ -1045,7 +1048,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
 
         boolean poolHasHealthcheck = (poolResponse != null) && (poolResponse.getPool() != null) && (pool.getHealthcheck().getId() != null);
-        HealthCheck healthcheckObj = new HealthCheck(cmd, host);
+        HealthCheck healthcheckObj = new HealthCheck(host);
         String healthcheckType = null;
         String healthcheck = null;
         String expectedHealthcheck = null;
@@ -1229,15 +1232,20 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     protected static class HealthCheck {
 
-        private AddVipInGloboNetworkCommand cmd;
         private String host;
         private String healthCheckType;
         private String healthCheck;
         private String expectedHealthCheck;
 
-        public HealthCheck(AddVipInGloboNetworkCommand cmd, String host) {
-            this.cmd = cmd;
+        public HealthCheck(String host) {
             this.host = host;
+        }
+
+        public HealthCheck(String host, String healthCheckType, String healthCheck, String expectedHealthCheck) {
+            this.host = host;
+            this.healthCheckType = healthCheckType;
+            this.healthCheck = healthCheck;
+            this.expectedHealthCheck = expectedHealthCheck;
         }
 
         public String getHealthCheckType() {

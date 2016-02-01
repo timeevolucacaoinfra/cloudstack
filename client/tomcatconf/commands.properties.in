@@ -45,7 +45,7 @@ markDefaultZoneForAccount=1
 createUser=7
 deleteUser=7
 updateUser=15
-listUsers=15
+listUsers=7
 lockUser=7
 disableUser=7
 enableUser=7
@@ -308,7 +308,6 @@ deleteHost=3
 prepareHostForMaintenance=1
 cancelHostMaintenance=1
 listHosts=3
-listHostTags=7
 findHostsForMigration=1
 addSecondaryStorage=1
 updateHostPassword=1
@@ -345,7 +344,6 @@ listAsyncJobs=15
 #### storage pools commands
 listStoragePools=3
 listStorageProviders=3
-listStorageTags=7
 createStoragePool=1
 updateStoragePool=1
 deleteStoragePool=1
@@ -624,13 +622,6 @@ listNiciraNvpDeviceNetworks=1
 # Not implemented (yet)
 #configureNiciraNvpDevice=1
 
-#### brocade vcs commands
-
-addBrocadeVcsDevice=1
-deleteBrocadeVcsDevice=1
-listBrocadeVcsDevices=1
-listBrocadeVcsDeviceNetworks=1
-
 #### bigswitch vns commands
 
 addBigSwitchVnsDevice=1
@@ -641,13 +632,6 @@ listBigSwitchVnsDevices=1
 
 addStratosphereSsp=1
 deleteStratoshereSsp=1
-
-#### nuage vsp commands
-
-addNuageVspDevice=1
-deleteNuageVspDevice=1
-listNuageVspDevices=1
-issueNuageVspResourceRequest=15
 
 #### host simulator commands
 
@@ -663,12 +647,6 @@ listApis=15
 
 getApiLimit=15
 resetApiLimit=1
-
-#### API SolidFire Service Command
-getSolidFireAccountId=15
-getSolidFireVolumeSize=15
-getSolidFireVolumeAccessGroupId=15
-getSolidFireVolumeIscsiName=15
 
 #### Region commands
 addRegion=1
@@ -697,9 +675,6 @@ addBaremetalPxePingServer=1
 addBaremetalDhcp=1
 listBaremetalDhcp=1
 listBaremetalPxeServers=1
-addBaremetalRct=1
-deleteBaremetalRct=1
-listBaremetalRct=1
 
 #### UCS commands
 addUcsManager=1
@@ -780,15 +755,11 @@ createServiceInstance=1
 ### GloboDNS commands
 addGloboDnsHost=1
 
-### OAUTH
-oAuth2Login=15
-oauthRedirect=15
-
 ###GloboACLAPI commands
 addGloboAclApiHost=1
-createGloboACLRule=15
-listGloboACLRules=15
-removeGloboACLRule=15
+createGloboACLRule=1
+listGloboACLRules=1
+removeGloboACLRule=1
 
 ### OpenDaylight plugin commands
 addOpenDaylightController=1
@@ -824,3 +795,4 @@ listGloboNetworkLBCacheGroups=15
 listGloboNetworkPools=15
 getGloboNetworkPool=15
 updateGloboNetworkPool=15
+listGloboVirtualMachines=15

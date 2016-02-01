@@ -16,8 +16,10 @@
 // under the License.
 package org.apache.cloudstack.query;
 
+import com.cloud.utils.Pair;
 import java.util.List;
 
+import java.util.Map;
 import org.apache.cloudstack.affinity.AffinityGroupResponse;
 import org.apache.cloudstack.api.command.admin.host.ListHostsCmd;
 import org.apache.cloudstack.api.command.admin.host.ListHostTagsCmd;
@@ -132,4 +134,5 @@ public interface QueryService {
     public ListResponse<StorageTagResponse> searchForStorageTags(ListStorageTagsCmd cmd);
     public ListResponse<HostTagResponse> searchForHostTags(ListHostTagsCmd cmd);
 
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags);
 }

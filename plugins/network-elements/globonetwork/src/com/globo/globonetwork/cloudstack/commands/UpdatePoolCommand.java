@@ -28,16 +28,27 @@ public class UpdatePoolCommand extends Command{
     private List<Long> poolIds;
     private Integer maxConn;
 
+    private String lbHostname;
+
     public UpdatePoolCommand(List<Long> poolIds) {
         this.poolIds = poolIds;
     }
 
-    public UpdatePoolCommand(List<Long> poolIds, String healthcheckType, String healthcheck, String expectedHealthcheck, Integer maxConn) {
+    public UpdatePoolCommand(List<Long> poolIds, String healthcheckType, String healthcheck, String expectedHealthcheck, Integer maxConn, String lbHostname) {
         this.poolIds = poolIds;
         this.healthcheckType = healthcheckType;
         this.healthcheck = healthcheck;
         this.expectedHealthcheck = expectedHealthcheck;
         this.maxConn = maxConn;
+        this.lbHostname = lbHostname;
+    }
+
+    public String getLbHostname() {
+        return lbHostname;
+    }
+
+    public void setLbHostname(String lbHostname) {
+        this.lbHostname = lbHostname;
     }
 
     @Override

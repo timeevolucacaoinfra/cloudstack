@@ -760,13 +760,10 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
             respView = ResponseView.Full;
         }
         List<UserVmResponse> vmResponses;
-        if (cmd.isSimple()) {
-            vmResponses = ViewResponseHelper.createSimpleUserVmResponse("virtualmachine",
+
+        vmResponses = ViewResponseHelper.createUserVmResponse(respView, "virtualmachine", cmd.getDetails(),
                     result.first().toArray(new UserVmJoinVO[result.first().size()]));
-        } else {
-            vmResponses = ViewResponseHelper.createUserVmResponse(respView, "virtualmachine", cmd.getDetails(),
-                    result.first().toArray(new UserVmJoinVO[result.first().size()]));
-        }
+
 
         response.setResponses(vmResponses, result.second());
         return response;
@@ -3582,6 +3579,15 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         resourceDetailResponse.setResourceType(resourceType.toString().toString());
         resourceDetailResponse.setObjectName("resourcedetail");
         return resourceDetailResponse;
+    }
+
+
+
+    @Override
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags) {
+        Pair<List<UserVmResponse>, Integer> result = _userVmJoinDao.list(projectId, tags);
+
+        return result;
     }
 
 }

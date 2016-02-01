@@ -270,6 +270,11 @@ public class UserVmResponse extends BaseResponse implements ControlledEntityResp
     @Param(description = "OS type id of the vm", since = "4.4")
     private Long osTypeId;
 
+
+    @SerializedName(ApiConstants.OS_TYPE_NAME)
+    @Param(description = "OS type name of the vm", since = "4.4")
+    private String osTypeName;
+
     public UserVmResponse() {
         securityGroupList = new LinkedHashSet<SecurityGroupResponse>();
         nics = new LinkedHashSet<NicResponse>();
@@ -764,5 +769,9 @@ public class UserVmResponse extends BaseResponse implements ControlledEntityResp
 
     public void setOsTypeId(Long osTypeId) {
         this.osTypeId = osTypeId;
+    }
+
+    public void setOsTypeName(String osTypeName) {
+        this.osTypeName = osTypeName;
     }
 }
