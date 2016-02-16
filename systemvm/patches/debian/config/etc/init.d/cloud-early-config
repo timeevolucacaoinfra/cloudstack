@@ -1410,7 +1410,7 @@ for i in $CMDLINE
           DOMAIN=$VALUE
           ;;
       dnssearchorder)
-          DNS_SEARCH_ORDER=$VALUE
+          DNS_SEARCH_ORDER=$DOMAIN,$VALUE
           ;;
       useextdns)
         USE_EXTERNAL_DNS=$VALUE
