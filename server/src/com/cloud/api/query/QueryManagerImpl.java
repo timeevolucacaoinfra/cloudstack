@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.api.query;
 
+import com.cloud.utils.exception.CloudRuntimeException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -3585,9 +3586,13 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
 
     @Override
     public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags) {
-        Pair<List<UserVmResponse>, Integer> result = _userVmJoinDao.list(projectId, tags);
+        try {
+            Pair<List<UserVmResponse>, Integer> result = _userVmJoinDao.list(projectId, tags);
 
-        return result;
+            return result;
+        }catch (Exception e ) {
+            throw new CloudRuntimeException("Error list virtual machines.", e);
+        }
     }
 
 }

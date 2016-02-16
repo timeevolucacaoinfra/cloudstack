@@ -16,9 +16,12 @@
 // under the License.
 package com.cloud.api.query.dao;
 
+import com.cloud.server.ResourceTag;
 import com.cloud.utils.Pair;
+import com.cloud.utils.StringUtils;
 import com.cloud.utils.db.TransactionLegacy;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -74,6 +77,7 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
 
     private final SearchBuilder<UserVmJoinVO> VmDetailSearch;
     private final SearchBuilder<UserVmJoinVO> activeVmByIsoSearch;
+    private static final String VIEW_GLOBO_VM_COLUMNS = "id, uuid, name, display_name, instance_name, state, ha_enabled, account_id, account_name, account_type, account_name_prj, account_id_prj,  project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name";
 
     protected UserVmJoinDaoImpl() {
 
@@ -440,70 +444,90 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
         return uvms;
     }
 
-    @Override
     public Pair<List<UserVmResponse>, Integer> list(Long projectId, Map<String, String> tags) {
+        List<String> uuids = null;
+        if ( tags != null) {
+            uuids = listVmUUidsByTag(projectId, tags);
+        }
+
         TransactionLegacy txn = TransactionLegacy.currentTxn();
         List<UserVmResponse> result = new ArrayList<UserVmResponse>();
+        List params = new ArrayList();
+        StringBuilder sql = new StringBuilder("SELECT ").append(VIEW_GLOBO_VM_COLUMNS).append(" FROM view_globo_vm vm WHERE 1=1");
+
+
+        if ( projectId != null ){
+            sql.append(" AND vm.project_id = ? ");
+        }
+
+        if (uuids != null && uuids.size() > 0 ){
+            sql.append(" AND vm.uuid IN ('" + StringUtils.join("','", uuids.toArray()) +  "')");
+        }
+
+
         try {
-            List params = new ArrayList();
-            String sql = buildListVmsByProjectAndTags(projectId, tags, params);
+            java.sql.PreparedStatement pstmt = txn.prepareStatement(sql.toString());
+
+            if (projectId != null){
+                pstmt.setObject(1, projectId);
+            }
 
 
+            s_logger.debug("List Globo VM SQL: " + sql + " Params: " + params);
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                UserVmResponse userVmResponse = resultSetToVmResponse(rs);
+                result.add(userVmResponse);
+            }
+        }catch (Exception e) {
+            throw new RuntimeException("Error selecting vm data.", e);
+        }
+
+        return new Pair(result, result.size());
+    }
+
+    protected List<String> listVmUUidsByTag(Long projectId, Map<String, String> tags){
+        TransactionLegacy txn = TransactionLegacy.currentTxn();
+
+        List params = new ArrayList();
+        String sql = createQueryByTags(projectId, tags, params);
+
+        try {
             java.sql.PreparedStatement pstmt = txn.prepareStatement(sql);
             for (int i= 0; i < params.size(); i++) {
-                pstmt.setObject(i+1, params.get(i));
+                pstmt.setObject(i + 1, params.get(i));
             }
 
             s_logger.debug("List Globo VM SQL: "+ sql + " Params: " + params);
             ResultSet rs = pstmt.executeQuery();
-
-
-            while (rs.next()) {
-                UserVmResponse vmResponse = new UserVmResponse();
-
-                vmResponse.setId(rs.getString("uuid"));
-                vmResponse.setDisplayName(rs.getString("display_name") != null ? rs.getString("display_name") : rs.getString("name"));
-                vmResponse.setName(rs.getString("name"));
-                vmResponse.setInstanceName(rs.getString("instance_name"));
-                vmResponse.setState(rs.getString("state"));
-                vmResponse.setHaEnable(rs.getBoolean("ha_enabled"));
-
-                vmResponse.setProjectName(rs.getString("project_name"));
-                vmResponse.setDisplayVm(rs.getBoolean("display_vm"));
-                vmResponse.setServiceOfferingName(rs.getString("service_offering_name"));
-                vmResponse.setServiceOfferingId(rs.getString("service_offering_uuid"));
-                vmResponse.setOsTypeName(rs.getString("os_name"));
-                vmResponse.setOsTypeId(rs.getLong("os_id"));
-                vmResponse.setHostName(rs.getString("host_name"));
-                vmResponse.setZoneId(rs.getString("data_center_id"));
-                vmResponse.setZoneName(rs.getString("data_center_name"));
-                vmResponse.setObjectName("virtualmachine");
-                result.add(vmResponse);
+            List<String> uuids = new ArrayList();
+            while(rs.next()) {
+                uuids.add(rs.getString("resource_uuid"));
             }
-        } catch (Exception e) {
-            s_logger.error("error executing query ", e);
+            return uuids;
+        } catch (Exception e ) {
+            throw new RuntimeException("Error selecting resource_id by tag: " + sql + " params: " + params, e);
         }
-
-        return new Pair<List<UserVmResponse>, Integer>(result, result.size());
     }
 
-    protected String buildListVmsByProjectAndTags(Long projectId, Map<String, String> tags, List<Object> params) {
-        StringBuilder sql = new StringBuilder("SELECT id, uuid, name, display_name, instance_name, state, ha_enabled, project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name FROM view_globo_vm vm WHERE 1=1");
+    protected String createQueryByTags(Long projectId, Map<String, String> tags, List<Object> params) {
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT tg.resource_uuid as resource_uuid FROM resource_tag_view tg WHERE tg.resource_type = '")
+                .append(ResourceTag.ResourceObjectType.UserVm).append("'");
 
-        if ( projectId != null) {
-            sql.append(" AND vm.project_id = ?");
+        if (projectId != null) {
+            sql.append(" AND tg.project_id = ? ");
             params.add(projectId);
         }
 
-
-        if (tags != null && !tags.isEmpty()) {
-            sql.append(" AND vm.uuid IN (SELECT tg.resource_uuid FROM resource_tags tg WHERE 1=1 AND (");
-
+        if (tags != null &&  tags.size() > 0) {
+            sql.append(" AND (");
             int i = 0;
-            for( String key : tags.keySet()) {
+            for (String key : tags.keySet()) {
                 String value = tags.get(key);
 
-                if ( tags.size() > 1 && i != 0 ) {
+                if (tags.size() > 1 && i != 0) {
                     sql.append(" OR");
                 }
                 sql.append(" (tg.key = ? AND tg.value = ?)");
@@ -513,8 +537,38 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
                 i++;
             }
             params.add(tags.size());
-            sql.append(") GROUP BY tg.resource_uuid HAVING count(tg.resource_uuid) = ?)");
+            sql.append(") GROUP BY tg.resource_uuid HAVING count(tg.resource_uuid) = ?");
         }
-        return sql.toString().trim();
+        return sql.toString();
+    }
+
+    private UserVmResponse resultSetToVmResponse(ResultSet rs) throws SQLException {
+        UserVmResponse vmResponse = new UserVmResponse();
+
+        vmResponse.setId(rs.getString("uuid"));
+        vmResponse.setDisplayName(rs.getString("display_name") != null ? rs.getString("display_name") : rs.getString("name"));
+        vmResponse.setName(rs.getString("name"));
+        vmResponse.setInstanceName(rs.getString("instance_name"));
+        vmResponse.setState(rs.getString("state"));
+        vmResponse.setHaEnable(rs.getBoolean("ha_enabled"));
+
+        vmResponse.setProjectName(rs.getString("project_name"));
+        if ( rs.getLong("account_type") == Account.ACCOUNT_TYPE_PROJECT ) {
+            vmResponse.setAccountName(rs.getString("account_name_prj"));
+        }else {
+            vmResponse.setAccountName(rs.getString("account_name"));
+        }
+
+        vmResponse.setDisplayVm(rs.getBoolean("display_vm"));
+        vmResponse.setServiceOfferingName(rs.getString("service_offering_name"));
+        vmResponse.setServiceOfferingId(rs.getString("service_offering_uuid"));
+        vmResponse.setOsTypeName(rs.getString("os_name"));
+        vmResponse.setOsTypeId(rs.getLong("os_id"));
+        vmResponse.setHostName(rs.getString("host_name"));
+        vmResponse.setZoneId(rs.getString("data_center_id"));
+        vmResponse.setZoneName(rs.getString("data_center_name"));
+        vmResponse.setObjectName("virtualmachine");
+
+        return vmResponse;
     }
 }
