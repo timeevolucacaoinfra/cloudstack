@@ -450,8 +450,12 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
             uuids = listVmUUidsByTag(projectId, tags);
         }
 
-        TransactionLegacy txn = TransactionLegacy.currentTxn();
         List<UserVmResponse> result = new ArrayList<UserVmResponse>();
+        if ( uuids != null && uuids.size() == 0) {
+            return new Pair(result, result.size());
+        }
+
+        TransactionLegacy txn = TransactionLegacy.currentTxn();
         List params = new ArrayList();
         StringBuilder sql = new StringBuilder("SELECT ").append(VIEW_GLOBO_VM_COLUMNS).append(" FROM view_globo_vm vm WHERE 1=1");
 
@@ -460,7 +464,7 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
             sql.append(" AND vm.project_id = ? ");
         }
 
-        if (uuids != null && uuids.size() > 0 ){
+        if (uuids != null && uuids.size() > 0){
             sql.append(" AND vm.uuid IN ('" + StringUtils.join("','", uuids.toArray()) +  "')");
         }
 
