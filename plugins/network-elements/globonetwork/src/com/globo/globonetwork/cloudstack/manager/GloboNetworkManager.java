@@ -2092,11 +2092,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             // Strip domain from rule name to get only record name
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
 
-            if (rule.getState() == FirewallRule.State.Add && !revokeAnyVM) {
+            if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
                 // If LB is Add and all VMs are Add, then it's first time creating LB, create DNS
 
-                return _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-
+                if(_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
+                    return _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+                }
             } else if (rule.getState() == FirewallRule.State.Revoke) {
                 // If LB is Revoke, then remove DNS
 
