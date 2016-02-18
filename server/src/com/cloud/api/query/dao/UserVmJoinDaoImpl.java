@@ -77,7 +77,7 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
 
     private final SearchBuilder<UserVmJoinVO> VmDetailSearch;
     private final SearchBuilder<UserVmJoinVO> activeVmByIsoSearch;
-    private static final String VIEW_GLOBO_VM_COLUMNS = "id, uuid, name, display_name, instance_name, state, ha_enabled, account_id, account_name, account_type, account_name_prj, account_id_prj,  project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name";
+    private static final String VIEW_GLOBO_VM_COLUMNS = "id, uuid, name, display_name, instance_name, state, ha_enabled, account_id, account_name, account_type, project_name, project_id, account_id, domain_id, display_vm, service_offering_uuid, service_offering_name, os_id, os_name, host_name, data_center_id, data_center_name";
 
     protected UserVmJoinDaoImpl() {
 
@@ -557,11 +557,7 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
         vmResponse.setHaEnable(rs.getBoolean("ha_enabled"));
 
         vmResponse.setProjectName(rs.getString("project_name"));
-        if ( rs.getLong("account_type") == Account.ACCOUNT_TYPE_PROJECT ) {
-            vmResponse.setAccountName(rs.getString("account_name_prj"));
-        }else {
-            vmResponse.setAccountName(rs.getString("account_name"));
-        }
+        vmResponse.setAccountName(rs.getString("account_name"));
 
         vmResponse.setDisplayVm(rs.getBoolean("display_vm"));
         vmResponse.setServiceOfferingName(rs.getString("service_offering_name"));
