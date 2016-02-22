@@ -70,6 +70,10 @@ public class SnapshotResponse extends BaseResponse implements ControlledEntityRe
     @Param(description = "type of the disk volume")
     private String volumeType;
 
+    @SerializedName("volumesize")
+    @Param(description = "size of the disk volume")
+    private Long volumeSize;
+
     @SerializedName(ApiConstants.CREATED)
     @Param(description = "  the date the snapshot was created")
     private Date created;
@@ -93,6 +97,10 @@ public class SnapshotResponse extends BaseResponse implements ControlledEntityRe
     @SerializedName(ApiConstants.ZONE_ID)
     @Param(description = "id of the availability zone")
     private String zoneId;
+
+    @SerializedName(ApiConstants.ZONE_NAME)
+    @Param(description = "name of the availability zone")
+    private String zoneName;
 
     @SerializedName(ApiConstants.TAGS)
     @Param(description = "the list of resource tags associated with snapshot", responseObject = ResourceTagResponse.class)
@@ -154,6 +162,10 @@ public class SnapshotResponse extends BaseResponse implements ControlledEntityRe
         this.volumeType = volumeType;
     }
 
+    public void setVolumeSize(Long volumeSize) {
+        this.volumeSize = volumeSize;
+    }
+
     public void setCreated(Date created) {
         this.created = created;
     }
@@ -186,6 +198,10 @@ public class SnapshotResponse extends BaseResponse implements ControlledEntityRe
 
     public void setZoneId(String zoneId) {
         this.zoneId = zoneId;
+    }
+
+    public void setZoneName(String zoneName) {
+        this.zoneName = zoneName;
     }
 
     public void setTags(List<ResourceTagResponse> tags) {
