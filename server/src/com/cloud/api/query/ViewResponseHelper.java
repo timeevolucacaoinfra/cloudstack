@@ -214,6 +214,8 @@ public class ViewResponseHelper {
                 projectResponse.setState(project.getState().toString());
             }
             projectResponse.setVmTotal(ApiDBUtils.getResourceCount(Resource.ResourceType.user_vm, project.getProjectAccountId()));
+            projectResponse.setVolumeTotal(ApiDBUtils.getResourceCount(Resource.ResourceType.volume, project.getProjectAccountId()));
+            projectResponse.setSnapshotTotal(ApiDBUtils.getResourceCount(Resource.ResourceType.snapshot, project.getProjectAccountId()));
             projectResponse.setDomainId(project.getDomainUuid());
             projectResponse.setDomain(project.getDomainName());
             projectResponse.setOwner(project.getOwner());
