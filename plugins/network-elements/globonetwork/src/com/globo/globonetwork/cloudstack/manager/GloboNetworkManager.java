@@ -1925,9 +1925,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         String lockName = "globonetworklb-" + rule.getSourceIp().addr();
         // final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
         final ReentrantLock lock = GlobalLock.getReentrantLock(lockName);
-        try {
 
-            // if (!lock.lock(GloboNetworkLBLockTimeout.value())) {
+        if (isDnsProviderEnabledFor(network)) {
+            registerLoadBalancerDomainName(network, rule, revokeAnyVM);
+        } else {
+            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
+
+        try {
             if (!lock.tryLock(GloboNetworkLBLockTimeout.value(), TimeUnit.SECONDS)) {
                 throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s", rule.getUuid()), DataCenter.class, network.getDataCenterId());
             }
@@ -2061,13 +2066,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             GlobalLock.releaseReentrantLock(lockName);
         }
 
-        if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId())
-                && _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName())) {
-            // If GloboDNS provider is enabled in this network, register/remove DNS name for this load balancer
+        return true;
+    }
 
+    private boolean isDnsProviderEnabledFor(Network network) {
+        return _networkManager.isProviderForNetwork(Provider.GloboDns, network.getId()) &&
+               _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName());
+    }
+
+    private void registerLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM) throws ResourceUnavailableException {
+        try {
             // First of all, find the correct LB domain and LB record
             String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
-            List<String> allowedDomains = new ArrayList<String>();
+            List<String> allowedDomains = new ArrayList<>();
             if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
                 allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
             }
@@ -2084,32 +2095,23 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 }
             }
 
-            // lbDomain was already validated in validateLbRule. if it's null, there's something wrong
             if (lbDomain == null) {
                 throw new ResourceUnavailableException("Load balancer name/domain is invalid", DataCenter.class, network.getDataCenterId());
             }
 
-            // Strip domain from rule name to get only record name
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
 
             if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
-                // If LB is Add and all VMs are Add, then it's first time creating LB, create DNS
-
-                if(_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
-                    return _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+                if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
+                    _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
                 }
             } else if (rule.getState() == FirewallRule.State.Revoke) {
-                // If LB is Revoke, then remove DNS
-
-                return _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-            } else {
-                // Other cases included here are LB is Add and a VM is revoke (removing VM from LB)
-                // which should not affect DNS records for LB. Let it pass through
+                _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
             }
-        } else {
-            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }catch(Exception ex){
+            s_logger.error("Error while registering load balancer's domain name", ex);
+            throw new CloudRuntimeException("Error while registering load balancer's domain name", ex);
         }
-        return true;
     }
 
     private String getLbRecord(String fullLbName, String lbDomain) {
@@ -2193,10 +2195,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
 
-        if (_networkManager.isProviderForNetwork(Provider.GloboDns, network.getId())
-                && _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName())) {
-            // If GloboDNS provider is enabled in this network, validate LB name
-
+        if (isDnsProviderEnabledFor(network)) {
             // First of all, find the correct LB domain and LB record
             String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
             List<String> allowedDomains = new ArrayList<String>();
