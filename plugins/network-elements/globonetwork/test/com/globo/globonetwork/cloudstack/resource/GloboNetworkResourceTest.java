@@ -34,6 +34,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.cloud.exception.InvalidParameterValueException;
+import com.globo.globonetwork.client.api.ExpectHealthcheckAPI;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import com.globo.globonetwork.client.api.NetworkAPI;
 import com.globo.globonetwork.client.api.NetworkJsonAPI;
@@ -103,6 +104,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getNetworkAPI()).thenReturn(mock(NetworkAPI.class));
         when(_resource._globoNetworkApi.getNetworkJsonAPI()).thenReturn(mock(NetworkJsonAPI.class));
         when(_resource._globoNetworkApi.getPoolAPI()).thenReturn(mock(PoolAPI.class));
+        when(_resource._globoNetworkApi.getExpectHealthcheckAPI()).thenReturn(mock(ExpectHealthcheckAPI.class));
         when(_resource._globoNetworkApi.getVipAPI()).thenReturn(mock(VipAPI.class));
     }
 
