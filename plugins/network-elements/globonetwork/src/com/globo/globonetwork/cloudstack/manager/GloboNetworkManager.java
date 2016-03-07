@@ -1930,12 +1930,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         // final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
         final ReentrantLock lock = GlobalLock.getReentrantLock(lockName);
 
-        if (isDnsProviderEnabledFor(network)) {
-            registerLoadBalancerDomainName(network, rule, revokeAnyVM);
-        } else {
-            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
-        }
-
         try {
             if (!lock.tryLock(GloboNetworkLBLockTimeout.value(), TimeUnit.SECONDS)) {
                 throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s", rule.getUuid()), DataCenter.class, network.getDataCenterId());
@@ -2013,6 +2007,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                         throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
                     }
                 }
+            }
+
+            if (isDnsProviderEnabledFor(network)) {
+                registerLoadBalancerDomainName(network, rule, revokeAnyVM);
+            } else {
+                s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
             }
 
             if(rule.getState().equals(FirewallRule.State.Revoke)){
