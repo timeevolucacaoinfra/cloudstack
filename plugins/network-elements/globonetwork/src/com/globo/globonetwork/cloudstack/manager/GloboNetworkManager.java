@@ -20,11 +20,14 @@ package com.globo.globonetwork.cloudstack.manager;
 import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
 import com.globo.globonetwork.cloudstack.api.UpdateGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
+import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.math.BigInteger;
 import java.net.URI;
@@ -998,6 +1001,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(RemoveGloboNetworkVipCmd.class);
         cmdList.add(ListGloboNetworkLBCacheGroupsCmd.class);
         cmdList.add(ListGloboNetworkPoolsCmd.class);
+        cmdList.add(ListGloboNetworkExpectedHealthchecksCmd.class);
         cmdList.add(GetGloboNetworkPoolCmd.class);
         cmdList.add(UpdateGloboNetworkPoolCmd.class);
         return cmdList;
@@ -2630,4 +2634,21 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return response.getPool();
     }
 
+    public List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> listAllExpectedHealthchecks(Long zoneId) {
+
+        if (zoneId == null) {
+            throw new InvalidParameterValueException("Invalid Zone ID: " + zoneId);
+        }
+
+        ListExpectedHealthchecksCommand command = new ListExpectedHealthchecksCommand();
+
+        GloboNetworkExpectHealthcheckResponse answer =  (GloboNetworkExpectHealthcheckResponse)callCommand(command, zoneId);
+
+        if ( answer == null || !answer.getResult() ) {
+            String msg = answer == null ? "Coud not list expected healthchecks in zone: " + zoneId + "from networkApi" : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+
+        return answer.getExpectedHealthchecks();
+    }
 }

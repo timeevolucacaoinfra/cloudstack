@@ -40,6 +40,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -705,6 +706,43 @@ public class GloboNetworkManagerTest {
 
         verify(mockAgent, times(1)).easySend(eq(host.getId()), any(UpdatePoolCommand.class));
     }
+
+    @Test
+    public void testListAllExpectedHealthchecks() {
+        Long zoneId = 12l;
+        GloboNetworkManager manager = new GloboNetworkManager();
+
+        //mock sendEasy command
+        HostDao mock = mock(HostDao.class);
+        HostVO host = createMockHost();
+        when(mock.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
+        manager._hostDao = mock;
+
+        //mock result
+        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect1 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(1l, "OK");
+        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect2 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(2l, "WORKING");
+
+        AgentManager mockAgent = mock(AgentManager.class);
+        GloboNetworkExpectHealthcheckResponse expectHealthcheckResponse = new GloboNetworkExpectHealthcheckResponse(Arrays.asList(expect1, expect2));
+
+        when(mockAgent.easySend(eq(host.getId()), any(UpdatePoolCommand.class))).thenReturn(expectHealthcheckResponse);
+        manager._agentMgr = mockAgent;
+
+        //execute
+        List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> expectedHealthcheckList = manager.listAllExpectedHealthchecks(zoneId);
+
+        assertNotNull(expectedHealthcheckList);
+        assertEquals(2, expectedHealthcheckList.size());
+
+        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expectedHealthcheck = expectedHealthcheckList.get(0);
+        assertEquals((Long)1l, expectedHealthcheck.getId());
+        assertEquals("OK", expectedHealthcheck.getExpected());
+
+        expectedHealthcheck = expectedHealthcheckList.get(1);
+        assertEquals((Long)2l, expectedHealthcheck.getId());
+        assertEquals("WORKING", expectedHealthcheck.getExpected());
+    }
+
 
     private List<GloboNetworkPoolResponse.Pool> mockPools() {
         ArrayList<GloboNetworkPoolResponse.Pool> pools = new ArrayList<>();

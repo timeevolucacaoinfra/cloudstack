@@ -793,6 +793,7 @@ removeGloboNetworkLBEnvironment=1
 removeGloboNetworkVip=15
 listGloboNetworkLBCacheGroups=15
 listGloboNetworkPools=15
+listGloboNetworkExpectedHealthchecks=15
 getGloboNetworkPool=15
 updateGloboNetworkPool=15
 listGloboVirtualMachines=15

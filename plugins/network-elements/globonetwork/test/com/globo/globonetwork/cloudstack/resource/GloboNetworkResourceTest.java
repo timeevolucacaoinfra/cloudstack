@@ -47,9 +47,12 @@ import com.globo.globonetwork.client.model.VipPoolMap;
 import com.globo.globonetwork.client.model.VipXml;
 import com.globo.globonetwork.client.model.Vlan;
 
+import com.globo.globonetwork.client.model.healthcheck.ExpectHealthcheck;
+import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -930,6 +933,36 @@ public class GloboNetworkResourceTest {
         response.setPoolMembers(Arrays.asList(member));
 
         return response;
+    }
+
+    @Test
+    public void testExecuteListAllExpectedHealthcheck() throws GloboNetworkException {
+        ListExpectedHealthchecksCommand command = new ListExpectedHealthchecksCommand();
+
+        List<ExpectHealthcheck> result = new ArrayList<>();
+        result.add(new ExpectHealthcheck(1l, "OK"));
+        result.add(new ExpectHealthcheck(2l, "WORKING"));
+
+        when(_resource._globoNetworkApi.getExpectHealthcheckAPI().listHealthcheck()).thenReturn(result);
+
+        Answer answer = _resource.executeRequest((ListExpectedHealthchecksCommand) command);
+
+        assertNotNull(answer);
+
+        GloboNetworkExpectHealthcheckResponse response = (GloboNetworkExpectHealthcheckResponse)answer;
+
+        List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> expectedHealthchecks = response.getExpectedHealthchecks();
+
+        assertEquals(2, expectedHealthchecks.size());
+
+        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expectedHealthcheck = expectedHealthchecks.get(0);
+        assertEquals((Long)1l, expectedHealthcheck.getId());
+        assertEquals("OK", expectedHealthcheck.getExpected());
+
+        expectedHealthcheck = expectedHealthchecks.get(1);
+        assertEquals((Long)2l, expectedHealthcheck.getId());
+        assertEquals("WORKING", expectedHealthcheck.getExpected());
+
     }
 
     private long getNewIpID() {

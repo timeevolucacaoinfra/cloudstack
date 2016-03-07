@@ -19,11 +19,15 @@ package com.globo.globonetwork.cloudstack.resource;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.utils.exception.CloudRuntimeException;
+import com.globo.globonetwork.client.api.ExpectHealthcheckAPI;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import com.globo.globonetwork.client.api.PoolAPI;
+import com.globo.globonetwork.client.model.healthcheck.ExpectHealthcheck;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
+import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -294,10 +298,34 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return execute((ListPoolLBCommand) cmd);
         }else if (cmd instanceof GetPoolLBByIdCommand) {
             return execute((GetPoolLBByIdCommand) cmd);
+        }else if (cmd instanceof ListExpectedHealthchecksCommand) {
+            return execute((ListExpectedHealthchecksCommand) cmd);
         }else if (cmd instanceof UpdatePoolCommand) {
             return execute((UpdatePoolCommand) cmd);
         }
         return Answer.createUnsupportedCommandAnswer(cmd);
+    }
+
+    private Answer execute(ListExpectedHealthchecksCommand cmd) {
+        try{
+            ExpectHealthcheckAPI api = _globoNetworkApi.getExpectHealthcheckAPI();
+
+            List<ExpectHealthcheck> expectHealthchecks = api.listHealthcheck();
+
+            List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> result = new ArrayList<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck>();
+
+            for (ExpectHealthcheck expectHealthcheck : expectHealthchecks){
+                result.add(new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(expectHealthcheck.getId(), expectHealthcheck.getExpect()));
+            }
+
+            GloboNetworkExpectHealthcheckResponse response = new GloboNetworkExpectHealthcheckResponse(result);
+            return response;
+        } catch (GloboNetworkException e) {
+            return handleGloboNetworkException(cmd, e);
+        } catch (Exception e) {
+            s_logger.error("Generic error accessing GloboNetwork while update pool", e);
+            return new Answer(cmd, false, e.getMessage());
+        }
     }
 
     private Answer execute(UpdatePoolCommand cmd) {
