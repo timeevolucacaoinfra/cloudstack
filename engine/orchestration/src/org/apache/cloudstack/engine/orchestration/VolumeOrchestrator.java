@@ -709,11 +709,7 @@ public class VolumeOrchestrator extends ManagerBase implements VolumeOrchestrati
         // Create event and update resource count for volumes if vm is a user vm
         if (vm.getType() == VirtualMachine.Type.User) {
 
-            Long offeringId = null;
-
-            if (offering.getType() == DiskOffering.Type.Disk) {
-                offeringId = offering.getId();
-            }
+            Long offeringId = offering.getId();
 
             UsageEventUtils.publishUsageEvent(EventTypes.EVENT_VOLUME_CREATE, vol.getAccountId(), vol.getDataCenterId(), vol.getId(), vol.getName(), offeringId, vol.getTemplateId(), size,
                     Volume.class.getName(), vol.getUuid(), vol.isDisplayVolume());
