@@ -38,6 +38,8 @@ public class ApiConstants {
     public static final String CACHE = "cache";
     public static final String SERVICE_DOWN_ACTION = "servicedownactionid";
     public static final String HEALTHCHECK_DESTINATION = "healthcheckdestination";
+    public static final String HEALTHCHECK_TYPE = "healthchecktype";
+    public static final String EXPECTED_HEALTHCHECK = "expectedhealthcheck";
     public static final String CATEGORY = "category";
     public static final String CAN_REVERT = "canrevert";
     public static final String CERTIFICATE = "certificate";

@@ -41,6 +41,9 @@ public class LoadBalancingRule {
     private String cache;
     private String serviceDownAction;
     private String healthCheckDestination;
+    private String healthcheckType;
+    private String expectedHealthcheck;
+
     private List<Long> additionalNetworks;
     private List<String> additionalPortMap;
 
@@ -176,8 +179,24 @@ public class LoadBalancingRule {
         this.healthCheckDestination = healthCheckDestination;
     }
 
-    public String getHealthCheckDestination() {
+    public String getHealthcheckDestination() {
         return healthCheckDestination;
+    }
+
+    public String getHealthcheckType() {
+        return healthcheckType;
+    }
+
+    public void setHealthcheckType(String healthCheckType) {
+        this.healthcheckType = healthCheckType;
+    }
+
+    public String getExpectedHealthcheck() {
+        return expectedHealthcheck;
+    }
+
+    public void setExpectedHealthcheck(String expectedHealthCheck) {
+        this.expectedHealthcheck = expectedHealthCheck;
     }
 
     public interface Destination {

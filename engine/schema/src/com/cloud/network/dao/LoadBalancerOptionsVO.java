@@ -45,6 +45,12 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     @Column(name="health_check_destination")
     private String healthCheckDestination;
 
+    @Column(name="healthcheck_type")
+    private String healthCheckType;
+
+    @Column(name="expected_healthcheck")
+    private String expectedHealthcheck;
+
     public LoadBalancerOptionsVO() {
     }
 
@@ -53,6 +59,23 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
         this.cache = cache;
         this.serviceDownAction = serviceDownAction;
         this.healthCheckDestination = healthCheckDestination;
+    }
+
+
+    public String getHealthCheckType() {
+        return healthCheckType;
+    }
+
+    public void setHealthCheckType(String healthCheckType) {
+        this.healthCheckType = healthCheckType;
+    }
+
+    public String getExpectedHealthCheck() {
+        return expectedHealthcheck;
+    }
+
+    public void setExpectedHealthcheck(String expectedHealthcheck) {
+        this.expectedHealthcheck = expectedHealthcheck;
     }
 
     @Override
