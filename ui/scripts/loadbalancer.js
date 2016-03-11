@@ -33,6 +33,7 @@
         ]
     });
     */
+    var healthcheckTypes = [{id: 'TCP', name: 'TCP', description: 'TCP'}, {id: 'HTTP', name: 'HTTP', description: 'HTTP'}];
     var cascadeAsyncCmds = function(args) {
 
         var process_command = function(index, last_result) {
@@ -669,48 +670,77 @@
                                         action: function(args) {
                                             var pool = args.context.pools[0];
                                             var lb = args.context.loadbalancers[0];
-
                                             cloudStack.dialog.createForm({
                                                 form: {
                                                     title: 'Edit Pool',
                                                     fields: {
-                                                        // healthchecktype: {
-                                                        //     label: 'Healthcheck Type',
-                                                        //     defaultValue: pool.healthchecktype,
-                                                        //     select: function(args) {
-                                                        //         var healthchecktypes = [];
-                                                        //         healthchecktypes.push({id: 'TCP', name: 'TCP', description: 'TCP'});
-                                                        //         healthchecktypes.push({id: 'HTTP', name: 'HTTP', description: 'HTTP'});
-                                                        //         args.response.success({
-                                                        //             data: healthchecktypes
-                                                        //         });
-                                                        //     }
-                                                        // },
-                                                        healthcheck: {
-                                                            label: 'Healthcheck',
-                                                            defaultValue: pool.healthcheck,
-                                                            docID: 'helpHealthcheck',
-                                                        },
                                                         maxconn: {
                                                             label: 'Max Connections',
-                                                            defaultValue: pool.maxconn,
+                                                            defaultValue: pool.maxconn.toString(),
                                                             validation: {
                                                                 required: true,
                                                                 positiveNumber: true
+                                                            }
+                                                        },
+                                                        healthchecktype: {
+                                                            label: 'Healthcheck Type',
+                                                            docID: 'helpHealthcheckType',
+                                                            defaultValue: pool.healthchecktype,
+                                                            dependsOn: ['isLbAdvanced'],
+                                                            select: function(args) {
+                                                                args.response.success({
+                                                                    data: healthcheckTypes
+                                                                });
+                                                                args.$select.change(function() {
+                                                                    var type = $(this).val()
+                                                                    console.log('change type: ' + $(this).val())
+                                                                    if ( type === 'TCP') {
+                                                                        $("div[rel='healthcheck']").hide()
+                                                                        $("div[rel='expectedhealthcheck']").hide()
+                                                                    } else {
+                                                                        $("div[rel='healthcheck']").show()
+                                                                        $("div[rel='expectedhealthcheck']").show()
+                                                                    }
+                                                                })
+                                                            }
+                                                        },
+                                                        healthcheck: {
+                                                            label: 'Healthcheck',
+                                                            defaultValue: pool.healthcheck
+                                                        },
+                                                        expectedhealthcheck: {
+                                                            label: 'Expected Healthchecks',
+                                                            defaultValue: pool.healthcheckexpect,
+                                                            select: function(args) {
+                                                                var expectedHealthcheck = [];
+                                                                $.ajax({
+                                                                    url: createURL("listGloboNetworkExpectedHealthchecks"),
+                                                                    data: {
+                                                                        zoneid: '8c133096-2d61-4594-9c79-0dc224b68fab'
+                                                                    },
+                                                                    async: false,
+                                                                    success: function(json) {
+                                                                        expectedHealthchecksR = json.listgloboNetworkexpectedhealthchecksresponse.globonetworkexpectedhealthcheck
+                                                                        $(expectedHealthchecksR).each(function() {
+                                                                            expectedHealthcheck.push({id: this.expected, name: this.expected, description: this.expected})
+                                                                        });
+                                                                        args.response.success({
+                                                                            data: expectedHealthcheck
+                                                                        });
+
+                                                                    }
+                                                                })
+
+                                                                
                                                             }
                                                         }
                                                     }
                                                 },
                                                 after: function(args2) {
-                                                    var healthcheckexpect;
-                                                    var healthchecktype;
-                                                    if (args2.data.healthcheck === '') { // Empty healthcheck means TCP
-                                                        healthchecktype = 'TCP';
-                                                        healthcheckexpect = ''; // expecthealthcheck is for HTTP only
-                                                    } else {
-                                                        healthchecktype = 'HTTP';
-                                                        healthcheckexpect = "WORKING"; // Fixed value
-                                                    }
+                                                    if (args2.data.healthchecktype === 'TCP') { // Empty healthcheck means TCP
+                                                        args2.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP only
+                                                        args2.data.healthcheck = '';
+                                                    } 
                                                     $.ajax({
                                                         url: createURL('updateGloboNetworkPool'),
                                                         dataType: 'json',
@@ -719,9 +749,9 @@
                                                             poolids: pool.id.toString(),
                                                             lbruleid: lb.id,
                                                             zoneid: lb.zoneid,
-                                                            healthchecktype: healthchecktype,
+                                                            healthchecktype: args2.data.healthchecktype,
                                                             healthcheck: args2.data.healthcheck,
-                                                            expectedhealthcheck: healthcheckexpect,
+                                                            expectedhealthcheck: args2.data.expectedhealthcheck,
                                                             maxconn: args2.data.maxconn,
                                                         },
                                                         success: function(json) {
@@ -792,10 +822,6 @@
                                     },
                                     createForm: {
                                         fields: {
-                                            healthcheck: {
-                                                label: 'Healthcheck',
-                                                docID: 'helpHealthcheck',
-                                            },
                                             maxconn: {
                                                 label: 'Max Connections',
                                                 defaultValue: "0",
@@ -803,23 +829,71 @@
                                                     required: true,
                                                     positiveNumber: true
                                                 }
+                                            },
+                                            healthchecktype: {
+                                                label: 'Healthcheck Type',
+                                                docID: 'helpHealthcheckType',
+                                                dependsOn: ['isLbAdvanced'],
+                                                select: function(args) {
+                                                    args.response.success({
+                                                        data: healthcheckTypes
+                                                    });
+                                                    args.$select.change(function() {
+                                                        var type = $(this).val()
+                                                        console.log('change type: ' + $(this).val())
+                                                        if ( type === 'TCP') {
+                                                            $("div[rel='healthcheck']").hide()
+                                                            $("div[rel='expectedhealthcheck']").hide()
+                                                        } else {
+                                                            $("div[rel='healthcheck']").show()
+                                                            $("div[rel='expectedhealthcheck']").show()
+                                                        }
+                                                    })
+                                                }
+                                            },
+                                            healthcheck: {
+                                                label: 'Healthcheck',
+                                                docID: 'helpHealthcheck'
+                                            },
+                                            expectedhealthcheck: {
+                                                label: 'Expected Healthchecks',
+                                                select: function(args) {
+                                                    var expectedHealthcheck = [];
+                                                    $.ajax({
+                                                        url: createURL("listGloboNetworkExpectedHealthchecks"),
+                                                        data: {
+                                                            zoneid: '8c133096-2d61-4594-9c79-0dc224b68fab'
+                                                        },
+                                                        async: false,
+                                                        success: function(json) {
+                                                            expectedHealthchecksR = json.listgloboNetworkexpectedhealthchecksresponse.globonetworkexpectedhealthcheck
+                                                            $(expectedHealthchecksR).each(function() {
+                                                                expectedHealthcheck.push({id: this.expected, name: this.expected, description: this.expected})
+                                                            });
+                                                            args.response.success({
+                                                                data: expectedHealthcheck
+                                                            });
+
+                                                        }
+                                                    })
+
+                                                    
+                                                }
                                             }
                                         },
                                     },
                                     action: function(args) {
-                                        var healthcheckexpect;
-                                        var healthchecktype;
-                                        if (args.data.healthcheck === '') { // Empty healthcheck means TCP
-                                            healthchecktype = 'TCP';
-                                            healthcheckexpect = ''; // expecthealthcheck is for HTTP only
-                                        } else  {
-                                            healthchecktype = 'HTTP';
-                                            healthcheckexpect = "WORKING"; // Fixed value
-                                        }
+                                        if (args.data.healthchecktype === 'TCP') { // Empty healthcheck means TCP
+                                            args.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP only
+                                            args.data.healthcheck = '';
+                                        } 
 
-                                        
                                         var msg = "Are you sure you want to apply these configurations to ALL pools?<br/><br/>";
-                                        msg += "Healthcheck: <span style='font-weight: bold'>" + healthchecktype + " " + args.data.healthcheck + "</span><br/>";
+                                        msg += "Healthcheck: <span style='font-weight: bold'>" + args.data.healthchecktype + "  " + args.data.healthcheck
+                                        if ( args.data.expectedhealthcheck != '') {
+                                            msg += " - " + args.data.expectedhealthcheck 
+                                        }
+                                        msg += "</span><br/>";
                                         msg += "Maxconn: <span style='font-weight: bold'>" + args.data.maxconn + "</span>";
                                         cloudStack.dialog.confirm({
                                             message: msg,
@@ -855,9 +929,9 @@
                                                         poolids: poolIds.join(','),
                                                         lbruleid: lb.id,
                                                         zoneid: lb.zoneid,
-                                                        healthchecktype: healthchecktype,
+                                                        healthchecktype: args.data.healthchecktype,
                                                         healthcheck: args.data.healthcheck,
-                                                        expectedhealthcheck: healthcheckexpect,
+                                                        expectedhealthcheck: args.data.expectedhealthcheck,
                                                         maxconn: args.data.maxconn,
                                                     },
                                                     success: function(json) {
@@ -1602,6 +1676,7 @@
                                     });
                                 },
                             },
+
                             isLbAdvanced: {
                                 label: 'label.show.advanced.settings',
                                 dependsOn: ['network'],
@@ -1645,6 +1720,7 @@
                                     });
                                 }
                             },
+                            
                             sticky: {
                                 label: 'label.stickiness',
                                 isHidden: function (args) {
@@ -1693,13 +1769,61 @@
                                     });
                                 },
                             },
-
-                            healthcheck: {
-                                label: 'Healthcheck',
-                                isHidden: true,
-                                docID: 'helpHealthcheck',
-                                dependsOn: ['isLbAdvanced']
+                            // #hlb
+                            healthchecktype: {
+                                label: 'Healthcheck Type',
+                                docID: 'helpHealthcheckType',
+                                isHidden: function (args) {
+                                    var isAdvancedChecked = $('input[name=isLbAdvanced]:checked').length > 0;
+                                    return !isAdvancedChecked;
+                                },
+                                dependsOn: ['isLbAdvanced'],
+                                select: function(args) {
+                                    args.response.success({
+                                        data: healthcheckTypes
+                                    });
+                                    args.$select.change(function() {
+                                        var type = $(this).val()
+                                        console.log('change type: ' + $(this).val())
+                                        if ( type === 'TCP') {
+                                            $("div[rel='healthcheck']").hide()
+                                            $("div[rel='expectedhealthcheck']").hide()
+                                        } else {
+                                            $("div[rel='healthcheck']").show()
+                                            $("div[rel='expectedhealthcheck']").show()
+                                        }
+                                    })
+                                }
                             },
+                            healthcheck: {
+                                label: 'Healthcheck'
+                            },
+                            expectedhealthcheck: {
+                                label: 'Expected Healthchecks',
+                                select: function(args) {
+                                    var expectedHealthcheck = [];
+                                    $.ajax({
+                                        url: createURL("listGloboNetworkExpectedHealthchecks"),
+                                        data: {
+                                            zoneid: '8c133096-2d61-4594-9c79-0dc224b68fab'
+                                        },
+                                        async: false,
+                                        success: function(json) {
+                                            expectedHealthchecksR = json.listgloboNetworkexpectedhealthchecksresponse.globonetworkexpectedhealthcheck
+                                            $(expectedHealthchecksR).each(function() {
+                                                expectedHealthcheck.push({id: this.expected, name: this.expected, description: this.expected})
+                                            });
+                                            args.response.success({
+                                                data: expectedHealthcheck
+                                            });
+
+                                        }
+                                    })
+
+                                    
+                                }
+                            }
+                            
                         },
                     },
                     action: function(args) {
@@ -1836,6 +1960,8 @@
                                     openfirewall: false,
                                     networkid: args.data.network,
                                     cache: args.data.cachegroup,
+                                    expectedhealthcheck: args.data.expectedhealthcheck,
+                                    healthcheckType: args.data.healthchecktype,
                                     publicipid: ipId,
                                     additionalportmap: additionalportmap.join(),
                                 };
