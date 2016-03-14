@@ -123,6 +123,9 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     }
 
     public String getExpectedHealthcheck() {
+        if ( expectedHealthcheck != null && expectedHealthcheck == "") {
+            expectedHealthcheck = ""; //fix for sanity tests, cloudmonkey doesnt allow send parameter ""
+        }
         return expectedHealthcheck;
     }
 

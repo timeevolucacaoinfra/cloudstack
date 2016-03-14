@@ -2676,11 +2676,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return response.getPool();
     }
 
-    public List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> listAllExpectedHealthchecks(Long zoneId) {
+    @Override
+    public List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> listAllExpectedHealthchecks() {
 
-        if (zoneId == null) {
-            throw new InvalidParameterValueException("Invalid Zone ID: " + zoneId);
+        List<DataCenterVO> dataCenterVOs = _dcDao.listEnabledZones();
+        if (dataCenterVOs != null && dataCenterVOs.size() == 0) {
+            throw new InvalidParameterValueException("No zones enabled to execute command listAllExpectedHealthchecks");
         }
+
+        Long zoneId = dataCenterVOs.get(0).getId();
 
         ListExpectedHealthchecksCommand command = new ListExpectedHealthchecksCommand();
 

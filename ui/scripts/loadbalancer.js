@@ -715,9 +715,7 @@
                                                                 var expectedHealthcheck = [];
                                                                 $.ajax({
                                                                     url: createURL("listGloboNetworkExpectedHealthchecks"),
-                                                                    data: {
-                                                                        zoneid: '8c133096-2d61-4594-9c79-0dc224b68fab'
-                                                                    },
+                                                                    data: {},
                                                                     async: false,
                                                                     success: function(json) {
                                                                         expectedHealthchecksR = json.listgloboNetworkexpectedhealthchecksresponse.globonetworkexpectedhealthcheck
@@ -861,9 +859,7 @@
                                                     var expectedHealthcheck = [];
                                                     $.ajax({
                                                         url: createURL("listGloboNetworkExpectedHealthchecks"),
-                                                        data: {
-                                                            zoneid: '8c133096-2d61-4594-9c79-0dc224b68fab'
-                                                        },
+                                                        data: {},
                                                         async: false,
                                                         success: function(json) {
                                                             expectedHealthchecksR = json.listgloboNetworkexpectedhealthchecksresponse.globonetworkexpectedhealthcheck
@@ -1805,7 +1801,6 @@
                                     $.ajax({
                                         url: createURL("listGloboNetworkExpectedHealthchecks"),
                                         data: {
-                                            zoneid: '8c133096-2d61-4594-9c79-0dc224b68fab'
                                         },
                                         async: false,
                                         success: function(json) {

@@ -23,13 +23,10 @@ import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import org.apache.cloudstack.api.APICommand;
-import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.BaseCmd;
-import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.response.ExpectedHealthcheckResponse;
 import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.PoolResponse;
-import org.apache.cloudstack.api.response.ZoneResponse;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.log4j.Logger;
 
@@ -44,21 +41,10 @@ public class ListGloboNetworkExpectedHealthchecksCmd extends BaseCmd {
     // ////////////// API parameters /////////////////////
     // ///////////////////////////////////////////////////
 
-    @Parameter(name= ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, description = "the ID of the zone")
-    private Long zoneId;
-
 
     // ///////////////////////////////////////////////////
     // ///////////////// Accessors ///////////////////////
     // ///////////////////////////////////////////////////
-
-    public Long getZoneId() {
-        return zoneId;
-    }
-
-    public void setZoneId(Long zoneId) {
-        this.zoneId = zoneId;
-    }
 
     @Inject
     GloboNetworkManager _globoNetworkService;
@@ -81,7 +67,7 @@ public class ListGloboNetworkExpectedHealthchecksCmd extends BaseCmd {
     public void execute() {
         ListResponse<ExpectedHealthcheckResponse> response = new ListResponse<ExpectedHealthcheckResponse>();
 
-        List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> expectedHealthchecks = _globoNetworkService.listAllExpectedHealthchecks(getZoneId());;
+        List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> expectedHealthchecks = _globoNetworkService.listAllExpectedHealthchecks();;
 
         List<ExpectedHealthcheckResponse> lbResponses = new ArrayList<>();
 
