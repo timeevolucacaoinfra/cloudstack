@@ -3,33 +3,33 @@ package com.globo.globonetwork.cloudstack.manager;
 /**
  * Created by lucas.castro on 3/10/16.
  */
-public class HealthcheckHelper {
+public class HealthCheckHelper {
 
         private String host;
-        private String healthcheckType;
-        private String healthcheck;
-        private String expectedHealthcheck;
+        private String healthCheckType;
+        private String healthCheck;
+        private String expectedHealthCheck;
 
         private static final String DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK = "WORKING";
 
-        private HealthcheckHelper(String host) {
+        private HealthCheckHelper(String host) {
             this.host = host;
         }
 
-        public String getHealthcheckType() {
-            return healthcheckType;
+        public String getHealthCheckType() {
+            return healthCheckType;
         }
 
-        public String getHealthcheck() {
-            return healthcheck;
+        public String getHealthCheck() {
+            return healthCheck;
         }
 
-        public String getExpectedHealthcheck() {
-            return expectedHealthcheck;
+        public String getExpectedHealthCheck() {
+            return expectedHealthCheck;
         }
 
-        protected HealthcheckHelper build(String healthcheckType, String healthcheck, String expectedHealthcheck) {
-            this.healthcheck = this.buildHealthCheckString(healthcheck, host);
+        protected HealthCheckHelper build(String healthcheckType, String healthcheck, String expectedHealthcheck) {
+            this.healthCheck = this.buildHealthCheckString(healthcheck, host);
 
             //old version, client just pass healthcheckpath
             if (healthcheck != null && !healthcheck.isEmpty() &&
@@ -37,18 +37,18 @@ public class HealthcheckHelper {
                     (healthcheckType == null || healthcheckType.isEmpty())
                     )
             {
-                this.healthcheckType = GloboNetworkManager.HealthCheckType.HTTP.name();
-                this.expectedHealthcheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
+                this.healthCheckType = GloboNetworkManager.HealthCheckType.HTTP.name();
+                this.expectedHealthCheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
                 return this;
             }
 
             //new version
             if  (healthcheck == null || healthcheck.isEmpty()) {
-                this.healthcheckType = GloboNetworkManager.HealthCheckType.TCP.name();
-                this.expectedHealthcheck = null;
+                this.healthCheckType = GloboNetworkManager.HealthCheckType.TCP.name();
+                this.expectedHealthCheck = null;
             } else {
-                this.healthcheckType = GloboNetworkManager.HealthCheckType.HTTP.name();
-                this.expectedHealthcheck = expectedHealthcheck;
+                this.healthCheckType = GloboNetworkManager.HealthCheckType.HTTP.name();
+                this.expectedHealthCheck = expectedHealthcheck;
             }
 
             return this;
@@ -70,11 +70,11 @@ public class HealthcheckHelper {
 
             if ( healthehckType != null && healthehckType.equals(GloboNetworkManager.HealthCheckType.TCP.name())){
                 if (expectedHealthcheck != null && !expectedHealthcheck.isEmpty()) {
-                    throw new IllegalArgumentException("When healthcheckType is TCP expectedHealthcheck should be empty! expectedHealthcheck: " + expectedHealthcheck);
+                    throw new IllegalArgumentException("When healthCheckType is TCP expectedHealthCheck should be empty! expectedHealthCheck: " + expectedHealthcheck);
                 }
 
                 if (healthcheck != null && !healthcheck.isEmpty()) {
-                    throw new IllegalArgumentException("When healthcheckType is TCP healthcheck should be empty! healthcheck: " + healthcheck);
+                    throw new IllegalArgumentException("When healthCheckType is TCP healthCheck should be empty! healthCheck: " + healthcheck);
                 };
             }
 
@@ -82,10 +82,10 @@ public class HealthcheckHelper {
 
         }
 
-        public static HealthcheckHelper build(String host, String healthehckType, String healthcheck, String expectedHealthcheck) {
-            HealthcheckHelper healthcheckHelper = new HealthcheckHelper(host);
-            healthcheckHelper.validate(host, healthehckType, healthcheck, expectedHealthcheck);
-            return healthcheckHelper.build(healthehckType, healthcheck, expectedHealthcheck);
+        public static HealthCheckHelper build(String host, String healthehckType, String healthCheck, String expectedHealthCheck) {
+            HealthCheckHelper healthCheckHelper = new HealthCheckHelper(host);
+            healthCheckHelper.validate(host, healthehckType, healthCheck, expectedHealthCheck);
+            return healthCheckHelper.build(healthehckType, healthCheck, expectedHealthCheck);
         }
 }
 

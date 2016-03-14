@@ -2085,29 +2085,29 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         LbHealthCheckPolicy lbHealthCheckPolicy = rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0);
         String healthcheck = lbHealthCheckPolicy != null ? lbHealthCheckPolicy.getpingpath() : null;
 
-        HealthcheckHelper healthcheckBuilder = HealthcheckHelper.build(rule.getName(), rule.getHealthcheckType(), healthcheck, rule.getExpectedHealthcheck());
+        HealthCheckHelper healthcheckBuilder = HealthCheckHelper.build(rule.getName(), rule.getHealthCheckType(), healthcheck, rule.getExpectedHealthCheck());
 
-        if (healthcheckBuilder.getExpectedHealthcheck() != null && !healthcheckBuilder.getExpectedHealthcheck().equals(rule.getExpectedHealthcheck()) ||
-                healthcheckBuilder.getHealthcheckType() != null &&  !healthcheckBuilder.getHealthcheckType().equals(rule.getHealthcheckType())
+        if (healthcheckBuilder.getExpectedHealthCheck() != null && !healthcheckBuilder.getExpectedHealthCheck().equals(rule.getExpectedHealthCheck()) ||
+                healthcheckBuilder.getHealthCheckType() != null &&  !healthcheckBuilder.getHealthCheckType().equals(rule.getHealthCheckType())
                 ) {
-            s_logger.info("ExpectedHealthcheck Actual: " + cmd.getExpectedHealthcheck() + " Old " + rule.getExpectedHealthcheck());
-            s_logger.info("Type Actual: " + cmd.getHealthcheckType() + " Old " + rule.getHealthcheckType());
+            s_logger.info("ExpectedHealthcheck Actual: " + cmd.getExpectedHealthcheck() + " Old " + rule.getExpectedHealthCheck());
+            s_logger.info("Type Actual: " + cmd.getHealthcheckType() + " Old " + rule.getHealthCheckType());
 
             List<LoadBalancerOptionsVO> lbOptions = _lbOptionsDao.listByLoadBalancerId(rule.getId());
             if (lbOptions.size() > 0) {
                 for (LoadBalancerOptionsVO lbOpt : lbOptions) {
                     if (lbOpt.getLoadBalancerId() == rule.getId()) {
-                        lbOpt.setExpectedHealthcheck(healthcheckBuilder.getExpectedHealthcheck());
-                        lbOpt.setHealthCheckType(healthcheckBuilder.getHealthcheckType());
+                        lbOpt.setExpectedHealthCheck(healthcheckBuilder.getExpectedHealthCheck());
+                        lbOpt.setHealthCheckType(healthcheckBuilder.getHealthCheckType());
                         _lbOptionsDao.persist(lbOpt);
                     }
                 }
             }
         }
 
-        cmd.setExpectedHealthcheck(healthcheckBuilder.getExpectedHealthcheck());
-        cmd.setHealthcheckType(healthcheckBuilder.getHealthcheckType());
-        cmd.setHealthcheck(healthcheckBuilder.getHealthcheck());
+        cmd.setExpectedHealthcheck(healthcheckBuilder.getExpectedHealthCheck());
+        cmd.setHealthcheckType(healthcheckBuilder.getHealthCheckType());
+        cmd.setHealthcheck(healthcheckBuilder.getHealthCheck());
     }
 
     private boolean isDnsProviderEnabledFor(Network network) {
@@ -2597,12 +2597,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException("Can not find Load balancer with id: " + lbId);
         }
 
-        HealthcheckHelper healthcheckHelper = HealthcheckHelper.build(loadBalancer.getName(), healthcheckType, healthcheck, expectedHealthcheck);
+        HealthCheckHelper healthCheckHelper = HealthCheckHelper.build(loadBalancer.getName(), healthcheckType, healthcheck, expectedHealthcheck);
 
         UpdatePoolCommand command = new UpdatePoolCommand(poolIds,
-                healthcheckHelper.getHealthcheckType(),
-                healthcheckHelper.getHealthcheck(),
-                healthcheckHelper.getExpectedHealthcheck(), maxConn, loadBalancer.getName());
+                healthCheckHelper.getHealthCheckType(),
+                healthCheckHelper.getHealthCheck(),
+                healthCheckHelper.getExpectedHealthCheck(), maxConn, loadBalancer.getName());
 
         Answer answer =  callCommand(command, zoneId);
         handleAnswerIfFail(answer, "Could not update pools " + poolIds);

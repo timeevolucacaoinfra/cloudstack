@@ -45,11 +45,11 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     @Column(name="health_check_destination")
     private String healthCheckDestination;
 
-    @Column(name="healthcheck_type")
+    @Column(name="health_check_type")
     private String healthCheckType;
 
-    @Column(name="expected_healthcheck")
-    private String expectedHealthcheck;
+    @Column(name="expected_health_check")
+    private String expectedHealthCheck;
 
     public LoadBalancerOptionsVO() {
     }
@@ -71,11 +71,11 @@ public class LoadBalancerOptionsVO implements InternalIdentity {
     }
 
     public String getExpectedHealthCheck() {
-        return expectedHealthcheck;
+        return expectedHealthCheck;
     }
 
-    public void setExpectedHealthcheck(String expectedHealthcheck) {
-        this.expectedHealthcheck = expectedHealthcheck;
+    public void setExpectedHealthCheck(String expectedHealthCheck) {
+        this.expectedHealthCheck = expectedHealthCheck;
     }
 
     @Override

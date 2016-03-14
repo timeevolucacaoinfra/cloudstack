@@ -133,10 +133,10 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     private String healthCheckDestination;
 
     @Parameter(name = ApiConstants.HEALTHCHECK_TYPE, type = CommandType.STRING, description = "Healthcheck type (TCP/HTTP)")
-    private String healthcheckType;
+    private String healthCheckType;
 
     @Parameter(name = ApiConstants.EXPECTED_HEALTHCHECK, type = CommandType.STRING, description = "Expected healthcheck string to check if is in service.")
-    private String expectedHealthcheck;
+    private String expectedHealthCheck;
 
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
@@ -351,7 +351,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
                     getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(),
-                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), expectedHealthcheck, healthcheckType);
+                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), expectedHealthCheck, healthCheckType);
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {
@@ -464,11 +464,11 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     }
 
 
-    public String getHealthcheckType() {
-        return healthcheckType;
+    public String getHealthCheckType() {
+        return healthCheckType;
     }
 
-    public String getExpectedHealthcheck() {
-        return expectedHealthcheck;
+    public String getExpectedHealthCheck() {
+        return expectedHealthCheck;
     }
 }

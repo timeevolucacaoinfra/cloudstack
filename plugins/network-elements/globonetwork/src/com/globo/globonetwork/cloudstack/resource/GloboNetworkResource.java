@@ -335,10 +335,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     throw new CloudRuntimeException("Could not find pool " + poolId);
                 }
 
-                Pool.Healthcheck healthcheck = pool.getHealthcheck();
-                healthcheck.setExpectedHealthcheck(cmd.getExpectedHealthcheck());
-                healthcheck.setHealthcheckType(cmd.getHealthcheckType());
-                healthcheck.setHealthcheckRequest(cmd.getHealthcheck());
+                Pool.Healthcheck healthCheck = pool.getHealthcheck();
+                healthCheck.setExpectedHealthcheck(cmd.getExpectedHealthcheck());
+                healthCheck.setHealthcheckType(cmd.getHealthcheckType());
+                healthCheck.setHealthcheckRequest(cmd.getHealthcheck());
                 pool.setMaxconn(cmd.getMaxConn());
 
                 pool = savePool(pool, poolResponse.getPoolMembers(),  poolAPI);

@@ -1876,8 +1876,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 loadBalancing.setServiceDownAction(serviceDownAction);
                 loadBalancing.setHealthCheckDestination(healthCheckDestination);
                 loadBalancing.setAdditionalPortMap(additionalPortMap);
-                loadBalancing.setExpectedHealthcheck(expectedHealthcheck);
-                loadBalancing.setHealthcheckType(healthcheckType);
+                loadBalancing.setExpectedHealthCheck(expectedHealthcheck);
+                loadBalancing.setHealthCheckType(healthcheckType);
                 if (!validateLbRule(loadBalancing)) {
                     throw new InvalidParameterValueException("LB service provider cannot support this rule");
                 }
@@ -1939,7 +1939,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             String healthCheckDestinationStr = healthCheckDestination != null ? healthCheckDestination.trim() : null;
 
             LoadBalancerOptionsVO loadBalancerOptionsVO = new LoadBalancerOptionsVO(lb.getId(), cacheStr, serviceDownActionStr, healthCheckDestinationStr);
-            loadBalancerOptionsVO.setExpectedHealthcheck(expectedHealthcheck);
+            loadBalancerOptionsVO.setExpectedHealthCheck(expectedHealthcheck);
             loadBalancerOptionsVO.setHealthCheckType(healthcheckType);
             _lbOptionsDao.persist(loadBalancerOptionsVO);
         }
@@ -2037,8 +2037,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                     loadBalancing.setCache(lbOption.getCache());
                     loadBalancing.setServiceDownAction(lbOption.getServiceDownAction());
                     loadBalancing.setHealthCheckDestination(lbOption.getHealthCheckDestination());
-                    loadBalancing.setExpectedHealthcheck(lbOption.getExpectedHealthCheck());
-                    loadBalancing.setHealthcheckType(lbOption.getHealthCheckType());
+                    loadBalancing.setExpectedHealthCheck(lbOption.getExpectedHealthCheck());
+                    loadBalancing.setHealthCheckType(lbOption.getHealthCheckType());
                 }
             }
         }
