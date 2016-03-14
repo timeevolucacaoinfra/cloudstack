@@ -132,6 +132,12 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.HEALTHCHECK_DESTINATION, type = CommandType.STRING, description = "Port to be used as health check alternative to the service port (optional)")
     private String healthCheckDestination;
 
+    @Parameter(name = ApiConstants.HEALTHCHECK_TYPE, type = CommandType.STRING, description = "Healthcheck type (TCP/HTTP)")
+    private String healthCheckType;
+
+    @Parameter(name = ApiConstants.EXPECTED_HEALTHCHECK, type = CommandType.STRING, description = "Expected healthcheck string to check if is in service.")
+    private String expectedHealthCheck;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -345,7 +351,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
                     getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(),
-                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination());
+                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), expectedHealthCheck, healthCheckType);
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {
@@ -455,5 +461,14 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Override
     public Long getSyncObjId() {
         return getNetworkId();
+    }
+
+
+    public String getHealthCheckType() {
+        return healthCheckType;
+    }
+
+    public String getExpectedHealthCheck() {
+        return expectedHealthCheck;
     }
 }

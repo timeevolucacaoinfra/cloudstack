@@ -18,6 +18,8 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
+import com.cloud.network.dao.LoadBalancerOptionsDao;
+import com.cloud.network.dao.LoadBalancerOptionsVO;
 import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
@@ -340,6 +342,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     LoadBalancingRulesService _lbService;
     @Inject
     GloboDnsElementService _globoDnsService;
+
+    @Inject
+    LoadBalancerOptionsDao _lbOptionsDao;
 
     @Override
     public boolean canEnable(Long physicalNetworkId) {
@@ -2026,13 +2031,17 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 _globoNetworkIpDetailDao.persist(gnIpDetail);
             }else{
                 final AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+
+                buildHealthcheck(cmd, rule);
+
                 // Vip Id null means new vip, otherwise vip will be updated.
                 cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
                 // VIP infos
                 cmd.setHost(rule.getName());
                 cmd.setCache(rule.getCache());
                 cmd.setServiceDownAction(rule.getServiceDownAction());
-                cmd.setHealthCheckDestination(rule.getHealthCheckDestination());
+                cmd.setHealthCheckDestination(rule.getHealthcheckDestination());
+
                 cmd.setIpv4(rule.getSourceIp().addr());
                 cmd.setVipEnvironmentId(gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
                 cmd.setPorts(ports);
@@ -2042,13 +2051,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 // Options and parameters
                 cmd.setMethodBal(rule.getAlgorithm());
                 cmd.setPersistencePolicy(rule.getStickinessPolicies() == null || rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
-                cmd.setHealthcheckPolicy(rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0));
                 cmd.setRuleState(rule.getState());
 
                 // Reals infos
                 cmd.setRealList(realList);
 
-                Answer answer = this.callCommand(cmd, network.getDataCenterId());
+                GloboNetworkVipResponse answer = (GloboNetworkVipResponse)this.callCommand(cmd, network.getDataCenterId());
 
                 if (gnIpDetail.getGloboNetworkVipId() == null) {
                     // persist vip id information if not set
@@ -2071,6 +2079,35 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         return true;
+    }
+
+    private void buildHealthcheck(AddVipInGloboNetworkCommand cmd, LoadBalancingRule rule) {
+        LbHealthCheckPolicy lbHealthCheckPolicy = rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0);
+        String healthcheck = lbHealthCheckPolicy != null ? lbHealthCheckPolicy.getpingpath() : null;
+
+        HealthCheckHelper healthcheckBuilder = HealthCheckHelper.build(rule.getName(), rule.getHealthCheckType(), healthcheck, rule.getExpectedHealthCheck());
+
+        if (healthcheckBuilder.getExpectedHealthCheck() != null && !healthcheckBuilder.getExpectedHealthCheck().equals(rule.getExpectedHealthCheck()) ||
+                healthcheckBuilder.getHealthCheckType() != null &&  !healthcheckBuilder.getHealthCheckType().equals(rule.getHealthCheckType())
+                ) {
+            s_logger.info("ExpectedHealthcheck Actual: " + cmd.getExpectedHealthcheck() + " Old " + rule.getExpectedHealthCheck());
+            s_logger.info("Type Actual: " + cmd.getHealthcheckType() + " Old " + rule.getHealthCheckType());
+
+            List<LoadBalancerOptionsVO> lbOptions = _lbOptionsDao.listByLoadBalancerId(rule.getId());
+            if (lbOptions.size() > 0) {
+                for (LoadBalancerOptionsVO lbOpt : lbOptions) {
+                    if (lbOpt.getLoadBalancerId() == rule.getId()) {
+                        lbOpt.setExpectedHealthCheck(healthcheckBuilder.getExpectedHealthCheck());
+                        lbOpt.setHealthCheckType(healthcheckBuilder.getHealthCheckType());
+                        _lbOptionsDao.persist(lbOpt);
+                    }
+                }
+            }
+        }
+
+        cmd.setExpectedHealthcheck(healthcheckBuilder.getExpectedHealthCheck());
+        cmd.setHealthcheckType(healthcheckBuilder.getHealthCheckType());
+        cmd.setHealthcheck(healthcheckBuilder.getHealthCheck());
     }
 
     private boolean isDnsProviderEnabledFor(Network network) {
@@ -2412,7 +2449,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
                         // Create LB
                         LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName().toLowerCase(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
-                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, additionalPortMapList, cache, null, null);
+                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, additionalPortMapList, cache, null, null, null, null);
 
                         // If healthcheck is TCP, do nothing; otherwise, create the healthcheck policy
                         if (globoNetworkLB.getHealthcheckType() != null && "HTTP".equals(globoNetworkLB.getHealthcheckType())) {
@@ -2560,7 +2597,12 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException("Can not find Load balancer with id: " + lbId);
         }
 
-        UpdatePoolCommand command = new UpdatePoolCommand(poolIds, healthcheckType, healthcheck, expectedHealthcheck, maxConn, loadBalancer.getName());
+        HealthCheckHelper healthCheckHelper = HealthCheckHelper.build(loadBalancer.getName(), healthcheckType, healthcheck, expectedHealthcheck);
+
+        UpdatePoolCommand command = new UpdatePoolCommand(poolIds,
+                healthCheckHelper.getHealthCheckType(),
+                healthCheckHelper.getHealthCheck(),
+                healthCheckHelper.getExpectedHealthCheck(), maxConn, loadBalancer.getName());
 
         Answer answer =  callCommand(command, zoneId);
         handleAnswerIfFail(answer, "Could not update pools " + poolIds);
@@ -2650,5 +2692,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         return answer.getExpectedHealthchecks();
+    }
+
+    public enum HealthCheckType {
+        HTTP, TCP
     }
 }

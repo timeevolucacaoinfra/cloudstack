@@ -47,9 +47,13 @@ public class AddVipInGloboNetworkCommand extends Command {
 
     private String healthCheckDestination;
 
-    private String serviceName;
+    private String expectedHealthcheck;
 
-    private LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy;
+    private String healthcheckType;
+
+    private String healthcheck;
+
+    private String serviceName;
 
     private List<String> ports;
 
@@ -152,12 +156,12 @@ public class AddVipInGloboNetworkCommand extends Command {
         this.persistencePolicy = persistencePolicy;
     }
 
-    public LoadBalancingRule.LbHealthCheckPolicy getHealthcheckPolicy() {
-        return healthcheckPolicy;
+    public String getHealthcheck() {
+        return healthcheck;
     }
 
-    public void setHealthcheckPolicy(LoadBalancingRule.LbHealthCheckPolicy healthcheckPolicy) {
-        this.healthcheckPolicy = healthcheckPolicy;
+    public void setHealthcheck(String healthcheck) {
+        this.healthcheck = healthcheck;
     }
 
     public void setServiceDownAction(String serviceDownAction) {
@@ -174,5 +178,21 @@ public class AddVipInGloboNetworkCommand extends Command {
 
     public String getHealthCheckDestination() {
         return healthCheckDestination;
+    }
+
+    public String getExpectedHealthcheck() {
+        return expectedHealthcheck;
+    }
+
+    public void setExpectedHealthcheck(String expectedHealthcheck) {
+        this.expectedHealthcheck = expectedHealthcheck;
+    }
+
+    public String getHealthcheckType() {
+        return healthcheckType;
+    }
+
+    public void setHealthcheckType(String healthcheckType) {
+        this.healthcheckType = healthcheckType;
     }
 }

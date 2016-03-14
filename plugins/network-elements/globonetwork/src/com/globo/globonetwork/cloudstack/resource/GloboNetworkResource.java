@@ -125,12 +125,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private static final Integer DEFAULT_MAX_CONN = 0;
 
-    private static final String DEFAULT_HEALTHCHECK_TYPE = "TCP";
-
-    private static final String HEALTHCHECK_HTTP_STRING = "HTTP";
-
-    private static final String DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK = "WORKING";
-
     private static final Integer DEFAULT_TIMEOUT = 5;
 
     private static final String DEFAULT_CACHE = "(nenhum)";
@@ -341,13 +335,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                     throw new CloudRuntimeException("Could not find pool " + poolId);
                 }
 
-                HealthCheck healthCheckBuilder = new HealthCheck(cmd.getLbHostname());
-                healthCheckBuilder = healthCheckBuilder.build(cmd.getHealthcheckType(), cmd.getHealthcheck(), cmd.getExpectedHealthcheck());
-
-                Pool.Healthcheck healthcheck = pool.getHealthcheck();
-                healthcheck.setExpectedHealthcheck(healthCheckBuilder.getExpectedHealthCheck());
-                healthcheck.setHealthcheckType(healthCheckBuilder.getHealthCheckType());
-                healthcheck.setHealthcheckRequest(healthCheckBuilder.getHealthCheck());
+                Pool.Healthcheck healthCheck = pool.getHealthcheck();
+                healthCheck.setExpectedHealthcheck(cmd.getExpectedHealthcheck());
+                healthCheck.setHealthcheckType(cmd.getHealthcheckType());
+                healthCheck.setHealthcheckRequest(cmd.getHealthcheck());
                 pool.setMaxconn(cmd.getMaxConn());
 
                 pool = savePool(pool, poolResponse.getPoolMembers(),  poolAPI);
@@ -1076,7 +1067,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
 
         boolean poolHasHealthcheck = (poolResponse != null) && (poolResponse.getPool() != null) && (pool.getHealthcheck().getId() != null);
-        HealthCheck healthcheckObj = new HealthCheck(host);
+
         String healthcheckType = null;
         String healthcheck = null;
         String expectedHealthcheck = null;
@@ -1085,20 +1076,20 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             healthcheckType = pool.getHealthcheck().getHealthcheckType();
             healthcheck = pool.getHealthcheck().getHealthcheckRequest();
             expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
-        } else if (vip == null && cmd.getHealthcheckPolicy() != null && !cmd.getHealthcheckPolicy().isRevoked()) {
-            // Creating new VIP and healthcheck was set
-            healthcheckType = HEALTHCHECK_HTTP_STRING;
-            healthcheck = cmd.getHealthcheckPolicy().getpingpath();
-            expectedHealthcheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
+        } else {
+            // Creating new VIP and healthCheck was set
+            healthcheckType = cmd.getHealthcheckType();
+            healthcheck = cmd.getHealthcheck();
+            expectedHealthcheck = cmd.getExpectedHealthcheck();
         }
-        healthcheckObj = healthcheckObj.build(healthcheckType, healthcheck, expectedHealthcheck);
-        LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
 
+        LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
         s_logger.info("Saving pool name: " + poolName  + " port: " + realPort);
 
         pool = _globoNetworkApi.getPoolAPI().save(
-            poolId, poolName, realPort, vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(), healthcheckObj.getHealthCheckType(),
-                healthcheckObj.getExpectedHealthCheck(), healthcheckObj.getHealthCheck(), maxConn, realIps.get(port), equipNames,
+            poolId, poolName, realPort, vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(),
+                healthcheckType, expectedHealthcheck, healthcheck,
+                maxConn, realIps.get(port), equipNames,
             equipIds, realPriorities, realWeights, realPorts, Arrays.asList(ArrayUtils.toObject(idPoolMembers)), cmd.getServiceDownAction(), cmd.getHealthCheckDestination()
         );
 
@@ -1256,61 +1247,5 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         answer.setVlanDescription(vlan.getDescription());
         answer.setVlanNum(vlan.getVlanNum().intValue());
         return answer;
-    }
-
-    protected static class HealthCheck {
-
-        private String host;
-        private String healthCheckType;
-        private String healthCheck;
-        private String expectedHealthCheck;
-
-        public HealthCheck(String host) {
-            this.host = host;
-        }
-
-        public HealthCheck(String host, String healthCheckType, String healthCheck, String expectedHealthCheck) {
-            this.host = host;
-            this.healthCheckType = healthCheckType;
-            this.healthCheck = healthCheck;
-            this.expectedHealthCheck = expectedHealthCheck;
-        }
-
-        public String getHealthCheckType() {
-            return healthCheckType;
-        }
-
-        public String getHealthCheck() {
-            return healthCheck;
-        }
-
-        public String getExpectedHealthCheck() {
-            return expectedHealthCheck;
-        }
-
-        public HealthCheck build(String healthcheckType, String healthcheck, String expectedHealthcheck) {
-            healthCheckType = healthcheckType != null ? healthcheckType : DEFAULT_HEALTHCHECK_TYPE;
-            healthCheck = this.buildHealthCheckString(healthcheck, host);
-            if (expectedHealthcheck == null) {
-                if (healthCheckType.equals(DEFAULT_HEALTHCHECK_TYPE)) {
-                    expectedHealthCheck = null; // TCP healthcheck has no expect value
-                } else {
-                    expectedHealthCheck = DEFAULT_EXPECT_FOR_HTTP_HEALTHCHECK;
-                }
-            } else {
-                expectedHealthCheck = expectedHealthcheck;
-            }
-            return this;
-        }
-
-        protected String buildHealthCheckString(String path, String host) {
-            if (path == null || path.equals("") || host == null) {
-                return "";
-            }
-            if (path.startsWith("GET") || path.startsWith("POST")) {
-                return path;
-            }
-            return "GET " + path + " HTTP/1.0\\r\\nHost: " + host + "\\r\\n\\r\\n";
-        }
     }
 }

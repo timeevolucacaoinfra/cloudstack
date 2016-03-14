@@ -1297,6 +1297,14 @@ cloudStack.docs = {
         desc: 'The path for a GET HTTP healthcheck. Optionally, provide full HTTP request (GET or POST). Leave it blank for TCP',
         externalLink: ''
     },
+    helpHealthcheckType: {
+        desc: 'Healthcheck type used to make the request',
+        externalLink: ''
+    },
+    helpExpectedHealthcheck: {
+        desc: 'After request, it is the expected string response to check if service is on/off',
+        externalLink: ''
+    },
     helpLbPorts: {
         desc: 'List of port mapping for load balancer, e.g. "80:8080,443:8443"',
         externalLink: ''

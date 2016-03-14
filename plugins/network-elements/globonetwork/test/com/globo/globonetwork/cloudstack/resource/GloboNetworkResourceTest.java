@@ -53,6 +53,7 @@ import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksComman
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
+import com.globo.globonetwork.cloudstack.manager.HealthCheckHelper;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
@@ -291,35 +292,18 @@ public class GloboNetworkResourceTest {
         assertNull(_resource.findPoolByPort(80, null));
     }
 
-    @Test
-    public void testBuildHealthCheckStringGivenPathAndHostNull(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
-        assertEquals("", healthCheck.buildHealthCheckString(null, null));
-    }
 
-    @Test
-    public void testBuildHealthCheckStringGivenPathNullAndHostFilled(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
-        assertEquals("", healthCheck.buildHealthCheckString(null, "host"));
-    }
-
-    @Test
-    public void testBuildHealthCheckStringGiveFullHTTPPath(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
-        assertEquals("GET /healtcheck.html", healthCheck.buildHealthCheckString("GET /healtcheck.html", "host"));
-    }
-
-    @Test
-    public void testBuildHealthCheckStringGivenURIandHost(){
-        GloboNetworkResource.HealthCheck healthCheck = new GloboNetworkResource.HealthCheck(null);
-        assertEquals("GET /healtcheck.html HTTP/1.0\\r\\nHost: host\\r\\n\\r\\n", healthCheck.buildHealthCheckString("/healtcheck.html", "host"));
-    }
 
     @Test
     public void testCreateEmptyPool() throws GloboNetworkException {
         AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
         cmd.setMethodBal("roundrobin");
+
+        HealthCheckHelper build = HealthCheckHelper.build("host", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
 
         VipJson vip = null; // VIP NOT CREATED YET
         Ipv4 ip = new Ipv4();
@@ -351,6 +335,11 @@ public class GloboNetworkResourceTest {
         AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
         cmd.setMethodBal("roundrobin");
+
+        HealthCheckHelper build = HealthCheckHelper.build("host", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
 
         VipJson vip = null; // VIP NOT CREATED YET
         Ipv4 ip = new Ipv4();
@@ -393,6 +382,11 @@ public class GloboNetworkResourceTest {
         real2.setIp("192.168.0.5");
         cmd.setRealList(Arrays.asList(real1, real2)); // 2 reals; 1 old, 1 new
         cmd.setMethodBal("roundrobin");
+
+        HealthCheckHelper build = HealthCheckHelper.build("host", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
 
         VipJson vip = new VipJson();
         Pool pool = new Pool();
@@ -482,6 +476,11 @@ public class GloboNetworkResourceTest {
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
 
+        HealthCheckHelper build = HealthCheckHelper.build("host", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
+
         GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
         real.setIp("1.2.3.4");
         real.setVmName("mynewreal");
@@ -542,6 +541,12 @@ public class GloboNetworkResourceTest {
         vipToBeCreated.setCreated(false);
 
         AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+
+        HealthCheckHelper build = HealthCheckHelper.build("host", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
+
         cmd.setVipId(null);
         cmd.setHost(vipToBeCreated.getHost());
         cmd.setIpv4(vipToBeCreated.getIps().get(0));
@@ -588,6 +593,11 @@ public class GloboNetworkResourceTest {
         String persistenceNetApi = "cookie";
 
         AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        HealthCheckHelper build = HealthCheckHelper.build("host", "TCP", "", null);
+        cmd.setHealthcheck(build.getHealthCheck());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheckType(build.getHealthCheckType());
+
         cmd.setVipId(createdVip.getId());
         cmd.setHost(createdVip.getHost());
         cmd.setIpv4(createdVip.getIps().get(0));
@@ -769,7 +779,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testExecuteUpdatePool() throws GloboNetworkException {
-        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "/heal", "OK", 5, "pool.globoi.com");
+        UpdatePoolCommand cmd = new UpdatePoolCommand(Arrays.asList(12l,13l), "HTTP", "GET /heal HTTP/1.0\\r\\nHost: pool.globoi.com\\r\\n\\r\\n", "OK", 5, "pool.globoi.com");
 
 
         Pool.PoolResponse poolResponse = mockPoolResponse(12l, "MY_POOL", 80, "least", "http", "/heal.html", "OK", "*:*", 10, "EQUIP_NAME_2", 112l, "10.1.1.2", 10112l, 92, 52, 8080);

@@ -1707,7 +1707,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_LOAD_BALANCER_CREATE, eventDescription = "creating load balancer")
     public LoadBalancer createPublicLoadBalancerRule(String xId, String name, String description, int srcPortStart, int srcPortEnd, int defPortStart, int defPortEnd,
-                                                     Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache, String serviceDownAction, String healthCheckDestination)
+                                                     Long ipAddrId, String protocol, String algorithm, long networkId, long lbOwnerId, boolean openFirewall, String lbProtocol, Boolean forDisplay, List<String> additionalPortMap, String cache,
+                                                     String serviceDownAction, String healthCheckDestination, String expectedHealthcheck, String healthcheckType)
             throws NetworkRuleConflictException, InsufficientAddressCapacityException {
         Account lbOwner = _accountMgr.getAccount(lbOwnerId);
 
@@ -1766,7 +1767,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 }
 
                 result = createPublicLoadBalancer(xId, name, description, srcPortStart, defPortStart, ipVO.getId(), protocol, algorithm, openFirewall, CallContext.current(),
-                        lbProtocol, forDisplay, additionalPortMap, cache, serviceDownAction, healthCheckDestination);
+                        lbProtocol, forDisplay, additionalPortMap, cache,
+                        serviceDownAction, healthCheckDestination, expectedHealthcheck, healthcheckType);
             } catch (CloudRuntimeException e) {
                throw  e;
             } catch (Exception ex) {
@@ -1802,7 +1804,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     @DB
     @Override
     public LoadBalancer createPublicLoadBalancer(final String xId, final String name, final String description, final int srcPort, final int destPort, final long sourceIpId,
-                                                 final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache, final String serviceDownAction, final String healthCheckDestination)
+                                                 final String protocol, final String algorithm, final boolean openFirewall, final CallContext caller, final String lbProtocol, final Boolean forDisplay, final List<String> additionalPortMap, final String cache,
+                                                 final String serviceDownAction, final String healthCheckDestination, final String expectedHealthcheck, final String healthcheckType)
             throws NetworkRuleConflictException {
 
         if (!NetUtils.isValidPort(destPort)) {
@@ -1873,6 +1876,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 loadBalancing.setServiceDownAction(serviceDownAction);
                 loadBalancing.setHealthCheckDestination(healthCheckDestination);
                 loadBalancing.setAdditionalPortMap(additionalPortMap);
+                loadBalancing.setExpectedHealthCheck(expectedHealthcheck);
+                loadBalancing.setHealthCheckType(healthcheckType);
                 if (!validateLbRule(loadBalancing)) {
                     throw new InvalidParameterValueException("LB service provider cannot support this rule");
                 }
@@ -1932,7 +1937,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             String cacheStr = cache != null ? cache.trim() : null; // Remove any white spaces on either side
             String serviceDownActionStr = serviceDownAction != null ? serviceDownAction.trim() : null;
             String healthCheckDestinationStr = healthCheckDestination != null ? healthCheckDestination.trim() : null;
-            _lbOptionsDao.persist(new LoadBalancerOptionsVO(lb.getId(), cacheStr, serviceDownActionStr, healthCheckDestinationStr));
+
+            LoadBalancerOptionsVO loadBalancerOptionsVO = new LoadBalancerOptionsVO(lb.getId(), cacheStr, serviceDownActionStr, healthCheckDestinationStr);
+            loadBalancerOptionsVO.setExpectedHealthCheck(expectedHealthcheck);
+            loadBalancerOptionsVO.setHealthCheckType(healthcheckType);
+            _lbOptionsDao.persist(loadBalancerOptionsVO);
         }
 
         return lb;
@@ -2028,6 +2037,8 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                     loadBalancing.setCache(lbOption.getCache());
                     loadBalancing.setServiceDownAction(lbOption.getServiceDownAction());
                     loadBalancing.setHealthCheckDestination(lbOption.getHealthCheckDestination());
+                    loadBalancing.setExpectedHealthCheck(lbOption.getExpectedHealthCheck());
+                    loadBalancing.setHealthCheckType(lbOption.getHealthCheckType());
                 }
             }
         }
