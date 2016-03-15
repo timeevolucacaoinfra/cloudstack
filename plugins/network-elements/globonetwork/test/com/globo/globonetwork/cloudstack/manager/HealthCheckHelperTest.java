@@ -21,7 +21,8 @@ public class HealthCheckHelperTest {
 
         healthcheck = HealthCheckHelper.build("lb.test.com", "TCP", null, null);
         assertEquals("TCP", healthcheck.getHealthCheckType());
-        assertEquals("", healthcheck.getHealthCheck());
+        assertEquals(null, healthcheck.getHealthCheck());
+        assertEquals(null, healthcheck.getExpectedHealthCheck());
         assertNull(healthcheck.getExpectedHealthCheck());
 
 
@@ -31,7 +32,8 @@ public class HealthCheckHelperTest {
     public void testBuild_validate() {
         HealthCheckHelper healthcheck = HealthCheckHelper.build("lb.test.com", "TCP", null, "WORKING");
         assertEquals("TCP", healthcheck.getHealthCheckType());
-        assertEquals("", healthcheck.getHealthCheck());
+        assertEquals(null, healthcheck.getHealthCheck());
+        assertEquals(null, healthcheck.getExpectedHealthCheck());
         assertNull(healthcheck.getExpectedHealthCheck());
     }
 
@@ -48,7 +50,8 @@ public class HealthCheckHelperTest {
     public void testBuild_tcp_old_version() {
         HealthCheckHelper healthcheck = HealthCheckHelper.build("lb.test.com", null, null, null);
         assertEquals("TCP", healthcheck.getHealthCheckType());
-        assertEquals("", healthcheck.getHealthCheck());
+        assertEquals(null, healthcheck.getHealthCheck());
+        assertEquals(null, healthcheck.getExpectedHealthCheck());
         assertNull(healthcheck.getExpectedHealthCheck());
     }
 
