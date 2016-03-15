@@ -115,6 +115,9 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     }
 
     public String getHealthcheck() {
+        if ( healthcheck != null && healthcheck.equals("null")) {
+            healthcheck = null; //fix for sanity tests, cloudmonkey doesnt allow send parameter ""
+        }
         return healthcheck;
     }
 
@@ -123,8 +126,8 @@ public class UpdateGloboNetworkPoolCmd extends BaseAsyncCmd {
     }
 
     public String getExpectedHealthcheck() {
-        if ( expectedHealthcheck != null && expectedHealthcheck == "") {
-            expectedHealthcheck = ""; //fix for sanity tests, cloudmonkey doesnt allow send parameter ""
+        if ( expectedHealthcheck != null && expectedHealthcheck.equals("null")) {
+            expectedHealthcheck = null; //fix for sanity tests, cloudmonkey doesnt allow send parameter ""
         }
         return expectedHealthcheck;
     }
