@@ -31,10 +31,10 @@ public class ListGloboNetworkExpectedHealthchecksCmdTest {
         list.add(new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(2l, "ac"));
 
         GloboNetworkManager mock = mock(GloboNetworkManager.class);
-        when(mock.listAllExpectedHealthchecks(12l)).thenReturn(list);
+        when(mock.listAllExpectedHealthchecks()).thenReturn(list);
 
         cmd._globoNetworkService = mock;
-        cmd.setZoneId(12l);
+
         cmd.execute();
 
         ListResponse<ExpectedHealthcheckResponse> responseObject = (ListResponse< ExpectedHealthcheckResponse >)cmd.getResponseObject();

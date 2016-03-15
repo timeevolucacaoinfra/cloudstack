@@ -729,7 +729,7 @@ public class GloboNetworkManagerTest {
         manager._agentMgr = mockAgent;
 
         //execute
-        List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> expectedHealthcheckList = manager.listAllExpectedHealthchecks(zoneId);
+        List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> expectedHealthcheckList = manager.listAllExpectedHealthchecks();
 
         assertNotNull(expectedHealthcheckList);
         assertEquals(2, expectedHealthcheckList.size());
