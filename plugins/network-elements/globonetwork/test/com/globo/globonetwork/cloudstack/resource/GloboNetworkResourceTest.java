@@ -320,7 +320,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(
             isNull(Long.class), anyString(), eq(8080),
             isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+            isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
             anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
@@ -357,7 +357,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(
             isNull(Long.class), anyString(), eq(8080),
             isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+            isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
             anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
@@ -368,7 +368,7 @@ public class GloboNetworkResourceTest {
         verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(
                 isNull(Long.class), anyString(), eq(8080),
                 isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-                eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
                 anyList(), anyList(), isNull(String.class), isNull(String.class)
         );
     }
@@ -420,7 +420,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(
                         eq(pool.getId()), anyString(), eq(8080),
                         isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-                        eq(""), eq(0), eq(realIpsList), eq(equipNames), eq(equipIds), eq(realPriorities), eq(realWeights),
+                        isNull(String.class), eq(0), eq(realIpsList), eq(equipNames), eq(equipIds), eq(realPriorities), eq(realWeights),
                         eq(Arrays.asList(8080, 8080)), eq(Arrays.asList(200L, 0L)), isNull(String.class), isNull(String.class))
         ).thenReturn(pool);
 
@@ -431,7 +431,7 @@ public class GloboNetworkResourceTest {
         verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(
                 eq(pool.getId()), anyString(), eq(8080),
                 isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-                eq(""), eq(0), eq(realIpsList), eq(equipNames), eq(equipIds), eq(realPriorities), eq(realWeights),
+                isNull(String.class), eq(0), eq(realIpsList), eq(equipNames), eq(equipIds), eq(realPriorities), eq(realWeights),
                 eq(Arrays.asList(8080, 8080)), eq(Arrays.asList(200L, 0L)), isNull(String.class), isNull(String.class)
         );
     }
@@ -508,7 +508,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(
             isNull(Long.class), anyString(), eq(8080),
             isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+            isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
             anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
@@ -526,7 +526,7 @@ public class GloboNetworkResourceTest {
         assertTrue(answer instanceof GloboNetworkVipResponse);
         verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(isNull(Long.class), anyString(), eq(8080),
             isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-            eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+            isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
             anyList(), anyList(), isNull(String.class), isNull(String.class));
         verify(_resource._globoNetworkApi.getVipAPI(), times(1)).save(
             eq(345L), isNull(Long.class), eq(vipToBeCreated.getFinality()), eq(vipToBeCreated.getClient()), eq(vipToBeCreated.getEnvironment()),
@@ -564,7 +564,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(
                         isNull(Long.class), anyString(), anyInt(),
                         isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-                        eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                        isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
                         anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
@@ -581,7 +581,7 @@ public class GloboNetworkResourceTest {
         assertTrue(answer.getResult());
         verify(_resource._globoNetworkApi.getPoolAPI(), times(2)).save(isNull(Long.class), anyString(), anyInt(),
                 isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-                eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
                 anyList(), anyList(), isNull(String.class), isNull(String.class)
         );
     }
@@ -616,7 +616,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(
                         anyLong(), anyString(), anyInt(),
                         isNull(Long.class), eq("round-robin"), eq("TCP"), isNull(String.class),
-                        eq(""), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
+                        isNull(String.class), eq(0), anyList(), anyList(), anyList(), anyList(), anyList(),
                         anyList(), anyList(), isNull(String.class), isNull(String.class))
         ).thenReturn(new Pool());
 
