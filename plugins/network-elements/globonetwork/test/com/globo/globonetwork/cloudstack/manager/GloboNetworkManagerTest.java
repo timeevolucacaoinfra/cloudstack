@@ -718,6 +718,13 @@ public class GloboNetworkManagerTest {
         when(mock.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
         manager._hostDao = mock;
 
+
+        DataCenterDao mock2 = mock(DataCenterDao.class);
+        List<DataCenterVO> list = new ArrayList<DataCenterVO>();
+        list.add(new DataCenterVO(zoneId, null, null, null, null, null, null, null, null, null, null, null, null));
+        when(mock2.listEnabledZones()).thenReturn(list);
+        manager._dcDao = mock2;
+
         //mock result
         GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect1 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(1l, "OK");
         GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect2 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(2l, "WORKING");
