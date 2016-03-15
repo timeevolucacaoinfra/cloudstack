@@ -351,7 +351,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
                     getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(),
-                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), expectedHealthCheck, healthCheckType);
+                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), getExpectedHealthCheck(), healthCheckType);
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {

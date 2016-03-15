@@ -34,6 +34,7 @@
     });
     */
     var healthcheckTypes = [{id: 'TCP', name: 'TCP', description: 'TCP'}, {id: 'HTTP', name: 'HTTP', description: 'HTTP'}];
+    var msg_validation_healthcheck_http = "<span style='font-weight: bold'>Expected Health Check</span> can not be empty when <span style='font-weight: bold'>Health Check Type</span> is <span style='font-weight: bold'>HTTP</span>";
     var cascadeAsyncCmds = function(args) {
 
         var process_command = function(index, last_result) {
@@ -735,10 +736,17 @@
                                                     }
                                                 },
                                                 after: function(args2) {
+                                                    if (args2.data.healthcheck === '' && args2.data.healthchecktype === 'HTTP') {
+                                                        args.response.error(msg_validation_healthcheck_http);
+                                                        return;
+                                                    } 
+
+
                                                     if (args2.data.healthchecktype === 'TCP') { // Empty healthcheck means TCP
                                                         args2.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP only
                                                         args2.data.healthcheck = '';
-                                                    } 
+                                                    }
+
                                                     $.ajax({
                                                         url: createURL('updateGloboNetworkPool'),
                                                         dataType: 'json',
@@ -879,6 +887,10 @@
                                         },
                                     },
                                     action: function(args) {
+                                        if (args.data.healthcheck === '' && args.data.healthchecktype === 'HTTP') {
+                                            args.response.error(msg_validation_healthcheck_http);
+                                            return;
+                                        } 
                                         if (args.data.healthchecktype === 'TCP') { // Empty healthcheck means TCP
                                             args.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP only
                                             args.data.healthcheck = '';
@@ -1767,7 +1779,7 @@
                             },
                             // #hlb
                             healthchecktype: {
-                                label: 'Healthcheck Type',
+                                label: 'Health Check Type',
                                 docID: 'helpHealthcheckType',
                                 isHidden: function (args) {
                                     var isAdvancedChecked = $('input[name=isLbAdvanced]:checked').length > 0;
@@ -1792,10 +1804,10 @@
                                 }
                             },
                             healthcheck: {
-                                label: 'Healthcheck'
+                                label: 'Health Check'
                             },
                             expectedhealthcheck: {
-                                label: 'Expected Healthchecks',
+                                label: 'Expected Health Check',
                                 select: function(args) {
                                     var expectedHealthcheck = [];
                                     $.ajax({
@@ -1826,6 +1838,20 @@
                             args.response.error("Underscore(_) is not allowed in Load Balancer names");
                             return;
                         }
+                        var expectedhealthcheck = '';
+                        var healthcheckPingPath = '';
+
+                        if ( args.data.healthchecktype === 'HTTP' ) {
+                            healthcheckPingPath = args.data.healthcheck.valueOf().trim();
+                            expectedhealthcheck = args.data.expectedhealthcheck;
+                            if ( healthcheckPingPath === ''){
+                                args.response.error(msg_validation_healthcheck_http);
+                                return
+                            }
+                            
+                        }
+
+
                         var network;
                         $.ajax({
                             url: createURL("listNetworks"),
@@ -1955,15 +1981,18 @@
                                     openfirewall: false,
                                     networkid: args.data.network,
                                     cache: args.data.cachegroup,
-                                    expectedhealthcheck: args.data.expectedhealthcheck,
                                     healthcheckType: args.data.healthchecktype,
                                     publicipid: ipId,
                                     additionalportmap: additionalportmap.join(),
                                 };
 
+                                if ( expectedhealthcheck !== '' ){
+                                    data['expectedhealthcheck'] = expectedhealthcheck;
+                                }
+
                                 var stickyData = {methodname: args.data.sticky.valueOf(), stickyName: args.data.sticky.valueOf()};
 
-                                var healthcheckPingPath = args.data.healthcheck.valueOf().trim();
+                                
 
                                 $.ajax({
                                     url: createURL('createLoadBalancerRule'),

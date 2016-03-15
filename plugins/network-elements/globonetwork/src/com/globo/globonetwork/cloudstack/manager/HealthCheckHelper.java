@@ -43,12 +43,19 @@ public class HealthCheckHelper {
             }
 
             //new version
-            if  (healthcheck == null || healthcheck.isEmpty()) {
+            if ( healthcheckType != null ){
+                this.healthCheckType = GloboNetworkManager.HealthCheckType.valueOf(healthcheckType).name();
+
+                if  (healthCheckType.equals(GloboNetworkManager.HealthCheckType.TCP.name())) {
+                    this.expectedHealthCheck = null;
+                    this.healthCheck = null;
+                } else {
+                    this.expectedHealthCheck = expectedHealthcheck;
+                }
+            } else {
                 this.healthCheckType = GloboNetworkManager.HealthCheckType.TCP.name();
                 this.expectedHealthCheck = null;
-            } else {
-                this.healthCheckType = GloboNetworkManager.HealthCheckType.HTTP.name();
-                this.expectedHealthCheck = expectedHealthcheck;
+                this.healthCheck = null;
             }
 
             return this;
