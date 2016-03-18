@@ -27,6 +27,9 @@ public class CreateNewVlanInGloboNetworkCommand extends Command {
     private Long globoNetworkEnvironmentId;
 
     private Boolean isIpv6;
+
+    private Long subnet;
+
     @Override
     public boolean executeInSequence() {
         return false;
@@ -54,6 +57,18 @@ public class CreateNewVlanInGloboNetworkCommand extends Command {
 
     public void setGloboNetworkEnvironmentId(Long globoNetworkEnvironmentId) {
         this.globoNetworkEnvironmentId = globoNetworkEnvironmentId;
+    }
+
+    public Boolean getIsIpv6() {
+        return isIpv6;
+    }
+
+    public Long getSubnet() {
+        return subnet;
+    }
+
+    public void setSubnet(Long subnet) {
+        this.subnet = subnet;
     }
 
     public Boolean isIpv6() {

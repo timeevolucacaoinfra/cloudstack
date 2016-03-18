@@ -87,7 +87,7 @@ public interface GloboNetworkService {
     * @return
     */
     public Network createNetwork(String name, String displayText, Long zoneId, Long networkOfferingId, Long napiEnvironmentId, String networkDomain, ACLType aclType,
-            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId, Boolean isIpv6) throws ResourceAllocationException,
+            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId, Boolean isIpv6, Long subnet) throws ResourceAllocationException,
             ResourceUnavailableException, ConcurrentOperationException, InsufficientCapacityException;
 
     /**

@@ -251,7 +251,7 @@ public class GloboNetworkManagerTest {
 
         try {
             _globoNetworkService.createNetwork(networkName, networkName, zoneId, networkOfferingId, globoNetworkEnvironmentId, null, ACLType.Domain, null, null, null, null, true,
-                    null, false);
+                    null, false, null);
             // This command must throw InvalidParameterValueException, otherwise fails
             Assert.fail();
         } catch (ResourceAllocationException e) {
@@ -266,7 +266,7 @@ public class GloboNetworkManagerTest {
 
             acct.setDomainId(domainId + 1);
             _globoNetworkService.createNetwork("net-name", "display-name", zoneId, networkOfferingId, globoNetworkEnvironmentId, null, ACLType.Domain, acct.getAccountName(), null,
-                    domainId, null, true, null, false);
+                    domainId, null, true, null, false, null);
             fail();
         } catch (PermissionDeniedException e) {
             verify(_agentMgr, never()).easySend(any(Long.class), any(Command.class));

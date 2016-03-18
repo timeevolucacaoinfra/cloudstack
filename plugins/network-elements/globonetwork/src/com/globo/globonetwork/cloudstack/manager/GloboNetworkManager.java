@@ -267,6 +267,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     private static final ConfigKey<String> GloboNetworkLBAllowedSuffixes = new ConfigKey<String>("Network", String.class, "globonetwork.lb.allowed.suffixes", "",
             "Allowed domain suffixes for load balancers created with GloboNetwork. List of domain names separated by commas", true, ConfigKey.Scope.Global);
 
+    private static final ConfigKey<Integer> minSubnetMaskInBIts = new ConfigKey<Integer>("Network", Integer.class, "globonetwork.min.subnetinbits", "24",
+            "Min subnet mask in bits for allowed to create network in globonetwork, use 24 for a /24 subnet", true, ConfigKey.Scope.Global);
+
+    private static final ConfigKey<Integer> maxSubnetMaskInBIts = new ConfigKey<Integer>("Network", Integer.class, "globonetwork.min.subnetinbits", "29",
+            "Max subnet mask in bits for allowed to create network in globonetwork, use 29 for a /29 subnet", true, ConfigKey.Scope.Global);
+
+
     // DAOs
     @Inject
     DomainDao _domainDao;
@@ -361,7 +368,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     @Override
     @DB
     public Network createNetwork(String name, String displayText, Long zoneId, Long networkOfferingId, Long napiEnvironmentId, String networkDomain, ACLType aclType,
-            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId, Boolean isIpv6) throws ResourceAllocationException,
+            String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId, Boolean isIpv6, Long subnet) throws ResourceAllocationException,
             ResourceUnavailableException, ConcurrentOperationException, InsufficientCapacityException {
 
         Account caller = CallContext.current().getCallingAccount();
@@ -373,6 +380,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         DataCenter zone = _dcDao.findById(zoneId);
         if (zone == null) {
             throw new InvalidParameterValueException("Specified zone id was not found");
+        }
+        int min = minSubnetMaskInBIts.value();
+        int max = maxSubnetMaskInBIts.value();
+        if ( subnet != null && (subnet <  min || subnet > max)){
+            throw new CloudRuntimeException("Subnet should be equals or greater than " + min + " and equals or less than " + max + " (" + min + " => subnet =< " + max + "). Value: " + subnet);
         }
 
         Long physicalNetworkId = null;
@@ -400,7 +412,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         }
 
-        Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId, isIpv6);
+        Answer answer = createNewVlan(zoneId, name, displayText, napiEnvironmentId, isIpv6, subnet);
 
         GloboNetworkVlanResponse response = (GloboNetworkVlanResponse)answer;
         Long napiVlanId = response.getVlanId();
@@ -645,13 +657,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return formatted;
     }
 
-    protected GloboNetworkVlanResponse createNewVlan(Long zoneId, String name, String description, Long globoNetworkEnvironmentId, Boolean isIpv6) {
+    protected GloboNetworkVlanResponse createNewVlan(Long zoneId, String name, String description, Long globoNetworkEnvironmentId, Boolean isIpv6, Long subnet) {
 
         CreateNewVlanInGloboNetworkCommand cmd = new CreateNewVlanInGloboNetworkCommand();
         cmd.setVlanName(name);
         cmd.setVlanDescription(description);
         cmd.setGloboNetworkEnvironmentId(globoNetworkEnvironmentId);
         cmd.setIsIpv6(isIpv6);
+        cmd.setSubnet(subnet);
 
         return (GloboNetworkVlanResponse)callCommand(cmd, zoneId);
     }

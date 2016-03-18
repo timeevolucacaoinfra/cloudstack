@@ -66,12 +66,10 @@ globoNetworkAPI = globoNetworkAPI || {};
                         isBoolean: true,
                         isChecked: false,
                     },
-
                     networkdomain: {
                         label: 'label.network.domain',
                         docID: 'helpGuestNetworkZoneNetworkDomain'
                     },
-
                     zoneId: {
                         label: 'label.zone',
                         validation: {
@@ -108,7 +106,6 @@ globoNetworkAPI = globoNetworkAPI || {};
                             });
                         }
                     },
-
                     napiEnvironmentId: {
                         label: 'Environment',
                         dependsOn: 'zoneId',
@@ -141,7 +138,6 @@ globoNetworkAPI = globoNetworkAPI || {};
                             });
                         }
                     },
-
                     networkOfferingId: {
                         label: 'label.network.offering',
                         dependsOn: ['zoneId', 'scope'],
@@ -207,6 +203,35 @@ globoNetworkAPI = globoNetworkAPI || {};
                                 data: items
                             });
                         }
+                    },
+                    isNetworkAdvanced: {
+                                label: 'label.show.advanced.settings',
+                                dependsOn: ['network'],
+                                isBoolean: true,
+                                defaultValue: false,
+                                isChecked: false,
+                    },
+                    hostCount: {
+                        label: 'Hosts Count',
+                        docID: 'helpHostsCount',
+                        isHidden: function (args) {
+                                    var isAdvancedChecked = $('input[name=isNetworkAdvanced]:checked').length > 0;
+                                    return !isAdvancedChecked;
+                                },
+                        dependsOn: ['isNetworkAdvanced'],
+                        select: function(args) {
+                            args.response.success({
+                                data: [
+                                    {id: '29', name: '8', description: '8'},
+                                    {id: '28', name: '16', description: '16'},
+                                    {id: '27', name: '32', description: '32'},
+                                    {id: '26', name: '64', description: '64'},
+                                    {id: '25', name: '128', description: '128'},
+                                    {id: '24', name: '255', description: '255'}
+                                    ]
+                            })
+                        }
+
                     }
                 }
             },
@@ -253,6 +278,10 @@ globoNetworkAPI = globoNetworkAPI || {};
 
                 array1.push("&acltype=account");
 
+                if ( args.data.isNetworkAdvanced == 'on') {
+                    array1.push("&subnet=" + args.data.hostCount);
+                }
+                
                 $.ajax({
                     url: createURL("addNetworkViaGloboNetwork" + array1.join(""), {
                         ignoreProject: true

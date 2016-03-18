@@ -97,6 +97,9 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
     @Parameter(name = "isipv6", type = CommandType.BOOLEAN, description = "If true defines de network IP type as IPV6")
     private boolean isIpv6 = false;
 
+    @Parameter(name = "subnet", type = CommandType.LONG, description = "Subnet mask in bits (24 for /24, 29 for /29).")
+    private Long subnet;
+
     public Long getZoneId() {
         return zoneId;
     }
@@ -127,7 +130,7 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
                     + domainId + " subdomainAccess=" + subdomainAccess + " displayNetwork=" + displayNetwork + " aclId=" + aclId + " napienvironmentid="
                     + globoNetworkEnvironmentId + " isIpv6="+ isIpv6);
             Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
-                    projectId, domainId, subdomainAccess, displayNetwork, aclId, isIpv6);
+                    projectId, domainId, subdomainAccess, displayNetwork, aclId, isIpv6, subnet);
             if (network != null) {
                 NetworkResponse response = _responseGenerator.createNetworkResponse(ResponseView.Full, network);
                 response.setResponseName(getCommandName());
