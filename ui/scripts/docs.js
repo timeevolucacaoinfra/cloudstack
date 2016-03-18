@@ -1305,10 +1305,6 @@ cloudStack.docs = {
         desc: 'After request, it is the expected string response to check if service is on/off',
         externalLink: ''
     },
-    helpHostsCount: {
-        desc: 'You should consider that hosts count is TOTAL - 6 hosts IP, because 1 IP for network, 1 IP for Gateway, 1 IP for broadcast, 1 IP for virtual router and 2 for switches (Total = HostCount - 6). So, if you select 8, you only have 2 hosts available.',
-        externalLink: ''
-    },
     helpLbPorts: {
         desc: 'List of port mapping for load balancer, e.g. "80:8080,443:8443"',
         externalLink: ''

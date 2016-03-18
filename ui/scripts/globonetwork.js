@@ -213,7 +213,6 @@ globoNetworkAPI = globoNetworkAPI || {};
                     },
                     hostCount: {
                         label: 'Hosts Count',
-                        docID: 'helpHostsCount',
                         isHidden: function (args) {
                                     var isAdvancedChecked = $('input[name=isNetworkAdvanced]:checked').length > 0;
                                     return !isAdvancedChecked;
@@ -222,12 +221,12 @@ globoNetworkAPI = globoNetworkAPI || {};
                         select: function(args) {
                             args.response.success({
                                 data: [
-                                    {id: '29', name: '8', description: '8'},
-                                    {id: '28', name: '16', description: '16'},
-                                    {id: '27', name: '32', description: '32'},
-                                    {id: '26', name: '64', description: '64'},
-                                    {id: '25', name: '128', description: '128'},
-                                    {id: '24', name: '255', description: '255'}
+                                    {id: '29', name: '2', description: '2'},
+                                    {id: '28', name: '10', description: '10'},
+                                    {id: '27', name: '26', description: '26'},
+                                    {id: '26', name: '58', description: '58'},
+                                    {id: '25', name: '122', description: '122'},
+                                    {id: '24', name: '250', description: '250'}
                                     ]
                             })
                         }
