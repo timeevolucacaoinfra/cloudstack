@@ -1305,6 +1305,10 @@ cloudStack.docs = {
         desc: 'After request, it is the expected string response to check if service is on/off',
         externalLink: ''
     },
+    helpHostCount: {
+        desc: 'Max hosts supported in the network, if it is empty, cloudstack will use the default option of the network environment.',
+        externalLink: ''
+    },
     helpLbPorts: {
         desc: 'List of port mapping for load balancer, e.g. "80:8080,443:8443"',
         externalLink: ''

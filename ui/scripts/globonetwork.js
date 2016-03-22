@@ -212,15 +212,17 @@ globoNetworkAPI = globoNetworkAPI || {};
                                 isChecked: false,
                     },
                     hostCount: {
-                        label: 'Hosts Count',
+                        label: 'Max hosts supported',
                         isHidden: function (args) {
                                     var isAdvancedChecked = $('input[name=isNetworkAdvanced]:checked').length > 0;
                                     return !isAdvancedChecked;
                                 },
                         dependsOn: ['isNetworkAdvanced'],
+                        docID: 'helpHostCount',
                         select: function(args) {
                             args.response.success({
                                 data: [
+                                    {id: '', name: '--- Select ---', description: '--- Select ---'},
                                     {id: '29', name: '2', description: '2'},
                                     {id: '28', name: '10', description: '10'},
                                     {id: '27', name: '26', description: '26'},
@@ -277,7 +279,7 @@ globoNetworkAPI = globoNetworkAPI || {};
 
                 array1.push("&acltype=account");
 
-                if ( args.data.isNetworkAdvanced == 'on') {
+                if ( args.data.hostCount !== '') {
                     array1.push("&subnet=" + args.data.hostCount);
                 }
                 
