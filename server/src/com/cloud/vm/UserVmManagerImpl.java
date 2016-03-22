@@ -926,6 +926,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
             throw new InvalidParameterValueException("unable to find a virtual machine with id " + vmId);
         }
 
+        Account owner = _accountService.getActiveAccountById(vmInstance.getAccountId());
         _accountMgr.checkAccess(caller, null, true, vmInstance);
 
         // Check resource limits for CPU and Memory.
@@ -943,10 +944,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
         int currentMemory = currentServiceOffering.getRamSize();
 
         if (newCpu > currentCpu) {
-            _resourceLimitMgr.checkResourceLimit(caller, ResourceType.cpu, newCpu - currentCpu);
+            _resourceLimitMgr.checkResourceLimit(owner, ResourceType.cpu, newCpu - currentCpu);
         }
         if (newMemory > currentMemory) {
-            _resourceLimitMgr.checkResourceLimit(caller, ResourceType.memory, newMemory - currentMemory);
+            _resourceLimitMgr.checkResourceLimit(owner, ResourceType.memory, newMemory - currentMemory);
         }
 
         // Check that the specified service offering ID is valid
@@ -963,14 +964,14 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
         // Increment or decrement CPU and Memory count accordingly.
         if (newCpu > currentCpu) {
-            _resourceLimitMgr.incrementResourceCount(caller.getAccountId(), ResourceType.cpu, new Long(newCpu - currentCpu));
+            _resourceLimitMgr.incrementResourceCount(owner.getAccountId(), ResourceType.cpu, new Long(newCpu - currentCpu));
         } else if (currentCpu > newCpu) {
-            _resourceLimitMgr.decrementResourceCount(caller.getAccountId(), ResourceType.cpu, new Long(currentCpu - newCpu));
+            _resourceLimitMgr.decrementResourceCount(owner.getAccountId(), ResourceType.cpu, new Long(currentCpu - newCpu));
         }
         if (newMemory > currentMemory) {
-            _resourceLimitMgr.incrementResourceCount(caller.getAccountId(), ResourceType.memory, new Long(newMemory - currentMemory));
+            _resourceLimitMgr.incrementResourceCount(owner.getAccountId(), ResourceType.memory, new Long(newMemory - currentMemory));
         } else if (currentMemory > newMemory) {
-            _resourceLimitMgr.decrementResourceCount(caller.getAccountId(), ResourceType.memory, new Long(currentMemory - newMemory));
+            _resourceLimitMgr.decrementResourceCount(owner.getAccountId(), ResourceType.memory, new Long(currentMemory - newMemory));
         }
 
         return _vmDao.findById(vmInstance.getId());
@@ -1365,6 +1366,7 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
         Account caller = CallContext.current().getCallingAccount();
         VMInstanceVO vmInstance = _vmInstanceDao.findById(vmId);
+        Account owner = _accountService.getActiveAccountById(vmInstance.getAccountId());
         if (vmInstance.getHypervisorType() != HypervisorType.XenServer && vmInstance.getHypervisorType() != HypervisorType.VMware) {
             s_logger.info("Scaling the VM dynamically is not supported for VMs running on Hypervisor "+vmInstance.getHypervisorType());
             throw new InvalidParameterValueException("Scaling the VM dynamically is not supported for VMs running on Hypervisor "+vmInstance.getHypervisorType());
@@ -1402,10 +1404,10 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
         // Check resource limits
         if (newCpu > currentCpu) {
-            _resourceLimitMgr.checkResourceLimit(caller, ResourceType.cpu, newCpu - currentCpu);
+            _resourceLimitMgr.checkResourceLimit(owner, ResourceType.cpu, newCpu - currentCpu);
         }
         if (newMemory > currentMemory) {
-            _resourceLimitMgr.checkResourceLimit(caller, ResourceType.memory, newMemory - currentMemory);
+            _resourceLimitMgr.checkResourceLimit(owner, ResourceType.memory, newMemory - currentMemory);
         }
 
         // Dynamically upgrade the running vms
@@ -1437,11 +1439,11 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
 
                     // Increment CPU and Memory count accordingly.
                     if (newCpu > currentCpu) {
-                        _resourceLimitMgr.incrementResourceCount(caller.getAccountId(), ResourceType.cpu, new Long(newCpu - currentCpu));
+                        _resourceLimitMgr.incrementResourceCount(owner.getAccountId(), ResourceType.cpu, new Long(newCpu - currentCpu));
                     }
 
                     if (memoryDiff > 0) {
-                        _resourceLimitMgr.incrementResourceCount(caller.getAccountId(), ResourceType.memory, new Long(memoryDiff));
+                        _resourceLimitMgr.incrementResourceCount(owner.getAccountId(), ResourceType.memory, new Long(memoryDiff));
                     }
 
                     // #1 Check existing host has capacity
@@ -1487,11 +1489,11 @@ public class UserVmManagerImpl extends ManagerBase implements UserVmManager, Vir
                         }
                         // Decrement CPU and Memory count accordingly.
                         if (newCpu > currentCpu) {
-                            _resourceLimitMgr.decrementResourceCount(caller.getAccountId(), ResourceType.cpu, new Long(newCpu - currentCpu));
+                            _resourceLimitMgr.decrementResourceCount(owner.getAccountId(), ResourceType.cpu, new Long(newCpu - currentCpu));
                         }
 
                         if (memoryDiff > 0) {
-                            _resourceLimitMgr.decrementResourceCount(caller.getAccountId(), ResourceType.memory, new Long(memoryDiff));
+                            _resourceLimitMgr.decrementResourceCount(owner.getAccountId(), ResourceType.memory, new Long(memoryDiff));
                         }
                     }
                 }
