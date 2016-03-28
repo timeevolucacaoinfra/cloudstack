@@ -1705,27 +1705,29 @@
                                 dependsOn: ['lbenvironment','isLbAdvanced'],
                                 select: function(args) {
                                     var network;
-                                    $.ajax({
-                                        url: createURL("listGloboNetworkLBCacheGroups"),
-                                        data: {
-                                            lbenvironment: args.data.lbenvironment,
-                                            networkid: args.data.network
-                                        },
-                                        dataType: "json",
-                                        async: false,
-                                        success: function(json) {
-                                            var data = [];
-                                            $(json.listglobonetworklbcachegroupsresponse.globonetworkcachegroups).each(function() {
-                                                data.push({id: this.name, name: this.name, description: this.name});
-                                            });
-                                            args.response.success({
-                                                data: data
-                                            });
-                                        },
-                                        error: function(json) {
-                                            args.response.error(parseXMLHttpResponse(json));
-                                        }
-                                    });
+                                    if ( args.data.lbenvironment !== '' ){
+                                        $.ajax({
+                                            url: createURL("listGloboNetworkLBCacheGroups"),
+                                            data: {
+                                                lbenvironment: args.data.lbenvironment,
+                                                networkid: args.data.network
+                                            },
+                                            dataType: "json",
+                                            async: false,
+                                            success: function(json) {
+                                                var data = [];
+                                                $(json.listglobonetworklbcachegroupsresponse.globonetworkcachegroups).each(function() {
+                                                    data.push({id: this.name, name: this.name, description: this.name});
+                                                });
+                                                args.response.success({
+                                                    data: data
+                                                });
+                                            },
+                                            error: function(json) {
+                                                args.response.error(parseXMLHttpResponse(json));
+                                            }
+                                        });
+                                    }
                                 }
                             },
                             
