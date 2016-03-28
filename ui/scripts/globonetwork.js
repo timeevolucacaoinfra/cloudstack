@@ -45,6 +45,19 @@ globoNetworkAPI = globoNetworkAPI || {};
                     if (!globoNetworkAPI.getCapability('supportCustomNetworkDomain')) {
                         args.$form.find('.form-item[rel=networkdomain]').hide();
                     }
+                    $('input[name=isIPv6]:checkbox').change(function(arg){
+                        var checked = $(this).context.checked
+                        console.log(checked);
+                        var advancedOption = $('input[name=isNetworkAdvanced]');
+                        
+                        if ( checked ){
+                            $('.form-item[rel=isNetworkAdvanced]').hide();
+                            advancedOption.attr('checked', false);
+                            $('.form-item[rel=hostCount]').hide();
+                        } else {
+                            $('.form-item[rel=isNetworkAdvanced]').show();
+                        }
+                    })
                 },
 
                 fields: {
@@ -61,10 +74,13 @@ globoNetworkAPI = globoNetworkAPI || {};
                         }
                     },
 
-                    ipv6: {
+                    isIPv6: {
                         label: 'IPv6',
                         isBoolean: true,
                         isChecked: false,
+                        onchange: function(args) {
+                            console.log(args)
+                        }
                     },
                     networkdomain: {
                         label: 'label.network.domain',
@@ -206,13 +222,10 @@ globoNetworkAPI = globoNetworkAPI || {};
                     },
                     isNetworkAdvanced: {
                                 label: 'label.show.advanced.settings',
-                                dependsOn: ['network'],
-                                isBoolean: true,
-                                defaultValue: false,
-                                isChecked: false,
+                                isBoolean: true
                     },
                     hostCount: {
-                        label: 'Max hosts supported',
+                        label: 'label.max.hosts.supported',
                         isHidden: function (args) {
                                     var isAdvancedChecked = $('input[name=isNetworkAdvanced]:checked').length > 0;
                                     return !isAdvancedChecked;
@@ -261,7 +274,7 @@ globoNetworkAPI = globoNetworkAPI || {};
 
                 array1.push("&name=" + todb(args.data.name));
                 array1.push("&displayText=" + todb(args.data.description));
-                var useIpv6 = (args.data.ipv6 == "on");
+                var useIpv6 = (args.data.isIPv6 == "on");
                 array1.push("&isipv6=" + useIpv6);
 
                 if (globoNetworkAPI.getCapability('supportCustomNetworkDomain')) {
@@ -307,6 +320,7 @@ globoNetworkAPI = globoNetworkAPI || {};
             }
         }
     };
+
 
     // GloboNetwork provider detail view (used in system.js)
     var addGloboNetworkHost = function(args, physicalNetworkObj, apiCmd, apiCmdRes) {

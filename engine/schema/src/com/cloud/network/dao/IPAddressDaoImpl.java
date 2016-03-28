@@ -141,6 +141,9 @@ public class IPAddressDaoImpl extends GenericDaoBase<IPAddressVO, Long> implemen
         DeleteAllExceptGivenIp.and("ip", DeleteAllExceptGivenIp.entity().getAddress(), Op.NEQ);
     }
 
+    public IPAddressVO persist(final IPAddressVO entity) {
+        return super.persist(entity);
+    }
     @Override
     public boolean mark(long dcId, Ip ip) {
         SearchCriteria<IPAddressVO> sc = AllFieldsSearch.create();

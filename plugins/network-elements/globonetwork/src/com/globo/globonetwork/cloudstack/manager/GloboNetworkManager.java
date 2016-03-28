@@ -371,6 +371,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             String accountName, Long projectId, Long domainId, Boolean subdomainAccess, Boolean displayNetwork, Long aclId, Boolean isIpv6, Long subnet) throws ResourceAllocationException,
             ResourceUnavailableException, ConcurrentOperationException, InsufficientCapacityException {
 
+        if ( isIpv6 && subnet != null ){
+            throw new CloudRuntimeException("Subnet should be null when IPv6 is true! subnet: " + subnet + " isIPv6: " + isIpv6);
+        }
+
         Account caller = CallContext.current().getCallingAccount();
 
         if ((accountName != null && domainId != null) || projectId != null) {

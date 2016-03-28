@@ -1015,6 +1015,7 @@ $.extend(dictionary, {
 'label.na': '<fmt:message key="label.na" />',
 'label.added.network.offering': '<fmt:message key="label.added.network.offering" />',
 'label.no': '<fmt:message key="label.no" />',
-'label.local.storage.enabled.system.vms': '<fmt:message key="label.local.storage.enabled.system.vms" />'
+'label.local.storage.enabled.system.vms': '<fmt:message key="label.local.storage.enabled.system.vms" />',
+'label.max.hosts.supported': '<fmt:message key="label.max.hosts.supported" />'
 });
 </script>
