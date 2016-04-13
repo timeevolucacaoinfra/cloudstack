@@ -706,7 +706,7 @@ public class ProjectManagerImpl extends ManagerBase implements ProjectManager {
 
         ProjectInvitation projectInvitation = _projectInvitationDao.persist(new ProjectInvitationVO(project.getId(), null, project.getDomainId(), email, token));
         try {
-            _emailInvite.sendInvite(token, email, project.getId());
+            _emailInvite.sendInvite(token, email, project);
         } catch (Exception ex) {
             s_logger.warn("Failed to send project id=" + project + " invitation to the email " + email + "; removing the invitation record from the db", ex);
             _projectInvitationDao.remove(projectInvitation.getId());
@@ -960,7 +960,7 @@ public class ProjectManagerImpl extends ManagerBase implements ProjectManager {
             }
         }
 
-        public void sendInvite(String token, String email, long projectId) throws MessagingException, UnsupportedEncodingException {
+        public void sendInvite(String token, String email, Project project) throws MessagingException, UnsupportedEncodingException {
             if (_smtpSession != null) {
                 InternetAddress address = null;
                 if (email != null) {
@@ -971,13 +971,13 @@ public class ProjectManagerImpl extends ManagerBase implements ProjectManager {
                     }
                 }
 
-                String content = "You've been invited to join the CloudStack project id=" + projectId + ". Please use token " + token + " to complete registration";
+                String content = "You've been invited to join the CloudStack project " + project.getName() + ". Please use token " + token + " to complete registration";
 
                 SMTPMessage msg = new SMTPMessage(_smtpSession);
                 msg.setSender(new InternetAddress(_emailSender, _emailSender));
                 msg.setFrom(new InternetAddress(_emailSender, _emailSender));
                 msg.addRecipient(RecipientType.TO, address);
-                msg.setSubject("You are invited to join the cloud stack project id=" + projectId);
+                msg.setSubject("You are invited to join the cloud stack project " + project.getName());
                 msg.setSentDate(new Date(DateUtil.currentGMTTime().getTime() >> 10));
                 msg.setContent(content, "text/plain");
                 msg.saveChanges();
