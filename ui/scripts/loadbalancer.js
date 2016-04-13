@@ -444,6 +444,8 @@
                                 network: { label: 'label.network' },
                             },
                             dataProvider: function(args) {
+                                listViewDataProvider(args, data);
+
                                 $.ajax({
                                     url: createURL('listLoadBalancerRuleInstances'),
                                     data: {
