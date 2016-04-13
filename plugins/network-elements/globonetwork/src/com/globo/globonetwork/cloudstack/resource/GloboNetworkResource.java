@@ -18,11 +18,11 @@ package com.globo.globonetwork.cloudstack.resource;
 
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.lb.LoadBalancingRule;
-import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.client.api.ExpectHealthcheckAPI;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import com.globo.globonetwork.client.api.PoolAPI;
 import com.globo.globonetwork.client.model.healthcheck.ExpectHealthcheck;
+import com.globo.globonetwork.client.model.pool.PoolV3;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
@@ -31,12 +31,12 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckR
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
 import javax.naming.ConfigurationException;
 
 import com.globo.globonetwork.client.api.VipAPI;
@@ -48,7 +48,6 @@ import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsC
 import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.IAgentControl;
@@ -97,6 +96,7 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkAndIPResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse.Real;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
+import sun.net.util.IPAddressUtil;
 
 public class GloboNetworkResource extends ManagerBase implements ServerResource {
     private String _zoneId;
@@ -223,6 +223,20 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         cmd.setPrivateIpAddress("");
         cmd.setStorageIpAddress("");
         cmd.setVersion(GloboNetworkResource.class.getPackage().getImplementationVersion());
+
+        System.out.println("Init");
+//        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
+
+        ConsoleHandler logHandler = new ConsoleHandler();
+        logHandler.setLevel(Level.CONFIG);
+        java.util.logging.Logger httpLogger = java.util.logging.Logger.getLogger("com.google.api.client.http");
+        httpLogger.setLevel(Level.CONFIG);
+        httpLogger.addHandler(logHandler);
+
+        httpLogger = java.util.logging.Logger.getLogger("com.globocom.globoNetwork.client");
+        httpLogger.setLevel(Level.CONFIG);
+        httpLogger.addHandler(logHandler);
+
         return new StartupCommand[] {cmd};
     }
 
@@ -327,25 +341,26 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             PoolAPI poolAPI = _globoNetworkApi.getPoolAPI();
 
             List<GloboNetworkPoolResponse.Pool> pools = new ArrayList<GloboNetworkPoolResponse.Pool>();
+            List<PoolV3> poolsV3 = poolAPI.getByIdsV3(cmd.getPoolIds());
+            for (PoolV3 poolv3 : poolsV3) {
 
-            for (Long poolId : cmd.getPoolIds()) {
-                Pool.PoolResponse poolResponse = poolAPI.getByPk(poolId);
-                Pool pool = poolResponse.getPool();
-                if (pool == null) {
-                    throw new CloudRuntimeException("Could not find pool " + poolId);
-                }
+                PoolV3.Healthcheck healthCheck = poolv3.getHealthcheck();
+                healthCheck.setHealthcheck(cmd.getHealthcheckType(), cmd.getHealthcheck(), cmd.getExpectedHealthcheck() );
 
-                Pool.Healthcheck healthCheck = pool.getHealthcheck();
-                healthCheck.setExpectedHealthcheck(cmd.getExpectedHealthcheck());
-                healthCheck.setHealthcheckType(cmd.getHealthcheckType());
-                healthCheck.setHealthcheckRequest(cmd.getHealthcheck());
-                pool.setMaxconn(cmd.getMaxConn());
-
-                pool = savePool(pool, poolResponse.getPoolMembers(),  poolAPI);
-
-                pools.add(poolFromNetworkApi(pool));
+                poolv3.setMaxconn(cmd.getMaxConn());
             }
 
+            if ( poolsV3.size() > 0 ) {
+                if (poolsV3.get(0).isPoolCreated()) {
+                    poolAPI.updateDeployAll(poolsV3);
+                } else {
+                    poolAPI.updateAll(poolsV3);
+                }
+            }
+
+            for (PoolV3 poolv3 : poolsV3) {
+                pools.add(poolV3FromNetworkApi(poolv3));
+            }
 
             GloboNetworkPoolResponse answer = new GloboNetworkPoolResponse(cmd, pools, true, "");
 
@@ -358,72 +373,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    protected Pool savePool(Pool pool, List<Pool.PoolMember> poolMembers, PoolAPI poolAPI) throws GloboNetworkException {
-        Long id = pool.getId();
-        Long envId = pool.getEnvironment().getId();
-
-        String idetifier = pool.getIdentifier();
-        String lbmethod = pool.getLbMethod();
-
-        Integer port = pool.getDefaultPort();
-        Integer maxconn = pool.getMaxconn();
-
-        String healthcheckType = pool.getHealthcheck().getHealthcheckType();
-        String expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
-        String healthcheck = pool.getHealthcheck().getHealthcheckRequest();
-        String healthcheckDestination = pool.getHealthcheck().getDestination();
-
-        List<RealIP> realIps = new ArrayList<>();
-        List<Integer> realPorts = new ArrayList<Integer>();
-
-        List<String> equipNames = new ArrayList<String>();
-        List<Long> idEquips = new ArrayList<Long>();
-
-        List<Integer> priorities = new ArrayList<Integer>();
-        List<Long> weights =  new ArrayList<Long>();
-        List<Long> idPoolMembers = new ArrayList<Long>();
-        String serviceDownAction = pool.getServiceDownAction().getName();
-
-        if ( poolMembers != null ) {
-            for (Pool.PoolMember poolMember : poolMembers) {
-                //real
-                RealIP realIp = new RealIP();
-                realIp.setIpId(poolMember.getIpId());
-                realIp.setRealIp(poolMember.getIpFormated());
-                realIps.add(realIp);
-
-                //equipment
-                equipNames.add(poolMember.getEquipmentName());
-                idEquips.add(poolMember.getEquipmentId());
-
-                // real properties
-                realPorts.add(poolMember.getPortReal());
-                idPoolMembers.add(poolMember.getId());
-                priorities.add(poolMember.getPriority());
-                weights.add(Long.valueOf(poolMember.getWeight()));
-            }
-        }
-
-        pool = poolAPI.save(id,
-                            idetifier,
-                            port,
-                            envId,
-                            lbmethod,
-                            healthcheckType,
-                            expectedHealthcheck,
-                            healthcheck,
-                            maxconn,
-                            realIps,
-                            equipNames,
-                            idEquips,
-                            priorities,
-                            weights,
-                            realPorts,
-                            idPoolMembers,
-                            serviceDownAction,
-                            healthcheckDestination );
-        return pool;
-    }
 
     private Answer execute(GetPoolLBByIdCommand cmd) {
         try {
@@ -473,6 +422,25 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
 
         Pool.Healthcheck healthcheck = poolNetworkApi.getHealthcheck();
+
+        if ( healthcheck != null ) {
+            pool.setHealthcheck(healthcheck.getHealthcheckRequest());
+            pool.setHealthcheckType(healthcheck.getHealthcheckType());
+            pool.setExpectedHealthcheck(healthcheck.getExpectedHealthcheck());
+        }
+
+        return pool;
+    }
+    private static GloboNetworkPoolResponse.Pool poolV3FromNetworkApi(PoolV3 poolNetworkApi) throws GloboNetworkException {
+        GloboNetworkPoolResponse.Pool pool = new GloboNetworkPoolResponse.Pool();
+
+        pool.setId(poolNetworkApi.getId());
+        pool.setIdentifier(poolNetworkApi.getIdentifier());
+        pool.setPort(poolNetworkApi.getDefaultPort());
+        pool.setLbMethod(poolNetworkApi.getLbMethod());
+        pool.setMaxconn(poolNetworkApi.getMaxconn());
+
+        PoolV3.Healthcheck healthcheck = poolNetworkApi.getHealthcheck();
 
         if ( healthcheck != null ) {
             pool.setHealthcheck(healthcheck.getHealthcheckRequest());
@@ -1050,7 +1018,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         if (pool != null) {
             poolResponse = _globoNetworkApi.getPoolAPI().getByPk(pool.getId());
         }
-        String poolName = pool != null ? pool.getIdentifier() : buildPoolName(host);
+        String poolName = pool != null ? pool.getIdentifier() : buildPoolName(host, realPort);
         Long poolId = pool != null ? pool.getId() :  null;
         Integer maxConn = pool != null ? pool.getMaxconn() : DEFAULT_MAX_CONN;
 
@@ -1086,18 +1054,79 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
         s_logger.info("Saving pool name: " + poolName  + " port: " + realPort);
 
-        pool = _globoNetworkApi.getPoolAPI().save(
-            poolId, poolName, realPort, vlan.getEnvironment(), lbAlgorithm.getGloboNetworkBalMethod(),
-                healthcheckType, expectedHealthcheck, healthcheck,
-                maxConn, realIps.get(port), equipNames,
-            equipIds, realPriorities, realWeights, realPorts, Arrays.asList(ArrayUtils.toObject(idPoolMembers)), cmd.getServiceDownAction(), cmd.getHealthCheckDestination()
-        );
+        PoolAPI poolAPI = _globoNetworkApi.getPoolAPI();
 
-        return new VipPoolMap(pool.getId(), vipPort);
+        PoolV3 poolv3;
+        if ( poolId != null) {
+            poolv3 = poolAPI.getById(poolId);
+        } else {
+            poolv3 = new PoolV3();
+        }
+
+        poolv3.setId(null);
+        poolv3.setIdentifier(poolName);
+        poolv3.setLbMethod(lbAlgorithm.getGloboNetworkBalMethod());
+        poolv3.setMaxconn(maxConn);
+        poolv3.setDefaultPort(realPort);
+        poolv3.setEnvironment(Long.valueOf(vlan.getEnvironment()));
+
+        PoolV3.Healthcheck healthcheck1 = poolv3.getHealthcheck();
+        healthcheck1.setHealthcheck(healthcheckType, healthcheck, expectedHealthcheck);
+        healthcheck1.setDestination(cmd.getHealthCheckDestination());
+
+        poolv3.setHealthcheck(healthcheck1);
+
+        PoolV3.ServiceDownAction serviceDownAction = new PoolV3.ServiceDownAction();
+        serviceDownAction.setName(cmd.getServiceDownAction());
+        poolv3.setServiceDownAction(serviceDownAction);
+
+        List<PoolV3.PoolMember> poolMembers = new ArrayList<PoolV3.PoolMember>();
+        for (int i = 0; i <  idPoolMembers.length; i++) {
+            PoolV3.PoolMember poolMember;
+            if ( idPoolMembers[i] == 0){
+                poolMember = new PoolV3.PoolMember();
+            } else {
+                poolMember = findPoolMembers(poolv3, idPoolMembers[i]);
+            }
+            poolMember.setPortReal(realPorts.get(i));
+            poolMember.setWeight(realWeights.get(i).intValue());
+            poolMember.setPriority(realPriorities.get(i));
+            poolMember.setEquipmentId(equipIds.get(i));
+            poolMember.setEquipmentName(equipNames.get(i));
+
+            RealIP realIPs = realIps.get(port).get(i);
+
+            PoolV3.Ip ipReal = new PoolV3.Ip();
+            ipReal.setIpFormated(realIPs.getRealIp());
+            ipReal.setId(realIPs.getIpId());
+
+            boolean isIPv6 = IPAddressUtil.isIPv6LiteralAddress(realIPs.getRealIp());
+            if (isIPv6) {
+                poolMember.setIpv6(ipReal);
+            } else {
+                poolMember.setIp(ipReal);
+            }
+
+            poolMembers.add(poolMember);
+        }
+        poolv3.setPoolMembers(poolMembers);
+
+        poolv3 = poolAPI.save(poolv3);
+
+        return new VipPoolMap(poolv3.getId(), vipPort);
     }
 
-    protected String buildPoolName(String host) {
-        return "ACS_POOL_" + host + "_" + new Date().getTime();
+    private PoolV3.PoolMember findPoolMembers(PoolV3 pool, long idPoolMember) {
+        for (PoolV3.PoolMember poolMember : pool.getPoolMembers()){
+            if ( poolMember.getId() == idPoolMember ) {
+                return poolMember;
+            }
+        }
+        return null;
+    }
+
+    protected String buildPoolName(String host, Integer realport) {
+        return "ACS_POOL_" + host + "_" + realport;
     }
 
     protected String getPersistenceMethod(LoadBalancingRule.LbStickinessPolicy persistencePolicy) {
