@@ -444,13 +444,14 @@
                                 network: { label: 'label.network' },
                             },
                             dataProvider: function(args) {
+                                var data = {
+                                    id: args.context.loadbalancers[0].id
+                                };
                                 listViewDataProvider(args, data);
 
                                 $.ajax({
                                     url: createURL('listLoadBalancerRuleInstances'),
-                                    data: {
-                                        id: args.context.loadbalancers[0].id,
-                                    },
+                                    data: data,
                                     success: function(data) {
                                         lbinstances = [];
                                         response = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
