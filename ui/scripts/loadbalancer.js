@@ -438,20 +438,18 @@
                         title: 'label.virtual.machines',
                         listView: {
                             id: 'vms',
+                            disableInfiniteScrolling: true,
                             fields: {
                                 name: { label: 'label.name' },
                                 ip: { label: 'label.ip' },
                                 network: { label: 'label.network' },
                             },
                             dataProvider: function(args) {
-                                var data = {
-                                    id: args.context.loadbalancers[0].id
-                                };
-                                listViewDataProvider(args, data);
-
                                 $.ajax({
                                     url: createURL('listLoadBalancerRuleInstances'),
-                                    data: data,
+                                    data: {
+                                        id: args.context.loadbalancers[0].id
+                                    },
                                     success: function(data) {
                                         lbinstances = [];
                                         response = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
