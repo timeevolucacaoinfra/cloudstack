@@ -224,19 +224,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         cmd.setStorageIpAddress("");
         cmd.setVersion(GloboNetworkResource.class.getPackage().getImplementationVersion());
 
-        System.out.println("Init");
-//        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
-
-        ConsoleHandler logHandler = new ConsoleHandler();
-        logHandler.setLevel(Level.CONFIG);
-        java.util.logging.Logger httpLogger = java.util.logging.Logger.getLogger("com.google.api.client.http");
-        httpLogger.setLevel(Level.CONFIG);
-        httpLogger.addHandler(logHandler);
-
-        httpLogger = java.util.logging.Logger.getLogger("com.globocom.globoNetwork.client");
-        httpLogger.setLevel(Level.CONFIG);
-        httpLogger.addHandler(logHandler);
-
         return new StartupCommand[] {cmd};
     }
 
