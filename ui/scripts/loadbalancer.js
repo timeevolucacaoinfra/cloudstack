@@ -33,7 +33,9 @@
         ]
     });
     */
-    var healthcheckTypes = [{id: 'TCP', name: 'TCP', description: 'TCP'}, {id: 'HTTP', name: 'HTTP', description: 'HTTP'}];
+    var healthcheckTypes = [{id: 'TCP', name: 'TCP', description: 'TCP'},
+                            {id: 'HTTP', name: 'HTTP', description: 'HTTP'},
+                            {id: 'HTTPS', name: 'HTTPS', description: 'HTTPS'}];
     var msg_validation_healthcheck_http = "<span style='font-weight: bold'>Expected Health Check</span> can not be empty when <span style='font-weight: bold'>Health Check Type</span> is <span style='font-weight: bold'>HTTP</span>";
     var cascadeAsyncCmds = function(args) {
 
@@ -212,12 +214,6 @@
                             stickiness: {
                                 label: 'label.stickiness'
                             },
-                            // healthchecktype: {
-                            //     label: 'Healthcheck Type'
-                            // },
-                            // healthcheck: {
-                            //     label: 'Healthcheck'
-                            // },
                         }],
                         tags: cloudStack.api.tags({
                             resourceType: 'LoadBalancer',
@@ -249,29 +245,6 @@
                                     args.response.error(errorMessage);
                                 }
                             });
-
-                            // $.ajax({
-                            //     url: createURL("listLBHealthCheckPolicies"),
-                            //     data: {
-                            //         lbruleid: args.jsonObj.id
-                            //     },
-                            //     dataType: "json",
-                            //     async: false,
-                            //     success: function(json) {
-                            //         var healthcheck = json.listlbhealthcheckpoliciesresponse.healthcheckpolicies[0].healthcheckpolicy;
-                            //         // This logic is for GloboNetwork!
-                            //         if (!healthcheck || !healthcheck[0] || !healthcheck[0].pingpath || healthcheck[0].pingpath === "") {
-                            //             // This means it's TCP
-                            //             args.jsonObj.healthchecktype = "TCP";
-                            //         } else {
-                            //             args.jsonObj.healthchecktype = "HTTP";
-                            //             args.jsonObj.healthcheck = healthcheck[0].pingpath;
-                            //         }
-                            //     },
-                            //     error: function (errorMessage) {
-                            //         args.response.error(errorMessage);
-                            //     }
-                            // });
 
                             args.response.success({
                                 data: args.jsonObj
@@ -738,7 +711,7 @@
                                                     }
                                                 },
                                                 after: function(args2) {
-                                                    if (args2.data.healthcheck === '' && args2.data.healthchecktype === 'HTTP') {
+                                                    if (args2.data.healthcheck === '' && (args2.data.healthchecktype === 'HTTP' || args2.data.healthchecktype === 'HTTPS')) {
                                                         args.response.error(msg_validation_healthcheck_http);
                                                         return;
                                                     } 
@@ -1845,7 +1818,7 @@
                         var expectedhealthcheck = '';
                         var healthcheckPingPath = '';
 
-                        if ( args.data.healthchecktype === 'HTTP' ) {
+                        if ( args.data.healthchecktype ===  'HTTP' || args.data.healthchecktype ===  'HTTPS' ) {
                             healthcheckPingPath = args.data.healthcheck.valueOf().trim();
                             expectedhealthcheck = args.data.expectedhealthcheck;
                             if ( healthcheckPingPath === ''){

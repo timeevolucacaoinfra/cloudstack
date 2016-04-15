@@ -1063,7 +1063,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             poolv3 = new PoolV3();
         }
 
-        poolv3.setId(null);
         poolv3.setIdentifier(poolName);
         poolv3.setLbMethod(lbAlgorithm.getGloboNetworkBalMethod());
         poolv3.setMaxconn(maxConn);

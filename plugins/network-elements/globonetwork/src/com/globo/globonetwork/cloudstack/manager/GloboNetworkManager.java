@@ -2716,6 +2716,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     public enum HealthCheckType {
-        HTTP, TCP
+        HTTP, TCP, HTTPS
     }
 }
