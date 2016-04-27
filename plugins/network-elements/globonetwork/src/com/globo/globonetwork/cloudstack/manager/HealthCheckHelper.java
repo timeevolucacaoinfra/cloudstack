@@ -46,7 +46,7 @@ public class HealthCheckHelper {
             if ( healthcheckType != null ){
                 this.healthCheckType = GloboNetworkManager.HealthCheckType.valueOf(healthcheckType).name();
 
-                if  (healthCheckType.equals(GloboNetworkManager.HealthCheckType.TCP.name())) {
+                if  (healthCheckType.equals(GloboNetworkManager.HealthCheckType.TCP.name()) || healthCheckType.equals(GloboNetworkManager.HealthCheckType.UDP.name())) {
                     this.expectedHealthCheck = null;
                     this.healthCheck = null;
                 } else {
@@ -75,13 +75,13 @@ public class HealthCheckHelper {
         public void validate(String host, String healthehckType, String healthcheck, String expectedHealthcheck){
 
 
-            if ( healthehckType != null && healthehckType.equals(GloboNetworkManager.HealthCheckType.TCP.name())){
+            if ( healthehckType != null && (healthehckType.equals(GloboNetworkManager.HealthCheckType.TCP.name()) || healthehckType.equals(GloboNetworkManager.HealthCheckType.UDP.name()))){
                 if (expectedHealthcheck != null && !expectedHealthcheck.isEmpty()) {
-                    throw new IllegalArgumentException("When healthCheckType is TCP expectedHealthCheck should be empty! expectedHealthCheck: " + expectedHealthcheck);
+                    throw new IllegalArgumentException("When healthCheckType is TCP/UDP expectedHealthCheck should be empty! type: " + healthehckType + ", expectedHealthCheck: " + expectedHealthcheck);
                 }
 
                 if (healthcheck != null && !healthcheck.isEmpty()) {
-                    throw new IllegalArgumentException("When healthCheckType is TCP healthCheck should be empty! healthCheck: " + healthcheck);
+                    throw new IllegalArgumentException("When healthCheckType is TCP healthCheck should be empty! type: " + healthehckType + ",healthCheck: " + healthcheck);
                 };
             }
 

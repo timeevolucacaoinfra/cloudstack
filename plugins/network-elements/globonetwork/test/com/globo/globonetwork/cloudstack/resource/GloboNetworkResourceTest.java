@@ -48,6 +48,7 @@ import com.globo.globonetwork.client.model.Vlan;
 
 import com.globo.globonetwork.client.model.healthcheck.ExpectHealthcheck;
 import com.globo.globonetwork.client.model.pool.PoolV3;
+import com.globo.globonetwork.cloudstack.commands.ApplyVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveVipFromGloboNetworkCommand;
@@ -84,7 +85,6 @@ import com.globo.globonetwork.client.model.Ipv4;
 import com.globo.globonetwork.client.model.Real.RealIP;
 import com.globo.globonetwork.client.model.Vip;
 import com.globo.globonetwork.client.model.VipEnvironment;
-import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 public class GloboNetworkResourceTest {
@@ -225,7 +225,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testCreateVip() throws GloboNetworkException {
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         cmd.setBusinessArea("businessarea");
         cmd.setServiceName("servicename");
         String host = "vip";
@@ -282,20 +282,20 @@ public class GloboNetworkResourceTest {
         VipJson vip = new VipJson();
         vip.setPools(Arrays.asList(pool));
 
-        assertNotNull(_resource.findPoolByPort(80, vip));
-        assertNull(_resource.findPoolByPort(81, vip));
+        assertNotNull(_resource.findPoolByPortInVip(80, vip));
+        assertNull(_resource.findPoolByPortInVip(81, vip));
     }
 
     @Test
     public void testFindPoolByPorGivenNullVip(){
-        assertNull(_resource.findPoolByPort(80, null));
+        assertNull(_resource.findPoolByPortInVip(80, null));
     }
 
 
 
     @Test
     public void testCreateEmptyPool() throws GloboNetworkException {
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
         cmd.setMethodBal("roundrobin");
 
@@ -334,7 +334,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testCreatePoolWithOneReal() throws GloboNetworkException {
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
         cmd.setMethodBal("roundrobin");
 
@@ -413,7 +413,7 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testAddRealToExistingPool() throws GloboNetworkException {
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         GloboNetworkVipResponse.Real real1 = new GloboNetworkVipResponse.Real();
         real1.setIp("10.0.0.1");
         GloboNetworkVipResponse.Real real2 = new GloboNetworkVipResponse.Real();
@@ -489,7 +489,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
         when(_resource._globoNetworkApi.getVlanAPI().getById(999L)).thenReturn(new Vlan());
         try{
-            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "vip.domain.com", ip, null, null, null, null, null, "80:8080");
+            _resource.createPool(new ApplyVipInGloboNetworkCommand(), null, "vip.domain.com", ip, null, null, null, null, null, "80:8080");
         }catch(InvalidParameterValueException e){
             assertEquals("Vlan " + null + " was not found in GloboNetwork", e.getMessage());
         }
@@ -500,7 +500,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
         try{
-            _resource.createPool(new AddVipInGloboNetworkCommand(), null, "vip.domain.com", new Ipv4(), null, null, null, null, null, "80:8080");
+            _resource.createPool(new ApplyVipInGloboNetworkCommand(), null, "vip.domain.com", new Ipv4(), null, null, null, null, null, "80:8080");
         }catch(InvalidParameterValueException e){
             assertEquals("Network " + null + " was not found in GloboNetwork", e.getMessage());
         }
@@ -511,7 +511,7 @@ public class GloboNetworkResourceTest {
         VipJson vipToBeCreated = buildFakeVipValidatedAndCreated(120L, 546L, 345L);
         vipToBeCreated.setCreated(false);
 
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         cmd.setVipId(null);
         cmd.setHost(vipToBeCreated.getHost());
         cmd.setIpv4(vipToBeCreated.getIps().get(0));
@@ -585,7 +585,7 @@ public class GloboNetworkResourceTest {
         VipJson vipToBeCreated = buildFakeVipValidatedAndCreated(120L, 546L, 345L);
         vipToBeCreated.setCreated(false);
 
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
 
         HealthCheckHelper build = HealthCheckHelper.build("vip.domain.com", "TCP", "", null);
         cmd.setHealthcheckType(build.getHealthCheckType());
@@ -635,7 +635,7 @@ public class GloboNetworkResourceTest {
         String persistenceCS = "Cookie";
         String persistenceNetApi = "cookie";
 
-        AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         HealthCheckHelper build = HealthCheckHelper.build("vip.domain.com", "TCP", "", null);
         cmd.setHealthcheck(build.getHealthCheck());
         cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
@@ -681,7 +681,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand());
 
         assertTrue(answer.getResult());
         assertEquals(1, answer.getReals().size());
@@ -707,7 +707,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand());
 
         assertTrue(answer.getResult());
         assertEquals(1, answer.getReals().size());
@@ -723,7 +723,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
         when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new AddVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand());
 
         assertTrue(answer.getResult());
         assertEquals(2, answer.getReals().size());
@@ -877,6 +877,249 @@ public class GloboNetworkResourceTest {
         pool.setEnvironment(120l);
 
         return pool;
+    }
+
+    @Test
+    public void testBuildPoolMembers() throws GloboNetworkException {
+        List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
+        GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
+        real.setIp("10.0.0.1");
+        real.setEnvironmentId(1212l);
+        real.setVmName("vmname-1");
+        realList.add(real);
+
+        GloboNetworkVipResponse.Real real2 = new GloboNetworkVipResponse.Real();
+        real2.setEnvironmentId(1212l);
+        real2.setIp("10.0.0.2");
+        real2.setVmName("vmname-2");
+        realList.add(real2);
+
+        GloboNetworkVipResponse.Real realRevoked = new GloboNetworkVipResponse.Real();
+        realRevoked.setRevoked(true);
+        realList.add(realRevoked);
+
+        //real 1
+        Ipv4 ipv4 = new Ipv4();
+        ipv4.setId(1111l);
+        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment("10.0.0.1", 1212l, false)).thenReturn(ipv4);
+
+        Equipment equipment = new Equipment();
+        equipment.setId(111l);
+        equipment.setName("equip-1");
+        when(_resource._globoNetworkApi.getEquipmentAPI().listByName("vmname-1")).thenReturn(equipment);
+
+        //real 2
+        ipv4 = new Ipv4();
+        ipv4.setId(2222l);
+        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment("10.0.0.2", 1212l, false)).thenReturn(ipv4);
+
+        equipment = new Equipment();
+        equipment.setId(222l);
+        equipment.setName("equip-2");
+        when(_resource._globoNetworkApi.getEquipmentAPI().listByName("vmname-2")).thenReturn(equipment);
+
+
+
+        //execute
+        List<PoolV3.PoolMember> poolMembers = _resource.buildPoolMembers(realList);
+
+
+        //assert
+        assertEquals(2, poolMembers.size());
+
+        PoolV3.PoolMember poolMember = poolMembers.get(0);
+        assertEquals("10.0.0.1", poolMember.getIp().getIpFormated());
+        assertEquals((Long)1111l, poolMember.getIp().getId());
+        assertEquals((Long)111l, poolMember.getEquipmentId());
+        assertEquals("equip-1", poolMember.getEquipmentName());
+
+        PoolV3.PoolMember poolMember2 = poolMembers.get(1);
+        assertEquals("10.0.0.2", poolMember2.getIp().getIpFormated());
+        assertEquals((Long)2222l, poolMember2.getIp().getId());
+        assertEquals((Long)222l, poolMember2.getEquipmentId());
+        assertEquals("equip-2", poolMember2.getEquipmentName());
+
+    }
+
+    @Test
+    public void testSavePoolsEmptyPool() throws GloboNetworkException {
+        //mock input
+        List<String> ports = Arrays.asList("80:8080", "443:8443");
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
+        cmd.setHost("vip.domain.com");
+        cmd.setPorts(ports);
+        cmd.setHealthcheckType("HTTP");
+        cmd.setHealthcheck("/index.html");
+        cmd.setExpectedHealthcheck("WORKING");
+        cmd.setHealthCheckDestination(null);
+        cmd.setMethodBal("roundrobin");
+
+        GloboNetworkResource.VipInfoHelper vipInfos = new GloboNetworkResource.VipInfoHelper(125l, null, null, null);
+
+
+        //mock save
+        List<PoolV3.PoolMember> poolMembers = new ArrayList<>();
+
+        PoolV3 pool = new PoolV3();
+        pool.setIdentifier("ACS_POOL_vip.domain.com_8080");
+        pool.setLbMethod("round-robin");
+        pool.setMaxconn(0);
+        pool.setDefaultPort(8080);
+        pool.setEnvironment(125l);
+
+        PoolV3.Healthcheck healthcheck = pool.getHealthcheck();
+        healthcheck.setHealthcheck("HTTP", "/index.html", "WORKING");
+        healthcheck.setDestination(null);
+
+        when(_resource._globoNetworkApi.getPoolAPI().save(pool)).thenReturn(new PoolV3(123l));
+
+        PoolV3 pool2 = new PoolV3();
+        pool2.setIdentifier("ACS_POOL_vip.domain.com_8443");
+        pool2.setLbMethod("round-robin");
+        pool2.setMaxconn(0);
+        pool2.setDefaultPort(8443);
+        pool2.setEnvironment(125l);
+
+        PoolV3.Healthcheck healthcheck2 = pool2.getHealthcheck();
+        healthcheck2.setHealthcheck("HTTP", "/index.html", "WORKING");
+        healthcheck2.setDestination(null);
+
+        when(_resource._globoNetworkApi.getPoolAPI().save(pool2)).thenReturn(new PoolV3(321l));
+
+        //execute
+        List<VipPoolMap> vipPoolMaps = _resource.savePools(null, vipInfos, poolMembers, cmd);
+
+        assertEquals(2, vipPoolMaps.size());
+
+        VipPoolMap vipPoolMap = vipPoolMaps.get(0);
+        assertEquals((Long)123l, vipPoolMap.getPoolId());
+        assertEquals((Integer)80, vipPoolMap.getPort());
+
+        vipPoolMap = vipPoolMaps.get(1);
+        assertEquals((Long)321l, vipPoolMap.getPoolId());
+        assertEquals((Integer)443, vipPoolMap.getPort());
+    }
+
+    @Test
+    public void testSavePoolWithOneReal() throws GloboNetworkException {
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
+        cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
+        cmd.setMethodBal("roundrobin");
+        cmd.setHost("vip.domain.com");
+        cmd.setPorts(Arrays.asList("80:8080"));
+
+        HealthCheckHelper build = HealthCheckHelper.build("vip.domain.com", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
+
+        VipJson vip = null; // VIP NOT CREATED YET
+        Ipv4 ip = new Ipv4();
+        ip.setNetworkId(1L);
+
+        List<PoolV3.PoolMember> poolMembers = new ArrayList<PoolV3.PoolMember>();
+        PoolV3.PoolMember poolMember = new PoolV3.PoolMember();
+        poolMember.setPortReal(8080);
+        poolMember.setPriority(0);
+        poolMember.setEquipmentName("vm-01");
+        poolMember.setEquipmentId(1l);
+        poolMember.setWeight(0);
+
+        PoolV3.Ip ipPm = new PoolV3.Ip();
+        ipPm.setId(1l);
+        ipPm.setIpFormated("10.0.0.1");
+
+        poolMember.setIp(ipPm);
+        poolMembers.add(poolMember);
+
+        GloboNetworkResource.VipInfoHelper vipInfo = new GloboNetworkResource.VipInfoHelper(120l, null, null, null);
+
+        PoolV3 expectedPool = mockPoolSave(null, 123l, true, 8080, "10.0.0.1",
+                build.getHealthCheckType(), build.getExpectedHealthCheck(), build.getHealthCheck(), 0,
+                cmd.getServiceDownAction());
+
+
+        List<VipPoolMap> vipPoolMaps = _resource.savePools(vip, vipInfo, poolMembers, cmd);
+
+        VipPoolMap vipPoolMap = vipPoolMaps.get(0);
+        assertNotNull(vipPoolMap);
+        assertEquals(new Integer(80), vipPoolMap.getPort());
+        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(expectedPool);
+    }
+
+    @Test
+    public void testSavePoolAddRealToExistingPool() throws GloboNetworkException {
+        //input 1 - vip
+        VipJson vip = new VipJson();
+        Pool pool = new Pool();
+        pool.setDefaultPort(8080);
+        pool.setId(12L);
+        pool.setMaxconn(0);
+        vip.setPools(Arrays.asList(pool));
+        Ipv4 ip = new Ipv4();
+        ip.setNetworkId(1L);
+
+        //input 2 - vip info
+        GloboNetworkResource.VipInfoHelper vipInfo = new GloboNetworkResource.VipInfoHelper(121l, null, null, null);
+
+        //input 3 - poolMembers
+        List<PoolV3.PoolMember> poolMembers = new ArrayList<PoolV3.PoolMember>();
+        PoolV3.PoolMember real1 = mockPoolMember(null, 8080, 1l, "10.0.0.1", 1l, "vm-01");
+        poolMembers.add(real1);
+        PoolV3.PoolMember real2 = mockPoolMember(null, 8080, 2l, "10.0.0.2", 2l, "vm-02");
+        poolMembers.add(real2);
+
+        //input 4 - cmd
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
+        cmd.setMethodBal("roundrobin");
+        cmd.setHost("vip.domain.com");
+        cmd.setPorts(Arrays.asList("80:8080"));
+        HealthCheckHelper build = HealthCheckHelper.build("vip.domain.com", "TCP", "", null);
+        cmd.setHealthcheckType(build.getHealthCheckType());
+        cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
+        cmd.setHealthcheck(build.getHealthCheck());
+
+        //mock 1 - Pool find by id - v3
+        PoolV3 poolv3GetById = mockPool(12l, "ACS_POOL_", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
+        PoolV3.PoolMember poolM = mockPoolMember(200l, 8080, 1l, "10.0.0.1", 1l, "vm-01");
+        poolv3GetById.getPoolMembers().add(poolM);
+
+        when(_resource._globoNetworkApi.getPoolAPI().getById(12l)).thenReturn(poolv3GetById);
+
+        //mock 2 - Pool save pool
+        PoolV3 poolToSave = mockPool(12l, "ACS_POOL_", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
+        PoolV3.PoolMember poolMSaved = mockPoolMember(200l, 8080, 1l, "10.0.0.1", 1l, "vm-01");
+        poolToSave.getPoolMembers().add(poolMSaved);
+        PoolV3.PoolMember poolM2Saved = mockPoolMember(null, 8080, 2l, "10.0.0.2", 2l, "vm-02");
+        poolToSave.getPoolMembers().add(poolM2Saved);
+
+        when(_resource._globoNetworkApi.getPoolAPI().save(poolToSave)).thenReturn(new PoolV3(12l));
+
+
+        List<VipPoolMap> vipPoolMaps = _resource.savePools(vip, vipInfo, poolMembers, cmd);
+
+        VipPoolMap vipPoolMap = vipPoolMaps.get(0);
+        assertNotNull(vipPoolMap);
+        assertEquals(new Integer(80), vipPoolMap.getPort());
+        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(poolToSave);
+    }
+
+    private PoolV3.PoolMember mockPoolMember(Long id,Integer port, Long ipId, String ip, Long equipId, String equipName) {
+        PoolV3.PoolMember poolMSaved = new PoolV3.PoolMember();
+        if ( id != null ){
+            poolMSaved.setId(id);
+        }
+        poolMSaved.setPortReal(port);
+        poolMSaved.setWeight(0);
+        poolMSaved.setPriority(0);
+        poolMSaved.setEquipmentId(equipId);
+        poolMSaved.setEquipmentName(equipName);
+
+        PoolV3.Ip ipppoolMSaved = new PoolV3.Ip();
+        ipppoolMSaved.setIpFormated(ip);
+        ipppoolMSaved.setId(ipId);
+        poolMSaved.setIp(ipppoolMSaved);
+        return poolMSaved;
     }
 
     @Test

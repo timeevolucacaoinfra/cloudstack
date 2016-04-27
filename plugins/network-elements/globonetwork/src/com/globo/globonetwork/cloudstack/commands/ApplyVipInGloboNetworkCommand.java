@@ -23,7 +23,7 @@ import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.FirewallRule;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
-public class AddVipInGloboNetworkCommand extends Command {
+public class ApplyVipInGloboNetworkCommand extends Command {
 
     private FirewallRule.State ruleState;
 

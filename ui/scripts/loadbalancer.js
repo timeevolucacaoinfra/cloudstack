@@ -33,10 +33,21 @@
         ]
     });
     */
-    var healthcheckTypes = [{id: 'TCP', name: 'TCP', description: 'TCP'},
-                            {id: 'HTTP', name: 'HTTP', description: 'HTTP'},
-                            {id: 'HTTPS', name: 'HTTPS', description: 'HTTPS'}];
-    var msg_validation_healthcheck_http = "<span style='font-weight: bold'>Expected Health Check</span> can not be empty when <span style='font-weight: bold'>Health Check Type</span> is <span style='font-weight: bold'>HTTP</span>";
+    var healthcheckTypes = {
+    	"values": [{id: 'TCP', name: 'TCP', description: 'TCP', layer: 4},
+                    {id: 'UDP', name: 'UDP', description: 'UDP', layer: 4},
+                    {id: 'HTTP', name: 'HTTP', description: 'HTTP', layer: 7},
+                    {id: 'HTTPS', name: 'HTTPS', description: 'HTTPS', layer: 7}],
+    	"isLayer4": function(idProtocol) { return this.isLayer(idProtocol, 4) },
+    	"isLayer7": function(idProtocol) { return this.isLayer(idProtocol, 7) },
+    	"isLayer": function(idProtocol, layer) {
+            		for (var i = 0; i < this.values.length; i++ ){
+            			if ( this.values[i].id === idProtocol && this.values[i].layer == layer){ return true; }
+            		};
+            		return false;
+            	}
+    };
+    var msg_validation_healthcheck_http = "<span style='font-weight: bold'>Expected Health Check</span> can not be empty when <span style='font-weight: bold'>Health Check Type</span> is <span style='font-weight: bold'>HTTP/HTTPS</span>";
     var cascadeAsyncCmds = function(args) {
 
         var process_command = function(index, last_result) {
@@ -664,12 +675,12 @@
                                                             dependsOn: ['isLbAdvanced'],
                                                             select: function(args) {
                                                                 args.response.success({
-                                                                    data: healthcheckTypes
+                                                                    data: healthcheckTypes.values
                                                                 });
                                                                 args.$select.change(function() {
                                                                     var type = $(this).val()
                                                                     console.log('change type: ' + $(this).val())
-                                                                    if ( type === 'TCP') {
+                                                                    if ( healthcheckTypes.isLayer4(type)) {
                                                                         $("div[rel='healthcheck']").hide()
                                                                         $("div[rel='expectedhealthcheck']").hide()
                                                                     } else {
@@ -710,14 +721,14 @@
                                                     }
                                                 },
                                                 after: function(args2) {
-                                                    if (args2.data.healthcheck === '' && (args2.data.healthchecktype === 'HTTP' || args2.data.healthchecktype === 'HTTPS')) {
+                                                    if (args2.data.healthcheck === '' && (healthcheckTypes.isLayer4(args2.data.healthchecktype))) {
                                                         args.response.error(msg_validation_healthcheck_http);
                                                         return;
                                                     } 
 
 
-                                                    if (args2.data.healthchecktype === 'TCP') { // Empty healthcheck means TCP
-                                                        args2.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP only
+                                                    if (healthcheckTypes.isLayer4(args2.data.healthchecktype)) { // Empty healthcheck means TCP
+                                                        args2.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP/HTTPS only
                                                         args2.data.healthcheck = '';
                                                     }
 
@@ -816,12 +827,11 @@
                                                 dependsOn: ['isLbAdvanced'],
                                                 select: function(args) {
                                                     args.response.success({
-                                                        data: healthcheckTypes
+                                                        data: healthcheckTypes.values
                                                     });
                                                     args.$select.change(function() {
                                                         var type = $(this).val()
-                                                        console.log('change type: ' + $(this).val())
-                                                        if ( type === 'TCP') {
+                                                        if ( healthcheckTypes.isLayer4(type)) {
                                                             $("div[rel='healthcheck']").hide()
                                                             $("div[rel='expectedhealthcheck']").hide()
                                                         } else {
@@ -861,11 +871,11 @@
                                         },
                                     },
                                     action: function(args) {
-                                        if (args.data.healthcheck === '' && args.data.healthchecktype === 'HTTP') {
+                                        if (args.data.healthcheck === '' && healthcheckTypes.isLayer7(args.data.healthchecktype)) {
                                             args.response.error(msg_validation_healthcheck_http);
                                             return;
                                         } 
-                                        if (args.data.healthchecktype === 'TCP') { // Empty healthcheck means TCP
+                                        if (healthcheckTypes.isLayer4(args.data.healthchecktype)) { // Empty healthcheck means TCP
                                             args.data.expectedhealthcheck = ''; // expecthealthcheck is for HTTP only
                                             args.data.healthcheck = '';
                                         } 
@@ -1764,12 +1774,12 @@
                                 dependsOn: ['isLbAdvanced'],
                                 select: function(args) {
                                     args.response.success({
-                                        data: healthcheckTypes
+                                        data: healthcheckTypes.values
                                     });
                                     args.$select.change(function() {
                                         var type = $(this).val()
                                         console.log('change type: ' + $(this).val())
-                                        if ( type === 'TCP') {
+                                        if (healthcheckTypes.isLayer4(type)) {
                                             $("div[rel='healthcheck']").hide()
                                             $("div[rel='expectedhealthcheck']").hide()
                                         } else {
@@ -1817,7 +1827,7 @@
                         var expectedhealthcheck = '';
                         var healthcheckPingPath = '';
 
-                        if ( args.data.healthchecktype ===  'HTTP' || args.data.healthchecktype ===  'HTTPS' ) {
+                        if ( healthcheckTypes.isLayer7(args.data.healthchecktype) ) {
                             healthcheckPingPath = args.data.healthcheck.valueOf().trim();
                             expectedhealthcheck = args.data.expectedhealthcheck;
                             if ( healthcheckPingPath === ''){

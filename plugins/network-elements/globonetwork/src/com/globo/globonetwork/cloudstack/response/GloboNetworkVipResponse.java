@@ -61,6 +61,9 @@ public class GloboNetworkVipResponse extends Answer {
         this.reals = new ArrayList<Real>(reals);
         this.setCreated(created);
     }
+    public GloboNetworkVipResponse() {
+
+    }
 
     public Long getId() {
         return id;

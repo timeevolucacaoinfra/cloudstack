@@ -25,6 +25,7 @@ import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
 import com.globo.globonetwork.cloudstack.api.UpdateGloboNetworkPoolCmd;
+import com.globo.globonetwork.cloudstack.commands.ApplyVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
@@ -193,7 +194,7 @@ import com.globo.globonetwork.cloudstack.api.RemoveGloboNetworkVipCmd;
 import com.globo.globonetwork.cloudstack.commands.AcquireNewIpForLbCommand;
 import com.globo.globonetwork.cloudstack.commands.ActivateNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.AddAndEnableRealInGloboNetworkCommand;
-import com.globo.globonetwork.cloudstack.commands.AddVipInGloboNetworkCommand;
+
 import com.globo.globonetwork.cloudstack.commands.CreateNewVlanInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DeallocateVlanFromGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.DisableAndRemoveRealInGloboNetworkCommand;
@@ -646,7 +647,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     /**
      * Replace variables in a string template: #{obj.property}.
-     * @see http://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html
+     * @see {@linktourl http://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html}
      * @param template
      * @param context
      * @return
@@ -802,7 +803,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     /**
      * Get the number of vlan associate with {@code network}.
      *
-     * @param network
+     * @param broadcastUri
      * @return
      */
     private Integer getVlanNum(URI broadcastUri) {
@@ -2047,7 +2048,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 gnIpDetail.setGloboNetworkVipId(null);
                 _globoNetworkIpDetailDao.persist(gnIpDetail);
             }else{
-                final AddVipInGloboNetworkCommand cmd = new AddVipInGloboNetworkCommand();
+                final ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
 
                 buildHealthcheck(cmd, rule);
 
@@ -2098,7 +2099,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return true;
     }
 
-    private void buildHealthcheck(AddVipInGloboNetworkCommand cmd, LoadBalancingRule rule) {
+    private void buildHealthcheck(ApplyVipInGloboNetworkCommand cmd, LoadBalancingRule rule) {
         LbHealthCheckPolicy lbHealthCheckPolicy = rule.getHealthCheckPolicies() == null || rule.getHealthCheckPolicies().isEmpty() ? null : rule.getHealthCheckPolicies().get(0);
         String healthcheck = lbHealthCheckPolicy != null ? lbHealthCheckPolicy.getpingpath() : null;
 
@@ -2716,6 +2717,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     public enum HealthCheckType {
-        HTTP, TCP, HTTPS
+        HTTP, TCP, HTTPS, UDP
     }
 }
