@@ -2715,8 +2715,4 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         return answer.getExpectedHealthchecks();
     }
-
-    public enum HealthCheckType {
-        HTTP, TCP, HTTPS, UDP
-    }
 }

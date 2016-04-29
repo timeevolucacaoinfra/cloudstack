@@ -5,12 +5,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-/**
- * Created by lucas.castro on 3/10/16.
- */
 public class HealthCheckHelperTest {
-
-
 
     @Test
     public void testBuild() {
@@ -24,7 +19,6 @@ public class HealthCheckHelperTest {
         assertEquals(null, healthcheck.getHealthCheck());
         assertEquals(null, healthcheck.getExpectedHealthCheck());
         assertNull(healthcheck.getExpectedHealthCheck());
-
 
     }
 
@@ -56,7 +50,13 @@ public class HealthCheckHelperTest {
     }
 
 
-
+    @Test
+    public void testBuildHealthCheckExpectedStringEmpty(){
+        HealthCheckHelper healthcheck = HealthCheckHelper.build("lb.test.com", "HTTP", "/healthcheck.html", "");
+        assertEquals("WORKING", healthcheck.getExpectedHealthCheck());
+        assertEquals("HTTP", healthcheck.getHealthCheckType());
+        assertEquals("GET /healthcheck.html HTTP/1.0\\r\\nHost: lb.test.com\\r\\n\\r\\n", healthcheck.getHealthCheck());
+    }
 
     @Test
     public void testBuildHealthCheckStringGivenPathAndHostNull(){
@@ -68,12 +68,19 @@ public class HealthCheckHelperTest {
     public void testBuildHealthCheckStringGivenPathNullAndHostFilled(){
         HealthCheckHelper healthCheck = HealthCheckHelper.build("host", "HTTP", null, "200 OK");
         assertEquals("", healthCheck.buildHealthCheckString(null, "host"));
+
+        assertEquals("200 OK", healthCheck.getExpectedHealthCheck());
+        assertEquals("HTTP", healthCheck.getHealthCheckType());
     }
 
     @Test
     public void testBuildHealthCheckStringGiveFullHTTPPath(){
         HealthCheckHelper healthCheck = HealthCheckHelper.build("lb.test.com", "HTTP", "/healthcheck.html", "200 OK");
-        assertEquals("GET /healtcheck.html", healthCheck.buildHealthCheckString("GET /healtcheck.html", "lb.test.com"));
+        assertEquals("GET /healthcheck.html", healthCheck.buildHealthCheckString("GET /healthcheck.html", "lb.test.com"));
+
+        assertEquals("200 OK", healthCheck.getExpectedHealthCheck());
+        assertEquals("HTTP", healthCheck.getHealthCheckType());
+        assertEquals("GET /healthcheck.html HTTP/1.0\\r\\nHost: lb.test.com\\r\\n\\r\\n", healthCheck.getHealthCheck());
     }
 
     @Test
