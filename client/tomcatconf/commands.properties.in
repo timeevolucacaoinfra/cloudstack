@@ -176,6 +176,7 @@ listIpForwardingRules=15
 disableStaticNat=15
 
 #### load balancer commands
+listGloboLbNetworks=15
 createLoadBalancerRule=15
 deleteLoadBalancerRule=15
 removeFromLoadBalancerRule=15

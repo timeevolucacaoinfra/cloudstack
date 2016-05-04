@@ -295,7 +295,7 @@
                                 var networks = [];
                                 $(networkidslist).each(function() {
                                     $.ajax({
-                                        url: createURL('listNetworks'),
+                                        url: createURL('listGloboLbNetworks'),
                                         data: {
                                             id: this.valueOf()
                                         },
@@ -361,7 +361,7 @@
                                                 select: function(args) {
                                                     var networks = [];
                                                     $.ajax({
-                                                        url: createURL("listNetworks"),
+                                                        url: createURL('listGloboLbNetworks'),
                                                         data: {
                                                             supportedservices: 'lb'
                                                         },
@@ -1221,7 +1221,7 @@
                                             select: function(args) {
                                                 var network;
                                                 $.ajax({
-                                                    url: createURL("listNetworks"),
+                                                    url: createURL('listGloboLbNetworks'),
                                                     data: {
                                                         id: lb.networkid
                                                     },
@@ -1461,7 +1461,7 @@
                         var networks = [];
                         var message;
                         $.ajax({
-                            url: createURL("listNetworks"),
+                            url: createURL('listGloboLbNetworks'),
                             data: {
                                 supportedservices: 'lb'
                             },
@@ -1557,7 +1557,7 @@
                                 select: function(args) {
                                     var networks = [];
                                     $.ajax({
-                                        url: createURL("listNetworks"),
+                                        url: createURL('listGloboLbNetworks'),
                                         data: {
                                             supportedservices: 'lb'
                                         },
@@ -1586,7 +1586,7 @@
                                 select: function(args) {
                                     var network;
                                     $.ajax({
-                                        url: createURL("listNetworks"),
+                                        url: createURL('listGloboLbNetworks'),
                                         data: {
                                             id: args.data.network
                                         },
@@ -1632,7 +1632,7 @@
                                 select: function(args) {
                                     var network;
                                     $.ajax({
-                                        url: createURL("listNetworks"),
+                                        url: createURL('listGloboLbNetworks'),
                                         data: {
                                             id: args.data.network
                                         },
@@ -1725,7 +1725,7 @@
                                 select: function(args) {
                                     var network;
                                     $.ajax({
-                                        url: createURL("listNetworks"),
+                                        url: createURL('listGloboLbNetworks'),
                                         data: {
                                             id: args.data.network
                                         },
@@ -1840,7 +1840,7 @@
 
                         var network;
                         $.ajax({
-                            url: createURL("listNetworks"),
+                            url: createURL('listGloboLbNetworks'),
                             data: {
                                 id: args.data.network
                             },

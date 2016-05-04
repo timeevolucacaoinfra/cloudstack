@@ -22,6 +22,7 @@ import com.cloud.network.dao.LoadBalancerOptionsDao;
 import com.cloud.network.dao.LoadBalancerOptionsVO;
 import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
+import com.globo.globonetwork.cloudstack.api.ListGloboLbNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
 import com.globo.globonetwork.cloudstack.api.UpdateGloboNetworkPoolCmd;
@@ -1027,6 +1028,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(ListGloboNetworkExpectedHealthchecksCmd.class);
         cmdList.add(GetGloboNetworkPoolCmd.class);
         cmdList.add(UpdateGloboNetworkPoolCmd.class);
+        cmdList.add(ListGloboLbNetworksCmd.class);
         return cmdList;
     }
 
@@ -2714,5 +2716,29 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         return answer.getExpectedHealthchecks();
+    }
+
+    @Inject
+    NetworkService _networkService;
+    @Override
+    public Pair<List<? extends Network>, Integer> searchForLbNetworks(ListGloboLbNetworksCmd cmd) {
+        List<? extends Network> networks = _networkService.searchForAllNetworks(cmd);
+
+        List<Network> networksToReturn = new ArrayList<Network>();
+        for (Network network : networks){
+            List<GloboNetworkLoadBalancerEnvironment> lbEnvs = listGloboNetworkLBEnvironmentsFromDB(network.getPhysicalNetworkId(), network.getId(), null);
+            if (lbEnvs != null && lbEnvs.size() > 0) {
+                networksToReturn.add(network);
+            }
+        }
+
+        //Now apply pagination
+        List<? extends Network> wPagination = StringUtils.applyPagination(networksToReturn, cmd.getStartIndex(), cmd.getPageSizeVal());
+        if (wPagination != null) {
+            Pair<List<? extends Network>, Integer> listWPagination = new Pair<List<? extends Network>, Integer>(wPagination, networksToReturn.size());
+            return listWPagination;
+        }
+
+        return new Pair<List<? extends Network>, Integer>(networksToReturn, networksToReturn.size());
     }
 }

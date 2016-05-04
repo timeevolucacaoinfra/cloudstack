@@ -1419,7 +1419,7 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
     }
 
     @Override
-    public Pair<List<? extends Network>, Integer> searchForNetworks(ListNetworksCmd cmd) {
+    public List<? extends Network> searchForAllNetworks(ListNetworksCmd cmd) {
         Long id = cmd.getId();
         String keyword = cmd.getKeyword();
         Long zoneId = cmd.getZoneId();
@@ -1514,7 +1514,7 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
         if (domainId != null) {
             path = _domainDao.findById(domainId).getPath();
         } else {
-        path = _domainDao.findById(caller.getDomainId()).getPath();
+            path = _domainDao.findById(caller.getDomainId()).getPath();
         }
 
         if (listAll && domainId == null) {
@@ -1563,11 +1563,11 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
             sb.join("domainSearch", domainSearch, sb.entity().getDomainId(), domainSearch.entity().getId(), JoinBuilder.JoinType.INNER);
         }
 
-            SearchBuilder<AccountVO> accountSearch = _accountDao.createSearchBuilder();
+        SearchBuilder<AccountVO> accountSearch = _accountDao.createSearchBuilder();
         accountSearch.and("typeNEQ", accountSearch.entity().getType(), SearchCriteria.Op.NEQ);
         accountSearch.and("typeEQ", accountSearch.entity().getType(), SearchCriteria.Op.EQ);
 
-            sb.join("accountSearch", accountSearch, sb.entity().getAccountId(), accountSearch.entity().getId(), JoinBuilder.JoinType.INNER);
+        sb.join("accountSearch", accountSearch, sb.entity().getAccountId(), accountSearch.entity().getId(), JoinBuilder.JoinType.INNER);
 
         List<NetworkVO> networksToReturn = new ArrayList<NetworkVO>();
 
@@ -1638,7 +1638,11 @@ public class NetworkServiceImpl extends ManagerBase implements  NetworkService {
 
             networksToReturn = networksForDeploy;
         }
-
+        return networksToReturn;
+    }
+    @Override
+    public Pair<List<? extends Network>, Integer> searchForNetworks(ListNetworksCmd cmd) {
+        List<? extends Network> networksToReturn = searchForAllNetworks(cmd);
         //Now apply pagination
         List<? extends Network> wPagination = StringUtils.applyPagination(networksToReturn, cmd.getStartIndex(), cmd.getPageSizeVal());
         if (wPagination != null) {

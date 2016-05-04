@@ -17,6 +17,8 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
+import com.cloud.utils.Pair;
+import com.globo.globonetwork.cloudstack.api.ListGloboLbNetworksCmd;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.util.List;
@@ -278,4 +280,5 @@ public interface GloboNetworkService {
 
     public List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> listAllExpectedHealthchecks();
 
+    Pair<List<? extends Network>,Integer> searchForLbNetworks(ListGloboLbNetworksCmd listGloboLbNetworksCmd);
 }
