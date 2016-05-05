@@ -123,6 +123,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     private static final Integer DEFAULT_REAL_WEIGHT = 0;
 
     private static final Integer DEFAULT_MAX_CONN = 0;
+    private static final int DEFAULT_REAL_STATUS = 7;
 
     private static final Integer DEFAULT_TIMEOUT = 5;
 
@@ -871,15 +872,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return id != null ? _globoNetworkApi.getVipAPI().getByPk(id) : null;
     }
 
-    protected RealIP createRealIP(Real real, Ip equipmentIp, String port) {
-        Integer realPort = Integer.valueOf(port.split(":")[1]);
-        Integer vipPort = Integer.valueOf(port.split(":")[0]);
-
-        RealIP realIP = new RealIP(equipmentIp.getId(), realPort, real.getIp(), vipPort);
-        realIP.setName(real.getVmName());
-        return realIP;
-    }
-
     protected Vip createVip(ApplyVipInGloboNetworkCommand cmd, String host, VipEnvironment vipEnvironment, Ip ip, List<VipPoolMap> vipPoolMapping) throws GloboNetworkException {
         String finality = vipEnvironment.getFinality();
         String client = vipEnvironment.getClient();
@@ -923,142 +915,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         vip.setIpv4Id(ip.getId());
         _globoNetworkApi.getVipAPI().validate(vip.getId());
         return vip;
-    }
-
-    protected VipPoolMap createPool(ApplyVipInGloboNetworkCommand cmd, Vip vip, String host, Ip ip, Map<String, List<RealIP>> realIps, List<Integer> realPriorities, List<String> equipNames, List<Long> equipIds, List<Long> realWeights, String port) throws GloboNetworkException {
-        Network network = _globoNetworkApi.getNetworkAPI().getNetwork(ip.getNetworkId(), false);
-        if (network == null) {
-            throw new InvalidParameterValueException("Network " + ip.getNetworkId() + " was not found in GloboNetwork");
-        }
-        Vlan vlan = _globoNetworkApi.getVlanAPI().getById(network.getVlanId());
-        if (vlan == null) {
-            throw new InvalidParameterValueException("Vlan " + network.getVlanId() + " was not found in GloboNetwork");
-        }
-
-        Integer realPort = Integer.valueOf(port.split(":")[1]);
-        Integer vipPort = Integer.valueOf(port.split(":")[0]);
-        List<Integer> realPorts = new ArrayList<>();
-        List<String> csRealIps = new ArrayList<>();
-        if (realIps.get(port) == null) {
-            realIps.put(port, new ArrayList<RealIP>());
-        }
-
-        for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
-            if (!real.isRevoked()) {
-                realPorts.add(realPort);
-                csRealIps.add(real.getIp());
-            }
-        }
-
-        Pool pool = findPoolByPortInVip(realPort, vip);
-        Pool.PoolResponse poolResponse = null;
-        if (pool != null) {
-            poolResponse = _globoNetworkApi.getPoolAPI().getByPk(pool.getId());
-        }
-        String poolName = pool != null ? pool.getIdentifier() : buildPoolName(host, realPort);
-        Long poolId = pool != null ? pool.getId() :  null;
-        Integer maxConn = pool != null ? pool.getMaxconn() : DEFAULT_MAX_CONN;
-
-        long[] idPoolMembers = new long[equipIds.size()]; // Lists must have the same size and default value is 0
-        if (poolResponse != null) {
-            for (int i = 0; i < csRealIps.size(); i++) {
-                for (Pool.PoolMember poolMember : poolResponse.getPoolMembers()) {
-                    if (csRealIps.get(i).equals(poolMember.getIp().getIpFormated())) {
-                        idPoolMembers[i] = poolMember.getId();
-                        break;
-                    }
-                }
-            }
-        }
-
-        boolean poolHasHealthcheck = (poolResponse != null) && (poolResponse.getPool() != null) && (pool.getHealthcheck().getId() != null);
-
-        String healthcheckType = null;
-        String healthcheck = null;
-        String expectedHealthcheck = null;
-        if (poolHasHealthcheck) {
-            pool = poolResponse.getPool(); // Update pool info from API
-            healthcheckType = pool.getHealthcheck().getHealthcheckType();
-            healthcheck = pool.getHealthcheck().getHealthcheckRequest();
-            expectedHealthcheck = pool.getHealthcheck().getExpectedHealthcheck();
-        } else {
-            // Creating new VIP and healthCheck was set
-            healthcheckType = cmd.getHealthcheckType();
-            healthcheck = cmd.getHealthcheck();
-            expectedHealthcheck = cmd.getExpectedHealthcheck();
-        }
-
-        LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
-        s_logger.info("Saving pool name: " + poolName  + " port: " + realPort);
-
-        PoolAPI poolAPI = _globoNetworkApi.getPoolAPI();
-
-        PoolV3 poolv3;
-        if ( poolId != null) {
-            poolv3 = poolAPI.getById(poolId);
-        } else {
-            poolv3 = new PoolV3();
-        }
-
-        poolv3.setIdentifier(poolName);
-        poolv3.setLbMethod(lbAlgorithm.getGloboNetworkBalMethod());
-        poolv3.setMaxconn(maxConn);
-        poolv3.setDefaultPort(realPort);
-        poolv3.setEnvironment(Long.valueOf(vlan.getEnvironment()));
-
-        PoolV3.Healthcheck healthcheck1 = poolv3.getHealthcheck();
-        healthcheck1.setHealthcheck(healthcheckType, healthcheck, expectedHealthcheck);
-        healthcheck1.setDestination(cmd.getHealthCheckDestination());
-
-        poolv3.setHealthcheck(healthcheck1);
-
-        PoolV3.ServiceDownAction serviceDownAction = new PoolV3.ServiceDownAction();
-        serviceDownAction.setName(cmd.getServiceDownAction());
-        poolv3.setServiceDownAction(serviceDownAction);
-
-        List<PoolV3.PoolMember> poolMembers = new ArrayList<PoolV3.PoolMember>();
-        for (int i = 0; i <  idPoolMembers.length; i++) {
-            PoolV3.PoolMember poolMember;
-            if ( idPoolMembers[i] == 0){
-                poolMember = new PoolV3.PoolMember();
-            } else {
-                poolMember = findPoolMembers(poolv3, idPoolMembers[i]);
-            }
-            poolMember.setPortReal(realPorts.get(i));
-            poolMember.setWeight(realWeights.get(i).intValue());
-            poolMember.setPriority(realPriorities.get(i));
-            poolMember.setEquipmentId(equipIds.get(i));
-            poolMember.setEquipmentName(equipNames.get(i));
-
-            RealIP realIPs = realIps.get(port).get(i);
-
-            PoolV3.Ip ipReal = new PoolV3.Ip();
-            ipReal.setIpFormated(realIPs.getRealIp());
-            ipReal.setId(realIPs.getIpId());
-
-            boolean isIPv6 = IPAddressUtil.isIPv6LiteralAddress(realIPs.getRealIp());
-            if (isIPv6) {
-                poolMember.setIpv6(ipReal);
-            } else {
-                poolMember.setIp(ipReal);
-            }
-
-            poolMembers.add(poolMember);
-        }
-        poolv3.setPoolMembers(poolMembers);
-
-        poolv3 = poolAPI.save(poolv3);
-
-        return new VipPoolMap(poolv3.getId(), vipPort);
-    }
-
-    private PoolV3.PoolMember findPoolMembers(PoolV3 pool, long idPoolMember) {
-        for (PoolV3.PoolMember poolMember : pool.getPoolMembers()){
-            if ( poolMember.getId() == idPoolMember ) {
-                return poolMember;
-            }
-        }
-        return null;
     }
 
     protected String buildPoolName(String host, Integer realport) {
@@ -1229,82 +1085,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    private Answer applyVipOld(ApplyVipInGloboNetworkCommand cmd) {
-        try {
-            Vip vip = getVipById(cmd.getVipId());
-
-            VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(cmd.getVipEnvironmentId(), null, null, null);
-            if (environmentVip == null) {
-                throw new InvalidParameterValueException("Could not find VIP environment " + cmd.getVipEnvironmentId());
-            }
-
-            Ip vipIp = _globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), cmd.getVipEnvironmentId(), false);
-            if (vipIp == null) {
-                throw new InvalidParameterValueException("IP " + cmd.getIpv4() + " doesn't exist in VIP environment " + cmd.getVipEnvironmentId());
-            }
-
-            Map<String, List<RealIP>> realIps = new HashMap<>();
-            List<Integer> realPriorities = new ArrayList<>();
-            List<Long> realWeights = new ArrayList<>();
-            List<String> equipNames = new ArrayList<>();
-            List<Long> equipIds = new ArrayList<>();
-
-            for (GloboNetworkVipResponse.Real real : cmd.getRealList()) {
-                if (real.isRevoked()) {
-                    continue;
-                }
-
-                if (real.getPorts() == null) {
-                    throw new InvalidParameterValueException("You need to specify a port for the real");
-                }
-                Ip equipmentIp = _globoNetworkApi.getIpAPI().findByIpAndEnvironment(real.getIp(), real.getEnvironmentId(), false);
-                if (equipmentIp == null) {
-                    throw new InvalidParameterValueException("Could not get real IP information: " + real.getIp());
-                }
-
-                Equipment equipment = _globoNetworkApi.getEquipmentAPI().listByName(real.getVmName());
-                equipNames.add(equipment.getName());
-                equipIds.add(equipment.getId());
-                realWeights.add(DEFAULT_REAL_WEIGHT.longValue());
-                realPriorities.add(DEFAULT_REALS_PRIORITY); // Making sure there is the same number of reals and reals priorities
-
-                // GloboNetwork considers a different RealIP object if there are multiple ports
-                // even though IP and name info are the same
-                for(String port : real.getPorts()) {
-                    RealIP realIP = createRealIP(real, equipmentIp, port);
-                    List<RealIP> realIpList = realIps.get(port);
-                    if (realIpList == null) {
-                        realIpList = new ArrayList<>();
-                        realIps.put(port, realIpList);
-                    }
-                    realIpList.add(realIP);
-                }
-            }
-
-            List<VipPoolMap> vipPoolMapping = new ArrayList<>();
-            for (String port : cmd.getPorts()) {
-                VipPoolMap pool = createPool(cmd, vip, cmd.getHost(), vipIp, realIps, realPriorities, equipNames, equipIds, realWeights, port);
-                vipPoolMapping.add(pool);
-            }
-
-            if (vip == null) {
-                vip = createVip(cmd, cmd.getHost(), environmentVip, vipIp, vipPoolMapping);
-            } else {
-                vip = updateVip(cmd, vip, vipIp, vipPoolMapping);
-            }
-
-            vip = validate(vip, vipIp);
-            createOnEquipment(vip);
-
-            return this.createVipResponse(vip, cmd);
-        } catch (GloboNetworkException e) {
-            return handleGloboNetworkException(cmd, e);
-        } catch (InvalidParameterValueException e){
-            return new Answer(cmd, false, e.getMessage());
-        }
-    }
-
-
     protected List<VipPoolMap> savePools(Vip vip, VipInfoHelper vipInfos, List<PoolV3.PoolMember> poolMembers, ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {
         Map<String, VipPoolMap> vipPoolMaps = new LinkedHashMap<>(); //just for test order
 
@@ -1398,6 +1178,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
             poolMember.setPriority(DEFAULT_REALS_PRIORITY);
             poolMember.setWeight(DEFAULT_REAL_WEIGHT);
+            poolMember.setMemberStatus(DEFAULT_REAL_STATUS);
 
             poolMember.setEquipmentId(equipment.getId());
             poolMember.setEquipmentName(equipment.getName());
@@ -1420,7 +1201,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return poolMembers;
     }
 
-    private VipInfoHelper getVipInfos(Long vipEnvironmentId, String ipv4) throws GloboNetworkException {
+    protected VipInfoHelper getVipInfos(Long vipEnvironmentId, String ipv4) throws GloboNetworkException {
         VipEnvironment environmentVip = _globoNetworkApi.getVipEnvironmentAPI().search(vipEnvironmentId, null, null, null);
         if (environmentVip == null) {
             throw new InvalidParameterValueException("Could not find VIP environment " + vipEnvironmentId);
