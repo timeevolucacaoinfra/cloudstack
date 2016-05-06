@@ -2091,10 +2091,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             // only show 'error'
             throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId(), e);
         } finally {
-            if (lock != null) {
+            if (lock != null && lock.isHeldByCurrentThread()) {
                 lock.unlock();
             }
-            // lock.releaseRef();
             GlobalLock.releaseReentrantLock(lockName);
         }
 
