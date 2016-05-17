@@ -836,7 +836,7 @@ public class GloboNetworkResourceTest {
         pool2.setEnvironment(125l);
 
         PoolV3.Healthcheck healthcheck2 = pool2.getHealthcheck();
-        healthcheck2.setHealthcheck("HTTP", "/index.html", "WORKING");
+        healthcheck2.setHealthcheck("TCP", "", "");
         healthcheck2.setDestination(null);
 
         when(_resource._globoNetworkApi.getPoolAPI().save(pool2)).thenReturn(new PoolV3(321l));

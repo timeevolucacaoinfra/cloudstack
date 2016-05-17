@@ -1127,8 +1127,12 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 poolV3.setEnvironment(vipInfos.getEnvironment());
 
                 PoolV3.Healthcheck healthcheck = poolV3.getHealthcheck();
-                healthcheck.setHealthcheck(cmd.getHealthcheckType(), cmd.getHealthcheck(), cmd.getExpectedHealthcheck());
                 healthcheck.setDestination(cmd.getHealthCheckDestination());
+                if (realPort == 443 ||  realPort == 8443) {
+                    healthcheck.setHealthcheck("TCP", "", "");
+                } else {
+                    healthcheck.setHealthcheck(cmd.getHealthcheckType(), cmd.getHealthcheck(), cmd.getExpectedHealthcheck());
+                }
 
                 LbAlgorithm lbAlgorithm = getBalancingAlgorithm(cmd.getMethodBal());
                 poolV3.setLbMethod(lbAlgorithm.getGloboNetworkBalMethod());
