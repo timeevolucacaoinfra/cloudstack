@@ -27,6 +27,7 @@ import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
+import com.globo.globonetwork.cloudstack.manager.HealthCheckHelper;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
@@ -1128,7 +1129,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
                 PoolV3.Healthcheck healthcheck = poolV3.getHealthcheck();
                 healthcheck.setDestination(cmd.getHealthCheckDestination());
-                if (realPort == 443 ||  realPort == 8443) {
+                if (forceSupportOldPoolVersion(cmd.getHealthcheckType(), realPort)) {
                     healthcheck.setHealthcheck("TCP", "", "");
                 } else {
                     healthcheck.setHealthcheck(cmd.getHealthcheckType(), cmd.getHealthcheck(), cmd.getExpectedHealthcheck());
@@ -1153,6 +1154,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
 
         return new ArrayList(vipPoolMaps.values());
+    }
+
+    protected boolean forceSupportOldPoolVersion(String healthcheckType, Integer realPort) {
+        return (!healthcheckType.equals(HealthCheckHelper.HealthCheckType.HTTPS.name())
+                &&(realPort == 443 ||  realPort == 8443));
     }
 
     private PoolV3.PoolMember findExistsRealInPool(PoolV3.PoolMember poolMember, List<PoolV3.PoolMember> poolMembersFromNetworkApi) {

@@ -856,6 +856,28 @@ public class GloboNetworkResourceTest {
     }
 
     @Test
+    public void testForceSupportPoolOldVersion() {
+
+
+        assertFalse(_resource.forceSupportOldPoolVersion("HTTP", 8080));
+        assertFalse(_resource.forceSupportOldPoolVersion("HTTP", 8081));
+        assertFalse(_resource.forceSupportOldPoolVersion("HTTP", 80));
+        assertFalse(_resource.forceSupportOldPoolVersion("HTTP", 1234));
+        assertTrue(_resource.forceSupportOldPoolVersion("HTTP", 8443));
+        assertTrue(_resource.forceSupportOldPoolVersion("HTTP", 443));
+        assertTrue(_resource.forceSupportOldPoolVersion("UDP", 8443));
+        assertTrue(_resource.forceSupportOldPoolVersion("UDP", 443));
+
+        assertTrue(_resource.forceSupportOldPoolVersion("TCP", 443));
+        assertTrue(_resource.forceSupportOldPoolVersion("TCP", 8443));
+
+
+        assertFalse(_resource.forceSupportOldPoolVersion("HTTPS", 443));
+        assertFalse(_resource.forceSupportOldPoolVersion("HTTPS", 8443));
+
+    }
+
+    @Test
     public void testSavePoolWithOneReal() throws GloboNetworkException {
         ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         cmd.setRealList(Arrays.asList(new GloboNetworkVipResponse.Real()));
