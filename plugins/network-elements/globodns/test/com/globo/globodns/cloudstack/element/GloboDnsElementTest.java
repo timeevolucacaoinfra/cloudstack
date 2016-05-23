@@ -17,6 +17,7 @@
 package com.globo.globodns.cloudstack.element;
 
 import static junit.framework.TestCase.assertTrue;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
@@ -29,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 
@@ -58,6 +60,9 @@ import com.cloud.vm.VirtualMachineProfile;
 import com.globo.globodns.cloudstack.commands.CreateOrUpdateRecordAndReverseCommand;
 import com.globo.globodns.cloudstack.commands.RemoveRecordCommand;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 public class GloboDnsElementTest {
 
     private static long zoneId = 5L;
@@ -81,7 +86,7 @@ public class GloboDnsElementTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
 
-        _globodnsElement = new GloboDnsElement();
+        _globodnsElement = Mockito.spy(new GloboDnsElement());
 
         _globodnsElement._dcDao = _datacenterDao;
         _globodnsElement._hostDao = _hostDao;
@@ -196,5 +201,22 @@ public class GloboDnsElementTest {
         String lbRecord = "test_underscore";
         String lbRecordContent = "10.0.0.1";
         boolean result = _globodnsElement.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, lbRecordContent, zoneId);
+    }
+
+    @Test
+    public void testCheckLbNameGivenNotBlacklistedName(){
+        Mockito.when(_globodnsElement.getBlackListedDomains()).thenReturn(new ArrayList<String>());
+        _globodnsElement.checkForBlacklistedDomain("domain.com", "name");
+    }
+
+
+    @Test
+    public void testCheckLbNameGivenBlacklistedName(){
+        Mockito.when(_globodnsElement.getBlackListedDomains()).thenReturn(Arrays.asList("dev.domain.com"));
+        try {
+            _globodnsElement.checkForBlacklistedDomain("domain.com", "name.dev");
+        }catch(InvalidParameterValueException e){
+            assertEquals("Invalid load balancer name, it cannot contain the the domain 'dev.domain.com'", e.getMessage());
+        }
     }
 }

@@ -18,6 +18,7 @@
 package com.globo.globodns.cloudstack.element;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,8 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             "Allow GloboDns to override entries that already exist", true, ConfigKey.Scope.Global);
     private static final ConfigKey<Boolean> GloboDNSLbOverride = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.override.lb.entries", "false",
             "Allow GloboDns to override entries for load balancer names that already exist", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<String> GloboDNSLbBlacklistedDomains = new ConfigKey<>("Advanced", String.class, "globodns.lb.domain.blacklist", "",
+            "List of comma separated domains that should be blacklisted for load balancers", true, ConfigKey.Scope.Global);
 
     // DAOs
     @Inject
@@ -276,7 +279,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride};
+        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride, GloboDNSLbBlacklistedDomains};
     }
 
     ////////// Resource/Host methods ////////////
@@ -401,6 +404,9 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         if (lbRecord.contains("_")) {
             throw new InvalidParameterValueException("Underscore(_) is not allowed for load balancer name");
         }
+
+        this.checkForBlacklistedDomain(lbDomain, lbRecord);
+
         DataCenter zone = _dcDao.findById(zoneId);
         if (zone == null) {
             throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
@@ -413,6 +419,21 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new InvalidParameterValueException("Could not validate LB record " + lbRecord + ". " + (answer == null ? "" : answer.getDetails()));
         }
         return answer.getResult();
+    }
+
+    protected void checkForBlacklistedDomain(String lbDomain, String lbRecord) {
+        List<String> blacklist = getBlackListedDomains();
+
+        String lbName = lbRecord + "." + lbDomain;
+        for(String blacklistedDomain : blacklist){
+            if(!blacklistedDomain.equals("") && lbName.contains(blacklistedDomain)){
+                throw new InvalidParameterValueException("Invalid load balancer name, it cannot contain the the domain '"+ blacklistedDomain +"'");
+            }
+        }
+    }
+
+    protected List<String> getBlackListedDomains() {
+        return Arrays.asList(GloboDNSLbBlacklistedDomains.value().split(","));
     }
 
     @Override
