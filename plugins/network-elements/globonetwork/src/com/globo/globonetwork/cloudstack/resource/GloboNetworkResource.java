@@ -32,6 +32,7 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckR
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -845,6 +846,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(ApplyVipInGloboNetworkCommand cmd) {
         try {
+            s_logger.debug("[ApplyVip START] Vip: " + cmd.getIpv4() + " ip: " + cmd.getHost());
+            Long start = new Date().getTime();
             Vip vip = getVipById(cmd.getVipId());
 
             VipInfoHelper vipInfo = getVipInfos(cmd.getVipEnvironmentId(), cmd.getIpv4());
@@ -861,7 +864,11 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             vip = validate(vip, vipInfo.vipIp);
             createOnEquipment(vip);
 
-            return this.createVipResponse(vip, cmd);
+            Answer vipResponse = this.createVipResponse(vip, cmd);
+            Long time = new Date().getTime() - start;
+
+            s_logger.debug("[ApplyVip END] Vip: " + cmd.getIpv4() + ", ip: " + cmd.getHost() +", Operation time: " + time + " ms");
+            return vipResponse;
         }catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);
         } catch (InvalidParameterValueException e){
