@@ -280,9 +280,9 @@ public class AutoScaleManagerImplTest {
 
         AutoScaleVmGroupPolicyMapVO asPolicyMap1 = new AutoScaleVmGroupPolicyMapVO(1L, 1L, false);
         AutoScaleVmGroupPolicyMapVO asPolicyMap2 = new AutoScaleVmGroupPolicyMapVO(1L, 2L, false);
-        AutoScalePolicyVO policy1 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaleup");
+        AutoScalePolicyVO policy1 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaleup", 1);
         policy1.id = 1L;
-        AutoScalePolicyVO policy2 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaledown");
+        AutoScalePolicyVO policy2 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaledown", 1);
         policy2.id = 2L;
 
         when(autoScaleVmGroupPolicyMapDao.listByVmGroupId(anyLong())).thenReturn(Arrays.asList(asPolicyMap1, asPolicyMap2));
@@ -302,9 +302,9 @@ public class AutoScaleManagerImplTest {
 
         AutoScaleVmGroupPolicyMapVO asPolicyMap1 = new AutoScaleVmGroupPolicyMapVO(1L, 1L, false);
         AutoScaleVmGroupPolicyMapVO asPolicyMap2 = new AutoScaleVmGroupPolicyMapVO(1L, 2L, false);
-        AutoScalePolicyVO policy1 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaleup");
+        AutoScalePolicyVO policy1 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaleup", 1);
         policy1.id = 1L;
-        AutoScalePolicyVO policy2 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaledown");
+        AutoScalePolicyVO policy2 = new AutoScalePolicyVO(1L, 1L, 60, 120, null, "scaledown", 1);
         policy2.id = 2L;
 
         when(autoScaleVmGroupPolicyMapDao.listByVmGroupId(anyLong())).thenReturn(Arrays.asList(asPolicyMap1, asPolicyMap2));
@@ -758,7 +758,7 @@ public class AutoScaleManagerImplTest {
 
         @Override
         public Hypervisor.HypervisorType getHypervisorType() {
-            return null;
+            return Hypervisor.HypervisorType.XenServer;
         }
 
         @Override

@@ -532,6 +532,7 @@ public class ApiConstants {
     public static final String INTERVAL = "interval";
     public static final String QUIETTIME = "quiettime";
     public static final String ACTION = "action";
+    public static final String STEP = "step";
     public static final String CONDITION_ID = "conditionid";
     public static final String CONDITION_IDS = "conditionids";
     public static final String COUNTERPARAM_LIST = "counterparam";

@@ -208,6 +208,13 @@
                                 validation: {
                                     required: true
                                 }
+                            },
+                            scaleUpStep: {
+                                 label: 'label.scaleup.step',
+                                 docID: 'helpAutoscaleStep',
+                                 validation: {
+                                     required: true
+                                 }
                             }
                         }
                     }
@@ -225,6 +232,13 @@
                             scaleDownDuration: {
 								label: 'label.duration.in.sec',
                                 docID: 'helpAutoscaleDuration',
+                                validation: {
+                                    required: true
+                                }
+                            },
+                            scaleDownStep: {
+                                label: 'label.scaledown.step',
+                                docID: 'helpAutoscaleStep',
                                 validation: {
                                     required: true
                                 }
@@ -249,6 +263,10 @@
                     );
                 }
 
+                $scaleUpPolicyTitleForm.find('input[name=scaleUpStep]').val(
+                    data.scaleUpPolicy ? data.scaleUpPolicy.step : 1
+                );
+
                 scaleuppolicy.context = context;
                 scaleUpPolicyForm = $scaleUpPolicy.multiEdit(scaleuppolicy);
 
@@ -263,6 +281,10 @@
                         data.scaleDownPolicy.duration
                     );
                 }
+
+                $scaleDownPolicyTitleForm.find('input[name=scaleDownStep]').val(
+                    data.scaleDownPolicy ? data.scaleDownPolicy.step : 1
+                );
 
                 scaledownpolicy.context = context;
                 scaleDownPolicyForm = $scaleDownPolicy.multiEdit(scaledownpolicy);

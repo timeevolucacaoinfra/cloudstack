@@ -1011,6 +1011,8 @@ $.extend(dictionary, {
 'label.internallbvm': '<fmt:message key="label.internallbvm" />',
 'label.agent.state': '<fmt:message key="label.agent.state" />',
 'label.duration.in.sec': '<fmt:message key="label.duration.in.sec" />',
+'label.scaleup.step': '<fmt:message key="label.scaleup.step" />',
+'label.scaledown.step': '<fmt:message key="label.scaledown.step" />',
 'state.detached': '<fmt:message key="state.detached" />',
 'label.na': '<fmt:message key="label.na" />',
 'label.added.network.offering': '<fmt:message key="label.added.network.offering" />',

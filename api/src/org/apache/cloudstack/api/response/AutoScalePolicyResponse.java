@@ -38,6 +38,10 @@ public class AutoScalePolicyResponse extends BaseResponse implements ControlledE
     @Param(description = "the action to be executed if all the conditions evaluate to true for the specified duration.")
     private String action;
 
+    @SerializedName(ApiConstants.STEP)
+    @Param(description = "the number of vms that will be created/destroyed")
+    private Integer step;
+
     @SerializedName(ApiConstants.DURATION)
     @Param(description = "the duration for which the conditions have to be true before action is taken")
     private Integer duration;
@@ -89,6 +93,10 @@ public class AutoScalePolicyResponse extends BaseResponse implements ControlledE
 
     public void setAction(String action) {
         this.action = action;
+    }
+
+    public void setStep(Integer step) {
+        this.step = step;
     }
 
     public void setConditions(List<ConditionResponse> conditions) {

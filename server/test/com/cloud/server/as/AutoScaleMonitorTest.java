@@ -106,7 +106,7 @@ public class AutoScaleMonitorTest {
 
         //Mock scale up policy
         autoScaleMonitor._asPolicyDao = mock(AutoScalePolicyDao.class);
-        when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, new Date(1), "scaleup"));
+        when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, new Date(1), "scaleup", 1));
 
         autoScaleMonitor.processAutoScaleGroup(asGroup);
 
@@ -144,7 +144,7 @@ public class AutoScaleMonitorTest {
 
         //Mock scale down policy
         autoScaleMonitor._asPolicyDao = mock(AutoScalePolicyDao.class);
-        when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, new Date(1), "scaledown"));
+        when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, new Date(1), "scaledown", 1));
 
         autoScaleMonitor.processAutoScaleGroup(asGroup);
 
@@ -184,7 +184,7 @@ public class AutoScaleMonitorTest {
         //Mock scale down policy with NOW as last quiet time
         Date now = new Date();
         autoScaleMonitor._asPolicyDao = mock(AutoScalePolicyDao.class);
-        when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, now, "scaledown"));
+        when(autoScaleMonitor._asPolicyDao.findById(anyLong())).thenReturn(new AutoScalePolicyVO(1, 1, 60, 120, now, "scaledown", 1));
 
         autoScaleMonitor.processAutoScaleGroup(asGroup);
 

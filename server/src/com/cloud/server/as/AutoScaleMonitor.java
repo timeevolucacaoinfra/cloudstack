@@ -17,6 +17,7 @@
 package com.cloud.server.as;
 
 import com.cloud.network.as.AutoScaleManager;
+import com.cloud.network.as.AutoScalePolicy;
 import com.cloud.network.as.AutoScalePolicyConditionMapVO;
 import com.cloud.network.as.AutoScalePolicyVO;
 import com.cloud.network.as.AutoScaleStatsCollector;
@@ -142,14 +143,14 @@ public class AutoScaleMonitor extends ManagedContextRunnable implements Configur
             Map<String, Double> counterSummary = statsCollector.retrieveMetrics(asGroup, this.getVirtualMachinesFor(asGroup));
 
             if (counterSummaryNotEmpty(counterSummary)) {
-                String scaleAction = this.getAutoScaleAction(counterSummary, asGroup);
-                if (scaleAction != null) {
-                    s_logger.debug("[AutoScale] Doing scale action: " + scaleAction + " for group " + asGroup.getId());
+                AutoScalePolicy policy = this.getAutoScalePolicy(counterSummary, asGroup);
+                if (policy != null) {
+                    s_logger.debug("[AutoScale] Doing scale action: " + policy.getAction() + " for group " + asGroup.getId());
 
-                    if (scaleAction.equals(SCALE_UP_ACTION)) {
-                        _asManager.doScaleUp(asGroup.getId(), 1);
+                    if (policy.getAction().equals(SCALE_UP_ACTION)) {
+                        _asManager.doScaleUp(asGroup.getId(), policy.getStep());
                     } else {
-                        _asManager.doScaleDown(asGroup.getId(), 1);
+                        _asManager.doScaleDown(asGroup.getId(), policy.getStep());
                     }
                 }
             }
@@ -210,7 +211,7 @@ public class AutoScaleMonitor extends ManagedContextRunnable implements Configur
         return true;
     }
 
-    private String getAutoScaleAction(Map<String, Double> counterSummary, AutoScaleVmGroupVO asGroup) {
+    private AutoScalePolicy getAutoScalePolicy(Map<String, Double> counterSummary, AutoScaleVmGroupVO asGroup) {
         List<AutoScaleVmGroupPolicyMapVO> asGroupPolicyMap = _asGroupPolicyDao.listByVmGroupId(asGroup.getId());
         if (asGroupPolicyMap == null || asGroupPolicyMap.size() == 0)
             return null;
@@ -258,7 +259,7 @@ public class AutoScaleMonitor extends ManagedContextRunnable implements Configur
                             }
                         }
                         if (isPolicyValid) {
-                            return policy.getAction();
+                            return policy;
                         }
                     }
                 }

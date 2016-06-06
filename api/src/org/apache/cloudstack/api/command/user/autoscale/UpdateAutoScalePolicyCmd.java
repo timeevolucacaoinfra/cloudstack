@@ -72,6 +72,12 @@ public class UpdateAutoScalePolicyCmd extends BaseAsyncCmd {
                description = "the ID of the autoscale policy")
     private Long id;
 
+    @Parameter(name = ApiConstants.STEP,
+            type = CommandType.INTEGER,
+            required = false,
+            description = "the number of vms that will be created/destroyed")
+    private Integer step = 1;
+
     @Override
     public void execute() {
         CallContext.current().setEventDetails("AutoScale Policy Id: " + getId());
@@ -103,6 +109,10 @@ public class UpdateAutoScalePolicyCmd extends BaseAsyncCmd {
 
     public List<Long> getConditionIds() {
         return conditionIds;
+    }
+
+    public Integer getStep() {
+        return step;
     }
 
     @Override

@@ -66,6 +66,9 @@ public class AutoScalePolicyVO implements AutoScalePolicy, InternalIdentity {
     @Column(name = "action", updatable = false, nullable = false)
     private String action;
 
+    @Column(name = "step", updatable = true, nullable = false)
+    private Integer step = 1;
+
     @Column(name = GenericDao.REMOVED_COLUMN)
     protected Date removed;
 
@@ -76,7 +79,7 @@ public class AutoScalePolicyVO implements AutoScalePolicy, InternalIdentity {
     }
 
     public AutoScalePolicyVO(long domainId, long accountId, int duration,
-            int quietTime, Date lastQuiteTime, String action) {
+            int quietTime, Date lastQuiteTime, String action, Integer step) {
         uuid = UUID.randomUUID().toString();
         this.domainId = domainId;
         this.accountId = accountId;
@@ -84,6 +87,7 @@ public class AutoScalePolicyVO implements AutoScalePolicy, InternalIdentity {
         this.quietTime = quietTime;
         this.lastQuiteTime = lastQuiteTime;
         this.action = action;
+        this.step = step;
     }
 
     @Override
@@ -131,6 +135,11 @@ public class AutoScalePolicyVO implements AutoScalePolicy, InternalIdentity {
         return action;
     }
 
+    @Override
+    public Integer getStep() {
+        return step;
+    }
+
     public Date getRemoved() {
         return removed;
     }
@@ -149,6 +158,10 @@ public class AutoScalePolicyVO implements AutoScalePolicy, InternalIdentity {
 
     public void setLastQuiteTime(Date lastQuiteTime) {
         this.lastQuiteTime = lastQuiteTime;
+    }
+
+    public void setStep(Integer step) {
+        this.step = step;
     }
 
     @Override

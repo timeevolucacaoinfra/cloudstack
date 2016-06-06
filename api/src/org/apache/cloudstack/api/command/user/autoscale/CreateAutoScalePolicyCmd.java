@@ -63,6 +63,12 @@ public class CreateAutoScalePolicyCmd extends BaseAsyncCreateCmd {
                description = "the duration for which the conditions have to be true before action is taken")
     private int duration;
 
+    @Parameter(name = ApiConstants.STEP,
+            type = CommandType.INTEGER,
+            required = false,
+            description = "the number of vms that will be created/destroyed")
+    private Integer step = 1;
+
     @Parameter(name = ApiConstants.QUIETTIME,
                type = CommandType.INTEGER,
                description = "the cool down period for which the policy should not be evaluated after the action has been taken")
@@ -93,6 +99,10 @@ public class CreateAutoScalePolicyCmd extends BaseAsyncCreateCmd {
 
     public String getAction() {
         return action;
+    }
+
+    public Integer getStep() {
+        return step;
     }
 
     public List<Long> getConditionIds() {

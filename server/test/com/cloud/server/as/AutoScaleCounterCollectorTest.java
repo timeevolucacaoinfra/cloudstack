@@ -276,6 +276,6 @@ public class AutoScaleCounterCollectorTest {
     }
 
     private AutoScalePolicyVO createAutoScalePolicy() {
-        return new AutoScalePolicyVO(1, 1, 1, 120, new Date(), "scaleup");
+        return new AutoScalePolicyVO(1, 1, 1, 120, new Date(), "scaleup", 1);
     }
 }

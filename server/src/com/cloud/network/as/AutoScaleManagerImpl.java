@@ -656,6 +656,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         int duration = cmd.getDuration();
         Integer quietTime = cmd.getQuietTime();
         String action = cmd.getAction();
+        Integer step = cmd.getStep();
 
         if (quietTime == null) {
             quietTime = NetUtils.DEFAULT_AUTOSCALE_POLICY_QUIET_TIME;
@@ -666,7 +667,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             throw new InvalidParameterValueException("action is invalid, only 'scaleup' and 'scaledown' is supported");
         }
 
-        AutoScalePolicyVO policyVO = new AutoScalePolicyVO(cmd.getDomainId(), cmd.getAccountId(), duration, quietTime, null, action);
+        AutoScalePolicyVO policyVO = new AutoScalePolicyVO(cmd.getDomainId(), cmd.getAccountId(), duration, quietTime, null, action, step);
 
         policyVO = checkValidityAndPersist(policyVO, cmd.getConditionIds());
         s_logger.info("Successfully created AutoScale Policy with Id: " + policyVO.getId());
@@ -820,6 +821,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         Long policyId = cmd.getId();
         Integer duration = cmd.getDuration();
         Integer quietTime = cmd.getQuietTime();
+        Integer step = cmd.getStep();
         List<Long> conditionIds = cmd.getConditionIds();
         AutoScalePolicyVO policy = getEntityInDatabase(CallContext.current().getCallingAccount(), "Auto Scale Policy", policyId, _autoScalePolicyDao);
 
@@ -829,6 +831,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
         if (quietTime != null) {
             policy.setQuietTime(quietTime);
+        }
+
+        if (step != null) {
+            policy.setStep(step);
         }
 
         List<AutoScaleVmGroupPolicyMapVO> vmGroupPolicyList = _autoScaleVmGroupPolicyMapDao.listByPolicyId(policyId);
@@ -1556,7 +1562,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                     networkIds.add(mainNetworkId);
                     networkIds.addAll(getAdditionalNetWorkIds(profileVo, zone));
                     vm = _userVmService.createAdvancedVirtualMachine(zone, serviceOffering, template, networkIds, owner, instanceName, instanceName,
-                        null, null, null, HypervisorType.XenServer, HTTPMethod.POST, profileVo.getUserData(), null, null, addrs, true, null, null, null, null);
+                        null, null, null, template.getHypervisorType(), HTTPMethod.POST, profileVo.getUserData(), null, null, addrs, true, null, null, null, null);
 
                 }
             }

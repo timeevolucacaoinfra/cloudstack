@@ -146,6 +146,7 @@
                                 var scaleUpPolicy = {
                                     id: autoscaleVmGroup.scaleuppolicies[0].id,
                                     duration: autoscaleVmGroup.scaleuppolicies[0].duration,
+                                    step: autoscaleVmGroup.scaleuppolicies[0].step,
                                     conditions: []
                                 };
                                 $(autoscaleVmGroup.scaleuppolicies[0].conditions).each(function() {
@@ -161,6 +162,7 @@
                                 var scaleDownPolicy = {
                                     id: autoscaleVmGroup.scaledownpolicies[0].id,
                                     duration: autoscaleVmGroup.scaledownpolicies[0].duration,
+                                    step: autoscaleVmGroup.scaledownpolicies[0].step,
                                     conditions: []
                                 };
                                 $(autoscaleVmGroup.scaledownpolicies[0].conditions).each(function() {
@@ -919,6 +921,10 @@
                     args.response.error("Duration of Scale Up Policy should be a number.");
                     return;
                 }
+                if (args.data.scaleUpStep == "" || isNaN(args.data.scaleUpStep)) {
+                    args.response.error("Scale up step should be a number.");
+                    return;
+                }
                 if (parseInt(args.data.scaleUpDuration) < parseInt(args.data.interval)) {
                     args.response.error("Duration of Scale Up Policy must be greater than or equal to Polling Interval.");
                     return;
@@ -935,6 +941,10 @@
                 }
                 if (isNaN(args.data.scaleDownDuration)) {
                     args.response.error("Duration of Scale Down Policy should be a number.");
+                    return;
+                }
+                if (args.data.scaleDownStep == "" || isNaN(args.data.scaleDownStep)) {
+                    args.response.error("Scale down step should be a number.");
                     return;
                 }
                 if (parseInt(args.data.scaleDownDuration) < parseInt(args.data.interval)) {
@@ -1000,7 +1010,8 @@
                                                                 action: 'scaleup',
                                                                 conditionids: scaleUpConditionIds.join(","),
                                                                 duration: args.data.scaleUpDuration,
-                                                                quiettime: args.data.quietTime
+                                                                quiettime: args.data.quietTime,
+                                                                step: args.data.scaleUpStep
                                                             };
                                                             $.ajax({
                                                                 url: createURL('createAutoScalePolicy'),
@@ -1039,7 +1050,8 @@
                                                                 id: args.context.originalAutoscaleData.scaleUpPolicy.id,
                                                                 conditionids: scaleUpConditionIds.join(","),
                                                                 duration: args.data.scaleUpDuration,
-                                                                quiettime: args.data.quietTime
+                                                                quiettime: args.data.quietTime,
+                                                                step: args.data.scaleUpStep
                                                             };
 
                                                             $.ajax({
@@ -1132,7 +1144,8 @@
                                                                 action: 'scaledown',
                                                                 conditionids: scaleDownConditionIds.join(","),
                                                                 duration: args.data.scaleDownDuration,
-                                                                quiettime: args.data.quietTime
+                                                                quiettime: args.data.quietTime,
+                                                                step: args.data.scaleDownStep
                                                             };
                                                             $.ajax({
                                                                 url: createURL('createAutoScalePolicy'),
@@ -1171,7 +1184,8 @@
                                                                 id: args.context.originalAutoscaleData.scaleDownPolicy.id,
                                                                 conditionids: scaleDownConditionIds.join(","),
                                                                 duration: args.data.scaleDownDuration,
-                                                                quiettime: args.data.quietTime
+                                                                quiettime: args.data.quietTime,
+                                                                step: args.data.scaleDownStep
                                                             };
 
                                                             $.ajax({

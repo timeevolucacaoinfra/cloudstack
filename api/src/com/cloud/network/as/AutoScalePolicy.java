@@ -37,4 +37,6 @@ public interface AutoScalePolicy extends ControlledEntity, InternalIdentity {
 
     public String getAction();
 
+    public Integer getStep();
+
 }
