@@ -17,6 +17,8 @@ package com.globo.globonetwork.cloudstack.api;
 
 import javax.inject.Inject;
 
+import com.cloud.event.ActionEventUtils;
+import com.cloud.event.EventTypes;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
@@ -132,6 +134,7 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
             Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
                     projectId, domainId, subdomainAccess, displayNetwork, aclId, isIpv6, subnet);
             if (network != null) {
+                ActionEventUtils.onActionEvent(getUserId(), getEntityOwnerId(), domainId, EventTypes.EVENT_NETWORK_CREATE, getEventDescription(network.getId()));
                 NetworkResponse response = _responseGenerator.createNetworkResponse(ResponseView.Full, network);
                 response.setResponseName(getCommandName());
                 this.setResponseObject(response);
@@ -143,6 +146,14 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
         } catch (CloudRuntimeException runtimeExcp) {
             throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, runtimeExcp.getMessage());
         }
+    }
+
+    private Long getUserId(){
+        return CallContext.current().getCallingUserId();
+    }
+
+    public String getEventDescription(Long id) {
+        return "Creating network. Network Id: " + id;
     }
 
     @Override
