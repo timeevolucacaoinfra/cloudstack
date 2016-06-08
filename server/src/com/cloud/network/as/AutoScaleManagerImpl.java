@@ -1735,8 +1735,8 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
     @Override
     public void doScaleUp(long groupId, Integer numVm) {
+        AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
         try {
-            AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
             if (asGroup == null) {
                 s_logger.error("Can not find the groupid " + groupId + " for scaling up");
                 return;
@@ -1756,21 +1756,21 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                 if (assignLBruleToNewVm(vm.getId(), asGroup)) {
                     _autoScaleVmGroupVmMapDao.persist(new AutoScaleVmGroupVmMapVO(asGroup.getId(), vm.getId()));
                     updateLastQuietTime(groupId, "scaleup");
-                    createScaleUpSuccessEvent(groupId, "VM " + vm.getDisplayName() + " was created as result of a scale up action. Auto Scale Id: " + groupId);
+                    createScaleUpSuccessEvent(asGroup.getUuid(), "VM " + vm.getDisplayName() + " was created as result of a scale up action. Auto Scale Id: " + asGroup.getUuid());
                 } else {
-                    createScaleUpFailedEvent(groupId, "VM could not be assigned to LB for Auto Scale Id: " + groupId);
+                    createScaleUpFailedEvent(asGroup.getUuid(), "VM could not be assigned to LB for Auto Scale Id: " + asGroup.getUuid());
                     s_logger.error("Can not assign LB rule for this new VM");
                     break;
                 }
             }
         } catch(ServerApiException ex) {
-            String message = "It was not possible do start VM for Auto Scale Id: " + groupId + " Reason: " + ex.getDescription();
-            createScaleUpFailedEvent(groupId, message);
+            String message = "It was not possible do start VM for Auto Scale Id: " + asGroup.getUuid() + " Reason: " + ex.getDescription();
+            createScaleUpFailedEvent(asGroup.getUuid(), message);
             s_logger.error(message, ex);
             throw ex;
         }catch(Exception ex){
-            String message = "It was not possible do start VM for Auto Scale Id: " + groupId + " Reason: unexpected error during execution";
-            createScaleUpFailedEvent(groupId, message);
+            String message = "It was not possible do start VM for Auto Scale Id: " + asGroup.getUuid() + " Reason: unexpected error during execution";
+            createScaleUpFailedEvent(asGroup.getUuid(), message);
             s_logger.error(message, ex);
             throw ex;
         }
@@ -1778,9 +1778,9 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
     @Override
     public void doScaleDown(final long groupId, Integer numVm) {
+        final AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
         for(int i = 0; i < numVm; i++) {
             try{
-                AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
                 if (asGroup == null) {
                     s_logger.error("Can not find the groupid " + groupId + " for scaling up");
                     return;
@@ -1800,21 +1800,21 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                             @Override
                             public void run() {
                                 if(destroyVM(vmId)){
-                                    createScaleDownSuccessEvent(groupId, "VM was destroyed as result of a scale down action. Auto Scale Id: " + groupId);
+                                    createScaleDownSuccessEvent(asGroup.getUuid(), "VM was destroyed as result of a scale down action. Auto Scale Id: " + groupId);
                                 }else{
-                                    createScaleDownFailedEvent(groupId, "Scale down action failed for Auto Scale group id: " + groupId);
+                                    createScaleDownFailedEvent(asGroup.getUuid(), "Scale down action failed for Auto Scale group id: " + groupId);
                                 }
                             }
                         }, destroyVmGracePeriod, TimeUnit.SECONDS);
                     }
                 } else {
                     String message = "Failed to remove LB rule for the VM being destroyed.";
-                    createScaleDownFailedEvent(groupId, "Scale down action failed for Auto Scale group id: " + groupId + ". Reason: " + message);
+                    createScaleDownFailedEvent(asGroup.getUuid(), "Scale down action failed for Auto Scale group id: " + groupId + ". Reason: " + message);
                     s_logger.error(message);
                 }
             }catch(Exception ex){
                 String message = "Scale down action failed for Auto Scale group id: " + groupId;
-                createScaleDownFailedEvent(groupId, message);
+                createScaleDownFailedEvent(asGroup.getUuid(), message);
                 s_logger.error(message, ex);
                 throw ex;
             }
@@ -1847,26 +1847,27 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         return false;
     }
 
-    public void createScaleUpSuccessEvent(Long asGroupId, String description){
+    public void createScaleUpSuccessEvent(String asGroupId, String description){
         createEvent(asGroupId, EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP, description);
     }
 
-    public void createScaleUpFailedEvent(Long asGroupId, String description){
+    public void createScaleUpFailedEvent(String asGroupId, String description){
         createEvent(asGroupId, EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED, description);
     }
 
-    public void createScaleDownSuccessEvent(Long asGroupId, String description){
+    public void createScaleDownSuccessEvent(String asGroupId, String description){
         createEvent(asGroupId, EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN, description);
     }
 
-    public void createScaleDownFailedEvent(Long asGroupId, String description){
+    public void createScaleDownFailedEvent(String asGroupId, String description){
         createEvent(asGroupId, EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED, description);
     }
 
-    protected void createEvent(Long asGroupId, String eventType, String description) {
+    protected void createEvent(String asGroupId, String eventType, String description) {
         CallContext callContext = CallContext.current();
-        AutoScaleVmGroupVO asGroup = getEntityInDatabase(callContext.getCallingAccount(), "AutoScale Vm Group", asGroupId, _autoScaleVmGroupDao);
+        AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findByUuid(asGroupId);
         User user = callContext.getCallingUser();
+        callContext.getContextParameters().put(AutoScaleVmGroup.class.getName(), asGroupId);
         ActionEventUtils.onActionEvent(user.getId(), asGroup.getAccountId(), asGroup.getDomainId(), eventType, description);
     }
 

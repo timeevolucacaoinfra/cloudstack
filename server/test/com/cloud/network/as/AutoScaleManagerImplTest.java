@@ -112,6 +112,7 @@ public class AutoScaleManagerImplTest {
 
     private static final long AS_GROUP_ID = 10L;
     private static final String USER_DATA = "IA==";
+    private static String groupUuid;
 
     @Before
     public void setUp(){
@@ -173,7 +174,7 @@ public class AutoScaleManagerImplTest {
     public void testScaleUp() throws InsufficientCapacityException, ResourceUnavailableException {
         testScaleUpWith(1, true, true);
         verify(autoScaleVmGroupVmMapDao, times(1)).persist(any(AutoScaleVmGroupVmMapVO.class));
-        verify(autoScaleManager, times(1)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
+        verify(autoScaleManager, times(1)).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
         verify(autoScaleManager, times(1)).updateLastQuietTime(anyLong(), eq("scaleup"));
     }
 
@@ -181,7 +182,7 @@ public class AutoScaleManagerImplTest {
     public void testScaleUpThreeVms() throws InsufficientCapacityException, ResourceUnavailableException {
         testScaleUpWith(3, true, true);
         verify(autoScaleVmGroupVmMapDao, times(3)).persist(any(AutoScaleVmGroupVmMapVO.class));
-        verify(autoScaleManager, times(3)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
+        verify(autoScaleManager, times(3)).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
         verify(autoScaleManager, times(3)).updateLastQuietTime(anyLong(), eq("scaleup"));
     }
 
@@ -189,7 +190,7 @@ public class AutoScaleManagerImplTest {
     public void testScaleUpFailedToAssignToLB(){
         testScaleUpWith(1, true, false);
         verify(autoScaleVmGroupVmMapDao, times(0)).persist(any(AutoScaleVmGroupVmMapVO.class));
-        verify(autoScaleManager, times(1)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
+        verify(autoScaleManager, times(1)).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
     }
 
     @Test
@@ -209,9 +210,9 @@ public class AutoScaleManagerImplTest {
         doNothing().when(autoScaleManager).startNewVM(1L);
         doReturn(assignToLbResult).when(autoScaleManager).assignLBruleToNewVm(1L, asGroup);
         if(startVmResult && assignToLbResult){
-            doNothing().when(autoScaleManager).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
+            doNothing().when(autoScaleManager).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
         }else {
-            doNothing().when(autoScaleManager).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
+            doNothing().when(autoScaleManager).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
         }
         autoScaleManager.doScaleUp(AS_GROUP_ID, vmCount);
     }
@@ -235,14 +236,14 @@ public class AutoScaleManagerImplTest {
         //mocking createVm, assignLBRuleToNewVm and startVM so they can be tested in isolation
         doReturn(createUserVm(1L)).when(autoScaleManager).createNewVM(asGroup);
         doThrow(exception).when(autoScaleManager).startNewVM(1L);
-        doNothing().when(autoScaleManager).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
+        doNothing().when(autoScaleManager).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
 
         try {
             autoScaleManager.doScaleUp(AS_GROUP_ID, 1);
             fail();
         }catch(Exception ex){
             verify(autoScaleVmGroupVmMapDao, times(0)).persist(any(AutoScaleVmGroupVmMapVO.class));
-            verify(autoScaleManager, times(1)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
+            verify(autoScaleManager, times(1)).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED), anyString());
         }
     }
 
@@ -259,7 +260,7 @@ public class AutoScaleManagerImplTest {
         testScaleDownWith(-1L, null);
 
         verify(autoScaleVmGroupVmMapDao, times(0)).remove(AS_GROUP_ID, 1L);
-        verify(autoScaleManager, times(1)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED), anyString());
+        verify(autoScaleManager, times(1)).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED), anyString());
     }
 
     @Test
@@ -269,7 +270,7 @@ public class AutoScaleManagerImplTest {
             fail();
         }catch(Exception ex){
             verify(autoScaleVmGroupVmMapDao, times(0)).remove(AS_GROUP_ID, 1L);
-            verify(autoScaleManager, times(1)).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED), anyString());
+            verify(autoScaleManager, times(1)).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED), anyString());
         }
     }
 
@@ -612,7 +613,7 @@ public class AutoScaleManagerImplTest {
             doReturn(removeLbResult).when(autoScaleManager).removeLBrule(asGroup);
         }
         if(removeLbResult == -1 || exception != null){
-            doNothing().when(autoScaleManager).createEvent(eq(AS_GROUP_ID), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED), anyString());
+            doNothing().when(autoScaleManager).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED), anyString());
         }
         when(autoScaleVmProfileDao.findById(asGroup.getProfileId())).thenReturn(new AutoScaleVmProfileVO());
         autoScaleManager.doScaleDown(AS_GROUP_ID, 1);
@@ -641,6 +642,7 @@ public class AutoScaleManagerImplTest {
     private AutoScaleVmGroupVO createAutoScaleGroup(){
         AutoScaleVmGroupVO asGroup = new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
         asGroup.id = AutoScaleManagerImplTest.AS_GROUP_ID;
+        groupUuid = asGroup.getUuid();
         return asGroup;
     }
 

@@ -859,6 +859,10 @@ public class EventTypes {
         entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_UPDATE, AutoScaleVmGroup.class);
         entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_ENABLE, AutoScaleVmGroup.class);
         entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_DISABLE, AutoScaleVmGroup.class);
+        entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_SCALEUP, AutoScaleVmGroup.class);
+        entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_SCALEUP_FAILED, AutoScaleVmGroup.class);
+        entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_SCALEDOWN, AutoScaleVmGroup.class);
+        entityEventDetails.put(EVENT_AUTOSCALEVMGROUP_SCALEDOWN_FAILED, AutoScaleVmGroup.class);
         entityEventDetails.put(EVENT_GUEST_VLAN_RANGE_DEDICATE, GuestVlan.class);
         entityEventDetails.put(EVENT_DEDICATED_GUEST_VLAN_RANGE_RELEASE, GuestVlan.class);
 
