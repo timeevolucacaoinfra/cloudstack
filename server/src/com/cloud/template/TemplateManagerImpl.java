@@ -701,7 +701,7 @@ public class TemplateManagerImpl extends ManagerBase implements TemplateManager,
             throw new InvalidParameterValueException("There is no template " + templateId + " ready on image store.");
         }
 
-        if (template.isCrossZones()) {
+        if (template.isCrossZones() && !cmd.isForce()) {
             // sync template from cache store to region store if it is not there, for cases where we are going to migrate existing NFS to S3.
             _tmpltSvr.syncTemplateToRegionStore(templateId, srcSecStore);
             s_logger.debug("Template " + templateId + " is cross-zone, don't need to copy");

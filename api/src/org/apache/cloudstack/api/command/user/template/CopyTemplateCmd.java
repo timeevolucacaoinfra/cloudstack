@@ -64,6 +64,9 @@ public class CopyTemplateCmd extends BaseAsyncCmd {
             description = "ID of the zone the template is currently hosted on. If not specified and template is cross-zone, then we will sync this template to region wide image store.")
     private Long sourceZoneId;
 
+    @Parameter(name = "force", type = CommandType.BOOLEAN, description = "Force copy template when template is cross zones")
+    private boolean force = false;
+
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
     /////////////////////////////////////////////////////
@@ -146,5 +149,10 @@ public class CopyTemplateCmd extends BaseAsyncCmd {
             s_logger.warn("Exception: ", ex);
             throw new ServerApiException(ApiErrorCode.RESOURCE_UNAVAILABLE_ERROR, ex.getMessage());
         }
+    }
+
+
+    public boolean isForce() {
+        return force;
     }
 }
