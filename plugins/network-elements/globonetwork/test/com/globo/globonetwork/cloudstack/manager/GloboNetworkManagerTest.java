@@ -66,7 +66,10 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
+import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.framework.config.impl.ConfigDepotImpl;
+import org.apache.cloudstack.framework.config.impl.ConfigurationVO;
 import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
@@ -603,6 +606,36 @@ public class GloboNetworkManagerTest {
         assertEquals("my_pool_2", pool.getIdentifier());
         assertEquals("round", pool.getLbMethod());
         assertEquals((Integer)8090, pool.getPort());
+    }
+
+    @Test
+    public void testListAllowedLbSuffixes() {
+        registerConfigKey("globonetwork.lb.allowed.suffixes", " hmg.test.com,test.com,stagging.test.com, ");
+
+        List<String> list = _globoNetworkService.listAllowedLbSuffixes();
+
+        assertEquals(3, list.size());
+        assertEquals(list.get(0), ".stagging.test.com");
+        assertEquals(list.get(1), ".hmg.test.com");
+        assertEquals(list.get(2), ".test.com");
+    }
+
+    @Test
+    public void testGetLbDomain() {
+        registerConfigKey("globonetwork.lb.allowed.suffixes", " test.com,hmg.test.com,stagging.test.com, ");
+        String lbDomain = _globoNetworkService.getLbDomain("xpto.hmg.test.com");
+        assertEquals(lbDomain, "hmg.test.com");
+        String anotherLbDomain = _globoNetworkService.getLbDomain("xpto2.stagging.test.com");
+        assertEquals(anotherLbDomain, "stagging.test.com");
+    }
+
+    private void registerConfigKey(String key, String valueMock) {
+        ConfigDepotImpl mock = mock(ConfigDepotImpl.class);
+        ConfigurationDao mockDAo = mock(ConfigurationDao.class);
+
+        when(mock.global()).thenReturn(mockDAo);
+        when(mockDAo.findById(key)).thenReturn(new ConfigurationVO("Network", "String", null, key, valueMock, null));
+        ConfigKey.init(mock);
     }
 
     @Test

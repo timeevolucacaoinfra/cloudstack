@@ -38,6 +38,8 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -2137,23 +2139,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     private void registerLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM) throws ResourceUnavailableException {
         try {
             // First of all, find the correct LB domain and LB record
-            String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
-            List<String> allowedDomains = new ArrayList<>();
-            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
-                allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
-            }
-
-            String lbDomain = null;
-            for (String allowedDomain : allowedDomains) {
-                // Remove any whitespaces
-                allowedDomain = allowedDomain.trim();
-                // Insert the '.' before the domain, if it's not there yet
-                allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
-                if (rule.getName().endsWith(allowedDomain)) {
-                    lbDomain = allowedDomain.substring(1); // Remove '.' again for later use in GloboDNS provider
-                    break;
-                }
-            }
+            String lbDomain = getLbDomain(rule.getName());
 
             if (lbDomain == null) {
                 throw new ResourceUnavailableException("Load balancer name/domain is invalid", DataCenter.class, network.getDataCenterId());
@@ -2172,6 +2158,22 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             s_logger.error("Error while registering load balancer's domain name", ex);
             throw new CloudRuntimeException("Error while registering load balancer's domain name", ex);
         }
+    }
+
+    protected String getLbDomain(String lbFullName) {
+        List<String> allowedDomains = listAllowedLbSuffixes();
+        String lbDomain = null;
+        for (String allowedDomain : allowedDomains) {
+            // Remove any whitespaces
+            allowedDomain = allowedDomain.trim();
+            // Insert the '.' before the domain, if it's not there yet
+            allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
+            if (lbFullName.endsWith(allowedDomain)) {
+                lbDomain = allowedDomain.substring(1); // Remove '.' again for later use in GloboDNS provider
+                break;
+            }
+        }
+        return lbDomain;
     }
 
     private String getLbRecord(String fullLbName, String lbDomain) {
@@ -2257,23 +2259,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         if (isDnsProviderEnabledFor(network)) {
             // First of all, find the correct LB domain and LB record
-            String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
-            List<String> allowedDomains = new ArrayList<String>();
-            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
-                allowedDomains = Arrays.asList(allowedDomainsOpt.split(","));
-            }
-
-            String lbDomain = null;
-            for (String allowedDomain : allowedDomains) {
-                // Remove any whitespaces
-                allowedDomain = allowedDomain.trim();
-                // Insert the '.' before the domain, if it's not there yet
-                allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
-                if (rule.getName().endsWith(allowedDomain)) {
-                    lbDomain = allowedDomain.substring(1);
-                    break;
-                }
-            }
+            String lbDomain = getLbDomain(rule.getName());
 
             if (lbDomain == null) {
                 // That means there was no match
@@ -2537,15 +2523,23 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         String allowedDomainsOpt = GloboNetworkLBAllowedSuffixes.value();
         List<String> allowedDomains = new ArrayList<String>();
 
-        for (String allowedDomain : allowedDomainsOpt.split(",")) {
+        for (String allowedDomain : allowedDomainsOpt.trim().split(",")) {
             // Remove any whitespaces
             allowedDomain = allowedDomain.trim();
-            if (allowedDomainsOpt != null && !allowedDomainsOpt.equals("")) {
+            if (!allowedDomain.isEmpty()) {
                 // Insert the '.' before the domain, if it's not there yet
                 allowedDomain = allowedDomain.startsWith(".") ? allowedDomain : "." + allowedDomain;
                 allowedDomains.add(allowedDomain);
             }
         }
+
+        Collections.sort(allowedDomains, new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return -1*((Integer)o1.length()).compareTo(o2.length());
+            }
+        });
+
         return allowedDomains;
     }
 

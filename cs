@@ -103,7 +103,7 @@ case "$1" in
     mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator install -DskipTests
     ;;
   compile-quick)
-    mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloud-server,:cloud-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-network-globoaclapi,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
+    mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloud-server,:cloud-api,:cloud-engine-components-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-network-globoaclapi,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
   update-js)
     rm -R client/target/generated-webapp/scripts/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui-custom/*.js.gz  ; cp -R ui/scripts client/target/generated-webapp/
