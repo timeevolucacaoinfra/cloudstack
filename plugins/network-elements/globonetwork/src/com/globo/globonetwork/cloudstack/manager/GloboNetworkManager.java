@@ -277,6 +277,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     private static final ConfigKey<Integer> maxSubnetMaskInBIts = new ConfigKey<Integer>("Network", Integer.class, "globonetwork.min.subnetinbits", "29",
             "Max subnet mask in bits for allowed to create network in globonetwork, use 29 for a /29 subnet", true, ConfigKey.Scope.Global);
 
+    private static final ConfigKey<String> GloboNetworkRegion = new ConfigKey<String>("Network", String.class, "globonetwork.region", "",
+            "Current region", true, ConfigKey.Scope.Global);
+
 
     // DAOs
     @Inject
@@ -1744,7 +1747,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return new ConfigKey<?>[] {GloboNetworkVIPServerUrl, GloboNetworkConnectionTimeout, GloboNetworkLBLockTimeout, GloboNetworkReadTimeout, GloboNetworkNumberOfRetries,
                 GloboNetworkVmEquipmentGroup, GloboNetworkModelVmUser, GloboNetworkModelVmDomainRouter, GloboNetworkModelVmConsoleProxy, GloboNetworkModelVmSecondaryStorageVm,
                 GloboNetworkModelVmElasticIpVm, GloboNetworkModelVmElasticLoadBalancerVm, GloboNetworkModelVmInternalLoadBalancerVm, GloboNetworkModelVmUserBareMetal,
-                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes};
+                GloboNetworkDomainSuffix, GloboNetworkDomainPattern, GloboNetworkLBAllowedSuffixes, GloboNetworkRegion};
     }
 
     protected PortableIpRange getPortableIpRange(Long zoneId, Integer vlanNumber, String networkCidr, String networkGateway) throws ResourceAllocationException,
@@ -2053,7 +2056,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 _globoNetworkIpDetailDao.persist(gnIpDetail);
             }else{
                 final ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
-
+                cmd.setRegion(GloboNetworkRegion.value());
                 buildHealthcheck(cmd, rule);
 
                 // Vip Id null means new vip, otherwise vip will be updated.

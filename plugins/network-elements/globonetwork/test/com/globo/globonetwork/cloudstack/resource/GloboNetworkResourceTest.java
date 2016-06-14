@@ -290,10 +290,10 @@ public class GloboNetworkResourceTest {
     }
 
 
-    private PoolV3 mockPoolSave(Long poolId, Long idReturned, Boolean hasPoolMember, Integer port, String ip, String healthCheckType, String healthCheck, String expectedHealthCheck, int maxConn,  String serviceDAction) throws GloboNetworkException {
+    private PoolV3 mockPoolSave(Long poolId, Long idReturned, Boolean hasPoolMember, Integer vipPort, Integer port, String ip, String healthCheckType, String healthCheck, String expectedHealthCheck, int maxConn,  String serviceDAction) throws GloboNetworkException {
         PoolV3 expectedPool = new PoolV3();
         expectedPool.setId(poolId);
-        expectedPool.setIdentifier(_resource.buildPoolName("vip.domain.com", port));
+        expectedPool.setIdentifier(_resource.buildPoolName("region", "vip.domain.com",vipPort,  port));
         expectedPool.setLbMethod("round-robin");
         expectedPool.setMaxconn(maxConn);
         expectedPool.setDefaultPort(port);
@@ -376,6 +376,7 @@ public class GloboNetworkResourceTest {
         cmd.setServiceName(vipToBeCreated.getServiceName());
         cmd.setMethodBal("roundrobin");
         cmd.setRuleState(FirewallRule.State.Add);
+        cmd.setRegion("region");
 
         HealthCheckHelper build = HealthCheckHelper.build("vip.domain.com", "TCP", "", null);
         cmd.setHealthcheckType(build.getHealthCheckType());
@@ -412,7 +413,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(vlan);
 
 
-        PoolV3 pool2 = mockPoolSave(null, 456l, true, 8080, "10.0.0.1", "TCP",
+        PoolV3 pool2 = mockPoolSave(null, 456l, true, 80, 8080, "10.0.0.1", "TCP",
                 build.getHealthCheck(), build.getExpectedHealthCheck(), 0, cmd.getServiceDownAction());
 
         when(_resource._globoNetworkApi.getVipAPI().getById(vipToBeCreated.getId())).thenReturn(fromVipJsonToVipXml(vipToBeCreated));
@@ -446,6 +447,7 @@ public class GloboNetworkResourceTest {
         cmd.setHealthcheckType(build.getHealthCheckType());
         cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
         cmd.setHealthcheck(build.getHealthCheck());
+        cmd.setRegion("region");
 
         cmd.setVipId(null);
         cmd.setHost(vipToBeCreated.getHost());
@@ -463,10 +465,10 @@ public class GloboNetworkResourceTest {
         vlan.setEnvironment(120l);
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(vlan);
 
-        PoolV3 pool1 = mockPoolSave(null, 123l, false, 8080, null, "TCP",
+        PoolV3 pool1 = mockPoolSave(null, 123l, false, 80, 8080, null, "TCP",
                                     build.getHealthCheck(), build.getExpectedHealthCheck(), 0, cmd.getServiceDownAction());
 
-        PoolV3 pool2 = mockPoolSave(null, 456l, false, 8443, null, "TCP",
+        PoolV3 pool2 = mockPoolSave(null, 456l, false, 443, 8443, null, "TCP",
                 build.getHealthCheck(), build.getExpectedHealthCheck(), 0, cmd.getServiceDownAction());
 
         when(_resource._globoNetworkApi.getVipAPI().getById(vipToBeCreated.getId())).thenReturn(fromVipJsonToVipXml(vipToBeCreated));
@@ -496,6 +498,7 @@ public class GloboNetworkResourceTest {
         cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
         cmd.setHealthcheckType(build.getHealthCheckType());
 
+        cmd.setRegion("region");
         cmd.setVipId(createdVip.getId());
         cmd.setHost(createdVip.getHost());
         cmd.setIpv4(createdVip.getIps().get(0));
@@ -513,8 +516,8 @@ public class GloboNetworkResourceTest {
         vlan.setEnvironment(120l);
         when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(vlan);
 
-        PoolV3 pool1 = mockPoolSave(80l, 80l, false, 8080, null, "TCP", "", "", 0, "none");
-        PoolV3 pool2 = mockPoolSave(null, 443l, false, 8443, null, "TCP", "", "", 0, "none");
+        PoolV3 pool1 = mockPoolSave(80l, 80l, false, 80, 8080, null, "TCP", "", "", 0, "none");
+        PoolV3 pool2 = mockPoolSave(null, 443l, false, 443, 8443, null, "TCP", "", "", 0, "none");
 
         when(_resource._globoNetworkApi.getPoolAPI().getById(80l)).thenReturn(pool1);
         when(_resource._globoNetworkApi.getPoolAPI().getById(443l)).thenReturn(pool2);
@@ -687,8 +690,8 @@ public class GloboNetworkResourceTest {
 
         when(_resource._globoNetworkApi.getPoolAPI().getByIdsV3(Arrays.asList(12l, 13l))).thenReturn(poolsResponse);
 
-        mockPoolSave(12l, 12l, true, 8080, "10.0.0.1", "HTTP", "GET /heal HTTP/1.0\\r\\nHost: vip.domain.com\\r\\n\\r\\n", "OK", 5, "none" );
-        mockPoolSave(13l, 13l, true, 8443, "10.0.0.1", "HTTP", "GET /heal HTTP/1.0\\r\\nHost: vip.domain.com\\r\\n\\r\\n", "OK", 5, "none" );
+        mockPoolSave(12l, 12l, true, 80, 8080, "10.0.0.1", "HTTP", "GET /heal HTTP/1.0\\r\\nHost: vip.domain.com\\r\\n\\r\\n", "OK", 5, "none" );
+        mockPoolSave(13l, 13l, true, 443, 8443, "10.0.0.1", "HTTP", "GET /heal HTTP/1.0\\r\\nHost: vip.domain.com\\r\\n\\r\\n", "OK", 5, "none" );
 
         Answer answer = _resource.executeRequest(cmd);
 
@@ -808,6 +811,7 @@ public class GloboNetworkResourceTest {
         cmd.setExpectedHealthcheck("WORKING");
         cmd.setHealthCheckDestination(null);
         cmd.setMethodBal("roundrobin");
+        cmd.setRegion("region");
 
         GloboNetworkResource.VipInfoHelper vipInfos = new GloboNetworkResource.VipInfoHelper(125l, null, null, null);
 
@@ -816,7 +820,7 @@ public class GloboNetworkResourceTest {
         List<PoolV3.PoolMember> poolMembers = new ArrayList<>();
 
         PoolV3 pool = new PoolV3();
-        pool.setIdentifier("ACS_POOL_vip.domain.com_8080");
+        pool.setIdentifier("ACS_POOL_region_vip.domain.com_80_8080");
         pool.setLbMethod("round-robin");
         pool.setMaxconn(0);
         pool.setDefaultPort(8080);
@@ -829,7 +833,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().save(pool)).thenReturn(new PoolV3(123l));
 
         PoolV3 pool2 = new PoolV3();
-        pool2.setIdentifier("ACS_POOL_vip.domain.com_8443");
+        pool2.setIdentifier("ACS_POOL_region_vip.domain.com_443_8443");
         pool2.setLbMethod("round-robin");
         pool2.setMaxconn(0);
         pool2.setDefaultPort(8443);
@@ -889,6 +893,7 @@ public class GloboNetworkResourceTest {
         cmd.setHealthcheckType(build.getHealthCheckType());
         cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
         cmd.setHealthcheck(build.getHealthCheck());
+        cmd.setRegion("region");
 
         VipJson vip = null; // VIP NOT CREATED YET
         Ipv4 ip = new Ipv4();
@@ -912,7 +917,7 @@ public class GloboNetworkResourceTest {
 
         GloboNetworkResource.VipInfoHelper vipInfo = new GloboNetworkResource.VipInfoHelper(120l, null, null, null);
 
-        PoolV3 expectedPool = mockPoolSave(null, 123l, true, 8080, "10.0.0.1",
+        PoolV3 expectedPool = mockPoolSave(null, 123l, true, 80, 8080, "10.0.0.1",
                 build.getHealthCheckType(), build.getExpectedHealthCheck(), build.getHealthCheck(), 0,
                 cmd.getServiceDownAction());
 

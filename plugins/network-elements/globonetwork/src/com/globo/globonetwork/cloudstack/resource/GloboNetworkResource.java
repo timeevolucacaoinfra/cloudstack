@@ -925,8 +925,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return vip;
     }
 
-    protected String buildPoolName(String host, Integer realport) {
-        return "ACS_POOL_" + host + "_" + realport;
+    protected String buildPoolName(String region, String host, Integer vipPort, Integer realport) {
+        return "ACS_POOL_" + region + "_" + host + "_" + vipPort +  "_" + realport;
     }
 
     protected String getPersistenceMethod(LoadBalancingRule.LbStickinessPolicy persistencePolicy) {
@@ -1130,7 +1130,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 // new pool
                 poolV3 = new PoolV3();
                 poolV3.setMaxconn(DEFAULT_MAX_CONN);
-                poolV3.setIdentifier(buildPoolName(cmd.getHost(), realPort));
+                poolV3.setIdentifier(buildPoolName(cmd.getRegion(), cmd.getHost(), vipPort, realPort));
                 poolV3.setDefaultPort(realPort);
                 poolV3.setEnvironment(vipInfos.getEnvironment());
 

@@ -58,6 +58,7 @@ public class ApplyVipInGloboNetworkCommand extends Command {
     private List<String> ports;
 
     private List<GloboNetworkVipResponse.Real> realList;
+    private String region;
 
     @Override
     public boolean executeInSequence() {
@@ -194,5 +195,12 @@ public class ApplyVipInGloboNetworkCommand extends Command {
 
     public void setHealthcheckType(String healthcheckType) {
         this.healthcheckType = healthcheckType;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+    public void setRegion(String region) {
+        this.region = region;
     }
 }
