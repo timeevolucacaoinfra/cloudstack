@@ -971,7 +971,7 @@ public class ProjectManagerImpl extends ManagerBase implements ProjectManager {
                     }
                 }
 
-                String content = "You've been invited to join the CloudStack project " + project.getName() + ". Please use token " + token + " to complete registration";
+                String content = "You've been invited to join the CloudStack project '" + project.getName() + "'(ID: " + project.getUuid() +") . Please use token " + token + " to complete registration";
 
                 SMTPMessage msg = new SMTPMessage(_smtpSession);
                 msg.setSender(new InternetAddress(_emailSender, _emailSender));
