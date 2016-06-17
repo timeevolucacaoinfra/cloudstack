@@ -106,7 +106,7 @@ case "$1" in
     mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloud-server,:cloud-api,:cloud-engine-components-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-network-globoaclapi,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
   update-js)
-    rm -R client/target/generated-webapp/scripts/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui-custom/*.js.gz  ; cp -R ui/scripts client/target/generated-webapp/
+    rm -R client/target/generated-webapp/scripts/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui-custom/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui/widgets/*.js.gz ; cp -R ui/scripts client/target/generated-webapp/
     ;;
   deploydb)
     mvn -Dnonoss -Pdeveloper -pl developer,tools/devcloud -Ddeploydb

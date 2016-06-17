@@ -799,7 +799,9 @@
             if ($th.index()) $th.addClass('reduced-hide');
 
             $th.html(_l(field.label));
-
+            if (typeof(field.isHidden) != 'undefined' && field.isHidden) {
+                $th.hide();
+            }
             return true;
         });
 
@@ -1143,6 +1145,10 @@
                 }
 
                 $td.attr('title', _s(content));
+
+                if (typeof(field.isHidden) != 'undefined' && (field.isHidden)){
+                    $td.hide()
+                }
             });
             
             var $first = $tr.find('td:first');

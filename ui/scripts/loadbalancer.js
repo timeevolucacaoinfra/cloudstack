@@ -497,72 +497,186 @@
                                     }
                                 },
                                 add: {
-                                    label: 'Add VM to Load Balancer',
-                                    createForm: {
-                                        title: 'Add VM to Load Balancer',
-                                        fields: {
-                                            vm: {
-                                                label: 'VM',
-                                                validation: { required: true },
-                                                select: function(args) {
-                                                    var networks = [];
-                                                    $.ajax({
-                                                        url: createURL("listLoadBalancerRuleInstances"),
-                                                        data: {
-                                                            id: args.context.loadbalancers[0].id,
-                                                            applied: false,
-                                                        },
-                                                        dataType: "json",
-                                                        async: false,
-                                                        success: function(json) {
-                                                            var lbinstances = [];
-                                                            var lb = args.context.loadbalancers[0];
-                                                            $(json.listloadbalancerruleinstancesresponse.loadbalancerruleinstance).each(function() {
-                                                                lbinstances.push({id: this.id, description: this.name });
-                                                            });
-                                                            args.response.success({
-                                                                data: lbinstances
-                                                            });
-                                                        }
-                                                    });
+                                        label: 'Add VM to Load Balancer',
+                                        listView: {
+                                            multiSelect: true,
+                                            disableInfiniteScrolling: true,
+                                            title: 'Add VM to Load Balancer',
+                                            hideSearchBar: true,
+                                            hideSelectAction: true,
+                                            fields: {
+                                                name: {
+                                                    label: 'label.name',
+                                                    truncate: true
+                                                },
+                                                displayname: {
+                                                    label: 'label.display.name',
+                                                    truncate: true
+                                                },
+                                                zonename: {
+                                                    label: 'label.zone.name'
+                                                },
+                                                'instance-vm-lb': {
+                                                    label: 'instance-vm-lb',
+                                                    isHidden: true
                                                 }
-                                            }
-                                        },
-                                    },
-                                    action: function(args) {
-                                        $.ajax({
-                                            url: createURL("assignToLoadBalancerRule"),
-                                            data: {
-                                                id: args.context.loadbalancers[0].id,
-                                                virtualmachineids: args.data.vm
                                             },
-                                            dataType: "json",
-                                            async: true,
-                                            success: function(data) {
-                                                args.response.success({
-                                                    _custom: {
-                                                        jobId: data.assigntoloadbalancerruleresponse.jobid,
-                                                        fullRefreshAfterComplete: true
+                                            dataProvider: function(args) {
+                                                var data = {};
+                                                listViewDataProvider(args, data);
+                                                $.ajax({
+                                                    url: createURL("listLoadBalancerRuleInstances"),
+                                                    data: {
+                                                        id: args.context.loadbalancers[0].id,
+                                                        applied: false,
+                                                    },
+                                                    dataType: "json",
+                                                    async: false,
+                                                    success: function(json) {
+                                                        var lbinstances = [];
+                                                        var lb = args.context.loadbalancers[0];
+                                                        $(json.listloadbalancerruleinstancesresponse.loadbalancerruleinstance).each(function() {
+                                                            lbinstances.push({id: this.id, 'instance-vm-lb': this.id, name: this.name, displayname: this.displayname, zonename: this.zonename });
+                                                        });
+                                                        args.response.success({
+                                                            data: lbinstances
+                                                        });
                                                     }
                                                 });
-                                            },
-                                            error: function(errorMessage) {
-                                                args.response.error(errorMessage);
                                             }
-                                        });
-                                    },
-                                    messages: {
-                                        notification: function(args) {
-                                            return 'label.add.vms.to.lb';
+                                        },
+                                        action: function(args3) {
+
+                                            trs = $('.instance-vm-lb').parent();
+
+                                            trs = $('.instance-vm-lb').parent().slice(1);
+                                            vmsIds = [];
+                                            $.each(trs, function(columnIndex, tr) {
+                                                checkedTrs = $(tr).find(":checked")
+                                                if (checkedTrs.length != 0){
+                                                    vmsIds.push($(tr).find('.instance-vm-lb').text());
+                                                }
+                                            });
+                                            $.ajax({
+                                                url: createURL("assignToLoadBalancerRule"),
+                                                data: {
+                                                    id: args3.context.loadbalancers[0].id,
+                                                    virtualmachineids: vmsIds.join(',')
+                                                },
+
+                                                dataType: "json",
+                                                async: true,
+                                                success: function(response) {
+                                                    console.log(response)
+                                                    args3.response.success({
+                                                        _custom: {
+                                                            jobId: response.assigntoloadbalancerruleresponse.jobid,
+                                                            fullRefreshAfterComplete: true
+                                                        }
+                                                    });
+                                                },
+                                                error: function(errorMessage) {
+                                                    console.log(errorMessage)
+                                                }
+                                            });
                                         }
-                                    },
-                                    notification: {
-                                        poll: pollAsyncJobResult
                                     }
-                                }
+                                    
+
+                                
                             }
                         }
                     },
+//                                addVmInLB: function(args){
+//                                    var action = {
+//                                        addRow: 'false',
+//                                        label: 'Add VM to Load Balancer',
+//                                        listView: {
+//                                        title: 'Add VM to Load Balancer',
+//                                        fields: {
+//                                            name: {
+//                                                label: 'label.name',
+//                                                truncate: true
+//                                            },
+//                                            displayname: {
+//                                                label: 'label.display.name',
+//                                                truncate: true
+//                                            },
+//                                            zonename: {
+//                                                label: 'label.zone.name'
+//                                            }
+//                                        },
+//                                        dataProvider: function(args) {
+//                                            var data = {};
+//                                            listViewDataProvider(args, data);
+//                                            $.ajax({
+//                                                url: createURL("listLoadBalancerRuleInstances"),
+//                                                data: {
+//                                                    id: args.context.loadbalancers[0].id,
+//                                                    applied: false,
+//                                                },
+//                                                dataType: "json",
+//                                                async: false,
+//                                                success: function(json) {
+//                                                    var lbinstances = [];
+//                                                    var lb = args.context.loadbalancers[0];
+//                                                    $(json.listloadbalancerruleinstancesresponse.loadbalancerruleinstance).each(function() {
+//                                                        lbinstances.push({id: this.id, name: this.name, displayname: this.displayname, zonename: this.zonename });
+//                                                    });
+//                                                    args.response.success({
+//                                                        data: lbinstances
+//                                                    });
+//                                                }
+//                                           });
+//                                        },
+//                                        action: {
+//                                            add: {
+//                                                label: 'papai noel'
+//                                            }
+//
+//                                        }
+//                                    },
+//                                        action: function(args) {
+//                                            console.log("Loadbalancers: ")
+//                                            console.log(args.data)
+//                                            console.log(args.context.instances)
+//                                            $.ajax({
+//                                                url: createURL("assignToLoadBalancerRule"),
+//                                                data: {
+//                                                    id: args.context.loadbalancers[0].id,
+//                                                    virtualmachineids: args.data.vm
+//                                                },
+//                                                dataType: "json",
+//                                                async: true,
+//                                                success: function(data) {
+//                                                    args.response.success({
+//                                                        _custom: {
+//                                                            jobId: data.assigntoloadbalancerruleresponse.jobid,
+//                                                            fullRefreshAfterComplete: true
+//                                                        }
+//                                                    });
+//                                                },
+//                                                error: function(errorMessage) {
+//                                                    args.response.error(errorMessage);
+//                                                }
+//                                            });
+//                                        },
+//                                        messages: {
+//                                            notification: function(args) {
+//                                                return 'label.add.vms.to.lb';
+//                                            }
+//                                        },
+//                                        notification: {
+//                                            poll: pollAsyncJobResult
+//                                        }
+//                                    }
+//
+//                                    $.extend(action, {
+//                                        isHeader: true,
+//                                        isMultiSelectAction: true
+//                                    });
+//                                    return action;
+//                                }
                     pools: {
                         title: 'Pools',
                         listView: {

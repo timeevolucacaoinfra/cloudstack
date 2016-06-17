@@ -707,12 +707,17 @@
         // Dialog with list view selector
         listView: function(args) {
             var listView = args.listView;
+            var hideSelectAction = args.listView.hideSelectAction;
             var after = args.after;
             var context = args.context;
             var $listView = $('<div>');
 
-            listView.actions = {
-                select: {
+            console.log(args);
+            listView.actions = {};
+
+            if ( typeof(hideSelectAction) == 'undefined' ||
+                 !hideSelectAction ) {
+                listView.actions['select'] = {
                     label: _l('label.select.instance'),
                     type: listView.type,
                     action: {
@@ -732,7 +737,7 @@
                         }
                     }
                 }
-            };
+            }
 
             // Init list view
             $listView = $('<div>').listView({
