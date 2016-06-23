@@ -167,16 +167,7 @@
                             dataType: "json",
                             async: true,
                             success: function(response) {
-                                console.log(response)
-                                // args3.response.success({
-                                //     _custom: {
-                                //         notification: false,
-                                //         jobId: 
-                                //         fullRefreshAfterComplete: true
-                                //     }
-                                // });
                                 checkAddVmStatus(args3, response.assigntoloadbalancerruleresponse.jobid);
-                                
                             },
                             error: function(errorMessage) {
                                 console.log(errorMessage)
@@ -194,12 +185,10 @@
         addLoadingRow();
         checkJobStatus({
             jobId: jobId, 
-            success: function(response) {
-                alert('Success!')
+            ok: function(response) {
                 $(window).trigger('cloudStack.fullRefresh');
             }, 
             error: function(response) {
-                alert('Error!')
                 $(window).trigger('cloudStack.fullRefresh');
             }
         });
@@ -207,31 +196,39 @@
 
     var checkJobStatus = function(configs) {
         var jobStatus
-        $.ajax({
-            url: createURL('queryAsyncJobResult'),
-            data: {jobId: configs.jobId},
-            async: false,
-            success: function(response) {
-                jobStatus = response.queryasyncjobresultresponse.jobstatus;
-                if ( jobStatus == 0) {
-                    setTimeout(function() { checkJobStatus(configs); }, 2000)
+
+        cloudStack.ui.notifications.add({desc:'Add VM(s) to Load Balancer Rule', 
+		     section: 'loadbalancer',
+		     interval: 3200, 
+		     _custom:{jobId: configs.jobId}, 
+		     poll: function(args){
+		        var jobStatus = -1;
+		        $.ajax({url: createURL('queryAsyncJobResult'),
+			            data: {jobId: configs.jobId},
+			            async: false,
+			            success: function(response) {
+			                jobStatus = response.queryasyncjobresultresponse.jobstatus;
+			            }
+			    });  
+			    if ( jobStatus == 0) {
+                    console.log("processing....")
                 } else if (jobStatus == 1) {
-                    configs.success(response);
+                	args.complete()
+                    configs.ok(response);
                 } else {
+                	args.error()
                     configs.error(response);
-                }
-            }
-        })
+                }      
+		    } 
+		}, function(args) { });
         return jobStatus;
     }
 
     var addLoadingRow = function() {
-        console.log('adding')
         var table = $('#details-tab-vms').find('table[class=body]')
 
         var trs = table.find('tr')
         var fields = cloudStack.sections.loadbalancer.listView.detailView.tabs.vms.listView.fields
-        console.log(fields)
         
         if (trs.length > 0) {
             var first = $(trs[0])
@@ -256,8 +253,6 @@
                     .append(div);
         tr.append(td);
         $(table[0]).prepend(tr);
-        console.log('added')
-        
     }
 //                                addVmInLB: function(args){
 //                                    var action = {
