@@ -28,11 +28,11 @@
                 network: { label: 'label.network' },
             },
             dataProvider: function(args) {
+            	var data = {id: args.context.loadbalancers[0].id};
+                listViewDataProvider(args, data);
                 $.ajax({
                     url: createURL('listLoadBalancerRuleInstances'),
-                    data: {
-                        id: args.context.loadbalancers[0].id
-                    },
+                    data: data,
                     success: function(data) {
                         lbinstances = [];
                         response = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
@@ -99,9 +99,7 @@
                     label: 'Add VM to Load Balancer',
                     listView: {
                         multiSelect: true,
-                        disableInfiniteScrolling: true,
                         title: 'Add VM to Load Balancer',
-                        hideSearchBar: true,
                         hideSelectAction: true,
                         fields: {
                             name: {
@@ -123,12 +121,11 @@
                         dataProvider: function(args) {
                             var data = {};
                             listViewDataProvider(args, data);
+                            data['id'] = args.context.loadbalancers[0].id;
+                            data['applied'] = false;
                             $.ajax({
                                 url: createURL("listLoadBalancerRuleInstances"),
-                                data: {
-                                    id: args.context.loadbalancers[0].id,
-                                    applied: false,
-                                },
+                                data: data,
                                 dataType: "json",
                                 async: false,
                                 success: function(json) {
@@ -145,9 +142,7 @@
                         }
                     },
                     action: function(args3) {
-                        console.log(args3)
                         trs = $('.instance-vm-lb').parent();
-
                         trs = $('.instance-vm-lb').parent().slice(1);
                         vmsIds = [];
                         $.each(trs, function(columnIndex, tr) {
@@ -167,10 +162,13 @@
                             dataType: "json",
                             async: true,
                             success: function(response) {
-                                checkAddVmStatus(args3, response.assigntoloadbalancerruleresponse.jobid);
+                                checkAddVmStatus(args3, response.assigntoloadbalancerruleresponse.jobid, vmsIds);
                             },
-                            error: function(errorMessage) {
-                                console.log(errorMessage)
+                            error: function(response) {
+                                if ( response.status == 401){
+                                    cloudStack.dialog.notice({message: 'label.session.expired'} );
+                                }
+                                $(window).trigger('cloudStack.fullRefresh');
                             }
                         });
 
@@ -180,51 +178,61 @@
         }
     };
 
-    var checkAddVmStatus = function(args, jobId) {
-        console.log(args);
-        addLoadingRow();
+    var checkAddVmStatus = function(args, jobId, vmsIds) {
+        addLoadingRow(vmsIds);
         checkJobStatus({
             jobId: jobId, 
-            ok: function(response) {
+            ok: function(args) {
                 $(window).trigger('cloudStack.fullRefresh');
             }, 
-            error: function(response) {
+            error: function(args) {
                 $(window).trigger('cloudStack.fullRefresh');
+                cloudStack.dialog.notice({message: args.message} );
             }
         });
     }
 
     var checkJobStatus = function(configs) {
         var jobStatus
-
-        cloudStack.ui.notifications.add({desc:'Add VM(s) to Load Balancer Rule', 
-		     section: 'loadbalancer',
-		     interval: 3200, 
-		     _custom:{jobId: configs.jobId}, 
-		     poll: function(args){
-		        var jobStatus = -1;
-		        $.ajax({url: createURL('queryAsyncJobResult'),
-			            data: {jobId: configs.jobId},
-			            async: false,
-			            success: function(response) {
-			                jobStatus = response.queryasyncjobresultresponse.jobstatus;
-			            }
-			    });  
-			    if ( jobStatus == 0) {
-                    console.log("processing....")
-                } else if (jobStatus == 1) {
-                	args.complete()
-                    configs.ok(response);
-                } else {
-                	args.error()
-                    configs.error(response);
-                }      
-		    } 
-		}, function(args) { });
+        var poolNotificaiton = {
+             desc:'Add VM(s) to Load Balancer Rule', 
+             section: 'loadbalancer',
+             interval: 1000, 
+             _custom:{jobId: configs.jobId}, 
+             poll: function(args){
+                var jobStatus = -1;
+                var jobMsg = '';
+                $.ajax({url: createURL('queryAsyncJobResult'),
+                        data: {jobId: configs.jobId},
+                        async: false,
+                        success: function(response) {
+                            jobStatus = response.queryasyncjobresultresponse.jobstatus;
+                            if (jobStatus == 1) {
+                                args.complete()
+                                configs.ok(response);
+                            } else {
+                                jobMsg = response.queryasyncjobresultresponse.jobresult.errortext;
+                                args.error(jobMsg);
+                                configs.error({message: jobMsg, response: response});
+                            }
+                        },
+                        error: function(response) {
+                            args.error();
+                            configs.error(response);
+                        }
+                });
+            } 
+        };
+        cloudStack.ui.notifications.add(
+           poolNotificaiton, 
+           function(args) { },
+           {},
+           function(args){ },
+           {});
         return jobStatus;
     }
 
-    var addLoadingRow = function() {
+    var addLoadingRow = function(vmsIds) {
         var table = $('#details-tab-vms').find('table[class=body]')
 
         var trs = table.find('tr')
@@ -238,11 +246,7 @@
         }
         var isEven = (trs.length % 2 == 0) ? true : false
         var tr = $('<tr></tr>');
-        if ( isEven ) { 
-            tr.addClass('even');
-        } else {
-            tr.addClass('odd');
-        }
+        tr.addClass('odd');
         $.each(fields, function(index, field){
             var td = $('<td></td>');
             tr.append(td);
@@ -252,97 +256,11 @@
                     .addClass("actions reduced-hide")
                     .append(div);
         tr.append(td);
-        $(table[0]).prepend(tr);
+        $.each(vmsIds, function(index, vmId) {
+        	$(table[0]).prepend(tr.clone());
+        });
+        
     }
-//                                addVmInLB: function(args){
-//                                    var action = {
-//                                        addRow: 'false',
-//                                        label: 'Add VM to Load Balancer',
-//                                        listView: {
-//                                        title: 'Add VM to Load Balancer',
-//                                        fields: {
-//                                            name: {
-//                                                label: 'label.name',
-//                                                truncate: true
-//                                            },
-//                                            displayname: {
-//                                                label: 'label.display.name',
-//                                                truncate: true
-//                                            },
-//                                            zonename: {
-//                                                label: 'label.zone.name'
-//                                            }
-//                                        },
-//                                        dataProvider: function(args) {
-//                                            var data = {};
-//                                            listViewDataProvider(args, data);
-//                                            $.ajax({
-//                                                url: createURL("listLoadBalancerRuleInstances"),
-//                                                data: {
-//                                                    id: args.context.loadbalancers[0].id,
-//                                                    applied: false,
-//                                                },
-//                                                dataType: "json",
-//                                                async: false,
-//                                                success: function(json) {
-//                                                    var lbinstances = [];
-//                                                    var lb = args.context.loadbalancers[0];
-//                                                    $(json.listloadbalancerruleinstancesresponse.loadbalancerruleinstance).each(function() {
-//                                                        lbinstances.push({id: this.id, name: this.name, displayname: this.displayname, zonename: this.zonename });
-//                                                    });
-//                                                    args.response.success({
-//                                                        data: lbinstances
-//                                                    });
-//                                                }
-//                                           });
-//                                        },
-//                                        action: {
-//                                            add: {
-//                                                label: 'papai noel'
-//                                            }
-//
-//                                        }
-//                                    },
-//                                        action: function(args) {
-//                                            console.log("Loadbalancers: ")
-//                                            console.log(args.data)
-//                                            console.log(args.context.instances)
-//                                            $.ajax({
-//                                                url: createURL("assignToLoadBalancerRule"),
-//                                                data: {
-//                                                    id: args.context.loadbalancers[0].id,
-//                                                    virtualmachineids: args.data.vm
-//                                                },
-//                                                dataType: "json",
-//                                                async: true,
-//                                                success: function(data) {
-//                                                    args.response.success({
-//                                                        _custom: {
-//                                                            jobId: data.assigntoloadbalancerruleresponse.jobid,
-//                                                            fullRefreshAfterComplete: true
-//                                                        }
-//                                                    });
-//                                                },
-//                                                error: function(errorMessage) {
-//                                                    args.response.error(errorMessage);
-//                                                }
-//                                            });
-//                                        },
-//                                        messages: {
-//                                            notification: function(args) {
-//                                                return 'label.add.vms.to.lb';
-//                                            }
-//                                        },
-//                                        notification: {
-//                                            poll: pollAsyncJobResult
-//                                        }
-//                                    }
-//
-//                                    $.extend(action, {
-//                                        isHeader: true,
-//                                        isMultiSelectAction: true
-//                                    });
-//                                    return action;
-//                                }
+
 
 }(cloudStack, jQuery));

@@ -20,6 +20,8 @@ import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -2344,7 +2346,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
     }
 
     @Override
-    public Pair<List<? extends UserVm>, List<String>> listLoadBalancerInstances(ListLoadBalancerRuleInstancesCmd cmd) throws PermissionDeniedException {
+    public Ternary<List<? extends UserVm>, List<String>, Integer> listLoadBalancerInstances(ListLoadBalancerRuleInstancesCmd cmd) throws PermissionDeniedException {
         Account caller = CallContext.current().getCallingAccount();
         Long loadBalancerId = cmd.getId();
         Boolean applied = cmd.isApplied();
@@ -2389,8 +2391,14 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 userVms.addAll(_vmDao.listVirtualNetworkInstancesByAcctAndNetwork(loadBalancer.getAccountId(), lbNetMapVO.getNetworkId()));
             }
         }
-
-        for (UserVmVO userVm : userVms) {
+        ArrayList<UserVmVO> vms = new ArrayList(userVms);
+        Collections.sort(vms, new Comparator<UserVmVO>(){
+            @Override
+            public int compare(UserVmVO o1, UserVmVO o2) {
+                return o1.getHostName().compareTo(o2.getHostName());
+            }
+        });
+        for (UserVmVO userVm : vms) {
             // if the VM is destroyed, being expunged, in an error state, or in
             // an unknown state, skip it
             switch (userVm.getState()) {
@@ -2402,12 +2410,23 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
             }
 
             boolean isApplied = appliedInstanceIdList.contains(userVm.getId());
-            if ((isApplied && applied) || (!isApplied && !applied)) {
+            if ( ((isApplied && applied) || (!isApplied && !applied)) && shouldListVm(cmd.getKeyword(), userVm)) {
                 loadBalancerInstances.add(userVm);
                 serviceStates.add(vmServiceState.get(userVm.getId()));
             }
         }
-        return new Pair<List<? extends UserVm>, List<String>>(loadBalancerInstances, serviceStates);
+        Integer count = loadBalancerInstances.size();
+        loadBalancerInstances = StringUtils.applyPagination(loadBalancerInstances, cmd.getStartIndex(), cmd.getPageSizeVal());
+        serviceStates = StringUtils.applyPagination(serviceStates, cmd.getStartIndex(), cmd.getPageSizeVal());
+        return new Ternary<List<? extends UserVm>, List<String>, Integer>(loadBalancerInstances, serviceStates, count);
+    }
+
+    private boolean shouldListVm(String keyword, UserVmVO userVm) {
+        if ( keyword == null ){
+            return true;
+        }
+
+        return userVm.getHostName().toLowerCase().contains(keyword.toLowerCase());
     }
 
     @Override
