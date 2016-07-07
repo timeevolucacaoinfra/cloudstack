@@ -46,6 +46,10 @@ public class AutoScaleVmGroupResponse extends BaseResponse implements Controlled
     @Param(description = "the minimum number of members in the vmgroup, the number of instances in the vm group will be equal to or more than this number.")
     private int minMembers;
 
+    @SerializedName(ApiConstants.AUTOSCALE_GROUP_COUNT_MEMBERS)
+    @Param(description = "the number of instances in the vm autoscale group.")
+    private int autoScaleGroupCountMembers;
+
     @SerializedName(ApiConstants.MAX_MEMBERS)
     @Param(description = "the maximum number of members in the vmgroup, The number of instances in the vm group will be equal to or less than this number.")
     private int maxMembers;
@@ -113,6 +117,10 @@ public class AutoScaleVmGroupResponse extends BaseResponse implements Controlled
 
     public void setMinMembers(int minMembers) {
         this.minMembers = minMembers;
+    }
+
+    public void setAutoScaleGroupCountMembers(int autoScaleGroupCountMembers) {
+        this.autoScaleGroupCountMembers = autoScaleGroupCountMembers;
     }
 
     public void setMaxMembers(int maxMembers) {

@@ -879,10 +879,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             throw new InvalidParameterValueException("an AutoScaleVmGroup is already attached to the lb rule, the existing vm group has to be first deleted");
         }
 
-        if (_lb2VmMapDao.isVmAttachedToLoadBalancer(loadBalancer.getId())) {
-            throw new InvalidParameterValueException(
-                "there are Vms already bound to the specified LoadBalancing Rule. User bound Vms and AutoScaled Vm Group cannot co-exist on a Load Balancing Rule");
-        }
+//        if (_lb2VmMapDao.isVmAttachedToLoadBalancer(loadBalancer.getId())) {
+//            throw new InvalidParameterValueException(
+//                "there are Vms already bound to the specified LoadBalancing Rule. User bound Vms and AutoScaled Vm Group cannot co-exist on a Load Balancing Rule");
+//        }
 
         AutoScaleVmGroupVO vmGroupVO = new AutoScaleVmGroupVO(cmd.getLbRuleId(), zoneId, loadBalancer.getDomainId(), loadBalancer.getAccountId(), minMembers, maxMembers,
             loadBalancer.getDefaultPortStart(), interval, null, cmd.getProfileId(), AutoScaleVmGroup.State_New);
@@ -1637,7 +1637,11 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         for (LoadBalancerVMMapVO lbVmMap : lbVmMaps) {
             Nic nic = this.getLbInstanceNic(lb, lbVmMap.getInstanceId(), lbNetMapList);
             LoadBalancingRule.LbDestination lbDst = new LoadBalancingRule.LbDestination(lb.getDefaultPortStart(), lb.getDefaultPortEnd(), null, nic.getNetworkId(), lbVmMap.getInstanceId(), lbVmMap.isRevoke());
-            dstList.add(lbDst);
+            AutoScaleVmGroupVmMapVO autoScaleVmMap = _autoScaleVmGroupVmMapDao.findByVmId(lbVmMap.getInstanceId());
+            if(autoScaleVmMap != null){
+                dstList.add(lbDst);
+            }
+
         }
 
         return dstList;
@@ -1716,11 +1720,12 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 
     protected long removeLBrule(AutoScaleVmGroupVO asGroup) {
         long lbId = asGroup.getLoadBalancerId();
+        long asGroupId = asGroup.getId();
         long instanceId = -1;
-        List<LoadBalancerVMMapVO> LbVmMapVos = _lbVmMapDao.listByLoadBalancerId(lbId);
-        if ((LbVmMapVos != null) && (LbVmMapVos.size() > 0)) {
-            for (LoadBalancerVMMapVO LbVmMapVo : LbVmMapVos) {
-                instanceId = LbVmMapVo.getInstanceId();
+        List<AutoScaleVmGroupVmMapVO> autoScaleVmGroupVmMapVos = _autoScaleVmGroupVmMapDao.listByGroup(asGroupId);
+        if ((autoScaleVmGroupVmMapVos != null) && (autoScaleVmGroupVmMapVos.size() > 0)) {
+            for (AutoScaleVmGroupVmMapVO autoScaleVmGroupVmMapVO : autoScaleVmGroupVmMapVos) {
+                instanceId = autoScaleVmGroupVmMapVO.getInstanceId();
             }
         }
         // take last VM out of the list

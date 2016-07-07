@@ -32,7 +32,8 @@ import java.util.TimeZone;
 import javax.inject.Inject;
 import javax.servlet.http.HttpSession;
 
-import com.cloud.network.as.AutoScaleVmProfileNetworkMapVO;
+import com.cloud.network.as.*;
+import com.cloud.network.as.dao.AutoScaleVmGroupVmMapDao;
 import com.cloud.network.dao.LoadBalancerOptionsVO;
 import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
@@ -225,13 +226,6 @@ import com.cloud.network.Site2SiteVpnGateway;
 import com.cloud.network.VirtualRouterProvider;
 import com.cloud.network.VpnUser;
 import com.cloud.network.VpnUserVO;
-import com.cloud.network.as.AutoScalePolicy;
-import com.cloud.network.as.AutoScaleVmGroup;
-import com.cloud.network.as.AutoScaleVmProfile;
-import com.cloud.network.as.AutoScaleVmProfileVO;
-import com.cloud.network.as.Condition;
-import com.cloud.network.as.ConditionVO;
-import com.cloud.network.as.Counter;
 import com.cloud.network.dao.IPAddressVO;
 import com.cloud.network.dao.LoadBalancerNetworkMapVO;
 import com.cloud.network.dao.LoadBalancerPortMapVO;
@@ -329,6 +323,8 @@ public class ApiResponseHelper implements ResponseGenerator {
     ConfigurationManager _configMgr;
     @Inject
     SnapshotDataFactory snapshotfactory;
+    @Inject
+    AutoScaleVmGroupVmMapDao _autoScaleVmGroupVmMapDao;
 
     @Override
     public UserResponse createUserResponse(User user) {
@@ -2857,9 +2853,12 @@ public class ApiResponseHelper implements ResponseGenerator {
         response.setId(vmGroup.getUuid());
         response.setMinMembers(vmGroup.getMinMembers());
         response.setMaxMembers(vmGroup.getMaxMembers());
+        List<AutoScaleVmGroupVmMapVO> autoScaleVmGroupVmMapVos = _autoScaleVmGroupVmMapDao.listByGroup(vmGroup.getId());
+        response.setAutoScaleGroupCountMembers(autoScaleVmGroupVmMapVos.size());
         response.setState(vmGroup.getState());
         response.setInterval(vmGroup.getInterval());
         response.setForDisplay(vmGroup.isDisplay());
+
         AutoScaleVmProfileVO profile = ApiDBUtils.findAutoScaleVmProfileById(vmGroup.getProfileId());
         if (profile != null) {
             response.setProfileId(profile.getUuid());
