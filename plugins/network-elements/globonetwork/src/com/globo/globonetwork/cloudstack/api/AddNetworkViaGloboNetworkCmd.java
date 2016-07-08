@@ -134,6 +134,7 @@ public class AddNetworkViaGloboNetworkCmd extends BaseCmd {
             Network network = _globoNetworkService.createNetwork(name, displayText, zoneId, networkOfferingId, globoNetworkEnvironmentId, networkDomain, getACLType(), accountName,
                     projectId, domainId, subdomainAccess, displayNetwork, aclId, isIpv6, subnet);
             if (network != null) {
+                CallContext.current().putContextParameter(Network.class.getName(), network.getUuid());
                 ActionEventUtils.onActionEvent(getUserId(), getEntityOwnerId(), domainId, EventTypes.EVENT_NETWORK_CREATE, getEventDescription(network.getId()));
                 NetworkResponse response = _responseGenerator.createNetworkResponse(ResponseView.Full, network);
                 response.setResponseName(getCommandName());

@@ -461,6 +461,7 @@ VirtualMachineGuru, Listener, Configurable, StateListener<State, VirtualMachine.
     }
 
     @Override
+    @ActionEvent(eventType = EventTypes.EVENT_ROUTER_DESTROY, eventDescription = "destroying router Vm", async = true)
     public VirtualRouter destroyRouter(final long routerId, final Account caller, final Long callerUserId) throws ResourceUnavailableException, ConcurrentOperationException {
 
         if (s_logger.isDebugEnabled()) {

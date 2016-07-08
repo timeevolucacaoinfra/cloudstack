@@ -1871,9 +1871,10 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     protected void createEvent(String asGroupId, String eventType, String description) {
         CallContext callContext = CallContext.current();
         AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findByUuid(asGroupId);
-        User user = callContext.getCallingUser();
+        AutoScaleVmProfileVO profile = _autoScaleVmProfileDao.findById(asGroup.getProfileId());
+        User user = _userDao.getUser(profile.getAutoScaleUserId());
         callContext.getContextParameters().put(AutoScaleVmGroup.class.getName(), asGroupId);
-        ActionEventUtils.onActionEvent(user.getId(), asGroup.getAccountId(), asGroup.getDomainId(), eventType, description);
+        ActionEventUtils.onActionEvent(user.getId(), user.getAccountId(), asGroup.getDomainId(), eventType, description);
     }
 
     @Override
