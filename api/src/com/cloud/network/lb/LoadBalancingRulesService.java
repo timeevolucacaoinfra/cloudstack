@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.network.lb;
 
+import com.cloud.utils.Ternary;
 import java.util.List;
 import java.util.Map;
 
@@ -122,7 +123,7 @@ public interface LoadBalancingRulesService {
      * @return list of vm instances that have been or can be applied to a load balancer along with service state,
      * if the LB has health check policy created on it from cloudstack.
      */
-    Pair<List<? extends UserVm>, List<String>> listLoadBalancerInstances(ListLoadBalancerRuleInstancesCmd cmd);
+    Ternary<List<? extends UserVm>, List<String>, Integer> listLoadBalancerInstances(ListLoadBalancerRuleInstancesCmd cmd);
 
     /**
      * List load balancer rules based on the given criteria

@@ -16,6 +16,7 @@
 // under the License.
 package org.apache.cloudstack.api.command.admin.loadbalancer;
 
+import com.cloud.utils.Ternary;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +31,7 @@ import org.apache.cloudstack.api.response.ListResponse;
 import org.apache.cloudstack.api.response.UserVmResponse;
 
 import com.cloud.uservm.UserVm;
-import com.cloud.utils.Pair;
+//import com.cloud.utils.Pair;
 
 @APICommand(name = "listLoadBalancerRuleInstances", description = "List all virtual machine instances that are assigned to a load balancer rule.", responseObject = LoadBalancerRuleVmMapResponse.class, responseView = ResponseView.Full,
         requestHasSensitiveInfo = false,
@@ -42,10 +43,10 @@ public class ListLoadBalancerRuleInstancesCmdByAdmin extends ListLoadBalancerRul
 
     @Override
     public void execute(){
-        Pair<List<? extends UserVm>, List<String>> vmServiceMap =  _lbService.listLoadBalancerInstances(this);
+        Ternary<List<? extends UserVm>, List<String>, Integer> vmServiceMap =  _lbService.listLoadBalancerInstances(this);
         List<? extends UserVm> result = vmServiceMap.first();
         List<String> serviceStates  = vmServiceMap.second();
-
+        Integer count = vmServiceMap.third();
 
         if (!isListLbVmip()) {
             // list lb instances
@@ -59,7 +60,7 @@ public class ListLoadBalancerRuleInstancesCmdByAdmin extends ListLoadBalancerRul
                     vmResponses.get(i).setServiceState(serviceStates.get(i));
                 }
             }
-            response.setResponses(vmResponses);
+            response.setResponses(vmResponses,count);
             response.setResponseName(getCommandName());
             setResponseObject(response);
 
@@ -87,7 +88,7 @@ public class ListLoadBalancerRuleInstancesCmdByAdmin extends ListLoadBalancerRul
             }
 
             lbRes.setResponseName(getCommandName());
-            lbRes.setResponses(listlbVmRes);
+            lbRes.setResponses(listlbVmRes, count);
             setResponseObject(lbRes);
         }
     }
