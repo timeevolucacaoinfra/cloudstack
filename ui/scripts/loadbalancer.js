@@ -824,7 +824,7 @@
                             fields: {
                                 id: { label: 'label.id' },
                                 minmembers: { label: 'Min VMs' },
-                                deployedvms: { label: 'Deployed AutoScale Group VMs' },
+                                deployedvms: { label: 'AutoScale VMs' },
                                 maxmembers: { label: 'Max VMs' },
                                 state: {
                                     converter: function(str) {
