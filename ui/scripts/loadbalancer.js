@@ -1008,7 +1008,7 @@
                                                 lbinstances = data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance ?
                                                     data.listloadbalancerruleinstancesresponse.loadbalancerruleinstance : [];
                                                 if (response[0]) {
-                                                    response[0].deployedvms = lbinstances.length;
+                                                    response[0].deployedvms = response[0].autoscalegroupcountmembers;
                                                 }
                                                 args.response.success({
                                                     actionFilter: autoscaleActionfilter,

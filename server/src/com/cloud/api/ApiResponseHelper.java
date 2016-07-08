@@ -32,8 +32,16 @@ import java.util.TimeZone;
 import javax.inject.Inject;
 import javax.servlet.http.HttpSession;
 
-import com.cloud.network.as.*;
+import com.cloud.network.as.AutoScaleVmGroupVmMapVO;
+import com.cloud.network.as.AutoScaleVmProfileNetworkMapVO;
 import com.cloud.network.as.dao.AutoScaleVmGroupVmMapDao;
+import com.cloud.network.as.AutoScalePolicy;
+import com.cloud.network.as.AutoScaleVmGroup;
+import com.cloud.network.as.AutoScaleVmProfile;
+import com.cloud.network.as.AutoScaleVmProfileVO;
+import com.cloud.network.as.Condition;
+import com.cloud.network.as.ConditionVO;
+import com.cloud.network.as.Counter;
 import com.cloud.network.dao.LoadBalancerOptionsVO;
 import org.apache.log4j.Logger;
 import org.apache.cloudstack.acl.ControlledEntity;
