@@ -2139,6 +2139,18 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName());
     }
 
+    protected void auxRegisterLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM, String lbDomain, String lbRecord){
+        if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
+            if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
+                // using exception for testing purpose
+                //throw new RuntimeException("DNS register problem");
+                _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+            }
+        } else if (rule.getState() == FirewallRule.State.Revoke) {
+            _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+        }
+    }
+
     private void registerLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM) throws ResourceUnavailableException {
         try {
             // First of all, find the correct LB domain and LB record
@@ -2149,14 +2161,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
 
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
-
-            if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
-                if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
-                    _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-                }
-            } else if (rule.getState() == FirewallRule.State.Revoke) {
-                _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-            }
+            auxRegisterLoadBalancerDomainName(network, rule, revokeAnyVM, lbDomain, lbRecord);
+//
+//            if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
+//                if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
+//                    _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+//                }
+//            } else if (rule.getState() == FirewallRule.State.Revoke) {
+//                _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+//            }
         }catch(Exception ex){
             s_logger.error("Error while registering load balancer's domain name", ex);
             throw new CloudRuntimeException("Error while registering load balancer's domain name", ex);
