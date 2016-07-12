@@ -1122,6 +1122,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         try {
             CallContext.register(_accountMgr.getSystemUser(), _accountMgr.getSystemAccount(), contextId);
+            CallContext.current().putContextParameter(Network.class.getName(), network.getUuid());
             return _ntwSvc.deleteNetwork(networkId, forced);
         } finally {
             // restore context
