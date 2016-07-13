@@ -64,6 +64,7 @@ import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationSe
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.framework.config.dao.GloboResourceConfigurationDao;
 import org.apache.cloudstack.region.PortableIp;
 import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpRange;
@@ -356,9 +357,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     LoadBalancingRulesService _lbService;
     @Inject
     GloboDnsElementService _globoDnsService;
-
     @Inject
     LoadBalancerOptionsDao _lbOptionsDao;
+    @Inject
+    GloboResourceConfigurationDao _globoResourceConfigurationDao;
 
     @Override
     public boolean canEnable(Long physicalNetworkId) {
@@ -2143,9 +2145,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     protected void auxRegisterLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM, String lbDomain, String lbRecord){
         if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
             if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
-                // using exception for testing purpose
+                Map<String, String> configurationMap = _globoResourceConfigurationDao.getConfiguration(GloboResourceConfigurationDao.ResourceType.LOAD_BALANCER, 123l);
+                String isDnsRegistered = configurationMap.get("isDnsRegistered");
+                if(!Boolean.valueOf(isDnsRegistered)){
+                    _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+                }
+                //using exception for testing purpose
                 //throw new RuntimeException("DNS register problem");
-                _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
             }
         } else if (rule.getState() == FirewallRule.State.Revoke) {
             _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
