@@ -2356,6 +2356,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     @Override
+    @DB
     public LoadBalancer importGloboNetworkLoadBalancer(Long lbId, final Long networkId, Long projectId) {
         // Validate params
         if (lbId == null) {
@@ -2437,75 +2438,70 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
 
             try {
-                LoadBalancer lb = Transaction.execute(new TransactionCallbackWithException<LoadBalancer, CloudException>() {
+                // Allocate IP in Cloudstack
+                Long zoneId = network.getDataCenterId();
+                IPAddressVO ip = (IPAddressVO)_ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetworkLB.getIp());
+                VlanVO vlan = _vlanDao.findById(ip.getVlanId());
+                PublicIp publicIp = PublicIp.createFromAddrAndVlan(ip, vlan);
 
-                    public LoadBalancer doInTransaction(TransactionStatus status) throws CloudException {
-                        // Allocate IP in Cloudstack
-                        Long zoneId = network.getDataCenterId();
-                        IPAddressVO ip = (IPAddressVO)_ipAddrMgr.allocatePortableIp(owner, caller, zoneId, networkId, null, globoNetworkLB.getIp());
-                        VlanVO vlan = _vlanDao.findById(ip.getVlanId());
-                        PublicIp publicIp = PublicIp.createFromAddrAndVlan(ip, vlan);
+                // register ip
+                // Retrieve glbEnvId from network
+                GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
+                if (globoNetworkNetworkVO == null) {
+                    throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
+                }
+                Long glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
 
-                        // register ip
-                        // Retrieve glbEnvId from network
-                        GloboNetworkNetworkVO globoNetworkNetworkVO = _globoNetworkNetworkDao.findByNetworkId(networkId);
-                        if (globoNetworkNetworkVO == null) {
-                            throw new InvalidParameterValueException("Unable to find mapping for networkId " + networkId);
-                        }
-                        Long glbEnvId = globoNetworkNetworkVO.getGloboNetworkEnvironmentId();
+                // Retrieve napiEnvironment from DB
+                GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(),
+                        glbEnvId);
 
-                        // Retrieve napiEnvironment from DB
-                        GloboNetworkEnvironmentVO globoNetworkEnvironment = _globoNetworkEnvironmentDao.findByPhysicalNetworkIdAndEnvironmentId(network.getPhysicalNetworkId(),
-                                glbEnvId);
+                if (globoNetworkEnvironment == null) {
+                    // No physical network/environment pair registered in the database.
+                    throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId()
+                            + " and GloboNetwork environment=" + glbEnvId);
+                }
 
-                        if (globoNetworkEnvironment == null) {
-                            // No physical network/environment pair registered in the database.
-                            throw new InvalidParameterValueException("Unable to find a relationship between physical network=" + network.getPhysicalNetworkId()
-                                    + " and GloboNetwork environment=" + glbEnvId);
-                        }
+                GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironment = _globoNetworkLBEnvironmentDao.findByEnvironmentRefAndLBNetwork(
+                        globoNetworkEnvironment.getId(), globoNetworkLB.getLbEnvironmentId());
+                if (globoNetworkLBEnvironment == null) {
+                    throw new InvalidParameterValueException("Could not find LB environment " + globoNetworkLB.getLbEnvironmentId());
+                }
 
-                        GloboNetworkLoadBalancerEnvironment globoNetworkLBEnvironment = _globoNetworkLBEnvironmentDao.findByEnvironmentRefAndLBNetwork(
-                                globoNetworkEnvironment.getId(), globoNetworkLB.getLbEnvironmentId());
-                        if (globoNetworkLBEnvironment == null) {
-                            throw new InvalidParameterValueException("Could not find LB environment " + globoNetworkLB.getLbEnvironmentId());
-                        }
+                GloboNetworkIpDetailVO gnIpDetail = new GloboNetworkIpDetailVO(ip.getId(), globoNetworkLB.getIpId());
+                gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBEnvironment.getId());
+                gnIpDetail.setGloboNetworkVipId(globoNetworkLB.getId());
+                _globoNetworkIpDetailDao.persist(gnIpDetail);
 
-                        GloboNetworkIpDetailVO gnIpDetail = new GloboNetworkIpDetailVO(ip.getId(), globoNetworkLB.getIpId());
-                        gnIpDetail.setGloboNetworkEnvironmentRefId(globoNetworkLBEnvironment.getId());
-                        gnIpDetail.setGloboNetworkVipId(globoNetworkLB.getId());
-                        _globoNetworkIpDetailDao.persist(gnIpDetail);
+                // Create LB
+                LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName().toLowerCase(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
+                        Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, additionalPortMapList, cache, null, null, null, null);
 
-                        // Create LB
-                        LoadBalancer lb = _lbMgr.createPublicLoadBalancer(null, globoNetworkLB.getName().toLowerCase(), globoNetworkLB.getDetails(), Integer.parseInt(globoNetworkPorts[0], 10),
-                                Integer.parseInt(globoNetworkPorts[1], 10), publicIp.getId(), NetUtils.TCP_PROTO, algorithm, false, CallContext.current(), null, Boolean.TRUE, additionalPortMapList, cache, null, null, null, null);
+                // If healthcheck is TCP, do nothing; otherwise, create the healthcheck policy
+                if (globoNetworkLB.getHealthcheckType() != null && "HTTP".equals(globoNetworkLB.getHealthcheckType())) {
+                    // Default values for timeout and threshold, since those are not used by GloboNetwork
+                    _lbService.validateAndPersistLbHealthcheckPolicy(lb.getId(), globoNetworkLB.getHealthcheck(), null, 2, 5, 2, 1, true);
+                }
 
-                        // If healthcheck is TCP, do nothing; otherwise, create the healthcheck policy
-                        if (globoNetworkLB.getHealthcheckType() != null && "HTTP".equals(globoNetworkLB.getHealthcheckType())) {
-                            // Default values for timeout and threshold, since those are not used by GloboNetwork
-                            _lbService.validateAndPersistLbHealthcheckPolicy(lb.getId(), globoNetworkLB.getHealthcheck(), null, 2, 5, 2, 1, true);
-                        }
+                if (lbPersistence != null) {
+                    _lbService.validateAndPersistLbStickinessPolicy(lb.getId(), lbPersistence, lbPersistence, null, null, true);
+                }
 
-                        if (lbPersistence != null) {
-                            _lbService.validateAndPersistLbStickinessPolicy(lb.getId(), lbPersistence, lbPersistence, null, null, true);
-                        }
-
-                        // Assign VMs that are managed in Cloudstack
-                        List<Long> instancesToAdd = new ArrayList<Long>();
-                        Map<Long, List<String>> vmIdIpMap = new HashMap<Long, List<String>>();
-                        for (GloboNetworkVipResponse.Real real : globoNetworkLB.getReals()) {
-                            // For each real, find it in Cloudstack and add it to LB
-                            // If it's not found, ignore it (VM not managed by Cloudstack)
-                            Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), networkId);
-                            if (nic == null) {
-                                continue;
-                            }
-                            instancesToAdd.add(nic.getInstanceId());
-                            vmIdIpMap.put(nic.getInstanceId(), Arrays.asList(nic.getIp4Address()));
-                        }
-                        _lbService.assignToLoadBalancer(lb.getId(), instancesToAdd, vmIdIpMap);
-                        return lb;
+                // Assign VMs that are managed in Cloudstack
+                List<Long> instancesToAdd = new ArrayList<Long>();
+                Map<Long, List<String>> vmIdIpMap = new HashMap<Long, List<String>>();
+                for (GloboNetworkVipResponse.Real real : globoNetworkLB.getReals()) {
+                    // For each real, find it in Cloudstack and add it to LB
+                    // If it's not found, ignore it (VM not managed by Cloudstack)
+                    Nic nic = _nicDao.findByIp4AddressAndNetworkId(real.getIp(), networkId);
+                    if (nic == null) {
+                        continue;
                     }
-                });
+                    instancesToAdd.add(nic.getInstanceId());
+                    vmIdIpMap.put(nic.getInstanceId(), Arrays.asList(nic.getIp4Address()));
+                }
+                _lbService.assignToLoadBalancer(lb.getId(), instancesToAdd, vmIdIpMap);
+
 
                 return lb;
 
