@@ -8,7 +8,4 @@ public interface GloboResourceConfiguration {
     String getInstance();
 
 
-    public enum key {
-        isDNSRegistered
-    }
 }
