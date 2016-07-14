@@ -167,7 +167,9 @@ under the License.
    <category name="apiserver.com.cloud">
      <priority value="DEBUG"/>
    </category>
-
+   <category name="com.globo">
+        <priority value="DEBUG"/>
+   </category>
    <logger name="apiserver.com.cloud" additivity="false">
       <level value="DEBUG"/>
       <appender-ref ref="APISERVER"/>

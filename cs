@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BASEDIR=$(pwd)
+STATIC_TARGET=client/target/generated-webapp/scripts
 
 pkg_path(){
     [ -f /etc/redhat-release ] || return 1
@@ -106,7 +107,7 @@ case "$1" in
     mvn -Dnonoss -Pdeveloper,systemvm -Djava.awt.headless=true -Dsimulator -pl :cloudstack-framework,:cloud-server,:cloud-api,:cloud-engine-components-api,:cloud-plugin-network-globonetwork,:cloud-plugin-network-globodns,:cloud-plugin-network-globoaclapi,:cloud-plugin-user-authenticator-oauth2,:cloud-client-ui install -DskipTests
     ;;
   update-js)
-    rm -R client/target/generated-webapp/scripts/*.js.gz ; rm -R client/target/generated-webapp/scripts/loadbalancer/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui-custom/*.js.gz ; rm -R client/target/generated-webapp/scripts/ui/widgets/*.js.gz ; cp -R ui/scripts client/target/generated-webapp/
+    rm -R $STATIC_TARGET/*.js.gz ; rm -R $STATIC_TARGET/loadbalancer/*.js.gz ; rm -R $STATIC_TARGET/ui/*.js.gz ; rm -R $STATIC_TARGET/ui-custom/*.js.gz ; rm -R $STATIC_TARGET/ui/widgets/*.js.gz ; cp -R ui/scripts client/target/generated-webapp/ ; rm -R $STATIC_TARGET/../plugins/globoNetworkVipPlugin/*.js.gz ; cp -R ui/plugins client/target/generated-webapp/
     ;;
   deploydb)
     mvn -Dnonoss -Pdeveloper -pl developer,tools/devcloud -Ddeploydb
