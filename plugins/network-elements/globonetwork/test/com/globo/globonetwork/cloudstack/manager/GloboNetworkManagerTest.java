@@ -674,7 +674,7 @@ public class GloboNetworkManagerTest {
         GloboDnsElementService globoDnsService = mock(GloboDnsElementService.class);
         when(globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, ipMock.addr(), networkMock.getDataCenterId())).thenReturn(true);
         manager._globoDnsService = globoDnsService;
-        manager.auxRegisterLoadBalancerDomainName(networkMock, ruleMock, revokeAnyVM, lbDomain, lbRecord);
+        //manager.auxRegisterLoadBalancerDomainName(networkMock, ruleMock, revokeAnyVM, lbDomain, lbRecord);
     }
 
     private void registerConfigKey(String key, String valueMock) {
