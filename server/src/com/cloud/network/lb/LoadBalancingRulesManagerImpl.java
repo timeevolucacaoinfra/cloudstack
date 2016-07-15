@@ -1901,6 +1901,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                     s_logger.debug("Load balancer " + newRule.getId() + " for Ip address id=" + sourceIpId + ", public port " + srcPort + ", private port " + destPort
                             + " is added successfully.");
                     CallContext.current().setEventDetails("Load balancer Id: " + newRule.getId());
+                    CallContext.current().putContextParameter(LoadBalancer.class.getName(), newRule.getUuid());
                     UsageEventUtils.publishUsageEvent(EventTypes.EVENT_LOAD_BALANCER_CREATE, ipAddr.getAllocatedToAccountId(), ipAddr.getDataCenterId(), newRule.getId(), null,
                             LoadBalancingRule.class.getName(), newRule.getUuid());
 
