@@ -36,6 +36,9 @@
         </property>
     </bean>
 
+    <!--<bean id="globoResourceConfigurationDaoImpl"-->
+          <!--class="org.apache.cloudstack.framework.config.dao.GloboResourceConfigurationDaoImpl" />-->
+
     <bean id="configDepot"
         class="org.apache.cloudstack.framework.config.impl.ConfigDepotImpl">
         <property name="scopedStorages"

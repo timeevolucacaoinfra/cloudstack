@@ -59,7 +59,8 @@ import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
-import org.apache.cloudstack.framework.config.dao.GloboResourceConfigurationDao;
+//import org.apache.cloudstack.framework.config.GloboResourceConfigurationVO;
+//import org.apache.cloudstack.framework.config.dao.GloboResourceConfigurationDao;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.ConfigKey;
@@ -329,6 +330,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     UserIpv6AddressDao _ipv6AddrDao;
     @Inject
     LoadBalancerPortMapDao _lbPortMapDao;
+//    @Inject
+//    GloboResourceConfigurationDao _globoResourceConfigurationDao;
+
 
     // Managers
     @Inject
@@ -359,8 +363,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     GloboDnsElementService _globoDnsService;
     @Inject
     LoadBalancerOptionsDao _lbOptionsDao;
-    @Inject
-    GloboResourceConfigurationDao _globoResourceConfigurationDao;
 
     @Override
     public boolean canEnable(Long physicalNetworkId) {
@@ -2154,8 +2156,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 //                if(!Boolean.valueOf(isDnsRegistered)){
 //                    _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
 //                }
-//                using exception for testing purpose
-//                throw new RuntimeException("DNS register problem");
 //            }
 //        } else if (rule.getState() == FirewallRule.State.Revoke) {
 //            _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
