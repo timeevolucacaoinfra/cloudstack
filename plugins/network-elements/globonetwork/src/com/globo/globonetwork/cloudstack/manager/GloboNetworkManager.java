@@ -18,8 +18,18 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
+import com.cloud.network.dao.LoadBalancerDao;
 import com.cloud.network.dao.LoadBalancerOptionsDao;
 import com.cloud.network.dao.LoadBalancerOptionsVO;
+import com.cloud.network.dao.LoadBalancerPortMapDao;
+import com.cloud.network.dao.IPAddressDao;
+import com.cloud.network.dao.IPAddressVO;
+import com.cloud.network.dao.NetworkDao;
+import com.cloud.network.dao.NetworkServiceMapDao;
+import com.cloud.network.dao.NetworkVO;
+import com.cloud.network.dao.PhysicalNetworkDao;
+import com.cloud.network.dao.PhysicalNetworkVO;
+import com.cloud.network.dao.UserIpv6AddressDao;
 import com.cloud.utils.net.Ip;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboLbNetworksCmd;
@@ -51,7 +61,6 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkLBCacheGroupsCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolOptionsCmd;
 import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsCommand;
@@ -59,13 +68,16 @@ import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
-//import org.apache.cloudstack.framework.config.GloboResourceConfigurationVO;
-//import org.apache.cloudstack.framework.config.dao.GloboResourceConfigurationDao;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
+
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceKey;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 import org.apache.cloudstack.region.PortableIp;
 import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpRange;
@@ -118,14 +130,6 @@ import com.cloud.network.Networks.BroadcastDomainType;
 import com.cloud.network.PhysicalNetwork;
 import com.cloud.network.UserIpv6AddressVO;
 import com.cloud.network.addr.PublicIp;
-import com.cloud.network.dao.IPAddressDao;
-import com.cloud.network.dao.IPAddressVO;
-import com.cloud.network.dao.NetworkDao;
-import com.cloud.network.dao.NetworkServiceMapDao;
-import com.cloud.network.dao.NetworkVO;
-import com.cloud.network.dao.PhysicalNetworkDao;
-import com.cloud.network.dao.PhysicalNetworkVO;
-import com.cloud.network.dao.UserIpv6AddressDao;
 import com.cloud.network.guru.NetworkGuru;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.lb.LoadBalancingRule.LbDestination;
@@ -330,8 +334,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     UserIpv6AddressDao _ipv6AddrDao;
     @Inject
     LoadBalancerPortMapDao _lbPortMapDao;
-//    @Inject
-//    GloboResourceConfigurationDao _globoResourceConfigurationDao;
+    @Inject
+    GloboResourceConfigurationDao _globoResourceConfigurationDao;
+    @Inject
+    LoadBalancerDao _loadBalancerDao;
 
 
     // Managers
@@ -2144,23 +2150,33 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                _networkManager.isProviderEnabledInPhysicalNetwork(network.getPhysicalNetworkId(), Provider.GloboDns.getName());
     }
 
-//    protected void auxRegisterLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM, String lbDomain, String lbRecord){
-//        if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
-//            if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
-//                GloboResourceConfigurationDao.ResourceType resourceType  = GloboResourceConfigurationDao.ResourceType.LOAD_BALANCER;
-//                GloboResourceConfigurationVO.Key key = GloboResourceConfigurationVO.Key.isDNSRegistered;
-//                GloboResourceConfigurationVO globoResourceConfigurationVO = new GloboResourceConfigurationVO(resourceType, network.getId(), key, "true");
-//                _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
-//                Map<String, String> configurationMap = _globoResourceConfigurationDao.getConfiguration(GloboResourceConfigurationDao.ResourceType.LOAD_BALANCER, 123l);
-//                String isDnsRegistered = configurationMap.get("isDnsRegistered");
-//                if(!Boolean.valueOf(isDnsRegistered)){
-//                    _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-//                }
-//            }
-//        } else if (rule.getState() == FirewallRule.State.Revoke) {
-//            _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-//        }
-//    }
+    protected void auxRegisterLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM, String lbDomain, String lbRecord){
+        if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
+            if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {
+                GloboResourceType resourceType  = GloboResourceType.LOAD_BALANCER;
+                GloboResourceKey key = GloboResourceKey.isDNSRegistered;
+                //List<GloboResourceConfigurationVO> configurationMap = _globoResourceConfigurationDao.getConfiguration(GloboResourceType.LOAD_BALANCER, rule.getSourceIp().longValue(), key);
+                List<GloboResourceConfigurationVO> configurationMap = _globoResourceConfigurationDao.getConfiguration(GloboResourceType.LOAD_BALANCER, rule.getSourceIp().longValue());
+                String isDnsRegistered = "false";
+                for (GloboResourceConfigurationVO vo : configurationMap) {
+                    isDnsRegistered = vo.getValue();
+                }
+                if(!Boolean.valueOf(isDnsRegistered)) {
+                    try {
+                        _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+                        GloboResourceConfigurationVO globoResourceConfigurationVO = new GloboResourceConfigurationVO(resourceType, rule.getSourceIp().longValue(), key, "true");
+                        _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
+                    } catch (Exception ex){
+                        GloboResourceConfigurationVO globoResourceConfigurationVO = new GloboResourceConfigurationVO(resourceType, rule.getSourceIp().longValue(), key, "false");
+                        _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
+                        throw ex;
+                    }
+                }
+            }
+        } else if (rule.getState() == FirewallRule.State.Revoke) {
+            _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
+        }
+    }
 
     private void registerLoadBalancerDomainName(Network network, LoadBalancingRule rule, boolean revokeAnyVM) throws ResourceUnavailableException {
         try {
@@ -2172,7 +2188,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
 
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
-//            auxRegisterLoadBalancerDomainName(network, rule, revokeAnyVM, lbDomain, lbRecord);
+            auxRegisterLoadBalancerDomainName(network, rule, revokeAnyVM, lbDomain, lbRecord);
 
             if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
                 if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId())) {

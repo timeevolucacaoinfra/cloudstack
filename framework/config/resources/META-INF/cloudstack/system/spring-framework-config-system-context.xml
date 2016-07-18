@@ -36,8 +36,8 @@
         </property>
     </bean>
 
-    <!--<bean id="globoResourceConfigurationDaoImpl"-->
-          <!--class="org.apache.cloudstack.framework.config.dao.GloboResourceConfigurationDaoImpl" />-->
+    <bean id="globoResourceConfigurationDaoImpl"
+          class="org.apache.cloudstack.globoconfig.GloboResourceConfigurationDaoImpl" />
 
     <bean id="configDepot"
         class="org.apache.cloudstack.framework.config.impl.ConfigDepotImpl">
