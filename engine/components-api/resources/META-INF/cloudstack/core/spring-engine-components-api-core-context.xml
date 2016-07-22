@@ -29,12 +29,12 @@
 
     <context:property-placeholder />
 
-    <!-- <bean id="eventNotificationBus" class="org.apache.cloudstack.mom.rabbitmq.RabbitMQEventBus">
+    <bean id="eventNotificationBus" class="org.apache.cloudstack.mom.rabbitmq.RabbitMQEventBus">
         <property name="name" value="eventNotificationBus"/>
         <property name="server" value="${RABBIT_MQ_HOST}"/>
         <property name="port" value="${RABBIT_MQ_PORT}"/>
         <property name="username" value="${RABBIT_MQ_USER}"/>
         <property name="password" value="${RABBIT_MQ_PASSWORD}"/>
         <property name="exchange" value="cloudstack-events"/>
-    </bean> -->
+    </bean>
 </beans>
