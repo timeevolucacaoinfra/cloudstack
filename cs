@@ -92,6 +92,10 @@ case "$1" in
     ;;
   run-simulator)
     rm -f *.log
+    export RABBIT_MQ_HOST="localhost"
+    export RABBIT_MQ_PORT="5672"
+    export RABBIT_MQ_USER="guest"
+    export RABBIT_MQ_PASSWORD="guest"
     MAVEN_OPTS="-Xmx2048m -XX:MaxPermSize=512m -Xdebug -Xrunjdwp:transport=dt_socket,address=8787,server=y,suspend=n" mvn -Dnonoss -Djava.awt.headless=true -Djava.net.preferIPv4Stack=true -Dsimulator -pl :cloud-client-ui jetty:run
     ;;
   compile)
