@@ -814,6 +814,8 @@ $.extend(dictionary, {
 'label.type.lower': '<fmt:message key="label.type.lower" />',
 'label.rule.number': '<fmt:message key="label.rule.number" />',
 'label.action': '<fmt:message key="label.action" />',
+'label.action.registry.dns.for.load.balancer': '<fmt:message key="label.action.registry.dns.for.load.balancer" />',
+'message.registry.dns.for.load.balancer.successful': '<fmt:message key="message.registry.dns.for.load.balancer.successful" />',
 'label.name.lower': '<fmt:message key="label.name.lower" />',
 'label.ucs': '<fmt:message key="label.ucs" />',
 'label.persistent': '<fmt:message key="label.persistent" />',

@@ -17,4 +17,6 @@ public interface GloboResourceConfiguration {
 
     String getValue();
 
+    void setValue(String value);
+
 }

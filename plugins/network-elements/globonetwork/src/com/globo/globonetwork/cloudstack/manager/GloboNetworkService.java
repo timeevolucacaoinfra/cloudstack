@@ -49,6 +49,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 
 public interface GloboNetworkService {
 
@@ -281,4 +282,7 @@ public interface GloboNetworkService {
     public List<GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck> listAllExpectedHealthchecks();
 
     Pair<List<? extends Network>,Integer> searchForLbNetworks(ListGloboLbNetworksCmd listGloboLbNetworksCmd);
-}
+
+    public void getDomain(String resourceId, GloboResourceType resourceType);
+
+    }

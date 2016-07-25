@@ -76,4 +76,7 @@ public class GloboResourceConfigurationVO implements GloboResourceConfiguration 
     public String getValue() {
         return this.value;
     }
+
+    @Override
+    public void setValue(String value) {this.value = value; }
 }

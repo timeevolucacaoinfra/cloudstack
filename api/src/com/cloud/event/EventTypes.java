@@ -161,6 +161,7 @@ public class EventTypes {
     public static final String EVENT_LB_CERT_DELETE = "LB.CERT.DELETE";
     public static final String EVENT_LB_CERT_ASSIGN = "LB.CERT.ASSIGN";
     public static final String EVENT_LB_CERT_REMOVE = "LB.CERT.REMOVE";
+    public static final String EVENT_LB_REGISTER_DNS = "LB.DNS.REGISTRY";
 
     // Global Load Balancer rules
     public static final String EVENT_ASSIGN_TO_GLOBAL_LOAD_BALANCER_RULE = "GLOBAL.LB.ASSIGN";

@@ -240,7 +240,7 @@
                                 },
                                 dataType: "json",
                                 async: false,
-                                success: function(json) {
+                                    success: function(json) {
                                     var response = json.listlbstickinesspoliciesresponse.stickinesspolicies[0];
                                     var stickiness = "";
                                     if (!response || !response.stickinesspolicy ||
@@ -259,7 +259,7 @@
                             args.response.success({
                                 data: args.jsonObj
                             });
-                        }
+                        },
                     },
                     networks: {
                         title: 'Networks',
@@ -1021,6 +1021,67 @@
                     },
                 },
                 actions: {
+                    restart: {
+                        label: 'Retry Register DNS for Load Balancer',
+                        custom: {
+                            buttonLabel: 'label.configure'
+                        },
+                        action: function(args) {
+                            var show_error_message = function(json) {
+                                args.response.error(parseXMLHttpResponse(json));
+                            };
+                            $.ajax({
+                                url: createURL("registerDnsForResource"),
+                                data: {
+                                    uuid: args.context.loadbalancers[0].id,
+                                    resourcetype: "loadBalancer"
+                                },
+                                dataType: "json",
+                                async: false,
+                                success: function(data) {
+                                    cloudStack.ui.notifications.add({
+                                            desc: 'message.registry.dns.for.load.balancer.successful',
+                                            section: 'Details',
+                                            poll: pollAsyncJobResult,
+                                            _custom: {
+                                                jobId: data.registerdnsforresource.jobid
+                                            }
+                                        },
+                                        function() {
+                                            console.log("success");
+                                            $(window).trigger('cloudStack.fullRefresh');
+                                            $('.loading-overlay').remove();
+                                        }, {},
+                                        show_error_message, {}
+                                         // job deleteLoadBalancerRule
+                                    );
+                                    
+                                    
+
+                                },
+                                error: function(data){
+                                    $('.loading-overlay').remove();
+                                    $(window).trigger('cloudStack.fullRefresh');
+                                    console.log("error");
+                                } // ajax deleteLoadBalancerRule
+                            });
+                        },
+                        messages: {
+                            confirm: function(args) {
+                                return 'label.action.registry.dns.for.load.balancer';
+                            },
+                            notification: function() {
+                                return 'notification for retryRegisterDNS';
+                            },
+                            complete: function(args) {
+                                return 'message.registry.dns.for.load.balancer.successfull';
+                            }
+                        },
+                        notification: {
+                            label: 'DNS Registered',
+                            poll: pollAsyncJobResult
+                        }
+                    },
                     editLoadBalancer: {
                         label: 'Edit Load Balancer',
                         custom: {
