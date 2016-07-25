@@ -2168,8 +2168,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             throw new CloudRuntimeException("Error while registering load balancer's domain name", ex);
         }
     }
+
     protected void registerLoadBalancerDomainName(Network network, Ip ip, String lbDomain, String lbRecord) throws Exception {
-        //protected void registerLoadBalancerDomainName(Network network, LoadBalancingRule rule, String lbDomain, String lbRecord) throws Exception {
         GloboResourceType resourceType  = GloboResourceType.LOAD_BALANCER;
         GloboResourceKey key = GloboResourceKey.isDNSRegistered;
         List<GloboResourceConfigurationVO> configurations = _globoResourceConfigurationDao.getConfiguration(GloboResourceType.LOAD_BALANCER, ip.longValue(), key);
@@ -2190,7 +2190,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                     _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
                 }
             }
-//                   throw exception used for testing purpose
         } catch (Exception ex){
             globoResourceConfigurationVO = new GloboResourceConfigurationVO(resourceType, ip.longValue(), key, "false");
             _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
