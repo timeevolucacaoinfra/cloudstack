@@ -941,8 +941,6 @@ public class NetscalerElement extends ExternalLoadBalancerDeviceManagerImpl impl
             } catch (ResourceUnavailableException e) {
                 s_logger.error("Error in getting the LB Rules from NetScaler " + e);
             }
-        } else {
-            s_logger.error("Network cannot handle to LB service ");
         }
         return null;
     }
