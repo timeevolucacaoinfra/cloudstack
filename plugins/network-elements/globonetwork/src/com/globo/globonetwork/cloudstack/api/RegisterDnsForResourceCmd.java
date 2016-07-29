@@ -59,7 +59,6 @@ public class RegisterDnsForResourceCmd extends BaseAsyncCmd {
 //        }
         _globoNetworkService.getDomain(id, type);
         response.setResourceType(type.toString());
-        response.setResult("");
         this.setResponseObject(response);
     }
 

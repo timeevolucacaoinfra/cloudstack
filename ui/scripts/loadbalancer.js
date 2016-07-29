@@ -206,6 +206,9 @@
                                 label: 'label.id'
                             }
                         },{
+                            dns_registry:{
+                                label:'DNS Registered'
+                            },
                             name: {
                                 label: 'label.fqdn'
                             },
@@ -241,17 +244,38 @@
                                 dataType: "json",
                                 async: false,
                                     success: function(json) {
-                                    var response = json.listlbstickinesspoliciesresponse.stickinesspolicies[0];
-                                    var stickiness = "";
-                                    if (!response || !response.stickinesspolicy ||
-                                        !response.stickinesspolicy[0] || !response.stickinesspolicy[0].name) {
-                                        stickiness = "None";
-                                    } else {
-                                        stickiness = response.stickinesspolicy[0].name;
-                                    }
-                                    args.jsonObj.stickiness = stickiness;
+                                        var response = json.listlbstickinesspoliciesresponse.stickinesspolicies[0];
+                                        var stickiness = "";
+                                        if (!response || !response.stickinesspolicy ||
+                                            !response.stickinesspolicy[0] || !response.stickinesspolicy[0].name) {
+                                            stickiness = "None";
+                                        } else {
+                                            stickiness = response.stickinesspolicy[0].name;
+                                        }
+                                        args.jsonObj.stickiness = stickiness;
                                 },
                                 error: function (errorMessage) {
+                                    args.response.error(errorMessage);
+                                }
+                            });
+
+                            $.ajax({
+                                url: createURL("getGloboResourceConfiguration"),
+                                data: {
+                                    uuid: args.jsonObj.id,
+                                    resourcetype: 'loadBalancer'
+                                },
+                                dataType: "json",
+                                async: false,
+                                    success: function(json) {
+                                        if(json.null.null.configurationvalue == null){
+                                            args.jsonObj["dns_registry"] = "false"
+                                        }else {
+                                            args.jsonObj["dns_registry"] = json.null.null.configurationvalue;
+                                        }
+                                },
+                                error: function (errorMessage) {
+                                    console.log(JSON.stringify(errorMessage));
                                     args.response.error(errorMessage);
                                 }
                             });
@@ -1025,6 +1049,34 @@
                         label: 'Retry Register DNS for Load Balancer',
                         custom: {
                             buttonLabel: 'label.configure'
+                        },
+                        preFilter: function(args) {
+                            flag = true;
+                            function flagCallback(result){
+                                flag = result;
+                            }
+                            $.ajax({
+                                url: createURL("getGloboResourceConfiguration"),
+                                data: {
+                                    uuid: args.context.loadbalancers[0].id,
+                                    resourcetype: 'loadBalancer'
+                                },
+                                dataType: "json",
+                                async: false,
+                                    success: function(json) {
+                                        if(json.null.null.configurationvalue == undefined) {
+                                            flagCallback(true);
+                                        } else if (json.null.null.configurationvalue == "true") {
+                                            flagCallback(false);
+                                        }
+                                },
+                                error: function (errorMessage) {
+                                    args.response.error(errorMessage);
+                                }
+                            });
+                            console.log(flag);
+                            return flag;
+                            
                         },
                         action: function(args) {
                             var show_error_message = function(json) {

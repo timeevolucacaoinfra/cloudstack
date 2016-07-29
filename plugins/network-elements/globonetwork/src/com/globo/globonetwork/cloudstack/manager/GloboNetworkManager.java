@@ -69,6 +69,7 @@ import com.globo.globonetwork.cloudstack.commands.ListGloboNetworkLBCacheGroupsC
 import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
+import com.globo.globonetwork.cloudstack.api.GetGloboResourceConfigurationCmd;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
@@ -1046,6 +1047,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         cmdList.add(UpdateGloboNetworkPoolCmd.class);
         cmdList.add(ListGloboLbNetworksCmd.class);
         cmdList.add(RegisterDnsForResourceCmd.class);
+        cmdList.add(GetGloboResourceConfigurationCmd.class);
         return cmdList;
     }
 
@@ -2167,6 +2169,19 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             s_logger.error("Error while registering load balancer's domain name", ex);
             throw new CloudRuntimeException("Error while registering load balancer's domain name", ex);
         }
+    }
+
+    @Override
+    public GloboResourceConfigurationVO getGloboResourceConfiguration(String uuid, GloboResourceType resourceType) {
+        Long sourceIpAddressId = _loadBalancerDao.findByUuid(uuid).getSourceIpAddressId();
+        IPAddressVO ipVO = _ipAddrDao.findById(sourceIpAddressId);
+        Ip ip = ipVO.getAddress();
+        GloboResourceKey key = GloboResourceKey.isDNSRegistered;
+        List<GloboResourceConfigurationVO> globoConfigurations = _globoResourceConfigurationDao.getConfiguration(resourceType, ip.longValue(), key);
+        if (globoConfigurations.size() < 1) {
+            throw new RuntimeException("There is no such GloboResourceConfiguration for the resource: " + uuid);
+        }
+        return globoConfigurations.get(0);
     }
 
     protected void registerLoadBalancerDomainName(Network network, Ip ip, String lbDomain, String lbRecord) throws Exception {

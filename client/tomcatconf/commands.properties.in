@@ -195,6 +195,7 @@ deleteLBHealthCheckPolicy=15
 listLoadBalancerRuleInstances=15
 updateLoadBalancerRule=15
 registerDnsForResource=15
+getGloboResourceConfiguration=15
 
 ##### SSL offload commands
 

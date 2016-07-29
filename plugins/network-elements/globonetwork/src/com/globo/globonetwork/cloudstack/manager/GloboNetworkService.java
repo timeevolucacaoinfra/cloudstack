@@ -49,6 +49,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkLoadBalancerEnvironment;
 import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
 import org.apache.cloudstack.globoconfig.GloboResourceType;
 
 public interface GloboNetworkService {
@@ -263,6 +264,8 @@ public interface GloboNetworkService {
             ConcurrentOperationException, InvalidParameterValueException, InsufficientCapacityException;
 
     public boolean disassociateIpAddrFromGloboNetwork(long ipId);
+
+    GloboResourceConfigurationVO getGloboResourceConfiguration(String uuid, GloboResourceType resourceType);
 
     public boolean validateLBRule(Network network, LoadBalancingRule rule);
 
