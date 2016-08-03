@@ -2155,7 +2155,6 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     }
 
     public void getDomain(String resourceId, GloboResourceType resourceType) {
-        //TODO
         LoadBalancerVO lb = this._loadBalancerDao.findByUuid(resourceId);
         Network network = _ntwkDao.findById(lb.getNetworkId());
         Long sourceIpAddressId = lb.getSourceIpAddressId();

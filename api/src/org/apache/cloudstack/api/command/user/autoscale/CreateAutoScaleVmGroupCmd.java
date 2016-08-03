@@ -98,6 +98,13 @@ public class CreateAutoScaleVmGroupCmd extends BaseAsyncCreateCmd {
                description = "the autoscale profile that contains information about the vms in the vm group.")
     private long profileId;
 
+
+    @Parameter(name = ApiConstants.AUTOSCALE_GROUP_VM_PREFIX_NAME,
+            type = CommandType.STRING,
+            required = true,
+            description = "the prefix name of the AutoScale group vms")
+    private String vmPrefixName;
+
     @Parameter(name = ApiConstants.FOR_DISPLAY, type = CommandType.BOOLEAN, description = "an optional field, whether to the display the group to the end user or not", since = "4.4", authorized = {RoleType.Admin})
     private Boolean display;
 
@@ -131,6 +138,10 @@ public class CreateAutoScaleVmGroupCmd extends BaseAsyncCreateCmd {
 
     public long getLbRuleId() {
         return lbRuleId;
+    }
+
+    public String getVmPrefixName() {
+        return vmPrefixName;
     }
 
     // ///////////////////////////////////////////////////

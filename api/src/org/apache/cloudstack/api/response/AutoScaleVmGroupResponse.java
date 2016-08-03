@@ -38,6 +38,10 @@ public class AutoScaleVmGroupResponse extends BaseResponse implements Controlled
     @Param(description = "the load balancer rule ID")
     private String loadBalancerId;
 
+    @SerializedName(ApiConstants.AUTOSCALE_GROUP_VM_PREFIX_NAME)
+    @Param(description = "the autoscale vm group name")
+    private String autoScaleGroupName;
+
     @SerializedName(ApiConstants.VMPROFILE_ID)
     @Param(description = "the autoscale profile that contains information about the vms in the vm group.")
     private String profileId;
@@ -109,6 +113,10 @@ public class AutoScaleVmGroupResponse extends BaseResponse implements Controlled
 
     public void setLoadBalancerId(String loadBalancerId) {
         this.loadBalancerId = loadBalancerId;
+    }
+
+    public void setAutoScaleGroupName(String autoScaleGroupName) {
+        this.autoScaleGroupName = autoScaleGroupName;
     }
 
     public void setProfileId(String profileId) {

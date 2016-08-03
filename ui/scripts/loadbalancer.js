@@ -275,7 +275,6 @@
                                         }
                                 },
                                 error: function (errorMessage) {
-                                    console.log(JSON.stringify(errorMessage));
                                     args.response.error(errorMessage);
                                 }
                             });
@@ -1074,7 +1073,6 @@
                                     args.response.error(errorMessage);
                                 }
                             });
-                            console.log(flag);
                             return flag;
                             
                         },
@@ -1100,7 +1098,6 @@
                                             }
                                         },
                                         function() {
-                                            console.log("success");
                                             $(window).trigger('cloudStack.fullRefresh');
                                             $('.loading-overlay').remove();
                                         }, {},
@@ -1114,7 +1111,6 @@
                                 error: function(data){
                                     $('.loading-overlay').remove();
                                     $(window).trigger('cloudStack.fullRefresh');
-                                    console.log("error");
                                 } // ajax deleteLoadBalancerRule
                             });
                         },

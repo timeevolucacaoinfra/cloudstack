@@ -93,12 +93,15 @@ public class AutoScaleVmGroupVO implements AutoScaleVmGroup, InternalIdentity {
     @Column(name = "locked", updatable = true, nullable = false)
     protected boolean locked = false;
 
+    @Column(name = "vm_prefix_name")
+    private String vmPrefixName;
+
     public AutoScaleVmGroupVO() {
     }
 
     public AutoScaleVmGroupVO(long lbRuleId, long zoneId, long domainId,
             long accountId, int minMembers, int maxMembers, int memberPort,
-            int interval, Date lastInterval, long profileId, String state) {
+            int interval, Date lastInterval, long profileId, String state,String vmPrefixName) {
 
         uuid = UUID.randomUUID().toString();
         loadBalancerId = lbRuleId;
@@ -112,6 +115,7 @@ public class AutoScaleVmGroupVO implements AutoScaleVmGroup, InternalIdentity {
         this.state = state;
         this.interval = interval;
         this.lastInterval = lastInterval;
+        this.vmPrefixName = vmPrefixName;
     }
 
     @Override
@@ -240,5 +244,14 @@ public class AutoScaleVmGroupVO implements AutoScaleVmGroup, InternalIdentity {
     @Override
     public Class<?> getEntityType() {
         return AutoScaleVmGroup.class;
+    }
+
+    public void setVmPrefixName(String vmPrefixName){
+        this.vmPrefixName = vmPrefixName;
+    }
+
+    @Override
+    public String getVmPrefixName() {
+        return this.vmPrefixName;
     }
 }

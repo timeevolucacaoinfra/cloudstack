@@ -469,6 +469,7 @@
                             $autoscalerDialog.find('select[name=serviceOfferingId]').attr('disabled', true);
                             $autoscalerDialog.find('select[name=securityGroups]').attr('disabled', true);
                             $autoscalerDialog.find('select[name=diskOfferingId]').attr('disabled', true);
+                            $autoscalerDialog.find('input[name=autoScaleVmGroupName]').attr('disabled', true);
 
                             if (args.data.isAdvanced != null) {
                                 $autoscalerDialog.find('input[type=checkbox]').trigger('click');

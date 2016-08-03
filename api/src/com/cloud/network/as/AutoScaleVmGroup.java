@@ -59,4 +59,6 @@ public interface AutoScaleVmGroup extends ControlledEntity, InternalIdentity, Di
     @Override
     boolean isDisplay();
 
+    String getVmPrefixName();
+
 }

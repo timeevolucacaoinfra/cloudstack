@@ -154,6 +154,6 @@ public class AutoScaleCounterProcessorTest {
     }
 
     private AutoScaleVmGroupVO createAutoScaleGroup() {
-        return new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
+        return new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled", "as-group");
     }
 }

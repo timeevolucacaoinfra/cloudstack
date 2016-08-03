@@ -2859,6 +2859,7 @@ public class ApiResponseHelper implements ResponseGenerator {
     public AutoScaleVmGroupResponse createAutoScaleVmGroupResponse(AutoScaleVmGroup vmGroup) {
         AutoScaleVmGroupResponse response = new AutoScaleVmGroupResponse();
         response.setId(vmGroup.getUuid());
+        response.setAutoScaleGroupName(vmGroup.getVmPrefixName());
         response.setMinMembers(vmGroup.getMinMembers());
         response.setMaxMembers(vmGroup.getMaxMembers());
         List<AutoScaleVmGroupVmMapVO> autoScaleVmGroupVmMapVos = _autoScaleVmGroupVmMapDao.listByGroup(vmGroup.getId());

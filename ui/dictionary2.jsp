@@ -823,6 +823,7 @@ $.extend(dictionary, {
 'label.network.cidr': '<fmt:message key="label.network.cidr" />',
 'label.reserved.ip.range': '<fmt:message key="label.reserved.ip.range" />',
 'label.autoscale': '<fmt:message key="label.autoscale" />',
+'label.autoscale.vm.group.name': '<fmt:message key="label.autoscale.vm.group.name" />',
 'label.health.check': '<fmt:message key="label.health.check" />',
 'label.public.load.balancer.provider': '<fmt:message key="label.public.load.balancer.provider" />',
 'label.add.isolated.network': '<fmt:message key="label.add.isolated.network" />',

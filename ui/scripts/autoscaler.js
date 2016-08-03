@@ -187,7 +187,6 @@
                                             securityGroups = array2[1];
                                     });
                                 }
-
                                 var originalAutoscaleData = {
                                     templateNames: autoscaleVmProfile.templateid,
                                     serviceOfferingId: autoscaleVmProfile.serviceofferingid,
@@ -197,6 +196,7 @@
                                     scaleUpPolicy: scaleUpPolicy,
                                     scaleDownPolicy: scaleDownPolicy,
                                     interval: autoscaleVmGroup.interval,
+                                    autoScaleVmGroupName: autoscaleVmGroup.autoscalegroupvmprefixname,
                                     quietTime: autoscaleVmGroup.scaleuppolicies[0].quiettime,
                                     destroyVMgracePeriod: autoscaleVmProfile.destroyvmgraceperiod,
                                     securityGroups: securityGroups,
@@ -360,6 +360,15 @@
                     validation: {
                         required: true,
                         number: true
+                    }
+                },
+
+                autoScaleVmGroupName: {
+                    label: 'label.autoscale.vm.group.name',
+                    defaultValue: 'as-group',
+                    docID: 'helpAutoscaleVmGroupName',
+                    validation: {
+                        required: true
                     }
                 },
 
@@ -1510,6 +1519,7 @@
                         array1.push("&interval=" + args.data.interval);
                         array1.push("&scaleuppolicyids=" + args.scaleUpPolicyResponse.id);
                         array1.push("&scaledownpolicyids=" + args.scaleDownPolicyResponse.id);
+                        array1.push("&autoscalegroupvmprefixname=" + args.data.autoScaleVmGroupName);
                         
                         $.ajax({
                             url: createURL('createAutoScaleVmGroup' + array1.join("")),
@@ -1552,7 +1562,6 @@
                             scaleuppolicyids: args.context.originalAutoscaleData.scaleUpPolicy.id,
                             scaledownpolicyids: args.context.originalAutoscaleData.scaleDownPolicy.id
                         };
-
                         $.ajax({
                             url: createURL('updateAutoScaleVmGroup'),
                             data: data,

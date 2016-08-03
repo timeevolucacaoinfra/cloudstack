@@ -640,7 +640,7 @@ public class AutoScaleManagerImplTest {
     }
 
     private AutoScaleVmGroupVO createAutoScaleGroup(){
-        AutoScaleVmGroupVO asGroup = new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled");
+        AutoScaleVmGroupVO asGroup = new AutoScaleVmGroupVO(1L,1l, 1L, 1L, 1, 3, 80, 30, new Date(), 1, "enabled", "as-group");
         asGroup.id = AutoScaleManagerImplTest.AS_GROUP_ID;
         groupUuid = asGroup.getUuid();
         return asGroup;

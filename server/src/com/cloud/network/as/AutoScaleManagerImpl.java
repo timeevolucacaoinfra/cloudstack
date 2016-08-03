@@ -885,7 +885,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
 //        }
 
         AutoScaleVmGroupVO vmGroupVO = new AutoScaleVmGroupVO(cmd.getLbRuleId(), zoneId, loadBalancer.getDomainId(), loadBalancer.getAccountId(), minMembers, maxMembers,
-            loadBalancer.getDefaultPortStart(), interval, null, cmd.getProfileId(), AutoScaleVmGroup.State_New);
+            loadBalancer.getDefaultPortStart(), interval, null, cmd.getProfileId(), AutoScaleVmGroup.State_New, cmd.getVmPrefixName());
 
         if (forDisplay != null) {
             vmGroupVO.setDisplay(forDisplay);
@@ -1584,7 +1584,11 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     }
 
     protected String createInstanceName(AutoScaleVmGroupVO asGroup) {
-        return AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString();
+        String vmPrefixName = asGroup.getVmPrefixName();
+        if (vmPrefixName.isEmpty() || vmPrefixName.equals("")){
+            return AutoScaledVmPrefix.value() + asGroup.getId() + "-" + getCurrentTimeStampString();
+        }
+        return vmPrefixName + asGroup.getId() + "-" + getCurrentTimeStampString();
     }
 
     private List<Long> getAdditionalNetWorkIds(AutoScaleVmProfileVO profileVo, DataCenter zone) {
