@@ -262,20 +262,21 @@
                             $.ajax({
                                 url: createURL("getGloboResourceConfiguration"),
                                 data: {
-                                    uuid: args.jsonObj.id,
-                                    resourcetype: 'loadBalancer'
+                                    resourceid: args.jsonObj.id,
+                                    resourcetype: 'LOAD_BALANCER',
+                                    resourcekey: 'isDNSRegistered'
                                 },
                                 dataType: "json",
                                 async: false,
                                     success: function(json) {
-                                        if(json.null.null.configurationvalue == null){
-                                            args.jsonObj["dns_registry"] = "false"
+                                        if(json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue == null){
+                                            args.jsonObj["dns_registry"] = "true"
                                         }else {
-                                            args.jsonObj["dns_registry"] = json.null.null.configurationvalue;
+                                            args.jsonObj["dns_registry"] = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue;
                                         }
                                 },
                                 error: function (errorMessage) {
-                                    args.response.error(errorMessage);
+                                    args.jsonObj["dns_registry"] = "true";
                                 }
                             });
 
@@ -1050,30 +1051,33 @@
                             buttonLabel: 'label.configure'
                         },
                         preFilter: function(args) {
-                            flag = true;
-                            function flagCallback(result){
-                                flag = result;
+                            isToShowRegisterDnsButton = true;
+                            function showRegisterDnsButton(result){
+                                isToShowRegisterDnsButton = result;
                             }
                             $.ajax({
                                 url: createURL("getGloboResourceConfiguration"),
                                 data: {
-                                    uuid: args.context.loadbalancers[0].id,
-                                    resourcetype: 'loadBalancer'
+                                    resourceid: args.context.loadbalancers[0].id,
+                                    resourcetype: 'LOAD_BALANCER',
+                                    resourcekey: 'isDNSRegistered'
                                 },
                                 dataType: "json",
                                 async: false,
                                     success: function(json) {
-                                        if(json.null.null.configurationvalue == undefined) {
-                                            flagCallback(true);
-                                        } else if (json.null.null.configurationvalue == "true") {
-                                            flagCallback(false);
+                                        var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
+                                        if(conf == undefined || conf == "true") {
+                                            showRegisterDnsButton(false);
+                                        } else if (conf == "false") {
+                                            showRegisterDnsButton(true);
                                         }
                                 },
                                 error: function (errorMessage) {
-                                    args.response.error(errorMessage);
+                                    showRegisterDnsButton(false);
+                                    //args.response.error(errorMessage);
                                 }
                             });
-                            return flag;
+                            return isToShowRegisterDnsButton;
                             
                         },
                         action: function(args) {
@@ -1084,7 +1088,7 @@
                                 url: createURL("registerDnsForResource"),
                                 data: {
                                     uuid: args.context.loadbalancers[0].id,
-                                    resourcetype: "loadBalancer"
+                                    resourcetype: "LOAD_BALANCER"
                                 },
                                 dataType: "json",
                                 async: false,
@@ -1094,7 +1098,7 @@
                                             section: 'Details',
                                             poll: pollAsyncJobResult,
                                             _custom: {
-                                                jobId: data.registerdnsforresource.jobid
+                                                jobId: data.registerdnsforresourceresponse.jobid
                                             }
                                         },
                                         function() {

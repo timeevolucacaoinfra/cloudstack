@@ -71,6 +71,10 @@ import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.framework.config.impl.ConfigDepotImpl;
 import org.apache.cloudstack.framework.config.impl.ConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceKey;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 import org.apache.cloudstack.region.PortableIpDao;
 import org.apache.cloudstack.region.PortableIpRangeDao;
 import org.apache.cloudstack.test.utils.SpringUtils;
@@ -642,7 +646,7 @@ public class GloboNetworkManagerTest {
 
         LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
         LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
-
+        lb.setUuid("123123");
         when(lbServiceMock.findById(123l)).thenReturn(lb);
         manager._lbService = lbServiceMock;
 
@@ -673,7 +677,11 @@ public class GloboNetworkManagerTest {
         GloboDnsElementService globoDnsService = mock(GloboDnsElementService.class);
         when(globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, ipMock.addr(), networkMock.getDataCenterId())).thenReturn(true);
         manager._globoDnsService = globoDnsService;
-        manager.registerLoadBalancerDomainName(networkMock, ipMock, lbDomain, lbRecord);
+
+        GloboResourceConfigurationDao globoRCDao = mock(GloboResourceConfigurationDao.class);
+        when(globoRCDao.getConfiguration( GloboResourceType.LOAD_BALANCER, "123123",GloboResourceKey.isDNSRegistered)).thenReturn(new ArrayList<GloboResourceConfigurationVO>());
+        manager._globoResourceConfigurationDao = globoRCDao;
+        manager.registerLoadBalancerDomainName(lb, networkMock, ipMock, lbDomain, lbRecord);
     }
 
 //    @Test

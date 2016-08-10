@@ -50,6 +50,7 @@ import com.globo.globonetwork.cloudstack.GloboNetworkVipAccVO;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkAllEnvironmentResponse.Environment;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceKey;
 import org.apache.cloudstack.globoconfig.GloboResourceType;
 
 public interface GloboNetworkService {
@@ -265,7 +266,7 @@ public interface GloboNetworkService {
 
     public boolean disassociateIpAddrFromGloboNetwork(long ipId);
 
-    GloboResourceConfigurationVO getGloboResourceConfiguration(String uuid, GloboResourceType resourceType);
+    GloboResourceConfigurationVO getGloboResourceConfiguration(String uuid, GloboResourceType resourceType, GloboResourceKey key);
 
     public boolean validateLBRule(Network network, LoadBalancingRule rule);
 
@@ -286,6 +287,5 @@ public interface GloboNetworkService {
 
     Pair<List<? extends Network>,Integer> searchForLbNetworks(ListGloboLbNetworksCmd listGloboLbNetworksCmd);
 
-    public void getDomain(String resourceId, GloboResourceType resourceType);
-
-    }
+    public void registerDnsForResource(String id, GloboResourceType resourceType);
+}

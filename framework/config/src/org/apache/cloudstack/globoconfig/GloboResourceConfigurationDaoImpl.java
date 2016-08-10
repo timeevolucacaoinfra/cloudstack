@@ -24,7 +24,7 @@ public class GloboResourceConfigurationDaoImpl extends GenericDaoBase<GloboResou
 
     public GloboResourceConfigurationDaoImpl() {
         ListByResourceId = createSearchBuilder();
-        ListByResourceId.and("resourceId", ListByResourceId.entity().getResourceId(), SearchCriteria.Op.EQ);
+        ListByResourceId.and("resourceUuid", ListByResourceId.entity().getResourceUuid(), SearchCriteria.Op.EQ);
         ListByResourceId.and("resourceType", ListByResourceId.entity().getResourceType(), SearchCriteria.Op.EQ);
         ListByResourceId.and("key", ListByResourceId.entity().getKey(), SearchCriteria.Op.EQ);
 
@@ -37,18 +37,19 @@ public class GloboResourceConfigurationDaoImpl extends GenericDaoBase<GloboResou
     }
 
     @Override
-    public List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, long resourceId) {
+    public List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, String resourceUuid) {
         SearchCriteria<GloboResourceConfigurationVO> sc = ListByResourceId.create();
         sc.setParameters("resourceType", resourceType);
-        sc.setParameters("resourceId", resourceId);
+        sc.setParameters("resourceUuid", resourceUuid);
         return listBy(sc);
     }
 
     @Override
-    public List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, long resourceId, GloboResourceKey key) {
+    public List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType,
+                                                               String resourceUuid, GloboResourceKey key) {
         SearchCriteria<GloboResourceConfigurationVO> sc = ListByResourceId.create();
         sc.setParameters("resourceType", resourceType);
-        sc.setParameters("resourceId", resourceId);
+        sc.setParameters("resourceUuid", resourceUuid);
         sc.setParameters("key", key);
         return listBy(sc);
     }

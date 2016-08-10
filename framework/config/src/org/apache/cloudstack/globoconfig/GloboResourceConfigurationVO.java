@@ -28,8 +28,8 @@ public class GloboResourceConfigurationVO implements GloboResourceConfiguration 
     @Column(name = "resource_type")
     private GloboResourceType resourceType;
 
-    @Column(name = "resource_id")
-    private Long resourceId;
+    @Column(name = "resource_uuid")
+    private String resourceUuid;
 
     @Enumerated(value = EnumType.STRING)
     @Column(name = "key")
@@ -40,9 +40,9 @@ public class GloboResourceConfigurationVO implements GloboResourceConfiguration 
 
     public GloboResourceConfigurationVO(){}
 
-    public GloboResourceConfigurationVO(GloboResourceType resourceType, Long resourceId, GloboResourceKey key, String value){
+    public GloboResourceConfigurationVO(GloboResourceType resourceType, String resourceUuid, GloboResourceKey key, String value){
         this.resourceType = resourceType;
-        this.resourceId = resourceId;
+        this.resourceUuid = resourceUuid;
         this.key = key;
         this.value = value;
     }
@@ -63,8 +63,8 @@ public class GloboResourceConfigurationVO implements GloboResourceConfiguration 
     }
 
     @Override
-    public Long getResourceId() {
-        return this.resourceId;
+    public String getResourceUuid() {
+        return this.resourceUuid;
     }
 
     @Override

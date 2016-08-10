@@ -3,34 +3,26 @@ package com.globo.globonetwork.cloudstack.response;
 import com.cloud.serializer.Param;
 import com.google.gson.annotations.SerializedName;
 import org.apache.cloudstack.api.BaseResponse;
+import org.apache.cloudstack.api.EntityReference;
+import org.apache.cloudstack.globoconfig.GloboResourceConfiguration;
 
-/**
- * Created by sinval.neto on 7/27/16.
- */
+@EntityReference(value = GloboResourceConfiguration.class)
 public class GetGloboResourceConfigurationResponse extends BaseResponse {
 
-    @SerializedName("uuid")
-    @Param(
-            description = "the id of the resource"
-    )
+    @SerializedName("resourceuuid")
+    @Param(description = "the uuid of the resource")
     private String uuid;
 
     @SerializedName("resourcetype")
-    @Param(
-            description = "the resourcetype of the resource"
-    )
+    @Param(description = "the resourcetype of the resource")
     private String resourceType;
 
     @SerializedName("configurationkey")
-    @Param(
-            description = "the configuration key"
-    )
+    @Param(description = "the configuration key")
     private String configurationKey;
 
     @SerializedName("configurationvalue")
-    @Param(
-            description = "the configuration value"
-    )
+    @Param(description = "the configuration value")
     private String configurationValue;
 
     public GetGloboResourceConfigurationResponse() {
@@ -58,5 +50,13 @@ public class GetGloboResourceConfigurationResponse extends BaseResponse {
 
     public void setConfigurationValue(String configurationValue){
         this.configurationValue = configurationValue;
+    }
+
+    public String getConfigurationKey() {
+        return configurationKey;
+    }
+
+    public String getConfigurationValue() {
+        return configurationValue;
     }
 }
