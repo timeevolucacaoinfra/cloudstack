@@ -17,6 +17,7 @@
 
 package com.globo.globonetwork.cloudstack.manager;
 
+import com.cloud.configuration.ConfigurationManagerImpl;
 import com.cloud.exception.InsufficientVirtualNetworkCapacityException;
 import com.cloud.network.dao.LoadBalancerDao;
 import com.cloud.network.dao.LoadBalancerOptionsDao;
@@ -2195,13 +2196,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         GloboResourceKey key = GloboResourceKey.isDNSRegistered;
         List<GloboResourceConfigurationVO> configurations = _globoResourceConfigurationDao.getConfiguration(GloboResourceType.LOAD_BALANCER, lb.getUuid(), key);
         GloboResourceConfigurationVO globoResourceConfigurationVO = null;
-        String isDnsRegistered = "false";
+        boolean isDnsRegistered = false;
         if(configurations.size() > 0){
             globoResourceConfigurationVO = configurations.get(0);
-            isDnsRegistered = globoResourceConfigurationVO.getValue();
+            isDnsRegistered = Boolean.valueOf(globoResourceConfigurationVO.getValue());
         }
         try {
-            if(!Boolean.valueOf(isDnsRegistered)) {
+            if(!isDnsRegistered) {
                 _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, ip.addr(), network.getDataCenterId());
                 if (globoResourceConfigurationVO != null){
                     globoResourceConfigurationVO.setValue("true");
@@ -2212,9 +2213,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 }
             }
         } catch (Exception ex){
-            globoResourceConfigurationVO = new GloboResourceConfigurationVO(resourceType, lb.getUuid(), key, Boolean.FALSE.toString());
-            _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
-            throw ex;
+            if(ConfigurationManagerImpl.isFeatureLbDnsRetry.value()) {
+                s_logger.warn("IOException: ignoring loadbalancer register because feature dns retry is on, maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
+                globoResourceConfigurationVO = new GloboResourceConfigurationVO(resourceType, lb.getUuid(), key, Boolean.FALSE.toString());
+                _globoResourceConfigurationDao.persist(globoResourceConfigurationVO);
+            } else {
+                throw ex;
+            }
         }
     }
 
