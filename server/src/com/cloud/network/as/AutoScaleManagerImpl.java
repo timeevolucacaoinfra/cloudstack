@@ -1805,12 +1805,15 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             for (int i = 0; i < numVm; i++) {
                 UserVm vm  = createNewVM(asGroup);
                 List<? extends ResourceTag> resourceTags = _resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup);
-                if (resourceTags.size() > 0) {
-                    for (ResourceTag resourceTag: resourceTags) {
-                        ResourceTagVO tag = new ResourceTagVO(resourceTag.getKey(), resourceTag.getValue(), resourceTag.getAccountId(),
-                                resourceTag.getDomainId(), vm.getId(), ResourceTag.ResourceObjectType.UserVm, resourceTag.getCustomer(),
-                                vm.getUuid());
-                        _resourceTagDao.persist(tag);
+
+                if (resourceTags != null){
+                    if(resourceTags.size() > 0) {
+                        for (ResourceTag resourceTag : resourceTags) {
+                            ResourceTagVO tag = new ResourceTagVO(resourceTag.getKey(), resourceTag.getValue(), resourceTag.getAccountId(),
+                                    resourceTag.getDomainId(), vm.getId(), ResourceTag.ResourceObjectType.UserVm, resourceTag.getCustomer(),
+                                    vm.getUuid());
+                            _resourceTagDao.persist(tag);
+                        }
                     }
                 }
                 if (vm == null) {
