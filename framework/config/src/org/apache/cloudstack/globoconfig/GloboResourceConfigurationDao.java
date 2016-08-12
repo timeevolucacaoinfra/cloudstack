@@ -13,9 +13,9 @@ import java.util.Map;
 public interface GloboResourceConfigurationDao extends GenericDao<GloboResourceConfigurationVO, String> {
     Map<String, String> getConfiguration(long resourceId);
 
-    List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, long resourceId);
+    List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, String resourceUuid);
 
-    List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, long resourceId, GloboResourceKey key);
+    List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, String resourceUuid, GloboResourceKey key);
 
 
 }

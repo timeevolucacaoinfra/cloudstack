@@ -16,6 +16,8 @@
 */
 package com.globo.globodns.cloudstack.resource;
 
+import com.cloud.configuration.ConfigurationManagerImpl;
+import com.globo.globodns.client.exception.GloboDnsIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -323,6 +325,13 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             // Otherwise, return that name is invalid
             String msg = "Record " + cmd.getLbRecordName() + " is invalid or override option is false";
             return new Answer(cmd, false, msg);
+       } catch (GloboDnsIOException ex ){
+            if(ConfigurationManagerImpl.isFeatureLbDnsRetry.value()) {
+                s_logger.warn("IOException: ignoring loadbalancer validation because feature dns retry is on, maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
+                return new Answer(cmd, true, ex.getMessage());
+            }else {
+                return new Answer(cmd, false, ex.getMessage());
+            }
        } catch (GloboDnsException e) {
            return new Answer(cmd, false, e.getMessage());
        }

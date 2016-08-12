@@ -11,7 +11,7 @@ public interface GloboResourceConfiguration {
 
     GloboResourceType getResourceType();
 
-    Long getResourceId();
+    String getResourceUuid();
 
     GloboResourceKey getKey();
 

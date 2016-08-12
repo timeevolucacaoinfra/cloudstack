@@ -27,7 +27,7 @@ import javax.inject.Inject;
 public class RegisterDnsForResourceCmd extends BaseAsyncCmd {
     public static final Logger s_logger = Logger.getLogger(RegisterDnsForResourceCmd.class.getName());
 
-    private static final String s_name = "registerdnsforresource";
+    private static final String s_name = "registerdnsforresourceresponse";
 
     @Inject
     GloboNetworkService _globoNetworkService;
@@ -53,12 +53,12 @@ public class RegisterDnsForResourceCmd extends BaseAsyncCmd {
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException, NetworkRuleConflictException {
         RegisterDnsForLoadBalancerResponse response = new RegisterDnsForLoadBalancerResponse();
-        GloboResourceType type = GloboResourceType.LOAD_BALANCER;
-//        if(this.resourceType.toLowerCase().equals("virtualmachine")) {
-//            type = GloboResourceType.VIRTUAL_MACHINE;
-//        }
-        _globoNetworkService.getDomain(id, type);
-        response.setResourceType(type.toString());
+
+        _globoNetworkService.registerDnsForResource(id, GloboResourceType.valueOf(resourceType));
+        response.setResourceType(resourceType);
+        response.setId(id);
+        response.setObjectName("resiterdns");
+        response.setResponseName(getCommandName());
         this.setResponseObject(response);
     }
 
