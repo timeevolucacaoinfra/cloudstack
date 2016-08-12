@@ -2859,11 +2859,25 @@ public class ApiResponseHelper implements ResponseGenerator {
     public AutoScaleVmGroupResponse createAutoScaleVmGroupResponse(AutoScaleVmGroup vmGroup) {
         AutoScaleVmGroupResponse response = new AutoScaleVmGroupResponse();
         response.setId(vmGroup.getUuid());
-        response.setAutoScaleGroupName(vmGroup.getVmPrefixName());
+        if(vmGroup.getVmPrefixName() == null || vmGroup.getVmPrefixName().isEmpty()){
+            response.setAutoScaleGroupName("as-group");
+        } else {
+            response.setAutoScaleGroupName(vmGroup.getVmPrefixName());
+        }
         response.setMinMembers(vmGroup.getMinMembers());
         response.setMaxMembers(vmGroup.getMaxMembers());
         List<AutoScaleVmGroupVmMapVO> autoScaleVmGroupVmMapVos = _autoScaleVmGroupVmMapDao.listByGroup(vmGroup.getId());
         response.setAutoScaleGroupCountMembers(autoScaleVmGroupVmMapVos.size());
+
+        //set tag information
+        List<? extends ResourceTag> tags = ApiDBUtils.listByResourceTypeAndId(ResourceObjectType.AutoScaleVmGroup, vmGroup.getId());
+        List<ResourceTagResponse> tagResponses = new ArrayList<ResourceTagResponse>();
+        for (ResourceTag tag : tags) {
+            ResourceTagResponse tagResponse = createResourceTagResponse(tag, true);
+            tagResponses.add(tagResponse);
+        }
+        response.setTags(tagResponses);
+
         response.setState(vmGroup.getState());
         response.setInterval(vmGroup.getInterval());
         response.setForDisplay(vmGroup.isDisplay());

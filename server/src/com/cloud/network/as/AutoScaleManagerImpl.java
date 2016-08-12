@@ -35,6 +35,12 @@ import javax.inject.Inject;
 import com.cloud.event.ActionEventUtils;
 import com.cloud.network.as.dao.AutoScaleVmProfileNetworkMapDao;
 import com.cloud.network.dao.NetworkVO;
+import com.cloud.server.ResourceTag;
+import com.cloud.server.TaggedResourceService;
+import com.cloud.tags.ResourceTagVO;
+import com.cloud.tags.dao.ResourceTagDao;
+import com.cloud.vm.UserVmVO;
+import com.cloud.vm.dao.UserVmDao;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.commons.codec.binary.Base64;
@@ -204,6 +210,12 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     LoadBalancerNetworkMapDao _lbNetMapDao;
     @Inject
     LoadBalancingRulesService _loadBalancingRulesService;
+    @Inject
+    ResourceTagDao _resourceTagDao;
+    @Inject
+    UserVmDao _userVmDao;
+    @Inject
+    TaggedResourceService _taggedResourceService;
 
     private static final int MAX_HTTP_POST_LENGTH = 16 * 2048;
 
@@ -900,7 +912,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     @Override
     @ActionEvent(eventType = EventTypes.EVENT_AUTOSCALEVMGROUP_CREATE, eventDescription = "creating autoscale vm group", async = true)
     public boolean configureAutoScaleVmGroup(CreateAutoScaleVmGroupCmd cmd) throws ResourceUnavailableException {
-        return configureAutoScaleVmGroup(cmd.getEntityId(), AutoScaleVmGroup.State_New);
+        return configureAutoScaleVmGroup(cmd.getEntityId(), AutoScaleVmGroup.State_Disabled);
     }
 
     public boolean isLoadBalancerBasedAutoScaleVmGroup(AutoScaleVmGroup vmGroup) {
@@ -1742,6 +1754,43 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             return -1;
     }
 
+    public void applyTagToAutoScaleGroupVm(Long groupId, ResourceTagVO resourceTagVO) {
+        AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
+        if (asGroup != null) {
+            List<AutoScaleVmGroupVmMapVO> autoScaleVmGroupVmMapVOs = _autoScaleVmGroupVmMapDao.listByGroup(asGroup.getId());
+            List<String> resourceIds = new ArrayList();
+            Map<String, String> tags = new HashMap();
+            for(AutoScaleVmGroupVmMapVO autoscaleVmGroupVmMapVO: autoScaleVmGroupVmMapVOs) {
+                UserVmVO userVmVO = _userVmDao.findById(autoscaleVmGroupVmMapVO.getInstanceId());
+                if (userVmVO != null) {
+                    resourceIds.add(String.valueOf(userVmVO.getId()));
+                }
+            }
+            tags.put(resourceTagVO.getKey(), resourceTagVO.getValue());
+            _taggedResourceService.createTags(resourceIds, ResourceTag.ResourceObjectType.UserVm, tags, resourceTagVO.getCustomer());
+        }
+    }
+
+    @Override
+    public void deleteTagsFromAutoScaleGroupVms(List<String> resourceIds, Map<String, String> tags) {
+        for (String resourceUuid: resourceIds) {
+            AutoScaleVmGroupVO autoscaleVmGroupVO = _autoScaleVmGroupDao.findByUuid(resourceUuid);
+            if (autoscaleVmGroupVO != null) {
+                List<AutoScaleVmGroupVmMapVO> autoScaleVmGroupVmMapVOs = _autoScaleVmGroupVmMapDao.listByGroup(autoscaleVmGroupVO.getId());
+                for (AutoScaleVmGroupVmMapVO autoScaleVmGroupVmMapVO: autoScaleVmGroupVmMapVOs) {
+                    List<String> vmResourceIds = new ArrayList();
+                    vmResourceIds.add(String.valueOf(autoScaleVmGroupVmMapVO.getInstanceId()));
+                    try {
+                        _taggedResourceService.deleteTags(vmResourceIds, ResourceTag.ResourceObjectType.UserVm, tags);
+                    } catch(InvalidParameterValueException ex) {
+                        String message = ex.getMessage();
+                        s_logger.info(message + " Tags were already removed for the resource: "+vmResourceIds.get(0));
+                    }
+                }
+            }
+        }
+    }
+
     @Override
     public void doScaleUp(long groupId, Integer numVm) {
         AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
@@ -1755,6 +1804,15 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             }
             for (int i = 0; i < numVm; i++) {
                 UserVm vm  = createNewVM(asGroup);
+                List<? extends ResourceTag> resourceTags = _resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup);
+                if (resourceTags.size() > 0) {
+                    for (ResourceTag resourceTag: resourceTags) {
+                        ResourceTagVO tag = new ResourceTagVO(resourceTag.getKey(), resourceTag.getValue(), resourceTag.getAccountId(),
+                                resourceTag.getDomainId(), vm.getId(), ResourceTag.ResourceObjectType.UserVm, resourceTag.getCustomer(),
+                                vm.getUuid());
+                        _resourceTagDao.persist(tag);
+                    }
+                }
                 if (vm == null) {
                     s_logger.error("Can not deploy new VM for scaling up in the group " + asGroup.getId() + ". Waiting for next round");
                     break;
