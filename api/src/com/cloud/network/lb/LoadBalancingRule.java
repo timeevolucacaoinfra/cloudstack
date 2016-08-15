@@ -43,6 +43,7 @@ public class LoadBalancingRule {
     private String healthCheckDestination;
     private String healthCheckType;
     private String expectedHealthCheck;
+    private boolean forceDomainRegister = true;
 
     private List<Long> additionalNetworks;
     private List<String> additionalPortMap;
@@ -197,6 +198,14 @@ public class LoadBalancingRule {
 
     public void setExpectedHealthCheck(String expectedHealthCheck) {
         this.expectedHealthCheck = expectedHealthCheck;
+    }
+
+    public boolean isForceDomainRegister() {
+        return forceDomainRegister;
+    }
+
+    public void setForceDomainRegister(boolean forceDomainRegister) {
+        this.forceDomainRegister = forceDomainRegister;
     }
 
     public interface Destination {

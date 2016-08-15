@@ -221,9 +221,6 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
     public static final ConfigKey<Boolean> SystemVMUseLocalStorage = new ConfigKey<Boolean>(Boolean.class, SystemVMUseLocalStorageCK, "Advanced", "false",
             "Indicates whether to use local storage pools or shared storage pools for system VMs.", true, ConfigKey.Scope.Zone, null);
 
-    public static final ConfigKey<Boolean> isFeatureLbDnsRetry = new ConfigKey<Boolean>("Network", Boolean.class, "globo.lb.dnsretry", "false",
-            "Feature LoadBalancer DNS retry", false, ConfigKey.Scope.Global);
-
     @Inject
     EntityManager _entityMgr;
     @Inject
@@ -5082,6 +5079,6 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {SystemVMUseLocalStorage, isFeatureLbDnsRetry};
+        return new ConfigKey<?>[] {SystemVMUseLocalStorage};
     }
 }

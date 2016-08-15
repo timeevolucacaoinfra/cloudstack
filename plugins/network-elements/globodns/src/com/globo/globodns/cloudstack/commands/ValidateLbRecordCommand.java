@@ -28,11 +28,14 @@ public class ValidateLbRecordCommand extends Command {
 
     private boolean override;
 
-    public ValidateLbRecordCommand(String lbRecordName, String lbRecordContent, String lbDomain, boolean override) {
+    private boolean forceDomainRegister;
+
+    public ValidateLbRecordCommand(String lbRecordName, String lbRecordContent, String lbDomain, boolean override, boolean forceDomainRegister) {
         this.lbRecordName = lbRecordName;
         this.lbRecordContent = lbRecordContent;
         this.lbDomain = lbDomain;
         this.override = override;
+        this.forceDomainRegister = forceDomainRegister;
     }
 
     @Override
@@ -54,6 +57,10 @@ public class ValidateLbRecordCommand extends Command {
 
     public boolean isOverride() {
         return override;
+    }
+
+    public boolean isForceDomainRegister() {
+        return forceDomainRegister;
     }
 
 }

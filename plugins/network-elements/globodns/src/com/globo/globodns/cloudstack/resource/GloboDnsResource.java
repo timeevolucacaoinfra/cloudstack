@@ -16,7 +16,6 @@
 */
 package com.globo.globodns.cloudstack.resource;
 
-import com.cloud.configuration.ConfigurationManagerImpl;
 import com.globo.globodns.client.exception.GloboDnsIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -326,13 +325,16 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             String msg = "Record " + cmd.getLbRecordName() + " is invalid or override option is false";
             return new Answer(cmd, false, msg);
        } catch (GloboDnsIOException ex ){
-            if(ConfigurationManagerImpl.isFeatureLbDnsRetry.value()) {
-                s_logger.warn("IOException: ignoring loadbalancer validation because feature dns retry is on, maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
-                return new Answer(cmd, true, ex.getMessage());
-            }else {
+            if (cmd.isForceDomainRegister()) {
+                s_logger.error("IOException: force loadbalancer validation because forcedomainregister is "+ cmd.isForceDomainRegister() + " failed: " +  ex.getMessage(), ex);
                 return new Answer(cmd, false, ex.getMessage());
+            } else {
+                s_logger.warn("IOException: ignoring loadbalancer validation because forcedoaminresgister is " + cmd.isForceDomainRegister() + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
+                return new Answer(cmd, true, ex.getMessage());
             }
+
        } catch (GloboDnsException e) {
+            s_logger.error("GloboDnsException error:" + e.getMessage(), e);
            return new Answer(cmd, false, e.getMessage());
        }
    }

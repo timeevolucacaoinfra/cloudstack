@@ -23,7 +23,7 @@ public interface GloboDnsElementService extends PluggableService {
 
     public Host addGloboDnsHost(Long pNtwkId, String username, String password, String url);
 
-    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbRecordContent, Long zoneId);
+    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbRecordContent, Long zoneId, boolean forceDomainRegister);
 
     public boolean createDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId);
 

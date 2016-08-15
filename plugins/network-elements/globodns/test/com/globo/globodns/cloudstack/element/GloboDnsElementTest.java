@@ -200,7 +200,7 @@ public class GloboDnsElementTest {
         String lbDomain = "lb.globo.com";
         String lbRecord = "test_underscore";
         String lbRecordContent = "10.0.0.1";
-        boolean result = _globodnsElement.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, lbRecordContent, zoneId);
+        boolean result = _globodnsElement.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, lbRecordContent, zoneId, true);
     }
 
     @Test

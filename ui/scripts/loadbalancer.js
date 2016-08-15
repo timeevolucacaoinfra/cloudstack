@@ -1939,6 +1939,7 @@
                                     healthcheckType: args.data.healthchecktype,
                                     publicipid: ipId,
                                     additionalportmap: additionalportmap.join(),
+                                    forceregisterdomain: false
                                 };
 
                                 if ( expectedhealthcheck !== '' ){
