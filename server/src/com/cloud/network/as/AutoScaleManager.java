@@ -16,6 +16,11 @@
 // under the License.
 package com.cloud.network.as;
 
+import com.cloud.tags.ResourceTagVO;
+
+import java.util.List;
+import java.util.Map;
+
 public interface AutoScaleManager extends AutoScaleService {
 
     void cleanUpAutoScaleResources(Long accountId);
@@ -23,4 +28,8 @@ public interface AutoScaleManager extends AutoScaleService {
     void doScaleUp(long groupId, Integer numVm);
 
     void doScaleDown(long groupId, Integer numVm);
+
+    void applyTagToAutoScaleGroupVm(Long autoscaleGroupId, ResourceTagVO resourceTag);
+
+    void deleteTagsFromAutoScaleGroupVms(List<String> resourceIds, Map<String, String> tags);
 }

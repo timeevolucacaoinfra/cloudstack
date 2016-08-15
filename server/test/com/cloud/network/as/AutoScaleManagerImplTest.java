@@ -38,8 +38,10 @@ import com.cloud.network.dao.NetworkDao;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.lb.LoadBalancingRulesManagerImpl;
 import com.cloud.offering.ServiceOffering;
+import com.cloud.server.ResourceTag;
 import com.cloud.service.ServiceOfferingVO;
 import com.cloud.storage.Storage;
+import com.cloud.tags.dao.ResourceTagDao;
 import com.cloud.template.VirtualMachineTemplate;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManagerImpl;
@@ -109,6 +111,8 @@ public class AutoScaleManagerImplTest {
     AutoScalePolicyDao autoScalePolicyDao;
     @Mock
     ScheduledExecutorService threadPool;
+    @Mock
+    ResourceTagDao resourceTagDao;
 
     private static final long AS_GROUP_ID = 10L;
     private static final String USER_DATA = "IA==";
@@ -203,6 +207,9 @@ public class AutoScaleManagerImplTest {
         AutoScaleVmGroupVO asGroup = createAutoScaleGroup();
         autoScaleManager = spy(new AutoScaleManagerImpl());
         configureMocks(autoScaleManager);
+
+        List<Object> resourceTags = new ArrayList<>();
+        when(resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup)).thenReturn(null);
 
         when(autoScaleVmGroupDao.findById(10L)).thenReturn(asGroup);
         //mocking createVm, assignLBRuleToNewVm and startVM so they can be tested in isolation
@@ -666,6 +673,7 @@ public class AutoScaleManagerImplTest {
         autoScaleManager._autoScaleVmProfileDao = autoScaleVmProfileDao;
         autoScaleManager._autoScalePolicyDao = autoScalePolicyDao;
         autoScaleManager._executor = threadPool;
+        autoScaleManager._resourceTagDao = resourceTagDao;
 
         AccountVO acct = new AccountVO(200L);
         acct.setType(Account.ACCOUNT_TYPE_NORMAL);

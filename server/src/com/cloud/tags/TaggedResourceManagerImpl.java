@@ -16,6 +16,7 @@
 // under the License.
 package com.cloud.tags;
 
+import com.cloud.network.as.AutoScaleManager;
 import com.cloud.vm.UserVmManager;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -147,6 +148,9 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
     AccountDao _accountDao;
     @Inject
     UserVmManager _userVmManager;
+    @Inject
+    AutoScaleManager _autoscaleManager;
+
 
     @Override
     public boolean configure(String name, Map<String, Object> params) throws ConfigurationException {
@@ -276,10 +280,13 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
                             throw new CloudRuntimeException("The key '" + key + "' already exist for '" + resourceType + "' with resourceId " + id );
                         }
 
-
                         ResourceTagVO resourceTag = new ResourceTagVO(key, value, accountDomainPair.first(), accountDomainPair.second(), id, resourceType, customer, resourceUuid);
                         resourceTag = _resourceTagDao.persist(resourceTag);
                         resourceTags.add(resourceTag);
+
+                        if (resourceType == ResourceObjectType.AutoScaleVmGroup){
+                            _autoscaleManager.applyTagToAutoScaleGroupVm(id, resourceTag);
+                        }
 
                         addTagToVMMetadata(vmsIdResourceTagToCreate,
                                             resourceTag.getResourceId(),
@@ -318,6 +325,10 @@ public class TaggedResourceManagerImpl extends ManagerBase implements TaggedReso
     @ActionEvent(eventType = EventTypes.EVENT_TAGS_DELETE, eventDescription = "deleting resource tags")
     public boolean deleteTags(List<String> resourceIds, ResourceObjectType resourceType, Map<String, String> tags) {
         Account caller = CallContext.current().getCallingAccount();
+
+        if(resourceType == ResourceObjectType.AutoScaleVmGroup){
+            _autoscaleManager.deleteTagsFromAutoScaleGroupVms(resourceIds, tags);
+        }
 
         SearchBuilder<ResourceTagVO> sb = _resourceTagDao.createSearchBuilder();
         sb.and().op("resourceId", sb.entity().getResourceId(), SearchCriteria.Op.IN);

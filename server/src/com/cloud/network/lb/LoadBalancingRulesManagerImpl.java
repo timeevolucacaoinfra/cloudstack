@@ -443,9 +443,9 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                         loadBalancer.setState(FirewallRule.State.Active);
                         s_logger.debug("LB rule " + loadBalancer.getId() + " state is set to Active");
                         _lbDao.persist(loadBalancer);
-                        vmGroup.setState(AutoScaleVmGroup.State_Enabled);
+                        vmGroup.setState(AutoScaleVmGroup.State_Disabled);
                         _autoScaleVmGroupDao.persist(vmGroup);
-                        s_logger.debug("LB Auto Scale Vm Group with Id: " + vmGroupid + " is set to Enabled state.");
+                        s_logger.debug("LB Auto Scale Vm Group with Id: " + vmGroupid + " is set to Disabled state.");
                     }
                 });
             }

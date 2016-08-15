@@ -253,7 +253,7 @@
                                             stickiness = response.stickinesspolicy[0].name;
                                         }
                                         args.jsonObj.stickiness = stickiness;
-                                },
+                                    },
                                 error: function (errorMessage) {
                                     args.response.error(errorMessage);
                                 }
@@ -271,7 +271,7 @@
                                     success: function(json) {
                                         if(json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue == null){
                                             args.jsonObj["dns_registry"] = "true"
-                                        }else {
+                                        } else {
                                             args.jsonObj["dns_registry"] = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue;
                                         }
                                 },
@@ -508,6 +508,10 @@
                                                 label: 'Expected Healthcheck'
                                             },
                                         }],
+                                        tags: cloudStack.api.tags({
+                                            resourceType: 'LoadBalancer',
+                                            contextId: 'loadbalancers'
+                                        }),
                                         dataProvider: function(args) {
                                             $.ajax({
                                                 url: createURL("getGloboNetworkPool"),
@@ -594,8 +598,6 @@
 
                                                                     }
                                                                 })
-
-                                                                
                                                             }
                                                         }
                                                     }
@@ -890,6 +892,7 @@
                                                 if (response[0]) {
                                                     response[0].deployedvms = response[0].autoscalegroupcountmembers;
                                                 }
+
                                                 args.response.success({
                                                     actionFilter: autoscaleActionfilter,
                                                     data: response
@@ -904,6 +907,132 @@
                                         args.response.error(errorMessage);
                                     }
                                 });
+                            },
+                            detailView: {
+                                name: 'AutoScale Details',
+                                isMaximized: true,
+                                noCompact: true,
+                                tabs: {
+                                    details: {
+                                        title: 'label.details',
+                                        fields: [{
+                                            id: {
+                                                label: 'label.id'
+                                            },
+                                            autoScaleVmGroupName: {
+                                                label: 'label.name'
+                                            },
+                                            serviceOfferingName: {
+                                                label: 'label.menu.service.offerings'
+                                            },
+                                            templateName: {
+                                                label: 'label.template'
+                                            },
+                                            minInstance: {
+                                                label: 'Min VMs'
+                                            },
+                                            autoscalegroupcountmembers: {
+                                                label: 'AutoScale VMs'
+                                            },
+                                            maxInstance: {
+                                                label: 'Max VMs'
+                                            },
+                                        }],
+                                        tags: cloudStack.api.tags({
+                                            resourceType: 'AutoScaleVmGroup',
+                                            contextId: 'autoscalegroups'
+                                        }),
+                                        dataProvider: function(args) {
+                                            $.ajax({
+                                                url: createURL('listAutoScaleVmGroups'),
+                                                data: {
+                                                    listAll: true,
+                                                    lbruleid: args.context.loadbalancers[0].id
+                                                },
+                                                success: function(json) {
+                                                    var response = json.listautoscalevmgroupsresponse.autoscalevmgroup ?
+                                                        json.listautoscalevmgroupsresponse.autoscalevmgroup : [];
+
+                                                    $(response).each(function() {
+                                                        this.nbscaleuppolicies = this.scaleuppolicies.length;
+                                                        this.nbscaledownpolicies = this.scaledownpolicies.length;
+                                                    });
+
+                                                    var autoscaleVmGroup = response[0];
+
+                                                    $.ajax({
+                                                        url: createURL('listAutoScaleVmProfiles'),
+                                                        data: {
+                                                            listAll: true,
+                                                            id: autoscaleVmGroup.vmprofileid
+                                                        },
+                                                        success: function(json) {
+                                                            var autoscaleVmProfile = json.listautoscalevmprofilesresponse.autoscalevmprofile[0];
+
+                                                            //get service offering name
+                                                            var serviceOfferingName;
+                                                            function getServiceOfferingName(name) {
+                                                                serviceOfferingName = name;
+                                                            }
+                                                            $.ajax({
+                                                                url: createURL("listServiceOfferings&issystem=false"),
+                                                                data: {
+                                                                    id: autoscaleVmProfile.serviceofferingid
+                                                                },
+                                                                dataType: "json",
+                                                                async: false,
+                                                                success: function(json) {
+                                                                    var serviceofferings = json.listserviceofferingsresponse.serviceoffering;
+                                                                    getServiceOfferingName(serviceofferings[0].name);
+                                                                }
+                                                            });
+
+                                                            //get template name
+                                                            var templateName;
+                                                            function getTemplateName(name) {
+                                                                templateName = name;
+                                                            }
+                                                            $.ajax({
+                                                                url: createURL("listTemplates"),
+                                                                data: {
+                                                                    templatefilter: 'executable',
+                                                                    id: autoscaleVmProfile.templateid
+                                                                },
+                                                                dataType: "json",
+                                                                async: false,
+                                                                success: function(json) {
+                                                                     var templates = json.listtemplatesresponse.template;
+                                                                     getTemplateName(templates[0].name);
+                                                                }
+                                                            });
+
+                                                            var originalAutoscaleData = {
+                                                                id: autoscaleVmGroup.id,
+                                                                autoscalegroupcountmembers: autoscaleVmGroup.autoscalegroupcountmembers,
+                                                                templateName: templateName,
+                                                                serviceOfferingId: autoscaleVmProfile.serviceofferingid,
+                                                                serviceOfferingName: serviceOfferingName,
+                                                                minInstance: autoscaleVmGroup.minmembers,
+                                                                maxInstance: autoscaleVmGroup.maxmembers,
+                                                                autoScaleVmGroupName: autoscaleVmGroup.autoscalegroupvmprefixname,
+                                                                context: {
+                                                                    autoscaleVmGroup: autoscaleVmGroup,
+                                                                    autoscaleVmProfile: autoscaleVmProfile
+                                                                }
+                                                            };
+                                                            args.response.success({
+                                                                data: originalAutoscaleData
+                                                            });
+                                                        }
+                                                    });
+                                                },
+                                                error: function (errorMessage) {
+                                                    args.response.error(errorMessage);
+                                                }
+                                            });
+                                        }
+                                    }
+                                }
                             },
 
                             actions: {

@@ -94,6 +94,13 @@ public class AutoScaleVmGroupResponse extends BaseResponse implements Controlled
     @Param(description = "the domain name of the vm profile")
     private String domainName;
 
+    @SerializedName("tags")
+    @Param(
+            description = "the list of resource tags associated with load balancer",
+            responseObject = ResourceTagResponse.class
+    )
+    private List<ResourceTagResponse> tags;
+
     @SerializedName(ApiConstants.FOR_DISPLAY)
     @Param(description = "is group for display to the regular user", since = "4.4", authorized = {RoleType.Admin})
     private Boolean forDisplay;
@@ -174,6 +181,10 @@ public class AutoScaleVmGroupResponse extends BaseResponse implements Controlled
     @Override
     public void setProjectName(String projectName) {
         this.projectName = projectName;
+    }
+
+    public void setTags(List<ResourceTagResponse> tags) {
+        this.tags = tags;
     }
 
     public void setForDisplay(Boolean forDisplay) {

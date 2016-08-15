@@ -80,4 +80,5 @@ public interface AutoScaleService {
     List<? extends Condition> listConditions(ListConditionsCmd cmd);
 
     boolean deleteCondition(long conditionId) throws ResourceInUseException;
+
 }
