@@ -6,6 +6,8 @@ import com.cloud.exception.InsufficientCapacityException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.exception.NetworkRuleConflictException;
+import com.cloud.utils.StringUtils;
+import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
@@ -46,15 +48,19 @@ public class RegisterDnsForResourceCmd extends BaseAsyncCmd {
         return id;
     }
 
-    public String getResourceType() {
-        return this.resourceType;
+    public GloboResourceType getResourceType() {
+        try {
+            return GloboResourceType.valueOf(resourceType);
+        } catch (Exception e) {
+            throw new CloudRuntimeException("Globo resource type \'" + resourceType + "\' does not exist. Possible values: " + StringUtils.join(",", GloboResourceType.values()));
+        }
     }
 
     @Override
     public void execute() throws ResourceUnavailableException, InsufficientCapacityException, ServerApiException, ConcurrentOperationException, ResourceAllocationException, NetworkRuleConflictException {
         RegisterDnsForLoadBalancerResponse response = new RegisterDnsForLoadBalancerResponse();
 
-        _globoNetworkService.registerDnsForResource(id, GloboResourceType.valueOf(resourceType));
+        _globoNetworkService.registerDnsForResource(id, getResourceType());
         response.setResourceType(resourceType);
         response.setId(id);
         response.setObjectName("resiterdns");
