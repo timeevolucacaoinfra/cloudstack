@@ -287,6 +287,8 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             }
 
             return new Answer(cmd);
+        } catch (GloboDnsIOException ex) {
+            return new Answer(cmd, false, "DNS IO ERROR: "+ ex.getMessage());
         } catch (GloboDnsException e) {
             return new Answer(cmd, false, e.getMessage());
         } finally {

@@ -32,6 +32,10 @@ import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.UserIpv6AddressDao;
 import com.cloud.utils.net.Ip;
+import com.cloud.vm.NicVO;
+
+import com.cloud.vm.UserVmVO;
+import com.cloud.vm.dao.UserVmDao;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboLbNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
@@ -325,6 +329,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     GloboNetworkLoadBalancerEnvironmentDAO _globoNetworkLBEnvironmentDao;
     @Inject
     VMInstanceDao _vmDao;
+
+    @Inject
+    UserVmDao _userVmDao;
+
     @Inject
     IPAddressDao _ipAddrDao;
     @Inject
@@ -2176,6 +2184,29 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         if (GloboResourceType.LOAD_BALANCER.equals(resourceType)){
             registerLoadbalancerDomainName(uuid);
+        } else if (GloboResourceType.VM_NIC.equals(resourceType)) {
+            registerNicVmDomain(uuid);
+        }
+
+    }
+
+    private void registerNicVmDomain(String uuid) {
+        NicVO nic = _nicDao.findByUuid(uuid);
+        UserVmVO vm = _userVmDao.findById(nic.getInstanceId());
+        Network network = _networkService.getNetwork(nic.getNetworkId());
+
+        s_logger.debug("VM : " + vm.getHostName() + "nic: " + nic.getIp4Address());
+
+        boolean isIpv6 = nic.getIp4Address() == null;
+        String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
+
+
+        boolean forceDomainRegister = true; //here user is forcing to register, so if fail, the user should get exception
+        boolean result = _globoDnsService.registerVmDomain(network.getDataCenterId(),
+                                                            vm.getHostName(), ipAddress, network.getNetworkDomain(), isIpv6, forceDomainRegister);
+
+        if (!result) {
+            throw new CloudRuntimeException("Error during register vm domain for nic " + uuid + ". Contact the System Administrator.");
         }
 
     }

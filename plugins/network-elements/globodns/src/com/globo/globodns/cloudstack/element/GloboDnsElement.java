@@ -30,6 +30,10 @@ import javax.naming.ConfigurationException;
 
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceKey;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -106,6 +110,9 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     @Inject
     PhysicalNetworkDao _physicalNetworkDao;
 
+    @Inject
+    GloboResourceConfigurationDao _globoResourceConfigDao;
+
     // Managers
     @Inject
     AgentManager _agentMgr;
@@ -131,10 +138,6 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         return true;
     }
 
-    protected String hostNameOfVirtualMachine(VirtualMachineProfile vm) {
-        return vm.getHostName().toLowerCase();
-    }
-
     @Override
     @DB
     public boolean prepare(final Network network, final NicProfile nic, final VirtualMachineProfile vm, DeployDestination dest, ReservationContext context)
@@ -154,17 +157,49 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         /* Create new A record in GloboDNS */
         // We allow only lower case names in DNS, so force lower case names for VMs
         String vmName = vm.getHostName();
-        String vmHostname = hostNameOfVirtualMachine(vm);
+        String vmHostname = vm.getHostName().toLowerCase();
         if (!vmName.equals(vmHostname) && vm.getType() == VirtualMachine.Type.User) {
             throw new InvalidParameterValueException("VM name should contain only lower case letters and digits: " + vmName + " - " + vm);
         }
 
         boolean isIpv6 = nic.getIp6Address() != null;
         String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
-        CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(vmHostname, ipAddress, network.getNetworkDomain(),
-                GloboDNSTemplateId.value(), GloboDNSOverride.value(), isIpv6);
-        callCommand(cmd, zoneId);
-        return true;
+
+
+        GloboResourceConfigurationVO forceConfig = _globoResourceConfigDao.getFirst(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.forceDomainRegister);
+        boolean forceDoaminRegister = forceConfig != null ? forceConfig.getBooleanValue() : true;
+
+        return registerVmDomain(zoneId, vmHostname, ipAddress, network.getNetworkDomain(), isIpv6, forceDoaminRegister);
+    }
+
+    @Override
+    public boolean registerVmDomain(Long zoneId, String hostName, String ipAddress, String networkDomain, boolean isIpv6, boolean forceDomainRegister) {
+
+
+        CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(hostName, ipAddress, networkDomain,
+                GloboDNSTemplateId.value(), GloboDNSOverride.value(), isIpv6, forceDomainRegister);
+
+
+        HostVO globoDnsHost = getGloboDnsHost(zoneId);
+        if (globoDnsHost == null) {
+            throw new CloudRuntimeException("Could not find the GloboDNS resource");
+        }
+
+        Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
+
+        if (answer != null && !answer.getResult()){
+            if (answer.getDetails().contains("DNS IO ERROR")) {
+                //ignore error
+//                GloboResourceConfigurationVO error = new GloboResourceConfigurationVO(GloboResourceType.VM_NIC, )
+                
+
+            } else {
+                throw new CloudRuntimeException(answer.getDetails());
+            }
+        }
+
+        return answer.getResult();
+
     }
 
     @Override
@@ -185,7 +220,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
         boolean isIpv6 = nic.getIp6Address() != null;
         String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
-        RemoveRecordCommand cmd = new RemoveRecordCommand(hostNameOfVirtualMachine(vm), ipAddress, network.getNetworkDomain(), isIpv6);
+        RemoveRecordCommand cmd = new RemoveRecordCommand(vm.getHostName().toLowerCase(), ipAddress, network.getNetworkDomain(), isIpv6);
         callCommand(cmd, zoneId);
         return true;
     }

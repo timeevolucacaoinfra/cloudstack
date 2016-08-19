@@ -32,13 +32,19 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 
     private boolean isIpv6;
 
-    public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId, boolean override, boolean isIpv6) {
+    private boolean forceDomainRegister = true;
+
+    public CreateOrUpdateRecordAndReverseCommand(String recordName, String recordIp, String networkDomain, Long reverseTemplateId,
+                                                 boolean override,
+                                                 boolean isIpv6,
+                                                 boolean forceDomainRegister) {
         this.recordName = recordName;
         this.recordIp = recordIp;
         this.networkDomain = networkDomain;
         this.reverseTemplateId = reverseTemplateId;
         this.override = override;
         this.isIpv6 = isIpv6;
+        this.forceDomainRegister = forceDomainRegister;
     }
 
     @Override
@@ -72,5 +78,13 @@ public class CreateOrUpdateRecordAndReverseCommand extends Command {
 
     public void setIpv6(boolean isIpv6) {
         this.isIpv6 = isIpv6;
+    }
+
+    public boolean isForceDomainRegister() {
+        return forceDomainRegister;
+    }
+
+    public void setForceDomainRegister(boolean forceDomainRegister) {
+        this.forceDomainRegister = forceDomainRegister;
     }
 }
