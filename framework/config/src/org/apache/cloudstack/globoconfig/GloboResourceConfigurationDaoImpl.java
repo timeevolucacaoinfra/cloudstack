@@ -3,6 +3,10 @@ package org.apache.cloudstack.globoconfig;
 import com.cloud.utils.db.GenericDaoBase;
 import com.cloud.utils.db.SearchBuilder;
 import com.cloud.utils.db.SearchCriteria;
+import com.cloud.utils.db.TransactionLegacy;
+import com.cloud.utils.exception.CloudRuntimeException;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -53,4 +57,52 @@ public class GloboResourceConfigurationDaoImpl extends GenericDaoBase<GloboResou
         sc.setParameters("key", key);
         return listBy(sc);
     }
+
+    @Override
+    public GloboResourceConfigurationVO getFirst(GloboResourceType resourceType,
+                                                               String resourceUuid, GloboResourceKey key) {
+        SearchCriteria<GloboResourceConfigurationVO> sc = ListByResourceId.create();
+        sc.setParameters("resourceType", resourceType);
+        sc.setParameters("resourceUuid", resourceUuid);
+        sc.setParameters("key", key);
+
+        List<GloboResourceConfigurationVO> configs = listBy(sc);
+        if (configs.size() > 0)
+            return configs.get(0);
+        return null;
+    }
+
+    @Override
+    public void removeConfigurations(String uuid, GloboResourceType loadBalancer) {
+        SearchCriteria<GloboResourceConfigurationVO> sc = ListByResourceId.create();
+        sc.setParameters("resourceType", loadBalancer);
+        sc.setParameters("resourceUuid", uuid);
+        remove(sc);
+    }
+
+
+    @Override
+    @Deprecated
+    public boolean updateValue(GloboResourceConfiguration config) {
+        TransactionLegacy txn = TransactionLegacy.currentTxn();
+        PreparedStatement stmt = null;
+        try {
+            stmt = txn.prepareStatement("UPDATE globo_resource_configuration SET value=? WHERE resource_uuid=?;");
+            stmt.setString(1, config.getValue());
+            stmt.setString(2, config.getResourceUuid());
+            stmt.executeUpdate();
+            return true;
+        } catch (Exception e) {
+            s_logger.warn("Unable to update GloboResourceConfiguration Value", e);
+            throw new CloudRuntimeException("Error during pudate globo resource configuration value", e);
+        } finally {
+            try {
+                if (stmt != null)
+                    stmt.close();
+            } catch (SQLException e) {
+                s_logger.warn("error closing stmt", e);
+            }
+        }
+    }
+
 }

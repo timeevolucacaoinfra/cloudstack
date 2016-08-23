@@ -79,4 +79,12 @@ public class GloboResourceConfigurationVO implements GloboResourceConfiguration 
 
     @Override
     public void setValue(String value) {this.value = value; }
+
+    public boolean getBooleanValue() {
+        return Boolean.valueOf(this.getValue());
+    }
+
+    public void setBoolValue(boolean value) {
+        this.setValue(Boolean.toString(value));
+    }
 }

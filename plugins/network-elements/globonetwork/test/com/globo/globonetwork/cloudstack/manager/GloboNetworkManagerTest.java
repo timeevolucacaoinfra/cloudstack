@@ -675,13 +675,13 @@ public class GloboNetworkManagerTest {
         String lbRecord = "";
 
         GloboDnsElementService globoDnsService = mock(GloboDnsElementService.class);
-        when(globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, ipMock.addr(), networkMock.getDataCenterId())).thenReturn(true);
+        when(globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, ipMock.addr(), networkMock.getDataCenterId(), false)).thenReturn(true);
         manager._globoDnsService = globoDnsService;
 
         GloboResourceConfigurationDao globoRCDao = mock(GloboResourceConfigurationDao.class);
         when(globoRCDao.getConfiguration( GloboResourceType.LOAD_BALANCER, "123123",GloboResourceKey.isDNSRegistered)).thenReturn(new ArrayList<GloboResourceConfigurationVO>());
         manager._globoResourceConfigurationDao = globoRCDao;
-        manager.registerLoadBalancerDomainName(lb, networkMock, ipMock, lbDomain, lbRecord);
+        manager.registerLoadBalancerDomainName(lb, networkMock, ipMock, lbDomain, lbRecord, false);
     }
 
 //    @Test

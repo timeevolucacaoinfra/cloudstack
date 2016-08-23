@@ -17,5 +17,10 @@ public interface GloboResourceConfigurationDao extends GenericDao<GloboResourceC
 
     List<GloboResourceConfigurationVO> getConfiguration(GloboResourceType resourceType, String resourceUuid, GloboResourceKey key);
 
+    public GloboResourceConfigurationVO getFirst(GloboResourceType resourceType,
+                                                 String resourceUuid, GloboResourceKey key);
 
+    public void removeConfigurations(String uuid, GloboResourceType loadBalancer);
+
+    public boolean updateValue(GloboResourceConfiguration config);
 }
