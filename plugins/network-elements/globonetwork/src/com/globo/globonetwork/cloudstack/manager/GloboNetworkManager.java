@@ -2202,7 +2202,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
 
         boolean forceDomainRegister = true; //here user is forcing to register, so if fail, the user should get exception
-        boolean result = _globoDnsService.registerVmDomain(network.getDataCenterId(),
+        boolean result = _globoDnsService.registerVmDomain(network.getDataCenterId(), nic.getUuid(),
                                                             vm.getHostName(), ipAddress, network.getNetworkDomain(), isIpv6, forceDomainRegister);
 
         if (!result) {
