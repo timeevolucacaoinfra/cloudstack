@@ -1954,6 +1954,98 @@
                         title: 'label.nics',
                         multiple: true,
                         actions: {
+                            restart: {
+                                label: 'Retry Register DNS for Load Balancer',
+                                custom: {
+                                    buttonLabel: 'label.configure'
+                                },
+                                preFilter: function(args) {
+                                    isToShowRegisterDnsButton = true;
+                                    function showRegisterDnsButton(result){
+                                        isToShowRegisterDnsButton = result;
+                                    }
+                                    // $.ajax({
+                                    //     url: createURL("getGloboResourceConfiguration"),
+                                    //     data: {
+                                    //         resourceid: args.context.loadbalancers[0].id,
+                                    //         resourcetype: 'LOAD_BALANCER',
+                                    //         resourcekey: 'isDNSRegistered'
+                                    //     },
+                                    //     dataType: "json",
+                                    //     async: false,
+                                    //         success: function(json) {
+                                    //             var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
+                                    //             if(conf == undefined || conf == "true") {
+                                    //                 showRegisterDnsButton(false);
+                                    //             } else if (conf == "false") {
+                                    //                 showRegisterDnsButton(true);
+                                    //             }
+                                    //     },
+                                    //     error: function (errorMessage) {
+                                    //         showRegisterDnsButton(false);
+                                    //         //args.response.error(errorMessage);
+                                    //     }
+                                    // });
+                                    // return isToShowRegisterDnsButton;
+                                    return isToShowRegisterDnsButton;
+                                    
+                                },
+                                action: function(args) {
+                                    // var show_error_message = function(json) {
+                                    //     args.response.error(parseXMLHttpResponse(json));
+                                    // };
+                                    // $.ajax({
+                                    //     url: createURL("registerDnsForResource"),
+                                    //     data: {
+                                    //         uuid: args.context.loadbalancers[0].id,
+                                    //         resourcetype: "LOAD_BALANCER"
+                                    //     },
+                                    //     dataType: "json",
+                                    //     async: false,
+                                    //     success: function(data) {
+                                    //         cloudStack.ui.notifications.add({
+                                    //                 desc: 'message.registry.dns.for.load.balancer.successful',
+                                    //                 section: 'Details',
+                                    //                 poll: pollAsyncJobResult,
+                                    //                 _custom: {
+                                    //                     jobId: data.registerdnsforresourceresponse.jobid
+                                    //                 }
+                                    //             },
+                                    //             function() {
+                                    //                 $(window).trigger('cloudStack.fullRefresh');
+                                    //                 $('.loading-overlay').remove();
+                                    //             }, {},
+                                    //             show_error_message, {}
+                                    //              // job deleteLoadBalancerRule
+                                    //         );
+                                            
+                                            
+
+                                    //     },
+                                    //     error: function(data){
+                                    //         $('.loading-overlay').remove();
+                                    //         $(window).trigger('cloudStack.fullRefresh');
+                                    //     } // ajax deleteLoadBalancerRule
+                                    // });
+                                },
+                                messages: {
+                                    confirm: function(args) {
+                                        return 'label.action.registry.dns.for.load.balancer';
+                                    },
+                                    notification: function() {
+                                        return 'notification for retryRegisterDNS';
+                                    },
+                                    complete: function(args) {
+                                        return 'message.registry.dns.for.load.balancer.successfull';
+                                    }
+                                },
+                                notification: {
+                                    label: 'DNS Registered',
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+
+
                             add: {
                                 label: 'label.network.addVM',
                                 messages: {

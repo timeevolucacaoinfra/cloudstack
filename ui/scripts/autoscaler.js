@@ -365,7 +365,7 @@
 
                 autoScaleVmGroupName: {
                     label: 'label.autoscale.vm.group.name',
-                    defaultValue: 'as-group',
+                    defaultValue: 'as-vm',
                     docID: 'helpAutoscaleVmGroupName',
                     validation: {
                         required: true
