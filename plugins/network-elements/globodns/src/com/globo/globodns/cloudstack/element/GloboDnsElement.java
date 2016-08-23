@@ -102,6 +102,8 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     private static final ConfigKey<String> GloboDNSLbBlacklistedDomains = new ConfigKey<>("Advanced", String.class, "globodns.lb.domain.blacklist", "",
             "List of comma separated domains that should be blacklisted for load balancers", true, ConfigKey.Scope.Global);
 
+    private static final ConfigKey<Boolean> GloboDNSForceRegisterVM = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.vm.forceerrordns", "true",
+            "When true, if vm receive error during create dns record, it will throw exception", true, ConfigKey.Scope.Global);
     // DAOs
     @Inject
     DataCenterDao _dcDao;
@@ -167,7 +169,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
 
         GloboResourceConfigurationVO forceConfig = _globoResourceConfigDao.getFirst(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.forceDomainRegister);
-        boolean forceDoaminRegister = forceConfig != null ? forceConfig.getBooleanValue() : true;
+        boolean forceDoaminRegister = forceConfig != null ? forceConfig.getBooleanValue() : GloboDNSForceRegisterVM.value(); // false while the config is not persisted by vm flow
 
         return registerVmDomain(zoneId, nic.getUuid(), vmHostname, ipAddress, network.getNetworkDomain(), isIpv6, forceDoaminRegister);
     }
@@ -191,7 +193,11 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         }
         Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
 
-        if (answer != null && !answer.getResult()){
+        if (answer == null) {
+            throw new CloudRuntimeException("Error create vm record while send command to dns resource");
+        }
+
+        if (!answer.getResult()){
             if (Answer.AnswerTypeError.DNS_IO_ERROR.equals(answer.getTypeError()) && !forceDomainRegister) {
                 if (dnsRegisteredConfig == null) {
                     dnsRegisteredConfig = new GloboResourceConfigurationVO(GloboResourceType.VM_NIC,  nicUuid, GloboResourceKey.isDNSRegistered, Boolean.FALSE.toString());
@@ -202,9 +208,9 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
                 }
 
             } else {
-                throw new CloudRuntimeException("Error trying register vm record" + answer.getDetails());
+                throw new CloudRuntimeException("Error trying register vm record " + answer.getDetails());
             }
-        } else if (answer != null && answer.getResult()) {
+        } else {
             if (dnsRegisteredConfig == null) {
                 dnsRegisteredConfig = new GloboResourceConfigurationVO(GloboResourceType.VM_NIC,  nicUuid, GloboResourceKey.isDNSRegistered, Boolean.TRUE.toString());
                 _globoResourceConfigDao.persist(dnsRegisteredConfig);
@@ -213,8 +219,6 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
                 _globoResourceConfigDao.updateValue(dnsRegisteredConfig);
             }
 
-        } else {
-            throw new CloudRuntimeException("Error create vm record while send command to dns resource");
         }
 
         return answer.getResult();
