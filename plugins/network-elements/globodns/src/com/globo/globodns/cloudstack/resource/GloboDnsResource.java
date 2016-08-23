@@ -329,7 +329,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
        } catch (GloboDnsIOException ex ){
             if (cmd.isForceDomainRegister()) {
                 s_logger.error("IOException: force loadbalancer validation because forcedomainregister is "+ cmd.isForceDomainRegister() + " failed: " +  ex.getMessage(), ex);
-                return new Answer(cmd, false, ex.getMessage());
+                return new Answer(cmd, false, ex.getMessage(), Answer.AnswerTypeError.DNS_IO_ERROR);
             } else {
                 s_logger.warn("IOException: ignoring loadbalancer validation because forcedoaminresgister is " + cmd.isForceDomainRegister() + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
                 return new Answer(cmd, true, ex.getMessage());
@@ -368,15 +368,18 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             } else {
                 if (!cmd.isOverride()) {
                     String msg = "Unable to create LB reverse record " + cmd.getLbRecordName() + " for ip " + cmd.getLbRecordIp();
-                   msg += ". Override record option is false, maybe record already exists.";
-                   return new Answer(cmd, false, msg);
-               }
-           }
+                    msg += ". Override record option is false, maybe record already exists.";
+                    return new Answer(cmd, false, msg);
+                }
+            }
 
-           return new Answer(cmd);
-       } catch (GloboDnsException e) {
-           return new Answer(cmd, false, e.getMessage());
-       } finally {
+            return new Answer(cmd);
+        }catch (GloboDnsIOException ex) {
+            s_logger.error("DNS IO error " + ex.getMessage(), ex);
+            return new Answer(cmd, false, ex.getMessage(), Answer.AnswerTypeError.DNS_IO_ERROR);
+        } catch (GloboDnsException e) {
+            return new Answer(cmd, false, e.getMessage());
+        } finally {
            if (needsExport) {
                scheduleExportChangesToBind();
            }

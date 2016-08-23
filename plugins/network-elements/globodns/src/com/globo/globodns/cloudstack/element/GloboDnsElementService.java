@@ -29,5 +29,5 @@ public interface GloboDnsElementService extends PluggableService {
 
     public boolean removeDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId);
 
-    public boolean registerVmDomain(Long zoneId, String hostName, String ipAddress, String networkDomain, boolean isIpv6, boolean forceDomainRegister);
+    public boolean registerVmDomain(Long zoneId, String nicUuid, String hostName, String ipAddress, String networkDomain, boolean isIpv6, boolean forceDomainRegister);
 }

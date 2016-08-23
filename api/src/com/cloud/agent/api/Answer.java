@@ -19,6 +19,7 @@ package com.cloud.agent.api;
 import com.cloud.utils.exception.ExceptionUtil;
 
 public class Answer extends Command {
+    public AnswerTypeError typeError;
     protected boolean result;
     protected String details;
 
@@ -31,6 +32,12 @@ public class Answer extends Command {
     }
 
     public Answer(Command command, boolean success, String details) {
+        result = success;
+        this.details = details;
+    }
+
+    public Answer(Command command, boolean success, String details, AnswerTypeError type) {
+        this.typeError = type;
         result = success;
         this.details = details;
     }
@@ -58,5 +65,13 @@ public class Answer extends Command {
 
     public static UnsupportedAnswer createUnsupportedVersionAnswer(Command cmd) {
         return new UnsupportedAnswer(cmd, "Unsuppored Version.");
+    }
+
+    public AnswerTypeError getTypeError() {
+        return typeError;
+    }
+
+    public enum AnswerTypeError {
+        DNS_IO_ERROR
     }
 }
