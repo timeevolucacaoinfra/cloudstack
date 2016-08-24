@@ -26,8 +26,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.globoconfig.GloboResourceConfiguration;
-import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
 import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDaoImpl;
 import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
 import org.apache.cloudstack.globoconfig.GloboResourceKey;
