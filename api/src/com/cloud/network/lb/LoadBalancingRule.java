@@ -43,7 +43,7 @@ public class LoadBalancingRule {
     private String healthCheckDestination;
     private String healthCheckType;
     private String expectedHealthCheck;
-    private boolean forceDomainRegister = true;
+    private boolean skipDnsError = false;
 
     private List<Long> additionalNetworks;
     private List<String> additionalPortMap;
@@ -200,12 +200,12 @@ public class LoadBalancingRule {
         this.expectedHealthCheck = expectedHealthCheck;
     }
 
-    public boolean isForceDomainRegister() {
-        return forceDomainRegister;
+    public boolean isSkipDnsError() {
+        return skipDnsError;
     }
 
-    public void setForceDomainRegister(boolean forceDomainRegister) {
-        this.forceDomainRegister = forceDomainRegister;
+    public void setSkipDnsError(boolean skipDnsError) {
+        this.skipDnsError = skipDnsError;
     }
 
     public interface Destination {

@@ -138,8 +138,8 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.EXPECTED_HEALTHCHECK, type = CommandType.STRING, description = "Expected healthcheck string to check if is in service.")
     private String expectedHealthCheck;
 
-    @Parameter(name = "forceregisterdomain", type = CommandType.BOOLEAN, description = "when true if dns integration failed, the loadbalancer will not be created")
-    private boolean forceregisterdomain = true ;
+    @Parameter(name = "skipdnserror", type = CommandType.BOOLEAN, description = "when false if dns integration failed, the loadbalancer will not be created and throw an exception, else lb will be created and dns it could be register later")
+    private boolean skipDnsError = false ;
 
     /////////////////////////////////////////////////////
     /////////////////// Accessors ///////////////////////
@@ -354,7 +354,7 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
             LoadBalancer result =
                 _lbService.createPublicLoadBalancerRule(getXid(), getName(), getDescription(), getSourcePortStart(), getSourcePortEnd(), getDefaultPortStart(),
                     getDefaultPortEnd(), getSourceIpAddressId(), getProtocol(), getAlgorithm(), getNetworkId(), getEntityOwnerId(), getOpenFirewall(), getLbProtocol(), isDisplay(),
-                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), getExpectedHealthCheck(), healthCheckType, forceregisterdomain);
+                    getAdditionalPortMap(), getCache(), getServiceDownAction(), getHealthCheckDestination(), getExpectedHealthCheck(), healthCheckType, skipDnsError);
             this.setEntityId(result.getId());
             this.setEntityUuid(result.getUuid());
         } catch (NetworkRuleConflictException e) {

@@ -816,6 +816,8 @@ $.extend(dictionary, {
 'label.action': '<fmt:message key="label.action" />',
 'label.action.registry.dns.for.load.balancer': '<fmt:message key="label.action.registry.dns.for.load.balancer" />',
 'message.registry.dns.for.load.balancer.successful': '<fmt:message key="message.registry.dns.for.load.balancer.successful" />',
+'label.action.registry.dns.for.vm.nic': '<fmt:message key="label.action.registry.dns.for.vm.nic" />',
+'message.registry.dns.for.vm.nic.successful': '<fmt:message key="message.registry.dns.for.vm.nic.successful" />',
 'label.name.lower': '<fmt:message key="label.name.lower" />',
 'label.ucs': '<fmt:message key="label.ucs" />',
 'label.persistent': '<fmt:message key="label.persistent" />',

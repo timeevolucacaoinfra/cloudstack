@@ -28,14 +28,14 @@ public class ValidateLbRecordCommand extends Command {
 
     private boolean override;
 
-    private boolean forceDomainRegister;
+    private boolean skipDnsError;
 
-    public ValidateLbRecordCommand(String lbRecordName, String lbRecordContent, String lbDomain, boolean override, boolean forceDomainRegister) {
+    public ValidateLbRecordCommand(String lbRecordName, String lbRecordContent, String lbDomain, boolean override, boolean skipDnsError) {
         this.lbRecordName = lbRecordName;
         this.lbRecordContent = lbRecordContent;
         this.lbDomain = lbDomain;
         this.override = override;
-        this.forceDomainRegister = forceDomainRegister;
+        this.skipDnsError   = skipDnsError;
     }
 
     @Override
@@ -59,8 +59,8 @@ public class ValidateLbRecordCommand extends Command {
         return override;
     }
 
-    public boolean isForceDomainRegister() {
-        return forceDomainRegister;
+    public boolean isSkipDnsError() {
+        return skipDnsError;
     }
 
 }

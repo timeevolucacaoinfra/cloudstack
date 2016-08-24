@@ -2115,6 +2115,71 @@
                                 }
                             },
 
+                            restart: {
+                                label: 'Retry Register DNS for NIC',
+                                messages: {
+                                    confirm: function() {
+                                        return 'label.action.registry.dns.for.vm.nic';
+                                    },
+                                    notification: function(args) {
+                                        return 'message.registry.dns.for.vm.nic.successful'
+                                    }
+                                },
+                                action: function(args) {
+                                    $.ajax({
+                                        url: createURL("registerDnsForResource"),
+                                        data: {
+                                            uuid: args.context.nics[0].id,
+                                            resourcetype: "VM_NIC"
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(data) {
+                                            cloudStack.ui.notifications.add({
+                                                    desc: 'message.registry.dns.for.vm.nic.successful',
+                                                    section: 'Details',
+                                                    poll: pollAsyncJobResult,
+                                                    _custom: {
+                                                        jobId: data.registerdnsforresourceresponse.jobid
+                                                    }
+                                                },
+                                                function() {
+                                                    $(window).trigger('cloudStack.fullRefresh');
+                                                    $('.loading-overlay').remove();
+                                                }, {},
+                                                {}, {}
+                                                // job deleteLoadBalancerRule
+                                            );
+                                        },
+                                        error: function(data){
+                                            $('.loading-overlay').remove();
+                                            $(window).trigger('cloudStack.fullRefresh');
+                                        } // ajax deleteLoadBalancerRule
+                                    });
+
+                                    // $.ajax({
+                                    //     url: createURL('updateDefaultNicForVirtualMachine'),
+                                    //     data: {
+                                    //         virtualmachineid: args.context.instances[0].id,
+                                    //         nicid: args.context.nics[0].id
+                                    //     },
+                                    //     success: function(json) {
+                                    //         args.response.success({
+                                    //             _custom: {
+                                    //                 jobId: json.updatedefaultnicforvirtualmachineresponse.jobid
+                                    //             }
+                                    //         });
+                                    //         cloudStack.dialog.notice({
+                                    //             message: _l(dictionary['message.set.default.NIC.manual'])
+                                    //         });
+                                    //     }
+                                    // });
+                                },
+                                notification: {
+                                    poll: pollAsyncJobResult
+                                }
+                            },
+
                             makeDefault: {
                                 label: 'label.set.default.NIC',
                                 messages: {
@@ -2267,10 +2332,48 @@
 
                                     args.response.success({
                                         actionFilter: function(args) {
+                                            isToShowRegisterDnsButton = true;
+                                            function showRegisterDnsButton(result){
+                                                isToShowRegisterDnsButton = result;
+                                            }
+
+                                            $.ajax({
+                                                url: createURL("getGloboResourceConfiguration"),
+                                                data: {
+                                                    resourceid: args.context.item.id,
+                                                    resourcetype: 'VM_NIC',
+                                                    resourcekey: 'isDNSRegistered'
+                                                },
+                                                dataType: "json",
+                                                async: false,
+                                                    success: function(json) {
+                                                        var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
+                                                        console.log(conf);
+                                                        if(conf == undefined || conf == "true") {
+                                                            showRegisterDnsButton(false);
+                                                        } else if (conf == "false") {
+                                                            showRegisterDnsButton(true);
+                                                        }
+                                                },
+                                                error: function (errorMessage) {
+                                                    showRegisterDnsButton(false);
+                                                    //args.response.error(errorMessage);
+                                                }
+                                            });
                                             if (args.context.item.isdefault) {
-                                                return [];
+                                                //IF aqui pra exibir ou nao o DNS registry button
+                                                if (isToShowRegisterDnsButton) {
+                                                    return ['restart'];
+                                                } else {
+                                                    return [];
+                                                }
                                             } else {
-                                                return ['remove', 'makeDefault'];
+                                                //IF aqui pra exibir ou nao o DNS registry button também
+                                                if (isToShowRegisterDnsButton) {
+                                                    return ['remove', 'makeDefault', 'restart'];
+                                                } else {
+                                                    return ['remove', 'makeDefault'];
+                                                }
                                             }
                                         },
                                         data: json.listvirtualmachinesresponse.virtualmachine[0].nic

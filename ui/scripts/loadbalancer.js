@@ -2068,7 +2068,7 @@
                                     healthcheckType: args.data.healthchecktype,
                                     publicipid: ipId,
                                     additionalportmap: additionalportmap.join(),
-                                    forceregisterdomain: false
+                                    skipdnserror: true,
                                 };
 
                                 if ( expectedhealthcheck !== '' ){
@@ -2097,6 +2097,40 @@
                                                         lb.ports += this + ', ';
                                                     });
                                                     lb.ports = lb.ports.substring(0, lb.ports.length - 2); // remove last ', '
+
+                                                    console.log(JSON.stringify(lb));
+
+                                                    isLoadBalancerDNSRegistered = true;
+                                                    function setIsLoadBalancerDNSRegistered(result){
+                                                        isLoadBalancerDNSRegistered = result;
+                                                    }
+                                                    $.ajax({
+                                                        url: createURL("getGloboResourceConfiguration"),
+                                                        data: {
+                                                            resourceid: lb.id,
+                                                            resourcetype: 'LOAD_BALANCER',
+                                                            resourcekey: 'isDNSRegistered'
+                                                        },
+                                                        dataType: "json",
+                                                        async: false,
+                                                            success: function(json) {
+                                                                var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
+                                                                if(conf == undefined || conf == "true") {
+                                                                    setIsLoadBalancerDNSRegistered(true);
+                                                                } else if (conf == "false") {
+                                                                    setIsLoadBalancerDNSRegistered(false);
+                                                                }
+                                                        },
+                                                        error: function (errorMessage) {
+                                                            setIsLoadBalancerDNSRegistered(false);
+                                                            //args.response.error(errorMessage);
+                                                        }
+                                                    });
+
+                                                    if (isLoadBalancerDNSRegistered == false) {
+                                                        cloudStack.dialog.notice({message: "The LoadBalancer DNS was not registered!"});
+                                                    }
+
                                                     return lb;
                                                 }
                                             }

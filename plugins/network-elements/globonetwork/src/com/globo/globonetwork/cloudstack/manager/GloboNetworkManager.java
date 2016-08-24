@@ -32,6 +32,11 @@ import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.UserIpv6AddressDao;
 import com.cloud.utils.net.Ip;
+import com.cloud.vm.NicVO;
+
+import com.cloud.vm.UserVmVO;
+import com.cloud.vm.dao.UserVmDao;
+import com.globo.globodns.cloudstack.element.GloboDnsTO;
 import com.globo.globonetwork.cloudstack.api.GetGloboNetworkPoolCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboLbNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
@@ -325,6 +330,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     GloboNetworkLoadBalancerEnvironmentDAO _globoNetworkLBEnvironmentDao;
     @Inject
     VMInstanceDao _vmDao;
+
+    @Inject
+    UserVmDao _userVmDao;
+
     @Inject
     IPAddressDao _ipAddrDao;
     @Inject
@@ -2164,7 +2173,9 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         String lbRecord = getLbRecord(lb.getName(), lbDomain);
         Ip ip = ipAddress.getAddress();
         try {
-            this.registerLoadBalancerDomainName(lb, network, ip, lbDomain, lbRecord, true);
+            GloboDnsTO globoDns = new GloboDnsTO(network.getDataCenterId(), lb.getUuid(), lbRecord, lbDomain, ip.addr());
+            _globoDnsService.createDnsRecordForLoadBalancer(globoDns, false);
+
         } catch (Exception ex) {
             s_logger.error("Error while registering load balancer's domain name", ex);
             throw new CloudRuntimeException("Error while registering load balancer's domain name", ex);
@@ -2176,6 +2187,29 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         if (GloboResourceType.LOAD_BALANCER.equals(resourceType)){
             registerLoadbalancerDomainName(uuid);
+        } else if (GloboResourceType.VM_NIC.equals(resourceType)) {
+            registerNicVmDomain(uuid);
+        }
+
+    }
+
+    private void registerNicVmDomain(String uuid) {
+        NicVO nic = _nicDao.findByUuid(uuid);
+        UserVmVO vm = _userVmDao.findById(nic.getInstanceId());
+        Network network = _networkService.getNetwork(nic.getNetworkId());
+
+        s_logger.debug("VM : " + vm.getHostName() + "nic: " + nic.getIp4Address());
+
+        boolean isIpv6 = nic.getIp4Address() == null;
+        String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
+
+
+        boolean forceDomainRegister = true; //here user is forcing to register, so if fail, the user should get exception
+        boolean result = _globoDnsService.registerVmDomain(network.getDataCenterId(), nic.getUuid(),
+                                                            vm.getHostName(), ipAddress, network.getNetworkDomain(), isIpv6, forceDomainRegister);
+
+        if (!result) {
+            throw new CloudRuntimeException("Error during register vm domain for nic " + uuid + ". Contact the System Administrator.");
         }
 
     }
@@ -2191,53 +2225,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return null;
     }
 
-    protected void registerLoadBalancerDomainName(LoadBalancerVO lb, Network network, Ip ip, String lbDomain, String lbRecord, boolean forceDomainRegister) throws Exception {
-        GloboResourceType resourceType  = GloboResourceType.LOAD_BALANCER;
-
-        GloboResourceConfigurationVO dnsRegisteredConfig = _globoResourceConfigurationDao.getFirst(GloboResourceType.LOAD_BALANCER, lb.getUuid(), GloboResourceKey.isDNSRegistered);
-        boolean isDnsRegistered = dnsRegisteredConfig != null ? dnsRegisteredConfig.getBooleanValue() : false;
-
-        try {
-            if(!isDnsRegistered) {
-                _globoDnsService.createDnsRecordForLoadBalancer(lbDomain, lbRecord, ip.addr(), network.getDataCenterId());
-                if (dnsRegisteredConfig != null){
-                    dnsRegisteredConfig.setValue(Boolean.TRUE.toString());
-                    _globoResourceConfigurationDao.updateValue(dnsRegisteredConfig);
-                } else {
-                    dnsRegisteredConfig = new GloboResourceConfigurationVO(resourceType, lb.getUuid(), GloboResourceKey.isDNSRegistered, Boolean.TRUE.toString());
-                    _globoResourceConfigurationDao.persist(dnsRegisteredConfig);
-                }
-            }
-        } catch (Exception ex){
-            if(forceDomainRegister) {
-                throw ex;
-            } else {
-                s_logger.warn("IOException: ignoring loadbalancer register because forceLbDomainCreation is " + forceDomainRegister + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
-                if (dnsRegisteredConfig == null){
-                    dnsRegisteredConfig = new GloboResourceConfigurationVO(resourceType, lb.getUuid(), GloboResourceKey.isDNSRegistered, Boolean.FALSE.toString());
-                    _globoResourceConfigurationDao.persist(dnsRegisteredConfig);
-                } else {
-                    dnsRegisteredConfig.setBoolValue(false);
-                    _globoResourceConfigurationDao.updateValue(dnsRegisteredConfig);
-                }
-
-            }
-        }
-    }
-
-    protected void removeLoadBalancerDomainName(Network network, LoadBalancingRule rule, String lbDomain, String lbRecord){
-        GloboResourceKey key = GloboResourceKey.isDNSRegistered;
-        _globoDnsService.removeDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
-        List<GloboResourceConfigurationVO> configurationList = _globoResourceConfigurationDao.getConfiguration(GloboResourceType.LOAD_BALANCER, rule.getUuid(), key);
-        for (GloboResourceConfigurationVO globoResourceConfigurationVO : configurationList){
-            _globoResourceConfigurationDao.remove(String.valueOf(globoResourceConfigurationVO.getId()));
-        }
-    }
-
     protected void manageLoadBalancerDomainNameRegistry(Network network, LoadBalancingRule rule, boolean revokeAnyVM) throws ResourceUnavailableException {
         try {
-            GloboResourceConfigurationVO forceDomainRegisterFromCmd = _globoResourceConfigurationDao.getFirst(GloboResourceType.LOAD_BALANCER, rule.getUuid(), GloboResourceKey.forceDomainRegister);
-            boolean forceDomainRegister = forceDomainRegisterFromCmd != null ? forceDomainRegisterFromCmd.getBooleanValue() : true;
+            GloboResourceConfigurationVO skipDnsErrorCmd = _globoResourceConfigurationDao.getFirst(GloboResourceType.LOAD_BALANCER, rule.getUuid(), GloboResourceKey.skipDnsError);
+            boolean skipDnsError = skipDnsErrorCmd != null ? skipDnsErrorCmd.getBooleanValue() : false;
 
             // First of all, find the correct LB domain and LB record
             String lbDomain = getLbDomain(rule.getName());
@@ -2249,12 +2240,13 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
 
             if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
-                if (_globoDnsService. validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId(), forceDomainRegister)) {
-                    LoadBalancerVO lb = this._loadBalancerDao.findByUuid(rule.getUuid());
-                    registerLoadBalancerDomainName(lb, network, rule.getSourceIp(), lbDomain, lbRecord, forceDomainRegister);
+                if (_globoDnsService. validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId(), skipDnsError)) {
+//                    LoadBalancerVO lb = this._loadBalancerDao.findByUuid(rule.getUuid());
+                    GloboDnsTO globoDns = new GloboDnsTO(network.getDataCenterId(), rule.getUuid(), lbRecord, lbDomain, rule.getSourceIp().addr());
+                    _globoDnsService.createDnsRecordForLoadBalancer(globoDns, skipDnsError);
                 }
             } else if (rule.getState() == FirewallRule.State.Revoke) {
-                removeLoadBalancerDomainName(network, rule, lbDomain, lbRecord);
+                _globoDnsService.removeDnsRecordForLoadBalancer(rule.getUuid(), lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId());
             }
         } catch(Exception ex){
             s_logger.error("Error while registering load balancer's domain name", ex);
@@ -2372,7 +2364,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             // Finally, validate LB record in GloboDNS
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
 
-            return _globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId(), rule.isForceDomainRegister());
+            return _globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId(), rule.isSkipDnsError());
         } else {
             s_logger.warn("Allowing creation of Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
         }

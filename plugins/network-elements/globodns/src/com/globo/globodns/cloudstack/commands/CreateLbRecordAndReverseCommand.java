@@ -17,6 +17,7 @@
 package com.globo.globodns.cloudstack.commands;
 
 import com.cloud.agent.api.Command;
+import com.globo.globodns.cloudstack.element.GloboDnsTO;
 
 public class CreateLbRecordAndReverseCommand extends Command {
 
@@ -34,6 +35,13 @@ public class CreateLbRecordAndReverseCommand extends Command {
         this.lbRecordName = lbRecordName;
         this.lbRecordIp = lbRecordIp;
         this.lbDomain = lbDomain;
+        this.reverseTemplateId = reverseTemplateId;
+        this.override = override;
+    }
+    public CreateLbRecordAndReverseCommand(GloboDnsTO globoDns, Long reverseTemplateId, boolean override) {
+        this.lbRecordName = globoDns.getRecord();
+        this.lbRecordIp = globoDns.getIpAddress();
+        this.lbDomain = globoDns.getDomain();
         this.reverseTemplateId = reverseTemplateId;
         this.override = override;
     }
