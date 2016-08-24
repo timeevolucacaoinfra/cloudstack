@@ -26,6 +26,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.apache.cloudstack.context.CallContext;
+import org.apache.cloudstack.globoconfig.GloboResourceConfiguration;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDaoImpl;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceKey;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -134,6 +140,7 @@ public class GloboDnsElementTest {
         when(network.getDataCenterId()).thenReturn(zoneId);
         when(network.getId()).thenReturn(1l);
         NicProfile nic = new NicProfile();
+        nic.setUuid("123123");
         nic.setIp4Address("10.11.12.13");
         VirtualMachineProfile vm = mock(VirtualMachineProfile.class);
         when(vm.getHostName()).thenReturn("vm-name");
@@ -156,6 +163,12 @@ public class GloboDnsElementTest {
                 return new Answer(cmd);
             }
         });
+
+        GloboResourceConfigurationDaoImpl mock = mock(GloboResourceConfigurationDaoImpl.class);
+        GloboResourceConfigurationVO globoResourceConfigurationVO = new GloboResourceConfigurationVO();
+        globoResourceConfigurationVO.setBoolValue(false);
+        when(mock.getConfiguration(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.isDNSRegistered)).thenReturn(new ArrayList<GloboResourceConfigurationVO>());
+        _globodnsElement._globoResourceConfigDao = mock;
 
         boolean result = _globodnsElement.prepare(network, nic, vm, dest, context);
         assertTrue(result);
@@ -189,6 +202,11 @@ public class GloboDnsElementTest {
                 return new Answer(cmd);
             }
         });
+        GloboResourceConfigurationDaoImpl mock = mock(GloboResourceConfigurationDaoImpl.class);
+        GloboResourceConfigurationVO globoResourceConfigurationVO = new GloboResourceConfigurationVO();
+        globoResourceConfigurationVO.setBoolValue(false);
+        when(mock.getConfiguration(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.isDNSRegistered)).thenReturn(new ArrayList<GloboResourceConfigurationVO>());
+        _globodnsElement._globoResourceConfigDao = mock;
 
         boolean result = _globodnsElement.release(network, nic, vm, context);
         assertTrue(result);
