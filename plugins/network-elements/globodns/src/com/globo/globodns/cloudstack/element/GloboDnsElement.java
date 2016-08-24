@@ -184,44 +184,10 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         }
 
         CreateOrUpdateRecordAndReverseCommand cmd = new CreateOrUpdateRecordAndReverseCommand(hostName, ipAddress, networkDomain,
-                GloboDNSTemplateId.value(), GloboDNSOverride.value(), isIpv6, forceDomainRegister);
+                GloboDNSTemplateId.value(), GloboDNSOverride.value(), isIpv6);
 
 
-        HostVO globoDnsHost = getGloboDnsHost(zoneId);
-        if (globoDnsHost == null) {
-            throw new CloudRuntimeException("Could not find the GloboDNS resource");
-        }
-        Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
-
-        if (answer == null) {
-            throw new CloudRuntimeException("Error create vm record while send command to dns resource");
-        }
-
-        if (!answer.getResult()){
-            if (Answer.AnswerTypeError.DNS_IO_ERROR.equals(answer.getTypeError()) && !forceDomainRegister) {
-                if (dnsRegisteredConfig == null) {
-                    dnsRegisteredConfig = new GloboResourceConfigurationVO(GloboResourceType.VM_NIC,  nicUuid, GloboResourceKey.isDNSRegistered, Boolean.FALSE.toString());
-                    _globoResourceConfigDao.persist(dnsRegisteredConfig);
-                } else {
-                    dnsRegisteredConfig.setBoolValue(false);
-                    _globoResourceConfigDao.updateValue(dnsRegisteredConfig);
-                }
-
-            } else {
-                throw new CloudRuntimeException("Error trying register vm record " + answer.getDetails());
-            }
-        } else {
-            if (dnsRegisteredConfig == null) {
-                dnsRegisteredConfig = new GloboResourceConfigurationVO(GloboResourceType.VM_NIC,  nicUuid, GloboResourceKey.isDNSRegistered, Boolean.TRUE.toString());
-                _globoResourceConfigDao.persist(dnsRegisteredConfig);
-            } else {
-                dnsRegisteredConfig.setBoolValue(true);
-                _globoResourceConfigDao.updateValue(dnsRegisteredConfig);
-            }
-
-        }
-
-        return answer.getResult();
+        return registerRecord(cmd, zoneId, nicUuid, GloboResourceType.VM_NIC, forceDomainRegister);
 
     }
 
@@ -245,6 +211,12 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
         RemoveRecordCommand cmd = new RemoveRecordCommand(vm.getHostName().toLowerCase(), ipAddress, network.getNetworkDomain(), isIpv6);
         callCommand(cmd, zoneId);
+
+        List<GloboResourceConfigurationVO> configurationList = _globoResourceConfigDao.getConfiguration(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.isDNSRegistered);
+        for (GloboResourceConfigurationVO globoResourceConfigurationVO : configurationList){
+            _globoResourceConfigDao.remove(String.valueOf(globoResourceConfigurationVO.getId()));
+        }
+
         return true;
     }
 
@@ -337,7 +309,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride, GloboDNSLbBlacklistedDomains};
+        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride, GloboDNSLbBlacklistedDomains, GloboDNSForceRegisterVM};
     }
 
     ////////// Resource/Host methods ////////////
@@ -378,7 +350,11 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     }
 
     private HostVO getGloboDnsHost(Long zoneId) {
-        return _hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboDns.getName(), Type.L2Networking);
+        HostVO host = _hostDao.findByTypeNameAndZoneId(zoneId, Provider.GloboDns.getName(), Type.L2Networking);
+        if (host == null) {
+            throw new CloudRuntimeException("Could not find the GloboDNS resource");
+        }
+        return host;
     }
 
     @Override
@@ -495,6 +471,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     }
 
     @Override
+    @Deprecated
     public boolean createDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId) {
         s_logger.debug("Creating LB DNS record " + lbRecord + " in domain " + lbDomain);
         DataCenter zone = _dcDao.findById(zoneId);
@@ -508,7 +485,23 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     }
 
     @Override
-    public boolean removeDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbIpAddress, Long zoneId) {
+    public boolean createDnsRecordForLoadBalancer(GloboDnsTO globoDns, boolean forceDomainRegister) {
+        s_logger.debug("Creating LB DNS record " + globoDns.getRecord() + " in domain " + globoDns.getDomain());
+        DataCenter zone = _dcDao.findById(globoDns.getZoneId());
+        if (zone == null) {
+            throw new CloudRuntimeException("Could not find zone with ID " + globoDns.getZoneId());
+        }
+
+        CreateLbRecordAndReverseCommand cmd = new CreateLbRecordAndReverseCommand(globoDns,
+                                                                                  GloboDNSTemplateId.value(),
+                                                                                  GloboDNSLbOverride.value());
+
+        return registerRecord(cmd, globoDns.getZoneId(), globoDns.getResourceId(), GloboResourceType.LOAD_BALANCER, forceDomainRegister);
+    }
+
+
+    @Override
+    public boolean removeDnsRecordForLoadBalancer(String lbUuid, String lbDomain, String lbRecord, String lbIpAddress, Long zoneId) {
         s_logger.debug("Removing LB DNS record " + lbRecord + " from domain " + lbDomain);
         DataCenter zone = _dcDao.findById(zoneId);
         if (zone == null) {
@@ -517,6 +510,56 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
         RemoveRecordCommand cmd = new RemoveRecordCommand(lbRecord, lbIpAddress, lbDomain, false);
         callCommand(cmd, zoneId);
+
+
+        List<GloboResourceConfigurationVO> configurationList = _globoResourceConfigDao.getConfiguration(GloboResourceType.LOAD_BALANCER, lbUuid, GloboResourceKey.isDNSRegistered);
+        for (GloboResourceConfigurationVO globoResourceConfigurationVO : configurationList){
+            _globoResourceConfigDao.remove(String.valueOf(globoResourceConfigurationVO.getId()));
+        }
+
         return true;
+    }
+
+    private boolean registerRecord(Command cmd, Long zoneId, String resourceId, GloboResourceType resourceType, boolean forceDomainRegister){
+        GloboResourceConfigurationVO dnsRegisteredConfig = _globoResourceConfigDao.getFirst(resourceType, resourceId, GloboResourceKey.isDNSRegistered);
+        boolean isDnsRegistered = dnsRegisteredConfig != null ? dnsRegisteredConfig.getBooleanValue() : false;
+
+        if (isDnsRegistered) {
+            return true;
+        }
+
+        HostVO globoDnsHost = getGloboDnsHost(zoneId);
+        Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
+
+        if (answer == null) {
+            throw new CloudRuntimeException("Error create " + resourceType.toString() +  " record while send command to dns resource");
+
+        }
+
+        if (!answer.getResult()){
+            if (Answer.AnswerTypeError.DNS_IO_ERROR.equals(answer.getTypeError()) && !forceDomainRegister) {
+                if (dnsRegisteredConfig == null) {
+                    dnsRegisteredConfig = new GloboResourceConfigurationVO(resourceType, resourceId, GloboResourceKey.isDNSRegistered, Boolean.FALSE.toString());
+                    _globoResourceConfigDao.persist(dnsRegisteredConfig);
+                } else {
+                    dnsRegisteredConfig.setBoolValue(false);
+                    _globoResourceConfigDao.updateValue(dnsRegisteredConfig);
+                }
+
+            } else {
+                throw new CloudRuntimeException("Error trying register " + resourceType.toString() +  " record. Error: " + answer.getDetails());
+            }
+        } else {
+            if (dnsRegisteredConfig == null) {
+                dnsRegisteredConfig = new GloboResourceConfigurationVO(resourceType, resourceId, GloboResourceKey.isDNSRegistered, Boolean.TRUE.toString());
+                _globoResourceConfigDao.persist(dnsRegisteredConfig);
+            } else {
+                dnsRegisteredConfig.setBoolValue(true);
+                _globoResourceConfigDao.updateValue(dnsRegisteredConfig);
+            }
+
+        }
+
+        return answer.getResult();
     }
 }
