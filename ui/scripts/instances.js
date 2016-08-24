@@ -2025,9 +2025,6 @@
 
                             restart: {
                                 label: 'Retry Register DNS for NIC',
-                                custom: {
-                                    buttonLabel: 'label.restart'
-                                },
                                 messages: {
                                     confirm: function() {
                                         return 'label.action.registry.dns.for.vm.nic';
@@ -2243,12 +2240,48 @@
 
                                     args.response.success({
                                         actionFilter: function(args) {
+                                            isToShowRegisterDnsButton = true;
+                                            function showRegisterDnsButton(result){
+                                                isToShowRegisterDnsButton = result;
+                                            }
+
+                                            $.ajax({
+                                                url: createURL("getGloboResourceConfiguration"),
+                                                data: {
+                                                    resourceid: args.context.item.id,
+                                                    resourcetype: 'VM_NIC',
+                                                    resourcekey: 'isDNSRegistered'
+                                                },
+                                                dataType: "json",
+                                                async: false,
+                                                    success: function(json) {
+                                                        var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
+                                                        console.log(conf);
+                                                        if(conf == undefined || conf == "true") {
+                                                            showRegisterDnsButton(false);
+                                                        } else if (conf == "false") {
+                                                            showRegisterDnsButton(true);
+                                                        }
+                                                },
+                                                error: function (errorMessage) {
+                                                    showRegisterDnsButton(false);
+                                                    //args.response.error(errorMessage);
+                                                }
+                                            });
                                             if (args.context.item.isdefault) {
                                                 //IF aqui pra exibir ou nao o DNS registry button
-                                                return ['restart'];
+                                                if (isToShowRegisterDnsButton) {
+                                                    return ['restart'];
+                                                } else {
+                                                    return [];
+                                                }
                                             } else {
                                                 //IF aqui pra exibir ou nao o DNS registry button também
-                                                return ['remove', 'makeDefault', 'restart'];
+                                                if (isToShowRegisterDnsButton) {
+                                                    return ['remove', 'makeDefault', 'restart'];
+                                                } else {
+                                                    return ['remove', 'makeDefault'];
+                                                }
                                             }
                                         },
                                         data: json.listvirtualmachinesresponse.virtualmachine[0].nic

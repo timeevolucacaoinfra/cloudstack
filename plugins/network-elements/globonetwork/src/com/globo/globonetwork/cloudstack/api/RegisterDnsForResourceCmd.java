@@ -63,7 +63,7 @@ public class RegisterDnsForResourceCmd extends BaseAsyncCmd {
         _globoNetworkService.registerDnsForResource(id, getResourceType());
         response.setResourceType(resourceType);
         response.setId(id);
-        response.setObjectName("resiterdns");
+        response.setObjectName("registerdns");
         response.setResponseName(getCommandName());
         this.setResponseObject(response);
     }
