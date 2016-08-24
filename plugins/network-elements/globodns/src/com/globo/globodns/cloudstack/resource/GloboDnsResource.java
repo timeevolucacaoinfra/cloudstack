@@ -327,12 +327,12 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             String msg = "Record " + cmd.getLbRecordName() + " is invalid or override option is false";
             return new Answer(cmd, false, msg);
        } catch (GloboDnsIOException ex ){
-            if (cmd.isForceDomainRegister()) {
-                s_logger.error("IOException: force loadbalancer validation because forcedomainregister is "+ cmd.isForceDomainRegister() + " failed: " +  ex.getMessage(), ex);
-                return new Answer(cmd, false, ex.getMessage(), Answer.AnswerTypeError.DNS_IO_ERROR);
-            } else {
-                s_logger.warn("IOException: ignoring loadbalancer validation because forcedoaminresgister is " + cmd.isForceDomainRegister() + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
+            if (cmd.isSkipDnsError()) {
+                s_logger.warn("IOException: ignoring loadbalancer validation because skipdnserror is " + cmd.isSkipDnsError() + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
                 return new Answer(cmd, true, ex.getMessage());
+            } else {
+                s_logger.error("IOException: force loadbalancer validation because skipdnserror is "+ cmd.isSkipDnsError() + " failed: " +  ex.getMessage(), ex);
+                return new Answer(cmd, false, ex.getMessage(), Answer.AnswerTypeError.DNS_IO_ERROR);
             }
 
        } catch (GloboDnsException e) {

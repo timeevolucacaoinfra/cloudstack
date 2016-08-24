@@ -102,8 +102,8 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     private static final ConfigKey<String> GloboDNSLbBlacklistedDomains = new ConfigKey<>("Advanced", String.class, "globodns.lb.domain.blacklist", "",
             "List of comma separated domains that should be blacklisted for load balancers", true, ConfigKey.Scope.Global);
 
-    private static final ConfigKey<Boolean> GloboDNSForceRegisterVM = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.vm.forceerrordns", "true",
-            "When true, if vm receive error during create dns record, it will throw exception", true, ConfigKey.Scope.Global);
+    private static final ConfigKey<Boolean> GloboDNSVmSkipDnsError = new ConfigKey<Boolean>("Advanced", Boolean.class, "globodns.vm.skipdnserror", "false",
+            "when false if dns integration failed, the vm will not be created and throw an exception, else vm will be created and dns it could be register later", true, ConfigKey.Scope.Global);
     // DAOs
     @Inject
     DataCenterDao _dcDao;
@@ -168,14 +168,14 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         String ipAddress = isIpv6 ? nic.getIp6Address() : nic.getIp4Address();
 
 
-        GloboResourceConfigurationVO forceConfig = _globoResourceConfigDao.getFirst(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.forceDomainRegister);
-        boolean forceDoaminRegister = forceConfig != null ? forceConfig.getBooleanValue() : GloboDNSForceRegisterVM.value(); // false while the config is not persisted by vm flow
+        GloboResourceConfigurationVO forceConfig = _globoResourceConfigDao.getFirst(GloboResourceType.VM_NIC, nic.getUuid(), GloboResourceKey.skipDnsError);
+        boolean forceDoaminRegister = forceConfig != null ? forceConfig.getBooleanValue() : GloboDNSVmSkipDnsError.value(); // false while the config is not persisted by vm flow
 
         return registerVmDomain(zoneId, nic.getUuid(), vmHostname, ipAddress, network.getNetworkDomain(), isIpv6, forceDoaminRegister);
     }
 
     @Override
-    public boolean registerVmDomain(Long zoneId, String nicUuid, String hostName, String ipAddress, String networkDomain, boolean isIpv6, boolean forceDomainRegister) {
+    public boolean registerVmDomain(Long zoneId, String nicUuid, String hostName, String ipAddress, String networkDomain, boolean isIpv6, boolean skipDnsError) {
         GloboResourceConfigurationVO dnsRegisteredConfig = _globoResourceConfigDao.getFirst(GloboResourceType.VM_NIC, nicUuid, GloboResourceKey.isDNSRegistered);
         boolean isDnsRegistered = dnsRegisteredConfig != null ? dnsRegisteredConfig.getBooleanValue() : false;
 
@@ -187,7 +187,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
                 GloboDNSTemplateId.value(), GloboDNSOverride.value(), isIpv6);
 
 
-        return registerRecord(cmd, zoneId, nicUuid, GloboResourceType.VM_NIC, forceDomainRegister);
+        return registerRecord(cmd, zoneId, nicUuid, GloboResourceType.VM_NIC, skipDnsError);
 
     }
 
@@ -309,7 +309,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
     @Override
     public ConfigKey<?>[] getConfigKeys() {
-        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride, GloboDNSLbBlacklistedDomains, GloboDNSForceRegisterVM};
+        return new ConfigKey<?>[] {GloboDNSTemplateId, GloboDNSOverride, GloboDNSLbOverride, GloboDNSLbBlacklistedDomains, GloboDNSVmSkipDnsError};
     }
 
     ////////// Resource/Host methods ////////////
@@ -433,7 +433,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
 
     // Load Balancing methods
     @Override
-    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbRecordContent, Long zoneId, boolean forceDomainRegister) {
+    public boolean validateDnsRecordForLoadBalancer(String lbDomain, String lbRecord, String lbRecordContent, Long zoneId, boolean skipDnsError) {
         s_logger.debug("Validating LB DNS record " + lbRecord + " in domain " + lbDomain);
         if (lbRecord.contains("_")) {
             throw new InvalidParameterValueException("Underscore(_) is not allowed for load balancer name");
@@ -446,7 +446,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
             throw new CloudRuntimeException("Could not find zone with ID " + zoneId);
         }
 
-        ValidateLbRecordCommand cmd = new ValidateLbRecordCommand(lbRecord, lbRecordContent, lbDomain, GloboDNSLbOverride.value(), forceDomainRegister);
+        ValidateLbRecordCommand cmd = new ValidateLbRecordCommand(lbRecord, lbRecordContent, lbDomain, GloboDNSLbOverride.value(), skipDnsError);
         Answer answer = callCommand(cmd, zoneId);
         if (answer == null || !answer.getResult()) {
             // Could not sign in on GloboDNS
@@ -485,7 +485,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
     }
 
     @Override
-    public boolean createDnsRecordForLoadBalancer(GloboDnsTO globoDns, boolean forceDomainRegister) {
+    public boolean createDnsRecordForLoadBalancer(GloboDnsTO globoDns, boolean skipDnsError) {
         s_logger.debug("Creating LB DNS record " + globoDns.getRecord() + " in domain " + globoDns.getDomain());
         DataCenter zone = _dcDao.findById(globoDns.getZoneId());
         if (zone == null) {
@@ -496,7 +496,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
                                                                                   GloboDNSTemplateId.value(),
                                                                                   GloboDNSLbOverride.value());
 
-        return registerRecord(cmd, globoDns.getZoneId(), globoDns.getResourceId(), GloboResourceType.LOAD_BALANCER, forceDomainRegister);
+        return registerRecord(cmd, globoDns.getZoneId(), globoDns.getResourceId(), GloboResourceType.LOAD_BALANCER, skipDnsError);
     }
 
 
@@ -520,7 +520,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         return true;
     }
 
-    private boolean registerRecord(Command cmd, Long zoneId, String resourceId, GloboResourceType resourceType, boolean forceDomainRegister){
+    private boolean registerRecord(Command cmd, Long zoneId, String resourceId, GloboResourceType resourceType, boolean skipDnsError){
         GloboResourceConfigurationVO dnsRegisteredConfig = _globoResourceConfigDao.getFirst(resourceType, resourceId, GloboResourceKey.isDNSRegistered);
         boolean isDnsRegistered = dnsRegisteredConfig != null ? dnsRegisteredConfig.getBooleanValue() : false;
 
@@ -537,7 +537,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         }
 
         if (!answer.getResult()){
-            if (Answer.AnswerTypeError.DNS_IO_ERROR.equals(answer.getTypeError()) && !forceDomainRegister) {
+            if (Answer.AnswerTypeError.DNS_IO_ERROR.equals(answer.getTypeError()) && skipDnsError) {
                 if (dnsRegisteredConfig == null) {
                     dnsRegisteredConfig = new GloboResourceConfigurationVO(resourceType, resourceId, GloboResourceKey.isDNSRegistered, Boolean.FALSE.toString());
                     _globoResourceConfigDao.persist(dnsRegisteredConfig);
