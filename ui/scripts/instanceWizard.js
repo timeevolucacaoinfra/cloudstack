@@ -1010,6 +1010,43 @@
                             jobId: jid,
                             getUpdatedItem: function(json) {
                                 var item = json.queryasyncjobresultresponse.jobresult.virtualmachine;
+
+                                //Notifying user if some NIC has not the DNS registered properly
+                                for(var i = 0; i < item.nic.length; i++) {
+                                    nicHadDnsRegistered = true;
+                                    function setNicDncsIsRegistered(result){
+                                        nicHadDnsRegistered = result;
+                                    }
+
+                                    $.ajax({
+                                        url: createURL("getGloboResourceConfiguration"),
+                                        data: {
+                                            resourceid: item.nic[i].id,
+                                            resourcetype: 'VM_NIC',
+                                            resourcekey: 'isDNSRegistered'
+                                        },
+                                        dataType: "json",
+                                        async: false,
+                                        success: function(json) {
+                                            var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
+                                            if (conf == "false") {
+                                                setNicDncsIsRegistered(false);
+                                            } else if (conf == "true") {
+                                                setNicDncsIsRegistered(true);
+                                            }
+                                        },
+                                        error: function (errorMessage) {
+                                            console.log(errorMessage);
+                                            setNicDncsIsRegistered(null);
+                                            //args.response.error(errorMessage);
+                                        }
+                                    });
+
+                                    if (nicHadDnsRegistered == false) {
+                                        cloudStack.dialog.notice({message: "There are some VM NIC with DNS not registered! Please check each VM NIC details."});
+                                    }
+                                }
+
                                 if (item.password != null)
                                     alert("Password of new VM " + item.displayname + " is  " + item.password);
                                 return item;
