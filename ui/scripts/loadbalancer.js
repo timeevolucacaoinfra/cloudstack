@@ -1252,7 +1252,7 @@
                                 return 'label.action.registry.dns.for.load.balancer';
                             },
                             notification: function() {
-                                return 'notification for retryRegisterDNS';
+                                return 'Notification for Retry Register DNS';
                             },
                             complete: function(args) {
                                 return 'message.registry.dns.for.load.balancer.successfull';
