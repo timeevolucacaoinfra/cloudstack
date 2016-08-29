@@ -256,7 +256,7 @@ public class DirectAgentAttache extends AgentAttache {
                     answers.add(answer);
                     if (!answer.getResult() && stopOnError) {
                         if (i < cmds.length - 1 && s_logger.isDebugEnabled()) {
-                            s_logger.debug(log(seq, "Cancelling because one of the answers is false and it is stop on error."));
+                            s_logger.warn(log(seq, "Cancelling because one of the answers is false and it is stop on error."));
                         }
                         break;
                     }
@@ -315,7 +315,7 @@ public class DirectAgentAttache extends AgentAttache {
                     answers.add(answer);
                     if (!answer.getResult() && stopOnError) {
                         if (i < cmds.length - 1 && s_logger.isDebugEnabled()) {
-                            s_logger.debug(log(seq, "Cancelling because one of the answers is false and it is stop on error."));
+                            s_logger.warn(log(seq, "Cancelling because one of the answers is false and it is stop on error."));
                         }
                         break;
                     }

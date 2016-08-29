@@ -58,7 +58,28 @@ under the License.
    <category name="com.cloud">
      <priority value="INFO"/>
    </category>
-   
+
+   <category name="com.cloud.vm.VirtualMachinePowerStateSyncImpl">
+         <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.manager.ClusteredAgentManagerImpl">
+       <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.transport.Request">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.transport.Request">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.manager.DirectAgentAttache">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.host.dao.HostDaoImpl">
+      <priority value="INFO"/>
+   </category>
+
+
+
    <category name="com.cloud.agent.metrics">
      <priority value="INFO"/>
    </category>
