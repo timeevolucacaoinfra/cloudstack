@@ -665,9 +665,7 @@ public class ConsoleProxyManagerImpl extends ManagerBase implements ConsoleProxy
                 new ConsoleProxyAlertEventArgs(ConsoleProxyAlertEventArgs.PROXY_CREATED, dataCenterId, proxy.getId(), proxy, null));
             return proxy;
         } else {
-            if (s_logger.isDebugEnabled()) {
-                s_logger.debug("Unable to allocate console proxy storage, remove the console proxy record from DB, proxy id: " + proxyVmId);
-            }
+            s_logger.warn("Unable to allocate console proxy storage, remove the console proxy record from DB, proxy id: " + proxyVmId);
         }
         return null;
     }
@@ -1285,7 +1283,7 @@ public class ConsoleProxyManagerImpl extends ManagerBase implements ConsoleProxy
         }
 
         if (s_logger.isInfoEnabled()) {
-            s_logger.info("Console Proxy Manager is configured.");
+            s_logger.debug("Console Proxy Manager is configured.");
         }
         return true;
     }
