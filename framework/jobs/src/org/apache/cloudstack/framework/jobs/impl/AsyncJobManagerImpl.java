@@ -225,15 +225,14 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
     @DB
     public void completeAsyncJob(final long jobId, final Status jobStatus, final int resultCode, final String resultObject) {
         if (s_logger.isDebugEnabled()) {
-            s_logger.debug("Complete async job-" + jobId + ", jobStatus: " + jobStatus + ", resultCode: " + resultCode + ", result: " + resultObject);
+            s_logger.info("Complete async job-" + jobId + ", jobStatus: " + jobStatus + ", resultCode: " + resultCode + ", result: " + resultObject);
         }
 
         final AsyncJobVO job = _jobDao.findById(jobId);
         if (job == null) {
-            if (s_logger.isDebugEnabled()) {
-                s_logger.debug("job-" + jobId + " no longer exists, we just log completion info here. " + jobStatus + ", resultCode: " + resultCode + ", result: " +
-                    resultObject);
-            }
+            s_logger.warn("job-" + jobId + " no longer exists, we just log completion info here. " + jobStatus + ", resultCode: " + resultCode + ", result: " +
+                resultObject);
+
             // still purge item from queue to avoid any blocking
             _queueMgr.purgeAsyncJobQueueItemId(jobId);
             return;
@@ -317,9 +316,7 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
 
         final AsyncJobVO job = _jobDao.findById(jobId);
         if (job == null) {
-            if (s_logger.isDebugEnabled()) {
-                s_logger.debug("job-" + jobId + " no longer exists, we just log progress info here. progress status: " + processStatus);
-            }
+            s_logger.warn("job-" + jobId + " no longer exists, we just log progress info here. progress status: " + processStatus);
 
             return;
         }
@@ -789,7 +786,7 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
 
             public void reallyRun() {
                 try {
-                    s_logger.info("Begin cleanup expired async-jobs");
+                    s_logger.debug("Begin cleanup expired async-jobs");
 
                     // forcefully cancel blocking queue items if they've been staying there for too long
                     List<SyncQueueItemVO> blockItems = _queueMgr.getBlockedQueueItems(JobCancelThresholdMinutes.value() * 60000, false);
@@ -839,7 +836,7 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
                         }
                     }
 
-                    s_logger.info("End cleanup expired async-jobs");
+                    s_logger.debug("End cleanup expired async-jobs");
                 } catch (Throwable e) {
                     s_logger.error("Unexpected exception when trying to execute queue item, ", e);
                 }
@@ -983,9 +980,9 @@ public class AsyncJobManagerImpl extends ManagerBase implements AsyncJobManager,
                     // reset job status for all jobs running on this ms node
                     List<AsyncJobVO> jobs = _jobDao.getResetJobs(msid);
                     for (AsyncJobVO job : jobs) {
-                        if (s_logger.isDebugEnabled()) {
-                            s_logger.debug("Cancel left-over job-" + job.getId());
-                        }
+
+                        s_logger.warn("Cancel left-over job-" + job.getId());
+
                         job.setStatus(JobInfo.Status.FAILED);
                         job.setResultCode(ApiErrorCode.INTERNAL_ERROR.getHttpCode());
                         job.setResult("job cancelled because of management server restart or shutdown");
