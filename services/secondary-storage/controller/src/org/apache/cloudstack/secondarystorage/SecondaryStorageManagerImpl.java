@@ -388,7 +388,7 @@ public class SecondaryStorageManagerImpl extends ManagerBase implements Secondar
             return true;
         } else {
             if (s_logger.isDebugEnabled()) {
-                s_logger.debug("failed to program http auth into secondary storage vm : " + secStorageVm.getHostName());
+                s_logger.warn("failed to program http auth into secondary storage vm : " + secStorageVm.getHostName());
             }
             return false;
         }
@@ -431,7 +431,7 @@ public class SecondaryStorageManagerImpl extends ManagerBase implements Secondar
                 }
             } else {
                 if (s_logger.isDebugEnabled()) {
-                    s_logger.debug("failed to program firewall rules into secondary storage vm : " + ssvm.getName());
+                    s_logger.warn("failed to program firewall rules into secondary storage vm : " + ssvm.getName());
                 }
                 return false;
             }
@@ -452,7 +452,7 @@ public class SecondaryStorageManagerImpl extends ManagerBase implements Secondar
             }
         } else {
             if (s_logger.isDebugEnabled()) {
-                s_logger.debug("failed to program firewall rules into secondary storage vm : " + thisSecStorageVm.getHostName());
+                s_logger.warn("failed to program firewall rules into secondary storage vm : " + thisSecStorageVm.getHostName());
             }
             return false;
         }
@@ -475,7 +475,7 @@ public class SecondaryStorageManagerImpl extends ManagerBase implements Secondar
 
         if (!isSecondaryStorageVmRequired(dataCenterId)) {
             if (s_logger.isDebugEnabled()) {
-                s_logger.debug("Secondary storage vm not required in zone " + dataCenterId + " acc. to zone config");
+                s_logger.warn("Secondary storage vm not required in zone " + dataCenterId + " acc. to zone config");
             }
             return null;
         }
@@ -503,7 +503,7 @@ public class SecondaryStorageManagerImpl extends ManagerBase implements Secondar
             return secStorageVm;
         } else {
             if (s_logger.isDebugEnabled()) {
-                s_logger.debug("Unable to allocate secondary storage vm storage, remove the secondary storage vm record from DB, secondary storage vm id: " +
+                s_logger.warn("Unable to allocate secondary storage vm storage, remove the secondary storage vm record from DB, secondary storage vm id: " +
                     secStorageVmId);
             }
             SubscriptionMgr.getInstance().notifySubscribers(ALERT_SUBJECT, this,

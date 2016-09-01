@@ -122,6 +122,37 @@ under the License.
    <category name="com.cloud">
      <priority value="DEBUG"/>
    </category>
+
+   <!-- new logs-->
+   <category name="com.cloud.vm.VirtualMachinePowerStateSyncImpl">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.manager.ClusteredAgentManagerImpl">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.transport.Request">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.agent.manager.DirectAgentAttache">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.host.dao.HostDaoImpl">
+      <priority value="INFO"/>
+   </category>
+   <category name="org.apache.cloudstack.secondarystorage.SecondaryStorageManagerImpl">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.consoleproxy.ConsoleProxyAjaxImageHandler">
+      <priority value="INFO"/>
+   </category>
+   <category name="com.cloud.consoleproxy.ConsoleProxyViewer">
+      <priority value="INFO"/>
+   </category>
+   <category name="org.apache.cloudstack.framework.jobs.impl.AsyncJobManagerImpl">
+      <priority value="INFO"/>
+   </category>
+
+
    
    <category name="org.apache.cloudstack">
      <priority value="DEBUG"/>
