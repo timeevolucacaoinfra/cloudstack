@@ -55,6 +55,7 @@ import com.cloud.utils.db.TransactionLegacy;
 import com.cloud.utils.db.UUIDManager;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.cloud.utils.exception.ExceptionProxyObject;
+import com.cloud.utils.exception.GloboUserCloudRuntimeException;
 import org.apache.cloudstack.acl.APIChecker;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
@@ -590,6 +591,9 @@ public class ApiServer extends ManagerBase implements HttpRequestHandler, ApiSer
         } catch (final ServerApiException ex) {
             s_logger.info(ex.getDescription(), ex);
             throw ex;
+        } catch (final GloboUserCloudRuntimeException ex) {
+            String errorMsg = ex.getMessage();
+            throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, errorMsg, ex);
         } catch (final Exception ex) {
             s_logger.error("unhandled exception executing api command: " + ((command == null) ? "null" : command), ex);
             String errorMsg = ex.getMessage();
