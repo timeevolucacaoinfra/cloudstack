@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -1706,30 +1707,24 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
         }
     }
 
-    protected boolean assignLBruleToNewVm(long vmId, AutoScaleVmGroupVO asGroup) {
-        List<Long> lstVmId = new ArrayList<Long>();
+    protected boolean assignLBruleToNewVm(UserVm vm, AutoScaleVmGroupVO asGroup) {
         long lbId = asGroup.getLoadBalancerId();
 
         List<LoadBalancerVMMapVO> LbVmMapVos = _lbVmMapDao.listByLoadBalancerId(lbId);
         if ((LbVmMapVos != null) && (LbVmMapVos.size() > 0)) {
             for (LoadBalancerVMMapVO LbVmMapVo : LbVmMapVos) {
                 long instanceId = LbVmMapVo.getInstanceId();
-                if (instanceId == vmId) {
+                if (instanceId == vm.getId()) {
                     s_logger.warn("the new VM is already mapped to LB rule. What's wrong?");
                     return true;
                 }
             }
         }
-        lstVmId.add(new Long(vmId));
         try {
-            return _loadBalancingRulesService.assignToLoadBalancer(lbId, lstVmId, new HashMap<Long, List<String>>());
+            return _loadBalancingRulesService.assignToLoadBalancer(lbId, Arrays.asList(new Long(vm.getId())), new HashMap<Long, List<String>>());
         }catch(Exception e){
             // Rolling back VM creation as it cannot be assigned to the load balancer
-            try {
-                _userVmManager.destroyVm(vmId);
-            } catch (ResourceUnavailableException ex) {
-                s_logger.error("error occurred while removing vm id: " + vmId, ex);
-            }
+            destroyVM(vm.getId());
             return false;
         }
     }
@@ -1794,36 +1789,32 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
     @Override
     public void doScaleUp(long groupId, Integer numVm) {
         AutoScaleVmGroupVO asGroup = _autoScaleVmGroupDao.findById(groupId);
-        try {
-            if (asGroup == null) {
-                s_logger.error("Can not find the groupid " + groupId + " for scaling up");
-                return;
-            }
-            if (!checkConditionUp(asGroup, numVm)) {
-                return;
-            }
-            for (int i = 0; i < numVm; i++) {
-                UserVm vm  = createNewVM(asGroup);
-                List<? extends ResourceTag> resourceTags = _resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup);
+        if (asGroup == null) {
+            s_logger.error("Can not find the groupid " + groupId + " for scaling up");
+            return;
+        }
 
-                if (resourceTags != null){
-                    if(resourceTags.size() > 0) {
-                        for (ResourceTag resourceTag : resourceTags) {
-                            ResourceTagVO tag = new ResourceTagVO(resourceTag.getKey(), resourceTag.getValue(), resourceTag.getAccountId(),
-                                    resourceTag.getDomainId(), vm.getId(), ResourceTag.ResourceObjectType.UserVm, resourceTag.getCustomer(),
-                                    vm.getUuid());
-                            _resourceTagDao.persist(tag);
-                        }
-                    }
+        try {
+            for (int i = 0; i < numVm; i++) {
+                if (!checkConditionUp(asGroup, numVm)) {
+                    return;
                 }
+
+                UserVm vm = createNewVM(asGroup);
                 if (vm == null) {
                     s_logger.error("Can not deploy new VM for scaling up in the group " + asGroup.getId() + ". Waiting for next round");
                     break;
                 }
 
-                startNewVM(vm.getId());
+                addVirtualMachineTags(asGroup, vm);
+                try {
+                    startNewVM(vm.getId());
+                }catch(Exception ex){
+                    destroyVM(vm.getId());
+                    throw ex;
+                }
 
-                if (assignLBruleToNewVm(vm.getId(), asGroup)) {
+                if (assignLBruleToNewVm(vm, asGroup)) {
                     _autoScaleVmGroupVmMapDao.persist(new AutoScaleVmGroupVmMapVO(asGroup.getId(), vm.getId()));
                     updateLastQuietTime(groupId, "scaleup");
                     createScaleUpSuccessEvent(asGroup.getUuid(), "VM " + vm.getDisplayName() + " was created as result of a scale up action. Auto Scale Id: " + asGroup.getUuid());
@@ -1843,6 +1834,17 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             createScaleUpFailedEvent(asGroup.getUuid(), message);
             s_logger.error(message, ex);
             throw ex;
+        }
+    }
+
+    private void addVirtualMachineTags(AutoScaleVmGroupVO asGroup, UserVm vm) {
+        List<? extends ResourceTag> resourceTags = _resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup);
+
+        for (ResourceTag resourceTag : resourceTags) {
+            ResourceTagVO tag = new ResourceTagVO(resourceTag.getKey(), resourceTag.getValue(), resourceTag.getAccountId(),
+                    resourceTag.getDomainId(), vm.getId(), ResourceTag.ResourceObjectType.UserVm, resourceTag.getCustomer(),
+                    vm.getUuid());
+            _resourceTagDao.persist(tag);
         }
     }
 

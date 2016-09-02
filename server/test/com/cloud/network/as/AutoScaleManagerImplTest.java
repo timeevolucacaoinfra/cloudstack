@@ -48,6 +48,7 @@ import com.cloud.user.AccountManagerImpl;
 import com.cloud.user.AccountService;
 import com.cloud.user.AccountVO;
 import com.cloud.user.UserVO;
+import com.cloud.uservm.UserVm;
 import com.cloud.utils.db.EntityManager;
 import com.cloud.vm.UserVmService;
 import com.cloud.vm.UserVmVO;
@@ -209,13 +210,13 @@ public class AutoScaleManagerImplTest {
         configureMocks(autoScaleManager);
 
         List<Object> resourceTags = new ArrayList<>();
-        when(resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup)).thenReturn(null);
+        when(resourceTagDao.listBy(asGroup.getId(), ResourceTag.ResourceObjectType.AutoScaleVmGroup)).thenReturn(new ArrayList());
 
         when(autoScaleVmGroupDao.findById(10L)).thenReturn(asGroup);
         //mocking createVm, assignLBRuleToNewVm and startVM so they can be tested in isolation
         doReturn(createUserVm(1L)).when(autoScaleManager).createNewVM(asGroup);
         doNothing().when(autoScaleManager).startNewVM(1L);
-        doReturn(assignToLbResult).when(autoScaleManager).assignLBruleToNewVm(1L, asGroup);
+        doReturn(assignToLbResult).when(autoScaleManager).assignLBruleToNewVm(any(UserVm.class), eq(asGroup));
         if(startVmResult && assignToLbResult){
             doNothing().when(autoScaleManager).createEvent(eq(groupUuid), eq(EventTypes.EVENT_AUTOSCALEVMGROUP_SCALEUP), anyString());
         }else {
