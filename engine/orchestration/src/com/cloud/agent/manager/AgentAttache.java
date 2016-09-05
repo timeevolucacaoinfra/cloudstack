@@ -268,7 +268,7 @@ public abstract class AgentAttache {
     }
 
     public boolean processAnswers(final long seq, final Response resp) {
-        resp.logD("Processing: ", true);
+        resp.logT("Processing: ", true);
 
         final Answer[] answers = resp.getAnswers();
 
@@ -367,7 +367,7 @@ public abstract class AgentAttache {
                 // If we got to here either we're not suppose to set
                 // the _currentSequence or it is null already.
 
-                req.logD("Sending ", true);
+                req.logT("Sending ", true);
                 send(req);
 
                 if (req.executeInSequence() && _currentSequence == null) {
