@@ -846,7 +846,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(ApplyVipInGloboNetworkCommand cmd) {
         try {
-            s_logger.debug("[ApplyVip START] Vip: " + cmd.getIpv4() + " ip: " + cmd.getHost());
+            s_logger.debug("[ApplyVip_" + cmd.getHost() + "] Vip_id: " + cmd.getVipId() + " ip: " + cmd.getIpv4() + " envId: " + cmd.getVipEnvironmentId());
             Long start = new Date().getTime();
             Vip vip = getVipById(cmd.getVipId());
 
@@ -867,7 +867,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             Answer vipResponse = this.createVipResponse(vip, cmd);
             Long time = new Date().getTime() - start;
 
-            s_logger.debug("[ApplyVip END] Vip: " + cmd.getIpv4() + ", ip: " + cmd.getHost() +", Operation time: " + time + " ms");
+            s_logger.debug("[ApplyVip END] Vip: " + cmd.getHost() + ", ip: " + cmd.getIpv4() +", Operation time: " + time + " ms");
             return vipResponse;
         }catch (GloboNetworkException e) {
             return handleGloboNetworkException(cmd, e);

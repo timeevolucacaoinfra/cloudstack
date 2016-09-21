@@ -28,7 +28,7 @@ import javax.ejb.Local;
 import javax.inject.Inject;
 import javax.naming.ConfigurationException;
 
-import com.cloud.utils.exception.GloboUserCloudRuntimeException;
+
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.Configurable;
 import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
@@ -240,28 +240,6 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         return true;
     }
 
-    ///////// Provider control methods ////////////
-    private Answer callCommand(Command cmd, Long zoneId) {
-
-        HostVO globoDnsHost = getGloboDnsHost(zoneId);
-        if (globoDnsHost == null) {
-            throw new CloudRuntimeException("Could not find the GloboDNS resource");
-        }
-
-        Answer answer = _agentMgr.easySend(globoDnsHost.getId(), cmd);
-        if (answer == null || !answer.getResult()) {
-            String msg;
-            if (!GloboDNSLbOverride.value()) {
-                msg = "The given LoadBalancer name record is not valid or it is already in use. Override is not possible.";
-            } else {
-                msg = "The given LoadBalancer name record is not valid.";
-            }
-            throw new GloboUserCloudRuntimeException(msg);
-        }
-
-        return answer;
-    }
-
     @Override
     public Map<Service, Map<Capability, String>> getCapabilities() {
         return capabilities;
@@ -452,7 +430,7 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         }
 
         ValidateLbRecordCommand cmd = new ValidateLbRecordCommand(lbRecord, lbRecordContent, lbDomain, GloboDNSLbOverride.value(), skipDnsError);
-        Answer answer = callCommand(cmd, zoneId);
+        Answer answer = easyCallCommand(cmd, zoneId);
         if (answer == null || !answer.getResult()) {
             // Could not sign in on GloboDNS
             throw new InvalidParameterValueException("Could not validate LB record " + lbRecord + ". " + (answer == null ? "" : answer.getDetails()));
@@ -566,5 +544,23 @@ public class GloboDnsElement extends AdapterBase implements ResourceStateAdapter
         }
 
         return answer.getResult();
+    }
+
+    ///////// Provider control methods ////////////
+    private Answer easyCallCommand(Command cmd, Long zoneId) {
+        HostVO globoDnsHost = getGloboDnsHost(zoneId);
+
+        return _agentMgr.easySend(globoDnsHost.getId(), cmd);
+    }
+    private Answer callCommand(Command cmd, Long zoneId) {
+
+        Answer answer = easyCallCommand(cmd, zoneId);
+        if (answer == null || !answer.getResult()) {
+            String msg = "Error executing command " + cmd;
+            msg = answer == null ? msg : answer.getDetails();
+            throw new CloudRuntimeException(msg);
+        }
+
+        return answer;
     }
 }

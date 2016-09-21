@@ -299,11 +299,13 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
     }
 
     public Answer execute(ValidateLbRecordCommand cmd) {
+        String lbName = cmd.getLbRecordName() +  "." + cmd.getLbDomain();
+        s_logger.debug("[LoadBalancer " + lbName +"] init loadbalancer validating");
         try {
             Domain domain = searchDomain(cmd.getLbDomain(), false);
             if (domain == null) {
                 String msg = "Domain " + cmd.getLbDomain() + " doesn't exist.";
-                s_logger.debug(msg);
+                s_logger.error("[LoadBalancer " + lbName +"]" + msg);
                 return new Answer(cmd, false, msg);
             }
 
@@ -321,33 +323,35 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             if (record.getContent().equals(cmd.getLbRecordContent())) {
                 // If record exists and override is false, then content must be equal, i.e. no changes will be made, only validating it
                 return new Answer(cmd);
+            } else {
+                s_logger.warn("[LoadBalancer " + lbName +"] Record " + cmd.getLbRecordName() + " is invalid or override option is false");
+                String msg = "The given load balancer name record is not valid or it is already in use. Override is not possible.";
+                return new Answer(cmd, false, msg);
             }
 
-            // Otherwise, return that name is invalid
-            String msg = "Record " + cmd.getLbRecordName() + " is invalid or override option is false";
-            return new Answer(cmd, false, msg);
        } catch (GloboDnsIOException ex ){
             if (cmd.isSkipDnsError()) {
-                s_logger.warn("IOException: ignoring loadbalancer validation because skipdnserror is " + cmd.isSkipDnsError() + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
+                s_logger.warn("[LoadBalancer " + lbName +"] IOException: ignoring loadbalancer " + lbName + " validation because skipdnserror is " + cmd.isSkipDnsError() + ", maybe globoDNSAPI is off or with some problem. Error: " + ex.getMessage(), ex);
                 return new Answer(cmd, true, ex.getMessage());
             } else {
-                s_logger.error("IOException: force loadbalancer validation because skipdnserror is "+ cmd.isSkipDnsError() + " failed: " +  ex.getMessage(), ex);
-                return new Answer(cmd, false, ex.getMessage(), Answer.AnswerTypeError.DNS_IO_ERROR);
+                s_logger.error("[LoadBalancer " + lbName +"] IOException: force loadbalancer " + lbName + "validation because skipdnserror is "+ cmd.isSkipDnsError() + " failed: " +  ex.getMessage(), ex);
+                return new Answer(cmd, false, "Integration problem with DNSAPI, please contact your system administrator.", Answer.AnswerTypeError.DNS_IO_ERROR);
             }
 
        } catch (GloboDnsException e) {
-            s_logger.error("GloboDnsException error:" + e.getMessage(), e);
+            s_logger.error("[LoadBalancer " + lbName +"] GloboDnsException error:" + e.getMessage(), e);
            return new Answer(cmd, false, e.getMessage());
        }
    }
 
    public Answer execute(CreateLbRecordAndReverseCommand cmd) {
         boolean needsExport = false;
+       String lbname = cmd.getLbRecordName() + cmd.getLbDomain();
         try {
             Domain domain = searchDomain(cmd.getLbDomain(), false);
             if (domain == null) {
                 String msg = "Domain " + cmd.getLbDomain() + " doesn't exist.";
-                s_logger.debug(msg);
+                s_logger.debug("[LoadBalancer " + lbname + "] " + msg);
                 return new Answer(cmd, false, msg);
             }
 
@@ -365,19 +369,19 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
             String reverseRecordContent = cmd.getLbRecordName() + '.' + cmd.getLbDomain() + '.';
             if (createOrUpdateReverse(cmd.getLbRecordIp(), reverseRecordContent, cmd.getReverseTemplateId(), cmd.isOverride(), false)) { //IPv6 LB not implemented yet
                 needsExport = true;
-            } else {
-                if (!cmd.isOverride()) {
-                    String msg = "Unable to create LB reverse record " + cmd.getLbRecordName() + " for ip " + cmd.getLbRecordIp();
-                    msg += ". Override record option is false, maybe record already exists.";
-                    return new Answer(cmd, false, msg);
-                }
+            } else if (!cmd.isOverride()) {
+                String msg = "Unable to create LB reverse record " + cmd.getLbRecordName() + " for ip " + cmd.getLbRecordIp();
+                msg += ". Override record option is false, maybe record already exists.";
+                return new Answer(cmd, false, msg);
             }
+
 
             return new Answer(cmd);
         }catch (GloboDnsIOException ex) {
-            s_logger.error("DNS IO error " + ex.getMessage(), ex);
+            s_logger.error("[LoadBalancer " + lbname + "] DNS IO error " + ex.getMessage(), ex);
             return new Answer(cmd, false, ex.getMessage(), Answer.AnswerTypeError.DNS_IO_ERROR);
         } catch (GloboDnsException e) {
+            s_logger.error("[LoadBalancer " + lbname + "] unable to create lb: " + e);
             return new Answer(cmd, false, e.getMessage());
         } finally {
            if (needsExport) {

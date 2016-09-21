@@ -22,9 +22,9 @@ package com.cloud.utils.exception;
 /**
  * Created by sinval.neto on 9/1/16.
  */
-public class GloboUserCloudRuntimeException extends CloudRuntimeException{
+public class UserCloudRuntimeException extends CloudRuntimeException{
 
-    public GloboUserCloudRuntimeException(String message) {
+    public UserCloudRuntimeException(String message) {
         super(message);
         setCSErrorCode(CSExceptionErrorCode.getCSErrCode(this.getClass().getName()));
     }
