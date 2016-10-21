@@ -201,4 +201,13 @@ public class CreateLBHealthCheckPolicyCmd extends BaseAsyncCreateCmd {
     public String getEventDescription() {
         return "Create Load Balancer HealthCheck policy";
     }
+
+
+    public void setPingPath(String pingPath) {
+        this.pingPath = pingPath;
+    }
+
+    public void setLbRuleId(Long lbRuleId) {
+        this.lbRuleId = lbRuleId;
+    }
 }

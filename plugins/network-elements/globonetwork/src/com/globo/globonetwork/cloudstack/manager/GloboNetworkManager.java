@@ -42,6 +42,8 @@ import com.globo.globonetwork.cloudstack.api.ListGloboLbNetworksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkExpectedHealthchecksCmd;
 import com.globo.globonetwork.cloudstack.api.ListGloboNetworkPoolsCmd;
 import com.globo.globonetwork.cloudstack.api.UpdateGloboNetworkPoolCmd;
+import com.globo.globonetwork.cloudstack.api.loadbalancer.CreateGloboLoadBalancerCmd;
+import com.globo.globonetwork.cloudstack.api.loadbalancer.DeleteGloboLoadBalancerCmd;
 import com.globo.globonetwork.cloudstack.commands.ApplyVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListExpectedHealthchecksCommand;
@@ -1028,6 +1030,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
     public List<Class<?>> getCommands() {
         List<Class<?>> cmdList = new ArrayList<Class<?>>();
         cmdList.add(AcquireNewIpForLbInGloboNetworkCmd.class);
+        cmdList.add(CreateGloboLoadBalancerCmd.class);
+        cmdList.add(DeleteGloboLoadBalancerCmd.class);
         cmdList.add(AddGloboNetworkEnvironmentCmd.class);
         cmdList.add(AddGloboNetworkHostCmd.class);
         cmdList.add(AddGloboNetworkLBEnvironmentCmd.class);
