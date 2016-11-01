@@ -3582,14 +3582,10 @@ public class QueryManagerImpl extends ManagerBase implements QueryService {
         return resourceDetailResponse;
     }
 
-
-
     @Override
-    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags) {
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long id, String name, Long projectId, Map<String, String> tags) {
         try {
-            Pair<List<UserVmResponse>, Integer> result = _userVmJoinDao.list(projectId, tags);
-
-            return result;
+            return _userVmJoinDao.list(id, name, projectId, tags);
         }catch (Exception e ) {
             throw new CloudRuntimeException("Error list virtual machines.", e);
         }

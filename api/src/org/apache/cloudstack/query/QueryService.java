@@ -134,5 +134,5 @@ public interface QueryService {
     public ListResponse<StorageTagResponse> searchForStorageTags(ListStorageTagsCmd cmd);
     public ListResponse<HostTagResponse> searchForHostTags(ListHostTagsCmd cmd);
 
-    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long projectId, Map<String, String> tags);
+    public Pair<List<UserVmResponse>, Integer> listGloboVm(Long id, String name, Long projectId, Map<String, String> tags);
 }
