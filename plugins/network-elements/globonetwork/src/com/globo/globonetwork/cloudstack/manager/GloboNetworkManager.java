@@ -1969,155 +1969,43 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     @Override
     public boolean applyLbRuleInGloboNetwork(final Network network, final LoadBalancingRule rule) throws ResourceUnavailableException {
-        // Validate params
         if (network == null || rule == null) {
             return false;
         }
 
-        final Account account = _accountMgr.getAccount(network.getAccountId());
-
-        // Information to be used by LB later on
-        boolean revokeAnyVM = false;
-
-        // GloboNetwork doesn't allow concurrent call in same load balancer or ip address
         String lockName = "globonetworklb-" + rule.getSourceIp().addr();
-        // final GlobalLock lock = GlobalLock.getInternLock("globonetworklb-" + rule.getSourceIp().addr());
         final ReentrantLock lock = GlobalLock.getReentrantLock(lockName);
-
         try {
             if (!lock.tryLock(GloboNetworkLBLockTimeout.value(), TimeUnit.SECONDS)) {
                 throw new ResourceUnavailableException(String.format("Failed to acquire lock for load balancer %s", rule.getUuid()), DataCenter.class, network.getDataCenterId());
             }
 
-            IPAddressVO ipVO = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
-            if (ipVO == null) {
+            IPAddressVO ipAddress = _ipAddrDao.findByIpAndNetworkId(rule.getNetworkId(), rule.getSourceIp().addr());
+            if (ipAddress == null) {
                 throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " is not associate with network " + rule.getNetworkId());
             }
 
-            GloboNetworkIpDetailVO gnIpDetail = _globoNetworkIpDetailDao.findByIp(ipVO.getId());
-            if (gnIpDetail == null) {
-                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") is not associate with globo network");
-            } else if (gnIpDetail.getGloboNetworkEnvironmentRefId() == null) {
-                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipVO.getId() + ") can't be used to load balancing");
+            GloboNetworkIpDetailVO globoNetworkIpDetail = _globoNetworkIpDetailDao.findByIp(ipAddress.getId());
+            if (globoNetworkIpDetail == null) {
+                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipAddress.getId() + ") is not associate with globo network");
+            } else if (globoNetworkIpDetail.getGloboNetworkEnvironmentRefId() == null) {
+                throw new InvalidParameterValueException("Ip " + rule.getSourceIp().addr() + " (id " + ipAddress.getId() + ") can't be used to load balancing");
             }
 
-            GloboNetworkLoadBalancerEnvironment gnLbNetworkVO = _globoNetworkLBEnvironmentDao.findById(gnIpDetail.getGloboNetworkEnvironmentRefId());
-            if (gnLbNetworkVO == null) {
-                throw new InvalidParameterValueException("Could not find mapping between lb environment " + gnIpDetail.getGloboNetworkEnvironmentRefId());
+            GloboNetworkLoadBalancerEnvironment lbEnvironment = _globoNetworkLBEnvironmentDao.findById(globoNetworkIpDetail.getGloboNetworkEnvironmentRefId());
+            if (lbEnvironment == null) {
+                throw new InvalidParameterValueException("Could not find mapping between lb environment " + globoNetworkIpDetail.getGloboNetworkEnvironmentRefId());
             }
 
-            // Stickness/Persistence
-            if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
-                throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
-            }
-
-            // Healthcheck
-            if (rule.getHealthCheckPolicies() != null) {
-                int numberOfpolicies = 0;
-                for (LbHealthCheckPolicy healthcheckpolicy : rule.getHealthCheckPolicies()) {
-                    if (!healthcheckpolicy.isRevoked()) {
-                        numberOfpolicies++;
-                    }
-                }
-                if (numberOfpolicies > 1) {
-                    throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain at maximum one");
-                }
-            }
-
-            // Port mapping
-            List<String> ports = new ArrayList<String>();
-            ports.add(rule.getSourcePortStart() + ":" + rule.getDefaultPortStart());
-            if (rule.getAdditionalPortMap() != null) {
-                for (String portMap : rule.getAdditionalPortMap()) {
-                    // Right format of ports has already been validated in validateLBRule()
-                    ports.add(portMap);
-                }
-            }
-
-            // Reals
-            List<GloboNetworkVipResponse.Real> realList = new ArrayList<GloboNetworkVipResponse.Real>();
-            if(rule.getDestinations() != null) {
-                for (LbDestination destVM : rule.getDestinations()) {
-                    VMInstanceVO vm = _vmDao.findById(destVM.getInstanceId());
-                    if (vm != null) {
-                        GloboNetworkVipResponse.Real real = new GloboNetworkVipResponse.Real();
-                        real.setIp(destVM.getIpAddress());
-                        real.setVmName(getEquipNameFromUuid(vm.getUuid()));
-                        real.setPorts(ports);
-                        real.setRevoked(destVM.isRevoked());
-
-                        GloboNetworkNetworkVO globoNetworkRealNetworkVO = _globoNetworkNetworkDao.findByNetworkId(destVM.getNetworkId());
-                        if (globoNetworkRealNetworkVO == null) {
-                            throw new InvalidParameterValueException("Could not obtain mapping for network " + destVM.getNetworkId() + " and VM " + destVM.getInstanceId()
-                                    + " in GloboNetwork.");
-                        }
-                        real.setEnvironmentId(globoNetworkRealNetworkVO.getGloboNetworkEnvironmentId());
-                        realList.add(real);
-
-                        if (destVM.isRevoked()) {
-                            revokeAnyVM = true;
-                        }
-                    } else {
-                        throw new InvalidParameterValueException("Could not find VM with id " + destVM.getInstanceId());
-                    }
-                }
-            }
-
-            if (isDnsProviderEnabledFor(network)) {
-                manageLoadBalancerDomainNameRegistry(network, rule, revokeAnyVM);
-            } else {
-                s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
-            }
+            Account account = _accountMgr.getAccount(network.getAccountId());
 
             if(rule.getState().equals(FirewallRule.State.Revoke)){
-                final RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
-                cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
-                cmd.setKeepIp(true);
-                _globoResourceConfigurationDao.removeConfigurations(rule.getUuid(), GloboResourceType.LOAD_BALANCER);
-                this.callCommand(cmd, network.getDataCenterId());
-
-                gnIpDetail.setGloboNetworkVipId(null);
-                _globoNetworkIpDetailDao.persist(gnIpDetail);
+                removeLBFromGloboNetwork(network, rule, globoNetworkIpDetail);
             }else{
-                final ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
-                cmd.setRegion(GloboNetworkRegion.value());
-                buildHealthcheck(cmd, rule);
-
-                // Vip Id null means new vip, otherwise vip will be updated.
-                cmd.setVipId(gnIpDetail.getGloboNetworkVipId());
-                // VIP infos
-                cmd.setHost(rule.getName());
-                cmd.setCache(rule.getCache());
-                cmd.setServiceDownAction(rule.getServiceDownAction());
-                cmd.setHealthCheckDestination(rule.getHealthcheckDestination());
-
-                cmd.setIpv4(rule.getSourceIp().addr());
-                cmd.setVipEnvironmentId(gnLbNetworkVO.getGloboNetworkLoadBalancerEnvironmentId());
-                cmd.setPorts(ports);
-                cmd.setBusinessArea(account.getAccountName());
-                cmd.setServiceName(rule.getName());
-
-                // Options and parameters
-                cmd.setMethodBal(rule.getAlgorithm());
-                cmd.setPersistencePolicy(rule.getStickinessPolicies() == null || rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
-                cmd.setRuleState(rule.getState());
-
-                // Reals infos
-                cmd.setRealList(realList);
-
-                GloboNetworkVipResponse answer = (GloboNetworkVipResponse)this.callCommand(cmd, network.getDataCenterId());
-
-                if (gnIpDetail.getGloboNetworkVipId() == null) {
-                    // persist vip id information if not set
-                    GloboNetworkVipResponse vipResponse = (GloboNetworkVipResponse) answer;
-
-                    gnIpDetail.setGloboNetworkVipId(vipResponse.getId());
-                    _globoNetworkIpDetailDao.persist(gnIpDetail);
-                }
+                saveLBInGloboNetwork(network, rule, account, globoNetworkIpDetail, lbEnvironment);
             }
         } catch (Exception e) {
-            // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions
-            // only show 'error'
+            // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions only show 'error'
             throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId(), e);
         } finally {
             if (lock != null && lock.isHeldByCurrentThread()) {
@@ -2127,6 +2015,121 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         }
 
         return true;
+    }
+
+    private void saveLBInGloboNetwork(Network network, LoadBalancingRule rule, Account account, GloboNetworkIpDetailVO globoNetworkIpDetail, GloboNetworkLoadBalancerEnvironment lbEnvironment) throws ResourceUnavailableException {
+        validateSticknessPolicy(rule);
+        validateHealthCheckPolicies(rule);
+        List<String> ports = getServicePorts(rule);
+        List<Real> realList = getReals(rule, ports);
+
+        if (isDnsProviderEnabledFor(network)) {
+            manageLoadBalancerDomainNameRegistry(network, rule);
+        } else {
+            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
+
+        final ApplyVipInGloboNetworkCommand cmd = createApplyVipInGloboNetworkCommand(rule, account, globoNetworkIpDetail, lbEnvironment, ports, realList);
+
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) this.callCommand(cmd, network.getDataCenterId());
+        if (globoNetworkIpDetail.getGloboNetworkVipId() == null) {
+            globoNetworkIpDetail.setGloboNetworkVipId(answer.getId());
+            _globoNetworkIpDetailDao.persist(globoNetworkIpDetail);
+        }
+    }
+
+    protected void validateSticknessPolicy(LoadBalancingRule rule) {
+        if (rule.getStickinessPolicies() == null || rule.getStickinessPolicies().size() > 1) {
+            throw new InvalidParameterValueException("Invalid stickness policy, list should contain only one");
+        }
+    }
+
+    protected void validateHealthCheckPolicies(LoadBalancingRule rule) {
+        if (rule.getHealthCheckPolicies() != null) {
+            int numberOfpolicies = 0;
+            for (LbHealthCheckPolicy healthcheckpolicy : rule.getHealthCheckPolicies()) {
+                if (!healthcheckpolicy.isRevoked()) {
+                    numberOfpolicies++;
+                }
+            }
+            if (numberOfpolicies > 1) {
+                throw new InvalidParameterValueException("Invalid healthcheck policy, list should contain at maximum one");
+            }
+        }
+    }
+
+    protected List<String> getServicePorts(LoadBalancingRule rule) {
+        List<String> ports = new ArrayList<>();
+        ports.add(rule.getSourcePortStart() + ":" + rule.getDefaultPortStart());
+        if (rule.getAdditionalPortMap() != null) {
+            ports.addAll(rule.getAdditionalPortMap());
+        }
+        return ports;
+    }
+
+    protected List<Real> getReals(LoadBalancingRule rule, List<String> ports) {
+        List<Real> realList = new ArrayList<>();
+        if(rule.getDestinations() != null) {
+            for (LbDestination destination : rule.getDestinations()) {
+                VMInstanceVO vm = _vmDao.findById(destination.getInstanceId());
+                if (vm != null) {
+                    Real real = new Real();
+                    real.setIp(destination.getIpAddress());
+                    real.setVmName(getEquipNameFromUuid(vm.getUuid()));
+                    real.setPorts(ports);
+                    real.setRevoked(destination.isRevoked());
+
+                    GloboNetworkNetworkVO destinationNetwork = _globoNetworkNetworkDao.findByNetworkId(destination.getNetworkId());
+                    if (destinationNetwork == null) {
+                        throw new InvalidParameterValueException("Could not obtain mapping for network " + destination.getNetworkId() + " and VM " + destination.getInstanceId() + " in GloboNetwork.");
+                    }
+                    real.setEnvironmentId(destinationNetwork.getGloboNetworkEnvironmentId());
+                    realList.add(real);
+                } else {
+                    throw new InvalidParameterValueException("Could not find VM with id " + destination.getInstanceId());
+                }
+            }
+        }
+        return realList;
+    }
+
+    protected ApplyVipInGloboNetworkCommand createApplyVipInGloboNetworkCommand(LoadBalancingRule rule, Account account, GloboNetworkIpDetailVO globoNetworkIpDetail, GloboNetworkLoadBalancerEnvironment lbEnvironment, List<String> ports, List<Real> realList) {
+        final ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
+        cmd.setRegion(GloboNetworkRegion.value());
+        buildHealthcheck(cmd, rule);
+
+        cmd.setVipId(globoNetworkIpDetail.getGloboNetworkVipId()); // Vip Id null means new vip, otherwise vip will be updated.
+        cmd.setHost(rule.getName());
+        cmd.setCache(rule.getCache());
+        cmd.setServiceDownAction(rule.getServiceDownAction());
+        cmd.setHealthCheckDestination(rule.getHealthcheckDestination());
+        cmd.setIpv4(rule.getSourceIp().addr());
+        cmd.setVipEnvironmentId(lbEnvironment.getGloboNetworkLoadBalancerEnvironmentId());
+        cmd.setPorts(ports);
+        cmd.setBusinessArea(account.getAccountName());
+        cmd.setServiceName(rule.getName());
+        cmd.setMethodBal(rule.getAlgorithm());
+        cmd.setPersistencePolicy(rule.getStickinessPolicies() == null || rule.getStickinessPolicies().isEmpty() ? null : rule.getStickinessPolicies().get(0));
+        cmd.setRuleState(rule.getState());
+        cmd.setRealList(realList);
+        return cmd;
+    }
+
+    private void removeLBFromGloboNetwork(Network network, LoadBalancingRule rule, GloboNetworkIpDetailVO globoNetworkIpDetail) throws ResourceUnavailableException {
+        if (isDnsProviderEnabledFor(network)) {
+            manageLoadBalancerDomainNameRegistry(network, rule);
+        } else {
+            s_logger.warn("Creating Load Balancer without registering DNS because network offering does not have GloboDNS as provider");
+        }
+
+        final RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
+        cmd.setVipId(globoNetworkIpDetail.getGloboNetworkVipId());
+        cmd.setKeepIp(true);
+        _globoResourceConfigurationDao.removeConfigurations(rule.getUuid(), GloboResourceType.LOAD_BALANCER);
+        this.callCommand(cmd, network.getDataCenterId());
+
+        globoNetworkIpDetail.setGloboNetworkVipId(null);
+        _globoNetworkIpDetailDao.persist(globoNetworkIpDetail);
     }
 
     private void buildHealthcheck(ApplyVipInGloboNetworkCommand cmd, LoadBalancingRule rule) {
@@ -2184,13 +2187,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
     @Override
     public void registerDnsForResource(String uuid, GloboResourceType resourceType) {
-
         if (GloboResourceType.LOAD_BALANCER.equals(resourceType)){
             registerLoadbalancerDomainName(uuid);
         } else if (GloboResourceType.VM_NIC.equals(resourceType)) {
             registerNicVmDomain(uuid);
         }
-
     }
 
     private void registerNicVmDomain(String uuid) {
@@ -2225,7 +2226,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return null;
     }
 
-    protected void manageLoadBalancerDomainNameRegistry(Network network, LoadBalancingRule rule, boolean revokeAnyVM) throws ResourceUnavailableException {
+    protected void manageLoadBalancerDomainNameRegistry(Network network, LoadBalancingRule rule) throws ResourceUnavailableException {
         try {
             GloboResourceConfigurationVO skipDnsErrorCmd = _globoResourceConfigurationDao.getFirst(GloboResourceType.LOAD_BALANCER, rule.getUuid(), GloboResourceKey.skipDnsError);
             boolean skipDnsError = skipDnsErrorCmd != null ? skipDnsErrorCmd.getBooleanValue() : false;
@@ -2239,9 +2240,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             String lbRecord = getLbRecord(rule.getName(), lbDomain);
 
-            if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active) && !revokeAnyVM) {
-                if (_globoDnsService. validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId(), skipDnsError)) {
-//                    LoadBalancerVO lb = this._loadBalancerDao.findByUuid(rule.getUuid());
+            if ((rule.getState() == FirewallRule.State.Add || rule.getState() == FirewallRule.State.Active)) {
+                if (_globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, rule.getSourceIp().addr(), network.getDataCenterId(), skipDnsError)) {
                     GloboDnsTO globoDns = new GloboDnsTO(network.getDataCenterId(), rule.getUuid(), lbRecord, lbDomain, rule.getSourceIp().addr());
                     _globoDnsService.createDnsRecordForLoadBalancer(globoDns, skipDnsError);
                 }

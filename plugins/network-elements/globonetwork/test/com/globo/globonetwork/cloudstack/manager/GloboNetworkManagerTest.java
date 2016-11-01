@@ -17,12 +17,14 @@
 package com.globo.globonetwork.cloudstack.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyMapOf;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doReturn;
@@ -32,23 +34,32 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.cloud.exception.ResourceUnavailableException;
 import com.cloud.host.Status;
+import com.cloud.hypervisor.Hypervisor;
 import com.cloud.network.dao.IPAddressVO;
+import com.cloud.network.dao.LoadBalancerOptionsDao;
+import com.cloud.network.dao.LoadBalancerOptionsVO;
+import com.cloud.network.rules.FirewallRule;
 import com.cloud.network.rules.LoadBalancer;
 import com.cloud.utils.net.Ip;
+import com.cloud.vm.VMInstanceVO;
+import com.cloud.vm.VirtualMachine;
+import com.globo.globodns.cloudstack.element.GloboDnsTO;
 import com.globo.globonetwork.cloudstack.GloboNetworkIpDetailVO;
+import com.globo.globonetwork.cloudstack.commands.ApplyVipInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.commands.GetPoolLBByIdCommand;
 import com.globo.globonetwork.cloudstack.commands.ListPoolLBCommand;
 import com.globo.globonetwork.cloudstack.commands.UpdatePoolCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
-import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import com.cloud.network.Network;
-import com.cloud.network.dao.LoadBalancerPortMapDao;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.NetworkVO;
 import com.cloud.network.lb.LoadBalancingRule;
@@ -63,43 +74,28 @@ import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.commands.RemoveNetworkInGloboNetworkCommand;
 import com.globo.globonetwork.cloudstack.exception.CloudstackGloboNetworkException;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
+import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import org.apache.cloudstack.acl.ControlledEntity.ACLType;
 import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.engine.orchestration.service.NetworkOrchestrationService;
 import org.apache.cloudstack.framework.config.ConfigKey;
 import org.apache.cloudstack.framework.config.dao.ConfigurationDao;
 import org.apache.cloudstack.framework.config.impl.ConfigDepotImpl;
 import org.apache.cloudstack.framework.config.impl.ConfigurationVO;
-import org.apache.cloudstack.region.PortableIpDao;
-import org.apache.cloudstack.region.PortableIpRangeDao;
-import org.apache.cloudstack.test.utils.SpringUtils;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationDao;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.owasp.esapi.waf.ConfigurationException;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ComponentScan.Filter;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.core.type.classreading.MetadataReader;
-import org.springframework.core.type.classreading.MetadataReaderFactory;
-import org.springframework.core.type.filter.TypeFilter;
 
 import com.cloud.agent.AgentManager;
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
-import com.cloud.configuration.ConfigurationManager;
 import com.cloud.dc.DataCenterVO;
 import com.cloud.dc.dao.DataCenterDao;
-import com.cloud.dc.dao.HostPodDao;
-import com.cloud.dc.dao.VlanDao;
-import com.cloud.domain.dao.DomainDao;
 import com.cloud.exception.CloudException;
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.exception.PermissionDeniedException;
@@ -107,30 +103,20 @@ import com.cloud.exception.ResourceAllocationException;
 import com.cloud.host.Host;
 import com.cloud.host.HostVO;
 import com.cloud.host.dao.HostDao;
-import com.cloud.network.IpAddressManager;
 import com.cloud.network.Network.Provider;
 import com.cloud.network.NetworkModel;
-import com.cloud.network.NetworkService;
 import com.cloud.network.dao.IPAddressDao;
-import com.cloud.network.dao.UserIpv6AddressDao;
-import com.cloud.network.dao.NetworkDao;
-import com.cloud.network.dao.NetworkServiceMapDao;
 import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.lb.LoadBalancingRulesManager;
 import com.cloud.network.lb.LoadBalancingRulesService;
-import com.cloud.offerings.dao.NetworkOfferingDao;
-import com.cloud.projects.ProjectManager;
 import com.cloud.resource.ResourceManager;
 import com.cloud.resource.ServerResource;
 import com.cloud.user.Account;
 import com.cloud.user.AccountManager;
 import com.cloud.user.AccountVO;
-import com.cloud.user.DomainManager;
 import com.cloud.user.UserVO;
-import com.cloud.user.dao.UserDao;
 import com.cloud.utils.db.TransactionLegacy;
-import com.cloud.vm.dao.NicDao;
 import com.cloud.vm.dao.VMInstanceDao;
 import com.globo.globodns.cloudstack.element.GloboDnsElementService;
 import com.globo.globonetwork.cloudstack.GloboNetworkEnvironmentVO;
@@ -140,21 +126,20 @@ import com.globo.globonetwork.cloudstack.dao.GloboNetworkEnvironmentDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkIpDetailDao;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkLoadBalancerEnvironmentDAO;
 import com.globo.globonetwork.cloudstack.dao.GloboNetworkNetworkDao;
-import com.globo.globonetwork.cloudstack.dao.GloboNetworkVipAccDao;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVlanResponse;
 
 public class GloboNetworkManagerTest {
 
-    private static long zoneId = 5L;
-    private static long networkOfferingId = 10L;
-    private static long globoNetworkEnvironmentId = 120L;
-    private static long physicalNetworkId = 200L;
-    private static long globoNetworkHostId = 7L;
-    private static long domainId = 10L;
+    private static final long zoneId = 5L;
+    private static final long networkOfferingId = 10L;
+    private static final long globoNetworkEnvironmentId = 120L;
+    private static final long physicalNetworkId = 200L;
+    private static final long globoNetworkHostId = 7L;
+    private static final long domainId = 10L;
     private AccountVO acct = null;
     private UserVO user = null;
 
-    GloboNetworkManager _globoNetworkService;
+    private GloboNetworkManager _globoNetworkService;
 
     @Mock
     DataCenterDao _dcDao;
@@ -170,6 +155,9 @@ public class GloboNetworkManagerTest {
 
     @Mock
     GloboNetworkNetworkDao _globoNetworkNetworkDao;
+
+    @Mock
+    VMInstanceDao _vmDao;
 
     @Mock
     NetworkModel _networkManager;
@@ -189,9 +177,20 @@ public class GloboNetworkManagerTest {
     @Mock
     AccountManager _acctMgr;
 
-    @BeforeClass
-    public static void setUp() throws ConfigurationException {
-    }
+    @Mock
+    GloboNetworkIpDetailDao _globoNetworkIpDetailDao;
+
+    @Mock
+    IPAddressDao _ipAddrDao;
+
+    @Mock
+    LoadBalancerOptionsDao _lbOptionsDao;
+
+    @Mock
+    GloboResourceConfigurationDao _globoResourceConfigurationDao;
+
+    @Mock
+    GloboDnsElementService _globoDnsService;
 
     @Before
     public void testSetUp() {
@@ -212,12 +211,18 @@ public class GloboNetworkManagerTest {
         _globoNetworkService._globoNetworkEnvironmentDao = _globoNetworkEnvironmentDao;
         _globoNetworkService._globoNetworkLBEnvironmentDao = _globoNetworkLBEnvironmentDao;
         _globoNetworkService._globoNetworkNetworkDao = _globoNetworkNetworkDao;
+        _globoNetworkService._vmDao = _vmDao;
         _globoNetworkService._networkManager = _networkManager;
         _globoNetworkService._hostDao = _hostDao;
         _globoNetworkService._configDao = _configDao;
         _globoNetworkService._agentMgr = _agentMgr;
         _globoNetworkService._resourceMgr = _resourceMgr;
         _globoNetworkService._accountMgr = _acctMgr;
+        _globoNetworkService._ipAddrDao = _ipAddrDao;
+        _globoNetworkService._globoNetworkIpDetailDao = _globoNetworkIpDetailDao;
+        _globoNetworkService._lbOptionsDao = _lbOptionsDao;
+        _globoNetworkService._globoResourceConfigurationDao = _globoResourceConfigurationDao;
+        _globoNetworkService._globoDnsService = _globoDnsService;
 
         CallContext.register(user, acct);
         when(_acctMgr.getSystemAccount()).thenReturn(this.acct);
@@ -236,7 +241,7 @@ public class GloboNetworkManagerTest {
         DataCenterVO dc = new DataCenterVO(0L, null, null, null, null, null, null, null, null, null, null, null, null);
         when(_dcDao.findById(anyLong())).thenReturn(dc);
 
-        List<PhysicalNetworkVO> pNtwList = new ArrayList<PhysicalNetworkVO>();
+        List<PhysicalNetworkVO> pNtwList = new ArrayList<>();
         pNtwList.add(new PhysicalNetworkVO(physicalNetworkId, zoneId, null, null, null, null, null));
         when(_physicalNetworkDao.listByZone(zoneId)).thenReturn(pNtwList);
         String networkName = "MockTestNetwork";
@@ -278,26 +283,14 @@ public class GloboNetworkManagerTest {
 
     @Test(expected = InvalidParameterValueException.class)
     public void addGloboNetworkHostInvalidParameters() throws CloudException {
-
-        String username = null;
-        String password = null;
-        String url = null;
-
         CallContext.register(user, acct);
-
-        _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
+        _globoNetworkService.addGloboNetworkHost(physicalNetworkId, null, null, null);
     }
 
     @Test(expected = InvalidParameterValueException.class)
     public void addGloboNetworkHostEmptyParameters() throws CloudException {
-
-        String username = "";
-        String password = "";
-        String url = "";
-
         CallContext.register(user, acct);
-
-        _globoNetworkService.addGloboNetworkHost(physicalNetworkId, username, password, url);
+        _globoNetworkService.addGloboNetworkHost(physicalNetworkId, "", "", "");
     }
 
     @Test
@@ -341,7 +334,7 @@ public class GloboNetworkManagerTest {
     @Test
     public void testLbPortMapValidationWithOneAdditionalPortMap() {
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "443:8443" }));
+        loadBalancingRule.setAdditionalPortMap(Collections.singletonList("443:8443"));
 
         try {
             new GloboNetworkManager().validatePortMaps(loadBalancingRule);
@@ -353,7 +346,7 @@ public class GloboNetworkManagerTest {
     @Test
     public void testLbPortMapValidationWithMoreThanOneAdditionalPortMap() {
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "443:8443", "22:22" }));
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList("443:8443", "22:22"));
 
         try {
             new GloboNetworkManager().validatePortMaps(loadBalancingRule);
@@ -365,7 +358,7 @@ public class GloboNetworkManagerTest {
     @Test(expected=InvalidParameterValueException.class)
     public void testLbPortMapValidationWithAdditionalPortMapEqualsMainPortMap() {
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "80:8080" }));
+        loadBalancingRule.setAdditionalPortMap(Collections.singletonList("80:8080"));
 
         new GloboNetworkManager().validatePortMaps(loadBalancingRule);
         fail();
@@ -374,7 +367,7 @@ public class GloboNetworkManagerTest {
     @Test(expected=InvalidParameterValueException.class)
     public void testLbPortMapValidationWithDuplicatedAdditionalPortMap() {
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "443:8443", "443:8443" }));
+        loadBalancingRule.setAdditionalPortMap(Arrays.asList("443:8443", "443:8443"));
 
         new GloboNetworkManager().validatePortMaps(loadBalancingRule);
         fail();
@@ -383,7 +376,7 @@ public class GloboNetworkManagerTest {
     @Test(expected=InvalidParameterValueException.class)
     public void testLbPortMapValidationWithNoPrivatePort() {
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "80:" }));
+        loadBalancingRule.setAdditionalPortMap(Collections.singletonList("80:"));
 
         new GloboNetworkManager().validatePortMaps(loadBalancingRule);
         fail();
@@ -393,7 +386,7 @@ public class GloboNetworkManagerTest {
     public void testLbPortMapValidationWithInvalidPortMapFormat() {
         GloboNetworkManager globoNetworkManager = new GloboNetworkManager();
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "----" }));
+        loadBalancingRule.setAdditionalPortMap(Collections.singletonList("----"));
 
         globoNetworkManager.validatePortMaps(loadBalancingRule);
         fail();
@@ -403,7 +396,7 @@ public class GloboNetworkManagerTest {
     public void testLbPortMapValidationWithEmptyPortMapValue() {
         GloboNetworkManager globoNetworkManager = new GloboNetworkManager();
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "" }));
+        loadBalancingRule.setAdditionalPortMap(Collections.singletonList(""));
 
         globoNetworkManager.validatePortMaps(loadBalancingRule);
         fail();
@@ -413,7 +406,7 @@ public class GloboNetworkManagerTest {
     public void testLbPortMapValidationWithNotNumericValue() {
         GloboNetworkManager globoNetworkManager = new GloboNetworkManager();
         LoadBalancingRule loadBalancingRule = createLoadBalancerRule();
-        loadBalancingRule.setAdditionalPortMap(Arrays.asList(new String[] { "abc:abc" }));
+        loadBalancingRule.setAdditionalPortMap(Collections.singletonList("abc:abc"));
 
         globoNetworkManager.validatePortMaps(loadBalancingRule);
         fail();
@@ -424,7 +417,7 @@ public class GloboNetworkManagerTest {
         NetworkVO network = new NetworkVO();
         GloboNetworkPoolOptionResponse.PoolOption option = new GloboNetworkPoolOptionResponse.PoolOption(1L, "reset");
         when(_globoNetworkService._globoNetworkLBEnvironmentDao.findById(45L)).thenReturn(new GloboNetworkLoadBalancerEnvironment());
-        mockAgentManagerSend(network, ListPoolOptionsCommand.class, new GloboNetworkPoolOptionResponse(null, Arrays.asList(option)));
+        mockAgentManagerSend(network, ListPoolOptionsCommand.class, new GloboNetworkPoolOptionResponse(null, Collections.singletonList(option)));
 
         List<GloboNetworkPoolOptionResponse.PoolOption> poolOptions = _globoNetworkService.listPoolOptions(45L, network.getId(), "ServiceDownAction");
         assertEquals(1, poolOptions.size());
@@ -509,8 +502,7 @@ public class GloboNetworkManagerTest {
     @Test
     public void testImplementNetwork() throws javax.naming.ConfigurationException {
         Network network = new NetworkVO();
-        Boolean VLAN_ACTIVATED = false;
-        GloboNetworkVlanResponse vlanResponse = new GloboNetworkVlanResponse(new GetVlanInfoFromGloboNetworkCommand(), 1l,  "vlan", "vlandesc", 1l, "172.20.1.0", "255.255.255.0", 1L, VLAN_ACTIVATED, 24, false);
+        GloboNetworkVlanResponse vlanResponse = new GloboNetworkVlanResponse(new GetVlanInfoFromGloboNetworkCommand(), 1L,  "vlan", "vlandesc", 1L, "172.20.1.0", "255.255.255.0", 1L, false, 24, false);
         GloboNetworkNetworkVO globoNetwork = new GloboNetworkNetworkVO(1L, 1L, 1L);
 
         when(_globoNetworkService._globoNetworkNetworkDao.findByNetworkId(network.getId())).thenReturn(globoNetwork);
@@ -531,8 +523,7 @@ public class GloboNetworkManagerTest {
     @Test
     public void testImplementNetworkGivenVlanAlreadyActivated() throws javax.naming.ConfigurationException {
         Network network = new NetworkVO();
-        Boolean VLAN_ACTIVATED = true;
-        GloboNetworkVlanResponse vlanResponse = new GloboNetworkVlanResponse(new GetVlanInfoFromGloboNetworkCommand(), 1l,  "vlan", "vlandesc", 1l, "172.20.1.0", "255.255.255.0", 1L, VLAN_ACTIVATED, 24, false);
+        GloboNetworkVlanResponse vlanResponse = new GloboNetworkVlanResponse(new GetVlanInfoFromGloboNetworkCommand(), 1L,  "vlan", "vlandesc", 1L, "172.20.1.0", "255.255.255.0", 1L, true, 24, false);
         GloboNetworkNetworkVO globoNetwork = new GloboNetworkNetworkVO(1L, 1L, 1L);
 
         when(_globoNetworkService._globoNetworkNetworkDao.findByNetworkId(network.getId())).thenReturn(globoNetwork);
@@ -547,7 +538,7 @@ public class GloboNetworkManagerTest {
     public void testRemoveNetwork(){
         Network network = new NetworkVO();
         Vlan vlan = new Vlan();
-        GloboNetworkVlanResponse vlanResponse = new GloboNetworkVlanResponse(new GetVlanInfoFromGloboNetworkCommand(), 1l,  "vlan", "vlandesc", 1l, "172.20.1.0", "255.255.255.0", 1L, true, 24, false);
+        GloboNetworkVlanResponse vlanResponse = new GloboNetworkVlanResponse(new GetVlanInfoFromGloboNetworkCommand(), 1L,  "vlan", "vlandesc", 1L, "172.20.1.0", "255.255.255.0", 1L, true, 24, false);
 
         doReturn(vlan).when(_globoNetworkService).getVlanInfoFromGloboNetwork(network);
         doReturn(vlanResponse).when(_globoNetworkService).getVlanFromGloboNetwork(network, vlan.getId());
@@ -570,17 +561,17 @@ public class GloboNetworkManagerTest {
 
         HostDao mock = mock(HostDao.class);
         HostVO host = createMockHost();
-        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
+        when(mock.findByTypeNameAndZoneId(10L, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
         manager._hostDao = mock;
 
 
         LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
-        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
+        LoadBalancerVO lb = new LoadBalancerVO(null,null,null, 0L,0,0,null, 10, 0L, 0L,"");
 
-        when(lbServiceMock.findById(123l)).thenReturn(lb);
+        when(lbServiceMock.findById(123L)).thenReturn(lb);
         manager._lbService = lbServiceMock;
 
-        mockGetNetworkApiVipIp(lb, manager, 10001l);
+        mockGetNetworkApiVipIp(lb, manager, 10001L);
 
         AgentManager mockAgent = mock(AgentManager.class);
 
@@ -592,17 +583,17 @@ public class GloboNetworkManagerTest {
         when(mockAgent.easySend(eq(host.getId()), any(ListPoolLBCommand.class))).thenReturn(poolResponseAnswer);
         manager._agentMgr = mockAgent;
 
-        List<GloboNetworkPoolResponse.Pool> poolResponses = manager.listAllPoolByVipId(123l, 10l);
+        List<GloboNetworkPoolResponse.Pool> poolResponses = manager.listAllPoolByVipId(123L, 10L);
 
         assertEquals(2, poolResponses.size());
         GloboNetworkPoolResponse.Pool pool = poolResponses.get(0);
-        assertEquals((Long)123l, pool.getId());
+        assertEquals((Long) 123L, pool.getId());
         assertEquals("my_pool", pool.getIdentifier());
         assertEquals("leastcon", pool.getLbMethod());
         assertEquals((Integer)80, pool.getPort());
 
         pool = poolResponses.get(1);
-        assertEquals((Long)123l, pool.getId());
+        assertEquals((Long) 123L, pool.getId());
         assertEquals("my_pool_2", pool.getIdentifier());
         assertEquals("round", pool.getLbMethod());
         assertEquals((Integer)8090, pool.getPort());
@@ -628,111 +619,59 @@ public class GloboNetworkManagerTest {
         String anotherLbDomain = _globoNetworkService.getLbDomain("xpto2.stagging.test.com");
         assertEquals(anotherLbDomain, "stagging.test.com");
     }
-//
-//    @Test
-//    public void testRegisterLoadBalancerDomainName() throws Exception {
-//        GloboNetworkManager manager = new GloboNetworkManager();
-//
-//        HostDao mock = mock(HostDao.class);
-//        HostVO host = createMockHost();
-//        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
-//        manager._hostDao = mock;
-//
-//
-//        LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
-//        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
-//        lb.setUuid("123123");
-//        when(lbServiceMock.findById(123l)).thenReturn(lb);
-//        manager._lbService = lbServiceMock;
-//
-//        mockGetNetworkApiVipIp(lb, manager, 10001l);
-//
-//        AgentManager mockAgent = mock(AgentManager.class);
-//
-//
-//        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 123l, "TCP");
-//        GloboNetworkPoolResponse poolResponseAnswer = new GloboNetworkPoolResponse(pool1);
-//
-//
-//        when(mockAgent.easySend(eq(host.getId()), any(GetPoolLBByIdCommand.class))).thenReturn(poolResponseAnswer);
-//        manager._agentMgr = mockAgent;
-//
-//        Network networkMock = mock(NetworkVO.class);
-//        when(networkMock.getDataCenterId()).thenReturn(123L);
-//
-//        LoadBalancingRule ruleMock = mock(LoadBalancingRule.class);
-//        when(ruleMock.getState()).thenReturn(FirewallRule.State.Add);
-//        Ip ipMock = mock(Ip.class);
-//        when(ipMock.addr()).thenReturn("0.0.0.0");
-//        when(ruleMock.getSourceIp()).thenReturn(ipMock);
-//
-//        String lbDomain = "";
-//        String lbRecord = "";
-//
-//        GloboDnsElementService globoDnsService = mock(GloboDnsElementService.class);
-//        when(globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, ipMock.addr(), networkMock.getDataCenterId(), false)).thenReturn(true);
-//        manager._globoDnsService = globoDnsService;
-//
-//        GloboResourceConfigurationDao globoRCDao = mock(GloboResourceConfigurationDao.class);
-//        when(globoRCDao.getConfiguration( GloboResourceType.LOAD_BALANCER, "123123",GloboResourceKey.isDNSRegistered)).thenReturn(new ArrayList<GloboResourceConfigurationVO>());
-//        manager._globoResourceConfigurationDao = globoRCDao;
-//        manager.registerLoadBalancerDomainName(lb, networkMock, ipMock, lbDomain, lbRecord, false);
-//    }
 
-//    @Test
-//    public void testRemoveLoadBalancerDomainName() throws Exception {
-//        GloboNetworkManager manager = new GloboNetworkManager();
-//
-//        HostDao mock = mock(HostDao.class);
-//        HostVO host = createMockHost();
-//        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
-//        manager._hostDao = mock;
-//
-//
-//        LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
-//        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
-//
-//        when(lbServiceMock.findById(123l)).thenReturn(lb);
-//        manager._lbService = lbServiceMock;
-//
-//        mockGetNetworkApiVipIp(lb, manager, 10001l);
-//
-//        AgentManager mockAgent = mock(AgentManager.class);
-//
-//
-//        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 123l, "TCP");
-//        GloboNetworkPoolResponse poolResponseAnswer = new GloboNetworkPoolResponse(pool1);
-//
-//
-//        when(mockAgent.easySend(eq(host.getId()), any(GetPoolLBByIdCommand.class))).thenReturn(poolResponseAnswer);
-//        manager._agentMgr = mockAgent;
-//
-//        Network networkMock = mock(NetworkVO.class);
-//        when(networkMock.getDataCenterId()).thenReturn(123L);
-//
-//        LoadBalancingRule ruleMock = mock(LoadBalancingRule.class);
-//        when(ruleMock.getState()).thenReturn(FirewallRule.State.Add);
-//        Ip ipMock = mock(Ip.class);
-//        when(ipMock.addr()).thenReturn("0.0.0.0");
-//        when(ruleMock.getSourceIp()).thenReturn(ipMock);
-//
-//        boolean revokeAnyVM = true;
-//        String lbDomain = "";
-//        String lbRecord = "";
-//
-//        GloboDnsElementService globoDnsService = mock(GloboDnsElementService.class);
-//        when(globoDnsService.validateDnsRecordForLoadBalancer(lbDomain, lbRecord, ipMock.addr(), networkMock.getDataCenterId())).thenReturn(true);
-//        manager._globoDnsService = globoDnsService;
-//        manager.manageLoadBalancerDomainNameRegistry(networkMock, ruleMock, revokeAnyVM);
-//    }
+    @Test
+    public void testRemoveLbDNSRecord() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", true);
+        registerConfigKey("globonetwork.lb.allowed.suffixes", "hmg.test.com,test.com,stagging.test.com");
 
-    private void registerConfigKey(String key, String valueMock) {
-        ConfigDepotImpl mock = mock(ConfigDepotImpl.class);
-        ConfigurationDao mockDAo = mock(ConfigurationDao.class);
+        _globoNetworkService.manageLoadBalancerDomainNameRegistry(new NetworkVO(), rule);
 
-        when(mock.global()).thenReturn(mockDAo);
-        when(mockDAo.findById(key)).thenReturn(new ConfigurationVO("Network", "String", null, key, valueMock, null));
-        ConfigKey.init(mock);
+        verify(_globoDnsService).removeDnsRecordForLoadBalancer(anyString(), anyString(), anyString(), anyString(), anyLong());
+    }
+
+    @Test
+    public void testRegisterDomainName() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+        registerConfigKey("globonetwork.lb.allowed.suffixes", "hmg.test.com,test.com,stagging.test.com");
+        when(_globoDnsService.validateDnsRecordForLoadBalancer(anyString(), anyString(), anyString(), anyLong(), eq(false))).thenReturn(true);
+
+        _globoNetworkService.manageLoadBalancerDomainNameRegistry(new NetworkVO(), rule);
+
+        verify(_globoDnsService).createDnsRecordForLoadBalancer(any(GloboDnsTO.class), eq(false));
+    }
+
+    @Test
+    public void testRegisterDomainNameGivenDomainRecordAlreadyRegistered() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+        registerConfigKey("globonetwork.lb.allowed.suffixes", "hmg.test.com,test.com,stagging.test.com");
+        when(_globoDnsService.validateDnsRecordForLoadBalancer(anyString(), anyString(), anyString(), anyLong(), eq(false))).thenReturn(false);
+
+        _globoNetworkService.manageLoadBalancerDomainNameRegistry(new NetworkVO(), rule);
+
+        verify(_globoDnsService, times(1)).validateDnsRecordForLoadBalancer(anyString(), anyString(), anyString(), anyLong(), eq(false));
+        verify(_globoDnsService, times(0)).createDnsRecordForLoadBalancer(any(GloboDnsTO.class), eq(false));
+    }
+
+    @Test(expected = CloudRuntimeException.class)
+    public void testRegisterDomainNameGivenDomainRecordNotValid() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+        registerConfigKey("globonetwork.lb.allowed.suffixes", "hmg.test.com,test.com,stagging.test.com");
+        when(_globoDnsService.validateDnsRecordForLoadBalancer(anyString(), anyString(), anyString(), anyLong(), eq(false))).thenThrow(new InvalidParameterValueException("invalid"));
+
+        _globoNetworkService.manageLoadBalancerDomainNameRegistry(new NetworkVO(), rule);
+
+        verify(_globoDnsService, times(1)).validateDnsRecordForLoadBalancer(anyString(), anyString(), anyString(), anyLong(), eq(false));
+        verify(_globoDnsService, times(0)).createDnsRecordForLoadBalancer(any(GloboDnsTO.class), eq(false));
+    }
+
+    @Test(expected = CloudRuntimeException.class)
+    public void testRegisterDomainNameGivenNotAllowedDomainSuffix() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.other.com", false);
+        registerConfigKey("globonetwork.lb.allowed.suffixes", "hmg.test.com,test.com,stagging.test.com");
+
+        _globoNetworkService.manageLoadBalancerDomainNameRegistry(new NetworkVO(), rule);
+        verify(_globoDnsService, times(0)).createDnsRecordForLoadBalancer(any(GloboDnsTO.class), eq(false));
     }
 
     @Test
@@ -741,49 +680,48 @@ public class GloboNetworkManagerTest {
 
         HostDao mock = mock(HostDao.class);
         HostVO host = createMockHost();
-        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
+        when(mock.findByTypeNameAndZoneId(10L, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
         manager._hostDao = mock;
 
 
         LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
-        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
+        LoadBalancerVO lb = new LoadBalancerVO(null,null,null, 0L,0,0,null, 10, 0L, 0L,"");
 
-        when(lbServiceMock.findById(123l)).thenReturn(lb);
+        when(lbServiceMock.findById(123L)).thenReturn(lb);
         manager._lbService = lbServiceMock;
 
-        mockGetNetworkApiVipIp(lb, manager, 10001l);
+        mockGetNetworkApiVipIp(lb, manager, 10001L);
 
         AgentManager mockAgent = mock(AgentManager.class);
 
 
-        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 123l, "TCP");
+        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 123L, "TCP");
         GloboNetworkPoolResponse poolResponseAnswer = new GloboNetworkPoolResponse(pool1);
 
 
         when(mockAgent.easySend(eq(host.getId()), any(GetPoolLBByIdCommand.class))).thenReturn(poolResponseAnswer);
         manager._agentMgr = mockAgent;
 
-        GloboNetworkPoolResponse.Pool pool = manager.getPoolById(123l, 10l);
+        GloboNetworkPoolResponse.Pool pool = manager.getPoolById(123L, 10L);
 
-        assertEquals((Long)123l, pool.getId());
+        assertEquals((Long) 123L, pool.getId());
         assertEquals("pool1", pool.getIdentifier());
         assertEquals("round", pool.getLbMethod());
         assertEquals((Integer)8080, pool.getPort());
-        assertEquals((Long)123l, pool.getId());
+        assertEquals((Long) 123L, pool.getId());
         assertEquals("TCP", pool.getHealthcheckType());
 
         verify(mockAgent, times(1)).easySend(eq(host.getId()), any(GetPoolLBByIdCommand.class));
     }
 
     private void mockGetNetworkApiVipIp(LoadBalancer lb, GloboNetworkManager manager, Long networkVipId) {
-
         LoadBalancingRulesManager lbMgrMock = mock(LoadBalancingRulesManager.class);
         Ip ip = new Ip("75.75.75.75");
         when(lbMgrMock.getSourceIp(lb)).thenReturn(ip);
         manager._lbMgr = lbMgrMock;
 
         IPAddressDao ipAddrMock  = mock(IPAddressDao.class);
-        IPAddressVO ipV0 = new IPAddressVO(ip, 0l, 0l, 0l, true);
+        IPAddressVO ipV0 = new IPAddressVO(ip, 0L, 0L, 0L, true);
         when(ipAddrMock.findByIpAndNetworkId(lb.getNetworkId(), ip.addr())).thenReturn(ipV0);
         manager._ipAddrDao = ipAddrMock;
 
@@ -792,7 +730,6 @@ public class GloboNetworkManagerTest {
         detail.setGloboNetworkVipId(networkVipId);
         when(_globoNetworkIpDetailMock.findByIp(anyLong())).thenReturn(detail);
         manager._globoNetworkIpDetailDao = _globoNetworkIpDetailMock;
-
     }
 
     @Test
@@ -801,45 +738,43 @@ public class GloboNetworkManagerTest {
 
         HostDao mock = mock(HostDao.class);
         HostVO host = createMockHost();
-        when(mock.findByTypeNameAndZoneId(10l, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
+        when(mock.findByTypeNameAndZoneId(10L, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
         manager._hostDao = mock;
 
         LoadBalancingRulesService lbServiceMock = mock(LoadBalancingRulesService.class);
-        LoadBalancerVO lb = new LoadBalancerVO(null,null,null,0l,0,0,null, 10, 0l,0l,"");
+        LoadBalancerVO lb = new LoadBalancerVO(null,null,null, 0L,0,0,null, 10, 0L, 0L,"");
 
-        when(lbServiceMock.findById(123l)).thenReturn(lb);
+        when(lbServiceMock.findById(123L)).thenReturn(lb);
         manager._lbService = lbServiceMock;
 
-        mockGetNetworkApiVipIp(lb, manager, 10001l);
+        mockGetNetworkApiVipIp(lb, manager, 10001L);
 
         AgentManager mockAgent = mock(AgentManager.class);
 
-
-        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 12l, "HTTP");
-        GloboNetworkPoolResponse.Pool pool2 = mockPool("pool2", "round", 8080, 13l, "HTTP");
+        GloboNetworkPoolResponse.Pool pool1 = mockPool("pool1", "round", 8080, 12L, "HTTP");
+        GloboNetworkPoolResponse.Pool pool2 = mockPool("pool2", "round", 8080, 13L, "HTTP");
 
         GloboNetworkPoolResponse poolResponseAnswer = new GloboNetworkPoolResponse(Arrays.asList(pool1, pool2));
         when(mockAgent.easySend(eq(host.getId()), any(UpdatePoolCommand.class))).thenReturn(poolResponseAnswer);
         manager._agentMgr = mockAgent;
 
-        List<GloboNetworkPoolResponse.Pool> pools = manager.updatePools(Arrays.asList(12l, 13l), 123l, 10l, "HTTP", "", "", 10);
+        List<GloboNetworkPoolResponse.Pool> pools = manager.updatePools(Arrays.asList(12L, 13L), 123L, 10L, "HTTP", "", "", 10);
 
         GloboNetworkPoolResponse.Pool pool = pools.get(0);
 
-        assertEquals((Long) 12l, pool.getId());
+        assertEquals((Long) 12L, pool.getId());
         assertEquals("HTTP", pool.getHealthcheckType());
 
         GloboNetworkPoolResponse.Pool pool22 = pools.get(1);
-        assertEquals((Long) 13l, pool22.getId());
+        assertEquals((Long) 13L, pool22.getId());
         assertEquals("HTTP", pool22.getHealthcheckType());
-
 
         verify(mockAgent, times(1)).easySend(eq(host.getId()), any(UpdatePoolCommand.class));
     }
 
     @Test
     public void testListAllExpectedHealthchecks() {
-        Long zoneId = 12l;
+        Long zoneId = 12L;
         GloboNetworkManager manager = new GloboNetworkManager();
 
         //mock sendEasy command
@@ -848,16 +783,15 @@ public class GloboNetworkManagerTest {
         when(mock.findByTypeNameAndZoneId(zoneId, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(host);
         manager._hostDao = mock;
 
-
         DataCenterDao mock2 = mock(DataCenterDao.class);
-        List<DataCenterVO> list = new ArrayList<DataCenterVO>();
+        List<DataCenterVO> list = new ArrayList<>();
         list.add(new DataCenterVO(zoneId, null, null, null, null, null, null, null, null, null, null, null, null));
         when(mock2.listEnabledZones()).thenReturn(list);
         manager._dcDao = mock2;
 
         //mock result
-        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect1 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(1l, "OK");
-        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect2 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(2l, "WORKING");
+        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect1 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(1L, "OK");
+        GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expect2 = new GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck(2L, "WORKING");
 
         AgentManager mockAgent = mock(AgentManager.class);
         GloboNetworkExpectHealthcheckResponse expectHealthcheckResponse = new GloboNetworkExpectHealthcheckResponse(Arrays.asList(expect1, expect2));
@@ -872,23 +806,243 @@ public class GloboNetworkManagerTest {
         assertEquals(2, expectedHealthcheckList.size());
 
         GloboNetworkExpectHealthcheckResponse.ExpectedHealthcheck expectedHealthcheck = expectedHealthcheckList.get(0);
-        assertEquals((Long)1l, expectedHealthcheck.getId());
+        assertEquals((Long) 1L, expectedHealthcheck.getId());
         assertEquals("OK", expectedHealthcheck.getExpected());
 
         expectedHealthcheck = expectedHealthcheckList.get(1);
-        assertEquals((Long)2l, expectedHealthcheck.getId());
+        assertEquals((Long) 2L, expectedHealthcheck.getId());
         assertEquals("WORKING", expectedHealthcheck.getExpected());
     }
 
+    @Test
+    public void testValidateStickinessPolicyGivenValidInput(){
+        List<LoadBalancingRule.LbStickinessPolicy> policies = Collections.singletonList(new LoadBalancingRule.LbStickinessPolicy(null, null, false));
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, policies, null, null);
+        new GloboNetworkManager().validateSticknessPolicy(rule);
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testValidateStickinessPolicyGivenNullPolicies(){
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, null, null, null);
+        new GloboNetworkManager().validateSticknessPolicy(rule);
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testValidateStickinessPolicyGivenMoreThanOnePolicy(){
+        List<LoadBalancingRule.LbStickinessPolicy> policies = new ArrayList<>();
+        policies.add(new LoadBalancingRule.LbStickinessPolicy(null, null, false));
+        policies.add(new LoadBalancingRule.LbStickinessPolicy(null, null, false));
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, policies, null, null);
+        new GloboNetworkManager().validateSticknessPolicy(rule);
+    }
+
+    @Test
+    public void testValidateHealthCheckPoliciesGivenNoPolicyProvided(){
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, null, null, null);
+        new GloboNetworkManager().validateHealthCheckPolicies(rule);
+    }
+
+    @Test
+    public void testValidateHealthCheckPoliciesGivenOnePolicy(){
+        List<LoadBalancingRule.LbHealthCheckPolicy> policies = Collections.singletonList(new LoadBalancingRule.LbHealthCheckPolicy(null, null, 10, 10, 10 , 10));
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, null, policies, null);
+        new GloboNetworkManager().validateHealthCheckPolicies(rule);
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testValidateHealthCheckPoliciesGivenMoreThanOneNotRevokedPolicies(){
+        List<LoadBalancingRule.LbHealthCheckPolicy> policies = new ArrayList<>();
+        policies.add(new LoadBalancingRule.LbHealthCheckPolicy(null, null, 10, 10, 10 , 10));
+        policies.add(new LoadBalancingRule.LbHealthCheckPolicy(null, null, 10, 10, 10 , 10));
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, null, policies, null);
+        new GloboNetworkManager().validateHealthCheckPolicies(rule);
+    }
+
+    @Test
+    public void testValidateHealthCheckPoliciesGivenTwoPoliciesAndOneRevokedPolicy(){
+        List<LoadBalancingRule.LbHealthCheckPolicy> policies = new ArrayList<>();
+        policies.add(new LoadBalancingRule.LbHealthCheckPolicy(null, null, 10, 10, 10 , 10));
+        policies.add(new LoadBalancingRule.LbHealthCheckPolicy(null, null, 10, 10, 10 , 10, true));
+        LoadBalancingRule rule = new LoadBalancingRule(null,  null, null, policies, null);
+        new GloboNetworkManager().validateHealthCheckPolicies(rule);
+    }
+
+    @Test
+    public void testGetServicePortsGivenOnlyOnePortPairProvided(){
+        LoadBalancerVO lb = new LoadBalancerVO(null, null, null, 1L, 80, 8080, null, 1L, 1L, 1L, null);
+        LoadBalancingRule rule = new LoadBalancingRule(lb,  null, null, null, null);
+        List<String> ports = new GloboNetworkManager().getServicePorts(rule);
+
+        assertEquals(1, ports.size());
+        assertEquals("80:8080", ports.get(0));
+    }
+
+    @Test
+    public void testGetServicePortsGivenTwoPortPairProvided(){
+        LoadBalancerVO lb = new LoadBalancerVO(null, null, null, 1L, 80, 8080, null, 1L, 1L, 1L, null);
+        LoadBalancingRule rule = new LoadBalancingRule(lb,  null, null, null, null);
+        rule.setAdditionalPortMap(Collections.singletonList("443:8443"));
+        List<String> ports = new GloboNetworkManager().getServicePorts(rule);
+
+        assertEquals(2, ports.size());
+        assertEquals("80:8080", ports.get(0));
+        assertEquals("443:8443", ports.get(1));
+    }
+
+    @Test
+    public void testGetReals(){
+        VMInstanceVO vm = new VMInstanceVO(1, 1, "vm-01", "vm-01", VirtualMachine.Type.Instance, 1L, Hypervisor.HypervisorType.Simulator, 1, 1, 1, false, true, 1L);
+        when(_vmDao.findById(1L)).thenReturn(vm);
+        GloboNetworkNetworkVO network = new GloboNetworkNetworkVO(1L, 2L, 3L);
+        when(_globoNetworkNetworkDao.findByNetworkId(1L)).thenReturn(network);
+
+        LoadBalancingRule.LbDestination destination = new LoadBalancingRule.LbDestination(80, 80, "10.170.100.1", 1L, 1L, false);
+        LoadBalancingRule rule = new LoadBalancingRule(null,  Collections.singletonList(destination), null, null, null);
+        List<GloboNetworkVipResponse.Real> reals = _globoNetworkService.getReals(rule, Collections.singletonList("80:8080"));
+
+        GloboNetworkVipResponse.Real real = reals.get(0);
+        assertEquals(1, reals.size());
+        assertEquals("10.170.100.1", real.getIp());
+        assertNotNull(real.getVmName());
+        assertEquals(Collections.singletonList("80:8080"), real.getPorts());
+        assertFalse(real.isRevoked());
+        assertEquals((Long) 3L, real.getEnvironmentId());
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testGetRealsGivenVmNotFound(){
+        when(_vmDao.findById(1L)).thenReturn(null);
+
+        LoadBalancingRule.LbDestination destination = new LoadBalancingRule.LbDestination(80, 80, "10.170.100.1", 1L, 1L, false);
+        LoadBalancingRule rule = new LoadBalancingRule(null,  Collections.singletonList(destination), null, null, null);
+         _globoNetworkService.getReals(rule, Collections.singletonList("80:8080"));
+    }
+
+    @Test(expected = InvalidParameterValueException.class)
+    public void testGetRealsGivenNetworkNotFound(){
+        VMInstanceVO vm = new VMInstanceVO(1, 1, "vm-01", "vm-01", VirtualMachine.Type.Instance, 1L, Hypervisor.HypervisorType.Simulator, 1, 1, 1, false, true, 1L);
+        when(_vmDao.findById(1L)).thenReturn(vm);
+        when(_globoNetworkNetworkDao.findByNetworkId(1L)).thenReturn(null);
+
+        LoadBalancingRule.LbDestination destination = new LoadBalancingRule.LbDestination(80, 80, "10.170.100.1", 1L, 1L, false);
+        LoadBalancingRule rule = new LoadBalancingRule(null,  Collections.singletonList(destination), null, null, null);
+         _globoNetworkService.getReals(rule, Collections.singletonList("80:8080"));
+    }
+
+    @Test
+    public void testGetRealsGivenNoDestinationsSet(){
+        LoadBalancingRule rule = new LoadBalancingRule(null, new ArrayList<LoadBalancingRule.LbDestination>(), null, null, null);
+        List<GloboNetworkVipResponse.Real> reals = _globoNetworkService.getReals(rule, Collections.singletonList("80:8080"));
+        assertEquals(0, reals.size());
+    }
+
+    @Test
+    public void testAddVip() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+
+        IPAddressVO ip = new IPAddressVO(new Ip(1L), 1L, 1L, 1L, false);
+        when(_ipAddrDao.findByIpAndNetworkId(anyLong(), anyString())).thenReturn(ip);
+
+        GloboNetworkIpDetailVO ipDetail = new GloboNetworkIpDetailVO() ;
+        ipDetail.setGloboNetworkEnvironmentRefId(1L);
+        when(_globoNetworkIpDetailDao.findByIp(anyLong())).thenReturn(ipDetail);
+
+        GloboNetworkLoadBalancerEnvironment lbEnv = new GloboNetworkLoadBalancerEnvironment();
+        when(_globoNetworkLBEnvironmentDao.findById(anyLong())).thenReturn(lbEnv);
+        when(_acctMgr.getAccount(anyLong())).thenReturn(acct);
+        when(_lbOptionsDao.listByLoadBalancerId(anyLong())).thenReturn(new ArrayList<LoadBalancerOptionsVO>());
+        HostVO napiHost = new HostVO(globoNetworkHostId, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, zoneId, null, 0L, 0L, null, null, null, 0L, null);
+        when(_hostDao.findByTypeNameAndZoneId(0L, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
+        GloboNetworkVipResponse response = new GloboNetworkVipResponse();
+        response.setId(1L);
+        when(_agentMgr.easySend(eq(globoNetworkHostId), any(ApplyVipInGloboNetworkCommand.class))).thenReturn(response);
+
+        assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
+        verify(_agentMgr).easySend(eq(globoNetworkHostId), any(ApplyVipInGloboNetworkCommand.class));
+        verify(_globoNetworkIpDetailDao).persist(any(GloboNetworkIpDetailVO.class));
+    }
+
+    @Test(expected = ResourceUnavailableException.class)
+    public void testAddVipGivenLBEnvNotFound() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+
+        IPAddressVO ip = new IPAddressVO(new Ip(1L), 1L, 1L, 1L, false);
+        when(_ipAddrDao.findByIpAndNetworkId(anyLong(), anyString())).thenReturn(ip);
+
+        GloboNetworkIpDetailVO ipDetail = new GloboNetworkIpDetailVO() ;
+        ipDetail.setGloboNetworkEnvironmentRefId(1L);
+        when(_globoNetworkIpDetailDao.findByIp(anyLong())).thenReturn(ipDetail);
+
+        when(_globoNetworkLBEnvironmentDao.findById(anyLong())).thenReturn(null);
+
+        assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
+    }
+
+    @Test(expected = ResourceUnavailableException.class)
+    public void testAddVipGivenIPDetailNotFound() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+
+        IPAddressVO ip = new IPAddressVO(new Ip(1L), 1L, 1L, 1L, false);
+        when(_ipAddrDao.findByIpAndNetworkId(anyLong(), anyString())).thenReturn(ip);
+        when(_globoNetworkIpDetailDao.findByIp(anyLong())).thenReturn(null);
+
+        assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
+    }
+
+    @Test(expected = ResourceUnavailableException.class)
+    public void testAddVipGivenIPAddressNotFound() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
+        when(_ipAddrDao.findByIpAndNetworkId(anyLong(), anyString())).thenReturn(null);
+        assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
+    }
+
+    @Test
+    public void testRemoveVip() throws ResourceUnavailableException {
+        LoadBalancingRule rule = createMockLbRule("dummy.test.com", true);
+
+        IPAddressVO ip = new IPAddressVO(new Ip(1L), 1L, 1L, 1L, false);
+        when(_ipAddrDao.findByIpAndNetworkId(anyLong(), anyString())).thenReturn(ip);
+
+        GloboNetworkIpDetailVO ipDetail = new GloboNetworkIpDetailVO() ;
+        ipDetail.setGloboNetworkEnvironmentRefId(1L);
+        when(_globoNetworkIpDetailDao.findByIp(anyLong())).thenReturn(ipDetail);
+
+        GloboNetworkLoadBalancerEnvironment lbEnv = new GloboNetworkLoadBalancerEnvironment();
+        when(_globoNetworkLBEnvironmentDao.findById(anyLong())).thenReturn(lbEnv);
+        when(_acctMgr.getAccount(anyLong())).thenReturn(acct);
+        when(_lbOptionsDao.listByLoadBalancerId(anyLong())).thenReturn(new ArrayList<LoadBalancerOptionsVO>());
+        HostVO napiHost = new HostVO(globoNetworkHostId, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, zoneId, null, 0L, 0L, null, null, null, 0L, null);
+        when(_hostDao.findByTypeNameAndZoneId(0L, Provider.GloboNetwork.getName(), Host.Type.L2Networking)).thenReturn(napiHost);
+        GloboNetworkVipResponse response = new GloboNetworkVipResponse();
+        response.setId(1L);
+
+        when(_agentMgr.easySend(eq(globoNetworkHostId), any(RemoveNetworkInGloboNetworkCommand.class))).thenReturn(response);
+
+        assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
+        verify(_agentMgr).easySend(eq(globoNetworkHostId), any(ApplyVipInGloboNetworkCommand.class));
+        verify(_globoResourceConfigurationDao).removeConfigurations(any(String.class), any(GloboResourceType.class));
+        verify(_globoNetworkIpDetailDao).persist(any(GloboNetworkIpDetailVO.class));
+    }
+
+    private LoadBalancingRule createMockLbRule(String name, boolean revoked) {
+        LoadBalancerVO lb = new LoadBalancerVO(null, null, null, 1L, 80, 8080, null, 1L, 1L, 1L, null);
+        lb.setState(FirewallRule.State.Add);
+        if(revoked) {
+            lb.setState(FirewallRule.State.Revoke);
+        }
+        lb.setName(name);
+        Ip sourceIp = new Ip(1L);
+        List<LoadBalancingRule.LbStickinessPolicy> policies = Collections.singletonList(new LoadBalancingRule.LbStickinessPolicy(null, null, false));
+        return new LoadBalancingRule(lb, null, policies, null, sourceIp);
+    }
 
     private List<GloboNetworkPoolResponse.Pool> mockPools() {
         ArrayList<GloboNetworkPoolResponse.Pool> pools = new ArrayList<>();
-        pools.add(mockPool("my_pool", "leastcon", 80, 123l, "HTTP"));
-        pools.add(mockPool("my_pool_2", "round", 8090, 123l, "TCP"));
-
+        pools.add(mockPool("my_pool", "leastcon", 80, 123L, "HTTP"));
+        pools.add(mockPool("my_pool_2", "round", 8090, 123L, "TCP"));
         return pools;
-
     }
+
     private GloboNetworkPoolResponse.Pool mockPool(String name, String lbMethod, Integer port, Long id, String healthcheckType) {
         GloboNetworkPoolResponse.Pool pool2 = new GloboNetworkPoolResponse.Pool();
         pool2.setId(id);
@@ -896,210 +1050,25 @@ public class GloboNetworkManagerTest {
         pool2.setLbMethod(lbMethod);
         pool2.setPort(port);
         pool2.setHealthcheckType(healthcheckType);
-
         return pool2;
     }
 
     private HostVO createMockHost() {
-        return new HostVO(10L, "Host-1", Host.Type.Routing, null,
-                "10.0.0.0", null, null, null, null, null, null, null, null,
-                Status.Up, null, null, null, 10L, 10L, 30L, 10233, null, null,
-                null, 0, null);
+        return new HostVO(
+            10L, "Host-1", Host.Type.Routing, null, "10.0.0.0", null, null, null, null, null, null, null, null,
+            Status.Up, null, null, null, 10L, 10L, 30L, 10233, null, null, null, 0, null
+        );
     }
 
-    protected LoadBalancingRule createLoadBalancerRule() {
+    private LoadBalancingRule createLoadBalancerRule() {
         return new LoadBalancingRule(new LoadBalancerVO("id", "lb", "lb", 1, 80, 8080, "algorithm", 1, 1, 1, "HTTP"), null, null, null, null);
     }
 
-    @Configuration
-    @ComponentScan(basePackageClasses = {GloboNetworkManager.class}, includeFilters = {@Filter(value = TestConfiguration.Library.class, type = FilterType.CUSTOM)}, useDefaultFilters = false)
-    public static class TestConfiguration extends SpringUtils.CloudStackTestConfiguration {
-
-        @Bean
-        public DomainDao domainDao() {
-            return mock(DomainDao.class);
-        }
-
-        @Bean
-        public HostDao hostDao() {
-            return mock(HostDao.class);
-        }
-
-        @Bean
-        public DataCenterDao dataCenterDao() {
-            return mock(DataCenterDao.class);
-        }
-
-        @Bean
-        public HostPodDao hostPodDao() {
-            return mock(HostPodDao.class);
-        }
-
-        @Bean
-        public VlanDao vlanDao() {
-            return mock(VlanDao.class);
-        }
-
-        @Bean
-        public PhysicalNetworkDao physicalNetworkDao() {
-            return mock(PhysicalNetworkDao.class);
-        }
-
-        @Bean
-        public NetworkOfferingDao networkOfferingDao() {
-            return mock(NetworkOfferingDao.class);
-        }
-
-        @Bean
-        public UserDao userDao() {
-            return mock(UserDao.class);
-        }
-
-        @Bean
-        public NetworkDao networkDao() {
-            return mock(NetworkDao.class);
-        }
-
-        @Bean
-        public NetworkServiceMapDao networkServiceMapDao() {
-            return mock(NetworkServiceMapDao.class);
-        }
-
-        @Bean
-        public GloboNetworkNetworkDao globoNetworkNetworkDao() {
-            return mock(GloboNetworkNetworkDao.class);
-        }
-
-        @Bean
-        public GloboNetworkEnvironmentDao globoNetworkEnvironmentDao() {
-            return mock(GloboNetworkEnvironmentDao.class);
-        }
-
-        @Bean
-        public VMInstanceDao vmDao() {
-            return mock(VMInstanceDao.class);
-        }
-
-        @Bean
-        public NicDao nicDao() {
-            return mock(NicDao.class);
-        }
-
-        @Bean
-        public ConfigurationDao configurationDao() {
-            return mock(ConfigurationDao.class);
-        }
-
-        @Bean
-        public NetworkModel networkModel() {
-            return mock(NetworkModel.class);
-        }
-
-        @Bean
-        public AgentManager agentManager() {
-            return mock(AgentManager.class);
-        }
-
-        @Bean
-        public ConfigurationManager configurationManager() {
-            return mock(ConfigurationManager.class);
-        }
-
-        @Bean
-        public ResourceManager resourceManager() {
-            return mock(ResourceManager.class);
-        }
-
-        @Bean
-        public DomainManager domainManager() {
-            return mock(DomainManager.class);
-        }
-
-        @Bean
-        public NetworkOrchestrationService networkOrchestrationService() {
-            return mock(NetworkOrchestrationService.class);
-        }
-
-        @Bean
-        public AccountManager accountManager() {
-            return mock(AccountManager.class);
-        }
-
-        @Bean
-        public ProjectManager projectManager() {
-            return mock(ProjectManager.class);
-        }
-
-        @Bean
-        public NetworkService networkService() {
-            return mock(NetworkService.class);
-        }
-
-        @Bean
-        public IpAddressManager ipAddressManager() {
-            return mock(IpAddressManager.class);
-        }
-
-        @Bean
-        public PortableIpRangeDao portableDao() {
-            return mock(PortableIpRangeDao.class);
-        }
-
-        @Bean
-        public LoadBalancingRulesManager loadBalancingRulesManager() {
-            return mock(LoadBalancingRulesManager.class);
-        }
-
-        @Bean
-        public GloboNetworkIpDetailDao globoNetworkIpDetailDao() {
-            return mock(GloboNetworkIpDetailDao.class);
-        }
-
-        @Bean
-        public PortableIpDao portableIpDao() {
-            return mock(PortableIpDao.class);
-        }
-
-        @Bean
-        public LoadBalancingRulesService loadBalancingRulesService() {
-            return mock(LoadBalancingRulesService.class);
-        }
-
-        @Bean
-        public GloboDnsElementService globoDnsElementService() {
-            return mock(GloboDnsElementService.class);
-        }
-
-        @Bean
-        public GloboNetworkVipAccDao globoNetworkVipAccDao() {
-            return mock(GloboNetworkVipAccDao.class);
-        }
-
-        @Bean
-        public GloboNetworkLoadBalancerEnvironmentDAO globoNetworkLBEnvironmentDao() {
-            return mock(GloboNetworkLoadBalancerEnvironmentDAO.class);
-        }
-
-        @Bean
-        public IPAddressDao ipAddressDao() {
-            return mock(IPAddressDao.class);
-        }
-
-        @Bean
-        public UserIpv6AddressDao userIpv6AddressDao() {
-            return mock(UserIpv6AddressDao.class);
-        }
-
-        @Bean
-        public LoadBalancerPortMapDao loadBalancerPortMapDao() { return mock(LoadBalancerPortMapDao.class); }
-
-        public static class Library implements TypeFilter {
-
-            @Override
-            public boolean match(MetadataReader mdr, MetadataReaderFactory arg1) throws IOException {
-                ComponentScan cs = TestConfiguration.class.getAnnotation(ComponentScan.class);
-                return SpringUtils.includedInBasePackageClasses(mdr.getClassMetadata().getClassName(), cs);
-            }
-        }
+    private void registerConfigKey(String key, String valueMock) {
+        ConfigDepotImpl mock = mock(ConfigDepotImpl.class);
+        ConfigurationDao mockDAo = mock(ConfigurationDao.class);
+        when(mock.global()).thenReturn(mockDAo);
+        when(mockDAo.findById(key)).thenReturn(new ConfigurationVO("Network", "String", null, key, valueMock, null));
+        ConfigKey.init(mock);
     }
 }
