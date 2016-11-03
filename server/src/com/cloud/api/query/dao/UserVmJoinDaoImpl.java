@@ -444,7 +444,7 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
         return uvms;
     }
 
-    public Pair<List<UserVmResponse>, Integer> list(Long projectId, Map<String, String> tags) {
+    public Pair<List<UserVmResponse>, Integer> list(Long id, String name, Long projectId, Map<String, String> tags) {
         List<String> uuids = null;
         if ( tags != null) {
             uuids = listVmUUidsByTag(projectId, tags);
@@ -459,6 +459,13 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
         List params = new ArrayList();
         StringBuilder sql = new StringBuilder("SELECT ").append(VIEW_GLOBO_VM_COLUMNS).append(" FROM view_globo_vm vm WHERE 1=1");
 
+        if ( id != null ){
+            sql.append(" AND vm.id = ? ");
+        }
+
+        if ( name != null ){
+            sql.append(" AND vm.name = ? ");
+        }
 
         if ( projectId != null ){
             sql.append(" AND vm.project_id = ? ");
@@ -468,14 +475,20 @@ public class UserVmJoinDaoImpl extends GenericDaoBase<UserVmJoinVO, Long> implem
             sql.append(" AND vm.uuid IN ('" + StringUtils.join("','", uuids.toArray()) +  "')");
         }
 
-
         try {
             java.sql.PreparedStatement pstmt = txn.prepareStatement(sql.toString());
-
-            if (projectId != null){
-                pstmt.setObject(1, projectId);
+            int paramCount = 1;
+            if (id != null){
+                pstmt.setLong(paramCount++, id);
             }
 
+            if (name != null){
+                pstmt.setString(paramCount++, name);
+            }
+
+            if (projectId != null){
+                pstmt.setLong(paramCount++, projectId);
+            }
 
             s_logger.debug("List Globo VM SQL: " + sql + " Params: " + params);
             ResultSet rs = pstmt.executeQuery();

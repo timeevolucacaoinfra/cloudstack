@@ -310,6 +310,24 @@
                             }
                         });
 
+                        $.ajax({
+                            url: createURL('listTemplates'),
+                            data: {
+                                templatefilter: 'shared',
+                                zoneid: args.context.networks[0].zoneid
+                            },
+                            async: false,
+                            success: function(json) {
+                                var items = json.listtemplatesresponse.template;
+                                $(items).each(function() {
+                                    if (!(this.id in templateIdMap)) {
+                                        templates.push(this);
+                                        templateIdMap[this.id] = 1;
+                                    }
+                                });
+                            }
+                        });
+
                         args.response.success({
                             data: $.map(templates, function(template) {
                                 return {

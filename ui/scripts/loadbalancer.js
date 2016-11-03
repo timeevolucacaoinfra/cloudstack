@@ -603,7 +603,7 @@
                                                     }
                                                 },
                                                 after: function(args2) {
-                                                    if (args2.data.healthcheck === '' && (healthcheckTypes.isLayer4(args2.data.healthchecktype))) {
+                                                    if (args2.data.healthcheck === '' && (healthcheckTypes.isLayer7(args2.data.healthchecktype))) {
                                                         args.response.error(msg_validation_healthcheck_http);
                                                         return;
                                                     } 

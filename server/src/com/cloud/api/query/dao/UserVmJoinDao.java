@@ -42,5 +42,5 @@ public interface UserVmJoinDao extends GenericDao<UserVmJoinVO, Long> {
 
     List<UserVmJoinVO> listActiveByIsoId(Long isoId);
 
-    public Pair<List<UserVmResponse>, Integer> list(Long projectId, Map<String, String> tags);
+    public Pair<List<UserVmResponse>, Integer> list(Long id, String name, Long projectId, Map<String, String> tags);
 }
