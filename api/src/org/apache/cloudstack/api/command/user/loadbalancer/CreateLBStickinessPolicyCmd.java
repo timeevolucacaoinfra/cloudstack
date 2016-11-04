@@ -18,6 +18,7 @@ package org.apache.cloudstack.api.command.user.loadbalancer;
 
 import java.util.Map;
 
+import java.util.Objects;
 import org.apache.cloudstack.acl.RoleType;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
@@ -191,5 +192,35 @@ public class CreateLBStickinessPolicyCmd extends BaseAsyncCreateCmd {
             throw new InvalidParameterValueException("Unable to find load balancer rule " + getLbRuleId() + " to create stickiness rule");
         }
         return lb.getNetworkId();
+    }
+
+    public void setLbRuleId(Long lbRuleId) {
+        this.lbRuleId = lbRuleId;
+    }
+
+    public void setStickinessMethodName(String stickinessMethodName) {
+        this.stickinessMethodName = stickinessMethodName;
+    }
+
+    public void setLbStickinessPolicyName(String lbStickinessPolicyName) {
+        this.lbStickinessPolicyName = lbStickinessPolicyName;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CreateLBStickinessPolicyCmd that = (CreateLBStickinessPolicyCmd) o;
+        return Objects.equals(lbRuleId, that.lbRuleId) &&
+                Objects.equals(description, that.description) &&
+                Objects.equals(lbStickinessPolicyName, that.lbStickinessPolicyName) &&
+                Objects.equals(stickinessMethodName, that.stickinessMethodName) &&
+                Objects.equals(paramList, that.paramList) &&
+                Objects.equals(display, that.display);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lbRuleId, description, lbStickinessPolicyName, stickinessMethodName, paramList, display);
     }
 }

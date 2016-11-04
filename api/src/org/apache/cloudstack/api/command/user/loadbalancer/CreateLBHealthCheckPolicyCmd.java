@@ -16,6 +16,7 @@
 // under the License.
 package org.apache.cloudstack.api.command.user.loadbalancer;
 
+import java.util.Objects;
 import org.apache.cloudstack.acl.RoleType;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiConstants;
@@ -209,5 +210,26 @@ public class CreateLBHealthCheckPolicyCmd extends BaseAsyncCreateCmd {
 
     public void setLbRuleId(Long lbRuleId) {
         this.lbRuleId = lbRuleId;
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CreateLBHealthCheckPolicyCmd that = (CreateLBHealthCheckPolicyCmd) o;
+        return Objects.equals(responsTimeOut, that.responsTimeOut) &&
+                Objects.equals(healthCheckInterval, that.healthCheckInterval) &&
+                Objects.equals(healthyThreshold, that.healthyThreshold) &&
+                Objects.equals(unhealthyThreshold, that.unhealthyThreshold) &&
+                Objects.equals(lbRuleId, that.lbRuleId) &&
+                Objects.equals(description, that.description) &&
+                Objects.equals(pingPath, that.pingPath) &&
+                Objects.equals(display, that.display);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(lbRuleId, description, pingPath, responsTimeOut, healthCheckInterval, healthyThreshold, unhealthyThreshold, display);
     }
 }

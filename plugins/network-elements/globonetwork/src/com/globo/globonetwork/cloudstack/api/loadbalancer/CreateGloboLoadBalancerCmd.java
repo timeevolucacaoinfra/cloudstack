@@ -25,6 +25,7 @@ import com.cloud.network.Network;
 import com.cloud.network.addr.PublicIp;
 
 import com.cloud.network.rules.HealthCheckPolicy;
+import com.cloud.network.rules.StickinessPolicy;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.Parameter;
 import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
+import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
@@ -67,6 +69,11 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     private String pingPath;
 
 
+    @Parameter(name = "stickinessmethodname", type = CommandType.STRING,
+               description = "name of the LB Stickiness policy method, possible values can be obtained from ListNetworks API ")
+    private String stickinessMethodName;
+
+
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////
     /////////////////////////////////////////////////////
@@ -83,40 +90,78 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             s_logger.debug("[load_balancer " + name + "] processing execute createGloboLoadBalance");
 
             super.execute();
-
             createHealthcheck();
+            createStickiness();
         }catch (Exception e) {
-            handleErrorAfterHealthcheckCreated(name, healthcheckCreated );
+            s_logger.warn("[load_balancer " + name + "] removing loadbalancer after error", e);
+            _lbService.deleteLoadBalancerRule(getEntityId(), false);
             handleErrorAfterIpCreated(name, ipCreated, getSourceIpAddressId());
             throw e;
         }
     }
 
-    private void handleErrorAfterHealthcheckCreated(String name, boolean healthcheckCreated) {
-        if ( healthcheckCreated ) {
-            s_logger.warn("[load_balancer " + name + "] removing healthcheck after error");
-            _lbService.deleteLoadBalancerRule(getEntityId(), false);
+    protected void createStickiness() throws CloudRuntimeException {
+        final String name = getName();
+
+        if (!isToCreateStickiness()) {
+            s_logger.debug("[load_balancer " + name + "] it is not necessary to create stickiness. stickinessmethodname: " + stickinessMethodName);
+            return;
         }
+
+        try {
+            s_logger.debug("[load_balancer " + name + "] creating stickiness policy ");
+            stickinessCmd = new CreateLBStickinessPolicyCmd();
+            stickinessCmd.setStickinessMethodName(stickinessMethodName);
+            stickinessCmd.setLbStickinessPolicyName(stickinessMethodName);
+            stickinessCmd.setLbRuleId(getEntityId());
+
+            StickinessPolicy result = _lbService.createLBStickinessPolicy(stickinessCmd);
+            stickinessCmd.setEntityId(result.getId());
+            stickinessCmd.setEntityUuid(result.getUuid());
+
+            boolean success = _lbService.applyLBStickinessPolicy(stickinessCmd); // with error it already rollback the stickiness
+            if (!success) {
+                throw new CloudRuntimeException("Error trying apply load balancer stickiness policy.");
+            }
+        } catch (Exception e) {
+            throw new CloudRuntimeException("Error trying create Stickiness policy.", e);
+        }
+
     }
 
-    private void createHealthcheck() throws ResourceUnavailableException {
-        final String name = getName();
-        s_logger.debug("[load_balancer " + name + "] creating healthcheck ");
 
+    protected void createHealthcheck() throws ResourceUnavailableException {
+        final String name = getName();
+
+        if (!isToCreateHealthcheck()) {
+            s_logger.debug("[load_balancer " + name + "] it is not necessary to create healthcheck. pingpath: " + pingPath);
+            return;
+        }
+
+
+        s_logger.debug("[load_balancer " + name + "] creating healthcheck ");
+        healthCmd = new CreateLBHealthCheckPolicyCmd();
         healthCmd.setFullUrlParams(new HashMap<String, String>());
         healthCmd.setPingPath(pingPath);
         healthCmd.setLbRuleId(this.getEntityId());
 
-        healthcheckCreated = true;
+        try {
+            HealthCheckPolicy healthcheck = _lbService.createLBHealthCheckPolicy(healthCmd);
 
-        s_logger.debug("[load_balancer " + name + "] apply healthcheck ");
-        HealthCheckPolicy healthcheck = _lbService.createLBHealthCheckPolicy(healthCmd);
-        healthCmd.setEntityId(healthcheck.getId());
-        healthCmd.setEntityUuid(healthcheck.getUuid());
+            healthCmd.setEntityId(healthcheck.getId());
+            healthCmd.setEntityUuid(healthcheck.getUuid());
 
-        boolean healthcheckApplied = _lbService.applyLBHealthCheckPolicy(healthCmd);
-        if (!healthcheckApplied) {
-            throw new CloudRuntimeException("Error trying to create load balancer healthcheck");
+            s_logger.debug("[load_balancer " + name + "] apply healthcheck: " + healthcheck.getUuid());
+            boolean healthcheckApplied = _lbService.applyLBHealthCheckPolicy(healthCmd); // with error it already rollback the healthcheck
+            if (!healthcheckApplied) {
+                throw new CloudRuntimeException("Error trying to apply load balancer healthcheck");
+            }
+
+        } catch (Exception e) {
+            if ( e instanceof  CloudRuntimeException) {
+                throw e;
+            }
+            throw new CloudRuntimeException("Error trying to create load balancer healthcheck.", e);
         }
     }
 
@@ -136,10 +181,11 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             setPublicIpId(ip.getId());
             setSourceIpAddressId(ipAddress.getId());
 
-            s_logger.debug("[load_balancer " + name + "] portable ip created " + ip.getId() + ", ipaddress " + ipAddress.getId());
+            s_logger.debug("[load_balancer " + name + "] portable ip created with id " + ip.getId() + ", ipaddress " + ipAddress.getId());
 
             super.create();
         } catch (Exception e) {
+            s_logger.error("[load_balancer " + name + "] error creating load balancer ", e);
             handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
 
             throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, e.getMessage());
@@ -147,8 +193,8 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     }
 
     private boolean ipCreated = false;
-    private boolean healthcheckCreated = false;
-    private CreateLBHealthCheckPolicyCmd healthCmd = new CreateLBHealthCheckPolicyCmd();
+    private CreateLBHealthCheckPolicyCmd healthCmd;
+    private CreateLBStickinessPolicyCmd stickinessCmd;
 
     @Override
     public long getEntityOwnerId() {
@@ -212,5 +258,22 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
                 s_logger.warn("[load_balancer " + lbName + "] error after try to disassociateIp " + ipAddressId);
             }
         }
+    }
+
+    public boolean isToCreateStickiness() {
+        return stickinessMethodName != null && !stickinessMethodName.isEmpty();
+    }
+
+    public boolean isToCreateHealthcheck() {
+        return pingPath != null && !pingPath.isEmpty();
+    }
+
+
+    public void setPingPath(String pingPath) {
+        this.pingPath = pingPath;
+    }
+
+    public void setStickinessMethodName(String stickinessMethodName) {
+        this.stickinessMethodName = stickinessMethodName;
     }
 }
