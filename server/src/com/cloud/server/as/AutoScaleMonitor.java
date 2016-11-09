@@ -237,7 +237,6 @@ public class AutoScaleMonitor extends ManagedContextRunnable implements Configur
                         // check whole conditions of this policy
                         for (ConditionVO conditionVO : conditions) {
                             long thresholdValue = conditionVO.getThreshold();
-                            Double thresholdPercent = (double) thresholdValue / 100;
                             CounterVO counter = _asCounterDao.findById(conditionVO.getCounterid());
 
                             Double avg = counterSummary.get(counter.getSource().name());
@@ -247,11 +246,11 @@ public class AutoScaleMonitor extends ManagedContextRunnable implements Configur
                             }
                             Condition.Operator op = conditionVO.getRelationalOperator();
 
-                            boolean isConditionValid = ((op == Condition.Operator.EQ) && (thresholdPercent.equals(avg)))
-                                    || ((op == Condition.Operator.GE) && (avg >= thresholdPercent))
-                                    || ((op == Condition.Operator.GT) && (avg > thresholdPercent))
-                                    || ((op == Condition.Operator.LE) && (avg <= thresholdPercent))
-                                    || ((op == Condition.Operator.LT) && (avg < thresholdPercent));
+                            boolean isConditionValid = ((op == Condition.Operator.EQ) && (thresholdValue == avg))
+                                    || ((op == Condition.Operator.GE) && (avg >= thresholdValue))
+                                    || ((op == Condition.Operator.GT) && (avg > thresholdValue))
+                                    || ((op == Condition.Operator.LE) && (avg <= thresholdValue))
+                                    || ((op == Condition.Operator.LT) && (avg < thresholdValue));
 
                             if (!isConditionValid) {
                                 isPolicyValid = false;

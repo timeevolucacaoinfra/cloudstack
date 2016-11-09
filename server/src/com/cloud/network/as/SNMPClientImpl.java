@@ -110,13 +110,21 @@ public class SNMPClientImpl implements SNMPClient, Configurable{
     private Double calculateMemoryUsed(Vector<VariableBinding> variableBindings) throws SnmpAgentNotReadyException {
         Double memoryFree = getValueByOID(variableBindings, MEMORY_FREE_OID);
         Double memoryTotal = getValueByOID(variableBindings, MEMORY_TOTAL_OID);
-        return 1.0 - (memoryFree/memoryTotal);
+        if(memoryFree != null && memoryTotal != null) {
+            return (1.0 - (memoryFree / memoryTotal)) * 100;
+        }else{
+            return null;
+        }
     }
 
     private Double calculateCpuUsed(Vector<VariableBinding> variableBindings) throws SnmpAgentNotReadyException {
         Double cpuSystem = getValueByOID(variableBindings, CPU_SYSTEM_OID);
         Double cpuUser = getValueByOID(variableBindings, CPU_USER_OID);
-        return (cpuSystem + cpuUser) / 100;
+        if(cpuSystem != null && cpuUser != null) {
+            return cpuSystem + cpuUser;
+        }else{
+            return null;
+        }
     }
 
     protected PDU createPDU(Map<String, String> counters) {

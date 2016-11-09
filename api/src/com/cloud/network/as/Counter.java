@@ -28,7 +28,8 @@ public interface Counter extends InternalIdentity, Identity {
         cpu,
         memory,
         cpu_used,
-        memory_used
+        memory_used,
+        active_connections
     }
 
     String getName();

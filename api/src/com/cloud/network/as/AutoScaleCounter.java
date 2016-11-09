@@ -29,6 +29,7 @@ public class AutoScaleCounter {
         public static final AutoScaleCounterType Netscaler = new AutoScaleCounterType("netscaler");
         public static final AutoScaleCounterType Cpu = new AutoScaleCounterType("cpu");
         public static final AutoScaleCounterType Memory = new AutoScaleCounterType("memory");
+        public static final AutoScaleCounterType ActiveConnections = new AutoScaleCounterType("active_connections");
 
         public AutoScaleCounterType(String name) {
             _name = name;

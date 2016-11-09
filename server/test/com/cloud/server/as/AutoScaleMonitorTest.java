@@ -97,7 +97,7 @@ public class AutoScaleMonitorTest {
 
         // Mock Stats collector return
         Map<String, Double> avgSummary = new HashMap<>();
-        avgSummary.put("cpu", 1.0);
+        avgSummary.put("cpu", 100.0);
         AutoScaleStatsCollector collector = mock(AutoScaleStatsCollector.class);
         when(collector.retrieveMetrics(any(AutoScaleVmGroup.class), anyList())).thenReturn(avgSummary);
 

@@ -72,7 +72,7 @@ public class SNMPClientTest {
         Map<String, Double> metrics = snmpClient.read("172.168.10.10",  createRequestCounters(Arrays.asList("cpu_used"), Arrays.asList(USED_CPU_OID)));
 
         assertEquals(1, metrics.size());
-        assertTrue(0.6 == metrics.get("cpu_used"));
+        assertTrue(60.0 == metrics.get("cpu_used"));
         verify(snmp).get(any(PDU.class), any(Target.class));
     }
 
@@ -82,7 +82,7 @@ public class SNMPClientTest {
         Map<String, Double> metrics = snmpClient.read("172.168.10.10",  createRequestCounters(Arrays.asList("memory_used"), Arrays.asList(USED_MEMORY_OID)));
 
         assertEquals(1, metrics.size());
-        assertTrue(0.5 == metrics.get("memory_used"));
+        assertTrue(50.0 == metrics.get("memory_used"));
         verify(snmp).get(any(PDU.class), any(Target.class));
     }
 
@@ -93,8 +93,8 @@ public class SNMPClientTest {
         Map<String, Double> metrics = snmpClient.read("172.168.10.10",  createRequestCounters(Arrays.asList("cpu_used", "memory_used"), Arrays.asList(USED_CPU_OID, USED_MEMORY_OID)));
 
         assertEquals(2, metrics.size());
-        assertTrue(0.6 == metrics.get("cpu_used"));
-        assertTrue(0.5 == metrics.get("memory_used"));
+        assertTrue(60.0 == metrics.get("cpu_used"));
+        assertTrue(50.0 == metrics.get("memory_used"));
         verify(snmp).get(any(PDU.class), any(Target.class));
     }
 
@@ -105,8 +105,8 @@ public class SNMPClientTest {
         Map<String, Double> metrics = snmpClient.read("172.168.10.10",  createRequestCounters(Arrays.asList("cpu_used", "memory_used", "disk"), Arrays.asList(USED_CPU_OID, USED_MEMORY_OID, DISK_OID)));
 
         assertEquals(3, metrics.size());
-        assertTrue(0.6 == metrics.get("cpu_used"));
-        assertTrue(0.5 == metrics.get("memory_used"));
+        assertTrue(60.0 == metrics.get("cpu_used"));
+        assertTrue(50.0 == metrics.get("memory_used"));
         assertTrue(1000 == metrics.get("disk"));
         verify(snmp).get(any(PDU.class), any(Target.class));
     }
