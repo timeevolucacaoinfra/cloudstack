@@ -569,7 +569,7 @@
                                                                 });
                                                                 args.$select.change(function() {
                                                                     var type = $(this).val()
-                                                                    console.log('change type: ' + $(this).val())
+
                                                                     if ( healthcheckTypes.isLayer4(type)) {
                                                                         $("div[rel='healthcheck']").hide()
                                                                         $("div[rel='expectedhealthcheck']").hide()

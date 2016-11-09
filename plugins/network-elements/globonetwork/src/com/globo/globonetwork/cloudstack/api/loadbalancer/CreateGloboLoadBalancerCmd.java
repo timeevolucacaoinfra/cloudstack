@@ -95,7 +95,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
         }catch (Exception e) {
             s_logger.warn("[load_balancer " + name + "] removing loadbalancer after error", e);
             _lbService.deleteLoadBalancerRule(getEntityId(), false);
-            handleErrorAfterIpCreated(name, ipCreated, getSourceIpAddressId());
+            handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
             throw e;
         }
     }
@@ -170,7 +170,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     public void create() {
         final String name = getName();
 
-        Long ipAddressId = null;
+
 
         try {
             PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), getGloboNetworkLBEnvironmentId());
@@ -195,6 +195,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     private boolean ipCreated = false;
     private CreateLBHealthCheckPolicyCmd healthCmd;
     private CreateLBStickinessPolicyCmd stickinessCmd;
+    private Long ipAddressId = null;
 
     @Override
     public long getEntityOwnerId() {

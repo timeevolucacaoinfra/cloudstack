@@ -37,7 +37,8 @@
                        networks.push({id: this.id,
                                       description: this.name,
                                       service: this.service,
-                                      physicalnetworkid: this.physicalnetworkid
+                                      physicalnetworkid: this.physicalnetworkid,
+                                      networkofferingid: this.networkofferingid,
                        });
                    });
                },
@@ -95,28 +96,6 @@
                    validation: {
                        required: true
                    }
-               },
-               isportable: {
-                   label: 'label.cross.zones',
-                   validation: {
-                       required: true
-                   },
-                   isHidden: true,
-                   defaultValue: "true",
-                   select: function(args) {
-                       var items = [];
-                       items.push({
-                           id: "false",
-                           description: _l('label.no')
-                       });
-                       items.push({
-                           id: "true",
-                           description: _l('label.yes')
-                       });
-                       args.response.success({
-                           data: items
-                       });
-                   },
                },
                network: {
                    label: 'label.network',
@@ -288,7 +267,6 @@
                        });
                        args.$select.change(function() {
                            var type = $(this).val()
-                           console.log('change type: ' + $(this).val())
                            if (healthcheckTypes.isLayer4(type)) {
                                $("div[rel='healthcheck']").hide()
                                $("div[rel='expectedhealthcheck']").hide()
@@ -330,265 +308,42 @@
            },
        },
        action: function(args) {
-           if (args.data.name.indexOf("_") > 0) {
-               args.response.error("Underscore(_) is not allowed in Load Balancer names");
-               return;
-           }
-           var expectedhealthcheck = '';
-           var healthcheckPingPath = '';
-
-           if ( healthcheckTypes.isLayer7(args.data.healthchecktype) ) {
-               healthcheckPingPath = args.data.healthcheck.valueOf().trim();
-               expectedhealthcheck = args.data.expectedhealthcheck;
-               if ( healthcheckPingPath === ''){
-                   args.response.error(msg_validation_healthcheck_http);
-                   return
-               }
-
-           }
-
-
-           var network;
-           $.ajax({
-               url: createURL('listGloboLbNetworks'),
-               data: {
-                   id: args.data.network
-               },
-               dataType: "json",
-               async: false,
-               success: function(json) {
-                   network = json.listnetworksresponse.network[0];
-               }
-           });
-
-           var networkoffering;
-           $.ajax({
-               url: createURL("listNetworkOfferings"),
-               data: {
-                   id: network.networkofferingid
-               },
-               dataType: "json",
-               async: false,
-               success: function(json) {
-                   networkoffering = json.listnetworkofferingsresponse.networkoffering[0];
-               },
-               error: function(json) {
-                   args.response.error(parseXMLHttpResponse(json));
-               }
-           });
-
-           var lbService = $.grep(networkoffering.service, function(service) {
-               return service.name == 'Lb';
-           })[0];
-
-           var provider = lbService.provider[0].name;
-
-           // FIXME Check what happen if loadbalancer is not active in network
-
-           var url;
-           var data = {};
-           if (args.data.isportable === 'true' && provider === 'GloboNetwork') {
-               url = "acquireNewLBIp";
-               data = {
-                   networkid: args.data.network,
-                   lbenvironmentid: args.data.lbenvironment
-               };
-           } else if (provider === 'GloboNetwork') {
-               // GloboNetwork should only work with portable IPs
-               // FIXME Test this
-               args.response.error("Network is provided by GloboNetwork and can only manage cross zone IPs (portable)");
-               return;
-           } else {
-               url = "associateIpAddress";
-               data = {
-                   isportable: args.data.isportable,
-                   networkid: args.data.network
-               };
-           }
-
-           var show_error_message = function(msg) {
-               if (typeof(msg) == 'string') {
-                   args.response.error(msg);
-               } else if (typeof(msg) == 'object') {
-                   args.response.error(parseXMLHttpResponse(msg));
-               }
+           if (!validateLb(args)) {
+                return;
            };
 
-           var disassociate_ip_address_with_message = function(ipid, msg) {
-               show_error_message(msg);
-               $.ajax({
-                   url: createURL('disassociateIpAddressFromGloboNetwork'),
-                   data: {
-                       id: ipid
-                   },
-                   dataType: 'json',
-                   success: function(data) {
-                       return;
-                   },
-                   error: show_error_message
-               });
+           data = {
+              networkid: args.data.network,
+              lbenvironmentid: args.data.lbenvironment
            };
 
+           console.log(data);
+           data = buildLoadBalancerData(args);
+           console.log(data)
+
            $.ajax({
-               url: createURL(url),
+               url: createURL("createGloboLoadBalancer"),
                data: data,
                dataType: "json",
                success: function(json) {
-                   var ipId = json.associateipaddressresponse.id;
+                    console.log(json);
+                    var jobID = json.creategloboloadbalancerresponse.jobid;
+                    args.response.success({
+                        _custom:{
+                            jobId: jobID,
+                            getUpdatedItem: function(json) {
+                                var lb = json.queryasyncjobresultresponse.jobresult.loadbalancer;
+                                console.log(json)
+                                lb.ports = lb.publicport + ':' + lb.privateport + ', ';
+                                $(lb.additionalportmap).each(function() {
+                                    lb.ports += this + ', ';
+                                });
+                                lb.ports = lb.ports.substring(0, lb.ports.length - 2); // remove last ', '
 
-                   // This regexp removes every character except numbers, ':' and ','. It also removes the ',' at the end of the string
-                   args.data.ports = args.data.ports.replace(/[^\d\:\,]/g, "").replace(/\,+$/g, "");
-
-                   var portlist = args.data.ports.split(",");
-                   if (portlist[0].split(":").length !== 2) {
-                       disassociate_ip_address_with_message(ipId, "Invalid ports. It should in the form \"80:8080,443:8443\"");
-                   }
-
-                   // Variable to make sure that mapping is valid, public port shouldn't repeat
-                   var alreadymappedports = [];
-
-                   var publicport = portlist[0].split(":")[0].trim();
-                   var privateport = portlist[0].split(":")[1].trim();
-
-                   alreadymappedports.push(publicport);
-
-                   var additionalportmap = [];
-                   if (portlist.length > 1) {
-                       additionalportmap = portlist.slice(1, portlist.length);
-                   }
-
-                   // Validation
-                   $(additionalportmap).each(function() {
-                       if (this.split(":").length != 2) {
-                           disassociate_ip_address_with_message(ipId, "Invalid ports. It should be in the form \"80:8080,443:8443\"");
-                       }
-                       var pubport = this.split(":")[0].trim();
-                       if ($.inArray(pubport, alreadymappedports) !== -1) {
-                           disassociate_ip_address_with_message(ipId, "Invalid ports. Duplicated public (VIP) port.");
-                       }
-                       alreadymappedports.push(pubport);
-                   });
-
-                   var data = {
-                       algorithm: args.data.algorithm,
-                       name: args.data.name + args.data.lbdomain,
-                       privateport: privateport,
-                       publicport: publicport,
-                       openfirewall: false,
-                       networkid: args.data.network,
-                       cache: args.data.cachegroup,
-                       healthcheckType: args.data.healthchecktype,
-                       publicipid: ipId,
-                       additionalportmap: additionalportmap.join(),
-                       skipdnserror: true,
-                   };
-
-                   if ( expectedhealthcheck !== '' ){
-                       data['expectedhealthcheck'] = expectedhealthcheck;
-                   }
-
-                   var stickyData = {methodname: args.data.sticky.valueOf(), stickyName: args.data.sticky.valueOf()};
-
-
-
-                   $.ajax({
-                       url: createURL('createLoadBalancerRule'),
-                       data: data,
-                       dataType: 'json',
-                       success: function(data) {
-                           var jobID = data.createloadbalancerruleresponse.jobid;
-                           var lbID = data.createloadbalancerruleresponse.id;
-
-                           args.response.success({
-                               _custom: {
-                                   jobId: jobID,
-                                   getUpdatedItem: function(json) {
-                                       var lb = json.queryasyncjobresultresponse.jobresult.loadbalancer;
-                                       lb.ports = lb.publicport + ':' + lb.privateport + ', ';
-                                       $(lb.additionalportmap).each(function() {
-                                           lb.ports += this + ', ';
-                                       });
-                                       lb.ports = lb.ports.substring(0, lb.ports.length - 2); // remove last ', '
-
-                                       console.log(JSON.stringify(lb));
-
-                                       isLoadBalancerDNSRegistered = true;
-                                       function setIsLoadBalancerDNSRegistered(result){
-                                           isLoadBalancerDNSRegistered = result;
-                                       }
-                                       $.ajax({
-                                           url: createURL("getGloboResourceConfiguration"),
-                                           data: {
-                                               resourceid: lb.id,
-                                               resourcetype: 'LOAD_BALANCER',
-                                               resourcekey: 'isDNSRegistered'
-                                           },
-                                           dataType: "json",
-                                           async: false,
-                                               success: function(json) {
-                                                   var conf = json.getgloboresourceconfigurationresponse.globoresourceconfiguration.configurationvalue
-                                                   if(conf == undefined || conf == "true") {
-                                                       setIsLoadBalancerDNSRegistered(true);
-                                                   } else if (conf == "false") {
-                                                       setIsLoadBalancerDNSRegistered(false);
-                                                   }
-                                           },
-                                           error: function (errorMessage) {
-                                               setIsLoadBalancerDNSRegistered(false);
-                                               //args.response.error(errorMessage);
-                                           }
-                                       });
-
-                                       if (isLoadBalancerDNSRegistered == false) {
-                                           cloudStack.dialog.notice({message: "The LoadBalancer DNS was not registered!"});
-                                       }
-
-                                       return lb;
-                                   }
-                               }
-                           });
-
-
-                           // Create stickiness policy
-                           if (stickyData &&
-                               stickyData.methodname &&
-                               stickyData.methodname != 'None') {
-                               cloudStack.lbStickyPolicy.actions.add(lbID,
-                                   stickyData,
-                                   $.noop, $.noop);
-                           }
-
-                           if (healthcheckPingPath !== '') {
-                               // Create healthcheck
-                               var datahealthcheck = {
-                                   lbruleid: lbID,
-                                   pingpath: healthcheckPingPath
-                               };
-
-                               $.ajax({
-                                   url: createURL('createLBHealthCheckPolicy'),
-                                   data: datahealthcheck,
-                                   success: function(json) {
-                                       cloudStack.ui.notifications.add({
-                                               desc: 'Add Healthcheck Policy',
-                                               section: 'Network',
-                                               poll: pollAsyncJobResult,
-                                               _custom: {
-                                                   jobId: json.createlbhealthcheckpolicyresponse.jobid
-                                               }
-                                           },
-                                           $.noop, {},
-                                           $.noop, {}
-                                       );
-                                   },
-                                   error: show_error_message // healtcheck
-                               });
-                           }
-                       },
-                       error: function(json) {
-                           disassociate_ip_address_with_message(ipId, json);
-                       },
-                   });
+                                return lb;
+                            }
+                        }
+                    });
                },
                error: show_error_message // associateipaddress
            });
@@ -605,7 +360,129 @@
     }
 
 
+    var show_error_message = function(args, msg) {
+           if (typeof(msg) == 'string') {
+               args.response.error(msg);
+           } else if (typeof(msg) == 'object') {
+               args.response.error(parseXMLHttpResponse(msg));
+           }
+    };
 
+    var validateLb = function(args){
+        if (args.data.name.indexOf("_") > 0) {
+           args.response.error("Underscore(_) is not allowed in Load Balancer names");
+           return false;
+        }
+
+        if ( healthcheckTypes.isLayer7(args.data.healthchecktype) ) {
+           healthcheckPingPath = args.data.healthcheck.valueOf().trim();
+           if ( healthcheckPingPath === ''){
+               args.response.error(msg_validation_healthcheck_http);
+               return false;
+           }
+        }
+
+        var network = $.grep(networks, function(nettemp){
+            return args.data.network == nettemp.id
+        })[0];
+
+        var networkoffering = findNetworkOffering(network.networkofferingid);
+
+        var lbService = $.grep(networkoffering.service, function(service) {
+            return service.name == 'Lb';
+        })[0];
+
+        var provider = lbService.provider[0].name;
+        if (provider != 'GloboNetwork') {
+            args.response.error("Your network is provided by " + provider + ". Please, choose only network is provided by GloboNetwork");
+            return false;
+        }
+
+        if (!validatePortsMap(args.data.ports)) {
+            return false;
+        };
+
+
+        return true;
+    };
+
+
+
+    var findNetworkOffering = function(id) {
+        var networkoffering;
+        $.ajax({
+            url: createURL("listNetworkOfferings"),
+            data: {
+                id: id
+            },
+            dataType: "json",
+            async: false,
+            success: function(json) {
+                networkoffering = json.listnetworkofferingsresponse.networkoffering[0];
+
+            },
+            error: function(json) {
+                args.response.error(parseXMLHttpResponse(json));
+            }
+        });
+        return networkoffering;
+    }
+
+    var validatePortsMap = function(portsInString) {
+        var portList = portsInString.replace(/[^\d\:\,]/g, "").replace(/\,+$/g, "").split(",");
+
+        var portsMap = [];
+        //check format
+        if (portList.length > 0) {
+            $.each(portList, function() {
+                if (this.indexOf(":") == -1) {
+                    args.response.error("Invalid ports. It should be in the form \"80:8080,443:8443\"");
+                    return false;
+                }
+            });
+        }
+
+        //check duplicate public port
+        var publicPorts = new Set();
+        $.each(portList, function() {
+            publicPorts.add(this.split(":")[0])
+        });
+
+        if (publicPorts.size != portList.length) {
+            args.response.error("Invalid ports. It should be in the form \"80:8080,443:8443\"");
+            return false;
+        }
+        return true;
+
+    }
+
+    var buildLoadBalancerData = function(args) {
+        var ports =args.data.ports.split(",");
+        additionalportmap = ports.slice(1, ports.length);
+
+        var firstport = ports[0].split(":");
+
+        var data = {
+           algorithm:            args.data.algorithm,
+           name:                 args.data.name + args.data.lbdomain,
+           privateport:          firstport[0],
+           publicport:           firstport[1],
+           openfirewall:         false,
+           networkid:            args.data.network,
+           cache:                args.data.cachegroup,
+           pingpath:             args.data.healthcheck.valueOf().trim(),
+           healthcheckType:      args.data.healthchecktype,
+           expectedhealthcheck:  args.data.expectedhealthcheck,
+           additionalportmap:    additionalportmap.join(),
+           skipdnserror:         true,
+           stickinessmethodname: args.data.sticky.valueOf() != 'None' ? args.data.sticky.valueOf() : "",
+           lbenvironmentid:      args.data.lbenvironment
+       };
+
+       return data;
+
+    }
+    cloudStack.validatePortsMap = validatePortsMap;
 
 
 }(cloudStack, jQuery));
