@@ -54,6 +54,8 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -2621,6 +2623,14 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
                 allowedDomains.add(allowedDomain);
             }
         }
+
+        Collections.sort(allowedDomains, new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return -1*((Integer)o1.length()).compareTo(o2.length());
+            }
+        });
+
         return allowedDomains;
     }
 
