@@ -24,6 +24,8 @@ import org.apache.cloudstack.api.BaseResponse;
 
 import com.cloud.serializer.Param;
 import com.google.gson.annotations.SerializedName;
+import org.apache.cloudstack.api.EntityReference;
+import org.apache.cloudstack.globoconfig.GloboResourceConfiguration;
 
 @SuppressWarnings("unused")
 public class LoadBalancerResponse extends BaseResponse implements ControlledEntityResponse {
@@ -127,6 +129,10 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
     @Param(description = "is rule for display to the regular user", since = "4.4", authorized = {RoleType.Admin})
     private Boolean forDisplay;
 
+    @SerializedName(ApiConstants.GLOBO_RESOURCE_CONFIG)
+    @Param(description = "list with globo resource configuration")
+    private List<GloboResourceConfigurationResponse> globoResourceConfigs;
+
     public void setId(String id) {
         this.id = id;
     }
@@ -220,11 +226,61 @@ public class LoadBalancerResponse extends BaseResponse implements ControlledEnti
         this.healthCheckDestination = healthCheckDestination;
     }
 
+    public void setGloboResourceConfigs(List<GloboResourceConfigurationResponse> configs) {
+        this.globoResourceConfigs = configs;
+    }
+
+
+
     public void setServiceDownAction(String serviceDownAction) {
         this.serviceDownAction = serviceDownAction;
     }
 
     public void setForDisplay(Boolean forDisplay) {
         this.forDisplay = forDisplay;
+    }
+
+
+    @EntityReference(value = GloboResourceConfiguration.class)
+    public static class GloboResourceConfigurationResponse {
+        @SerializedName("resourcetype")
+        @Param(description = "the resourcetype of the resource")
+        private String resourceType;
+
+        @SerializedName("configurationkey")
+        @Param(description = "the configuration key")
+        private String configurationKey;
+
+        @SerializedName("configurationvalue")
+        @Param(description = "the configuration value")
+        private String configurationValue;
+
+
+        public GloboResourceConfigurationResponse() {
+        }
+
+        public String getResourceType() {
+            return this.resourceType;
+        }
+
+        public void setResourceType(String resourceType) {
+            this.resourceType = resourceType;
+        }
+
+        public void setConfigurationKey(String configurationKey){
+            this.configurationKey = configurationKey;
+        }
+
+        public void setConfigurationValue(String configurationValue){
+            this.configurationValue = configurationValue;
+        }
+
+        public String getConfigurationKey() {
+            return configurationKey;
+        }
+
+        public String getConfigurationValue() {
+            return configurationValue;
+        }
     }
 }

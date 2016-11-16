@@ -2230,6 +2230,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         return null;
     }
 
+    public List<GloboResourceConfigurationVO> getGloboResourceConfigs(String uuid, GloboResourceType resourceType) {
+        List<GloboResourceConfigurationVO> configs = _globoResourceConfigurationDao.getConfiguration(resourceType, uuid);
+        return  configs;
+    }
+
     protected void manageLoadBalancerDomainNameRegistry(Network network, LoadBalancingRule rule) throws ResourceUnavailableException {
         try {
             GloboResourceConfigurationVO skipDnsErrorCmd = _globoResourceConfigurationDao.getFirst(GloboResourceType.LOAD_BALANCER, rule.getUuid(), GloboResourceKey.skipDnsError);

@@ -28,21 +28,24 @@ import com.cloud.network.rules.HealthCheckPolicy;
 import com.cloud.network.rules.StickinessPolicy;
 import com.cloud.utils.exception.CloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import javax.inject.Inject;
 import org.apache.cloudstack.api.APICommand;
 import org.apache.cloudstack.api.ApiCommandJobType;
 
 import org.apache.cloudstack.api.ApiConstants;
-import org.apache.cloudstack.api.ApiErrorCode;
 import org.apache.cloudstack.api.BaseAsyncCmd;
 import org.apache.cloudstack.api.Parameter;
-import org.apache.cloudstack.api.ServerApiException;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBHealthCheckPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPolicyCmd;
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
+import org.apache.cloudstack.globoconfig.GloboResourceConfiguration;
+import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
+import org.apache.cloudstack.globoconfig.GloboResourceType;
 import org.apache.log4j.Logger;
 
 @APICommand(name = "createGloboLoadBalancer", description = "Creates a globo load balancer", responseObject = LoadBalancerResponse.class,
@@ -72,7 +75,10 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     @Parameter(name = "stickinessmethodname", type = CommandType.STRING,
                description = "name of the LB Stickiness policy method, possible values can be obtained from ListNetworks API ")
     private String stickinessMethodName;
+    private static final String DEFAULT_ERROR_MESSAGE = "Error trying to create load balancer, please contact your system administrator.";
 
+    @Inject
+    GloboNetworkService _globoNetworkService;
 
     /////////////////////////////////////////////////////
     /////////////// API Implementation///////////////////
@@ -92,12 +98,28 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             super.execute();
             createHealthcheck();
             createStickiness();
+            loadGloboResourceConfig();
+
         }catch (Exception e) {
             s_logger.warn("[load_balancer " + name + "] removing loadbalancer after error", e);
             _lbService.deleteLoadBalancerRule(getEntityId(), false);
             handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
             throw e;
         }
+    }
+
+    private void loadGloboResourceConfig() {
+        LoadBalancerResponse lbResponse = (LoadBalancerResponse)getResponseObject();
+        List<GloboResourceConfigurationVO> globoResourceConfigs = _globoNetworkService.getGloboResourceConfigs(this.getEntityUuid(), GloboResourceType.LOAD_BALANCER);
+        List<LoadBalancerResponse.GloboResourceConfigurationResponse> configs = new ArrayList<LoadBalancerResponse.GloboResourceConfigurationResponse>();
+        for (GloboResourceConfiguration config : globoResourceConfigs) {
+            LoadBalancerResponse.GloboResourceConfigurationResponse conf = new LoadBalancerResponse.GloboResourceConfigurationResponse();
+            conf.setConfigurationKey(config.getKey().name());
+            conf.setConfigurationValue(config.getValue());
+            configs.add(conf);
+        }
+
+        lbResponse.setGloboResourceConfigs(configs);
     }
 
     protected void createStickiness() throws CloudRuntimeException {
@@ -121,10 +143,10 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
 
             boolean success = _lbService.applyLBStickinessPolicy(stickinessCmd); // with error it already rollback the stickiness
             if (!success) {
-                throw new CloudRuntimeException("Error trying apply load balancer stickiness policy.");
+                throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE);
             }
         } catch (Exception e) {
-            throw new CloudRuntimeException("Error trying create Stickiness policy.", e);
+            throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
         }
 
     }
@@ -154,14 +176,15 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             s_logger.debug("[load_balancer " + name + "] apply healthcheck: " + healthcheck.getUuid());
             boolean healthcheckApplied = _lbService.applyLBHealthCheckPolicy(healthCmd); // with error it already rollback the healthcheck
             if (!healthcheckApplied) {
-                throw new CloudRuntimeException("Error trying to apply load balancer healthcheck");
+                throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE);
             }
 
         } catch (Exception e) {
             if ( e instanceof  CloudRuntimeException) {
                 throw e;
             }
-            throw new CloudRuntimeException("Error trying to create load balancer healthcheck.", e);
+
+            throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
         }
     }
 
@@ -188,7 +211,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             s_logger.error("[load_balancer " + name + "] error creating load balancer ", e);
             handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
 
-            throw new ServerApiException(ApiErrorCode.INSUFFICIENT_CAPACITY_ERROR, e.getMessage());
+            throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
         }
     }
 
