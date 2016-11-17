@@ -88,6 +88,24 @@ under the License.
       </layout>
    </appender>
 
+
+   <appender name="graylog" class="org.graylog2.log.GelfAppender">
+        <param name="Threshold" value="DEBUG"/>
+        <param name="graylogHost" value="udp:logging.udp.dev.globoi.com"/>
+        <param name="graylogPort" value="12201"/>
+        <param name="originHost" value="maquinadevlocal.com"/>
+        <param name="extractStacktrace" value="true"/>
+        <param name="onlyShortMessage" value="true"/>
+        <param name="addExtendedInformation" value="true"/>
+        <param name="sendTimeout" value="200000"/>
+        <param name="facility" value="gelf-java"/>
+        <param name="retry" value="false"/>
+        <param name="blocking" value="false"/>
+        <param name="debug" value="true"/>
+        <param name="additionalFields" value="{'tags':'cloudstack', 'app': 'cloudstack'}"/>
+    </appender>
+
+
    <!-- ============================== -->
    <!-- send alert warnings+ as the SNMP trap if it is configured! -->
    <!-- ============================== -->
@@ -241,8 +259,9 @@ under the License.
    <!-- ======================= -->
 
    <root>
-      <level value="INFO"/>
+      <level value="DEBUG"/>
       <appender-ref ref="SYSLOG"/>
+      <appender-ref ref="graylog"/>
       <appender-ref ref="CONSOLE"/>
       <appender-ref ref="FILE"/>
    </root>
