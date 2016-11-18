@@ -34,6 +34,7 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.any;
+import static org.powermock.api.mockito.PowerMockito.doNothing;
 
 public class VipApiAdapterTest {
 
@@ -179,24 +180,59 @@ public class VipApiAdapterTest {
     }
 
     @Test
-    public void testUpdateDeployedVipV3() throws GloboNetworkException {
-        VipApiAdapter adapter = createTestVipAdapter(1L, true, "3");
+    public void testUpdateVipV3Created() throws GloboNetworkException {
+        VipApiAdapter adapter = createTestVipAdapter(21L, true, "3");
+        adapter.setVipV3(buildFakeVipV3(21L, true));
+
         ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
+        LoadBalancingRule.LbStickinessPolicy stickinessPolicy = new LoadBalancingRule.LbStickinessPolicy("Source-ip", null, false);
+        cmd.setPersistencePolicy(stickinessPolicy);
+
+
+        VipJson vipJson = buildFakeVipV2(21L, true);
+        vipJson.setPersistence("Cookie");
+        when(vipV2API.getByPk(21L)).thenReturn(vipJson);
+
+
+        String networkAPIStickiness = GloboNetworkResource.PersistenceMethod.fromPersistencePolicy(stickinessPolicy);
+        doNothing().when(vipV2API).alterPersistence(21L, networkAPIStickiness);
+
+        //execute
+        adapter.update(cmd, null, null);
+
+
+        //test
+        assertTrue(adapter.hasVip());
+        verify(vipV2API).getByPk(21L);
+        verify(vipV2API).alterPersistence(21L, networkAPIStickiness);
+    }
+
+    @Test
+    public void testUpdateVipV3NotCreated() throws GloboNetworkException {
+        VipApiAdapter adapter = createTestVipAdapter(21L, false, "3");
+
+
+        ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
+
         cmd.setVipEnvironmentId(1L);
         cmd.setHealthcheckType("TCP");
         VipEnvironment environment = new VipEnvironment();
         environment.setId(1L);
-        Ipv4 ip = new Ipv4();
-        List<VipPoolMap> vipPoolMaps = new ArrayList<>();
-        VipPoolMap vipPoolMap = new VipPoolMap(1L, 1L, 1L, 80);
-        vipPoolMaps.add(vipPoolMap);
 
         mockVipOptions(environment);
 
-        adapter.update(cmd, ip, vipPoolMaps);
-        assertTrue(adapter.hasVip());
-        verify(vipV3API).deployUpdate(any(VipV3.class));
+        when(vipV3API.save(adapter.getVipV3())).thenReturn(adapter.getVipV3());
+
+        //execute
+        adapter.update(cmd, null, null);
+
+
+        //test
+        verify(vipV3API).save(adapter.getVipV3());
     }
+
+
+
 
     @Test
     public void testDeployVipV2() throws GloboNetworkException {

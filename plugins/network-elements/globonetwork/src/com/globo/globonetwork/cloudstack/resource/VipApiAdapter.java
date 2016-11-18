@@ -182,14 +182,28 @@ class VipApiAdapter {
     }
 
     private VipV3 updateVipV3(ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {
-        vipV3.setOptions(buildVipOptions(cmd));
+        String lbPersistence = getPersistenceMethod(cmd.getPersistencePolicy());
 
-        if (!vipV3.getCreated()) {
-            return globoNetworkAPI.getVipV3API().save(vipV3);
-        }else{
-            globoNetworkAPI.getVipV3API().deployUpdate(vipV3);
+        if (vipV3.getCreated()) {
+            vip = globoNetworkAPI.getVipAPI().getByPk(vipV3.getId());
+            if (!lbPersistence.equals(vip.getPersistence())) {
+                globoNetworkAPI.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
+            }
+            return vipV3;
         }
-        return vipV3;
+
+        vipV3.setOptions(buildVipOptions(cmd));
+        return globoNetworkAPI.getVipV3API().save(vipV3);
+
+
+//        vipV3.setOptions(buildVipOptions(cmd));
+//
+//        if (!vipV3.getCreated()) {
+//            return globoNetworkAPI.getVipV3API().save(vipV3);
+//        }else{
+//            globoNetworkAPI.getVipV3API().deployUpdate(vipV3);
+//        }
+//        return vipV3;
     }
 
     private VipV3.VipOptions buildVipOptions(ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {
@@ -292,5 +306,21 @@ class VipApiAdapter {
     @Override
     public String toString() {
         return "VipApiAdapter{" + "vip=" + vip + ", vipV3=" + vipV3 + ", version='" + version + '\'' + '}';
+    }
+
+    protected VipV3 getVipV3() {
+        return vipV3;
+    }
+
+    protected void setVipV3(VipV3 vipV3) {
+        this.vipV3 = vipV3;
+    }
+
+    public Vip getVip() {
+        return vip;
+    }
+
+    public void setVip(Vip vip) {
+        this.vip = vip;
     }
 }

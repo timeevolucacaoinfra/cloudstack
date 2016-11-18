@@ -1011,7 +1011,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return answer;
     }
 
-    enum PersistenceMethod {
+    public enum PersistenceMethod {
         NONE("(nenhum)", "None"),
         COOKIE("cookie", "Cookie"),
         SOURCE_IP("source-ip", "Source-ip"),
