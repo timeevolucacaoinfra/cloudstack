@@ -17,6 +17,7 @@ public class LogStashClientImpl implements LogStashClient, Configurable {
 
     @Override
     public boolean send(String message) {
+        //s_logger.debug("Sending AutoScale metrics ")
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket();

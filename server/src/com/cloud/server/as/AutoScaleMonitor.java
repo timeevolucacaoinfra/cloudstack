@@ -115,6 +115,8 @@ public class AutoScaleMonitor extends ManagedContextRunnable implements Configur
         try {
             //refresh to have the most updated version of asGroup,
             //as it can become outdated while the list is iterated
+            if (asGroup.getUuid() != null)
+                s_logger.debug("[AutoScale] Started processing group " + asGroup.getUuid());
             asGroup = _asGroupDao.findById(asGroup.getId());
 
             if(asGroup.isLocked() || !asGroup.getState().equals(AUTO_SCALE_ENABLED) || !isNative(asGroup.getId()))
