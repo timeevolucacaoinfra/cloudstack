@@ -11,6 +11,7 @@ import com.globo.globonetwork.client.model.VipV3;
 import com.globo.globonetwork.client.model.OptionVipV3;
 import com.globo.globonetwork.client.model.Ip;
 import com.globo.globonetwork.cloudstack.commands.ApplyVipInGloboNetworkCommand;
+import com.globo.globonetwork.cloudstack.manager.HealthCheckHelper.HealthCheckType;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 import org.apache.log4j.Logger;
 
@@ -124,11 +125,20 @@ class VipApiAdapter {
         List<VipV3.Port> ports = new ArrayList<>();
         for(VipPoolMap vipPoolMap : vipPoolMapping){
             String l4ProtocolString;
-            String l7ProtocolString = "Outros";
-            if(cmd.getHealthcheckType().equals("UDP")){
-                l4ProtocolString = "UDP";
+            String l7ProtocolString;
+
+            if(HealthCheckType.isLayer7(cmd.getHealthcheckType())){
+                l4ProtocolString = HealthCheckType.TCP.name();
+                if (vipPoolMap.getPort() == 443 || vipPoolMap.getPort() == 8443) {
+                    l7ProtocolString = HealthCheckType.HTTPS.name();
+                } else if (vipPoolMap.getPort() == 80 || vipPoolMap.getPort() == 8080) {
+                    l7ProtocolString = HealthCheckType.HTTP.name();
+                } else{
+                    l7ProtocolString = cmd.getHealthcheckType().toUpperCase();
+                }
             } else{
-                l4ProtocolString = "TCP";
+                l4ProtocolString = cmd.getHealthcheckType().toUpperCase();
+                l7ProtocolString = "Outros";
             }
 
             OptionVipV3 l4Protocol = globoNetworkAPI.getOptionVipV3API().findOptionsByTypeAndName(vipEnvironment.getId(), "l4_protocol", l4ProtocolString).get(0);
