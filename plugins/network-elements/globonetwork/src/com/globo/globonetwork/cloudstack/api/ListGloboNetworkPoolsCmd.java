@@ -43,10 +43,10 @@ public class ListGloboNetworkPoolsCmd extends BaseCmd {
     // ////////////// API parameters /////////////////////
     // ///////////////////////////////////////////////////
 
-    @Parameter(name= ApiConstants.LBID, type = CommandType.UUID, entityType = FirewallRuleResponse.class, description = "the ID of the load balancer rule")
+    @Parameter(name= ApiConstants.LBID, type = CommandType.UUID, entityType = FirewallRuleResponse.class, required=true, description = "the ID of the load balancer rule")
     private Long lbId;
 
-    @Parameter(name= ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, description = "the ID of the zone")
+    @Parameter(name= ApiConstants.ZONE_ID, type = CommandType.UUID, entityType = ZoneResponse.class, required=true,  description = "the ID of the zone")
     private Long zoneId;
 
 
