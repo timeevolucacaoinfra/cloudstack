@@ -51,13 +51,14 @@ public class AutoScaleCounterProcessorImpl implements AutoScaleCounterProcessor,
 
     @Override
     public boolean process(final AutoScaleVmGroup asGroup, final List<VirtualMachineAddress> virtualMachines, final Map<String, String> counters) {
+        s_logger.debug("[AutoScale] Processing counters of virtual machines from AutoScaleGroup " + asGroup.getUuid() + ". Total of virtual machines to be processed is " + virtualMachines.size());
         for(final VirtualMachineAddress virtualMachine : virtualMachines){
             threadExecutorPool.execute(new Runnable() {
                 @Override
                 public void run() {
                     try {
                         processCounters(asGroup, virtualMachine, counters);
-                    }catch(Exception e){
+                    } catch(Exception e) {
                         s_logger.error("Error processing VM counters", e);
                     }
                 }

@@ -1809,7 +1809,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
                 addVirtualMachineTags(asGroup, vm);
                 try {
                     startNewVM(vm.getId());
-                }catch(Exception ex){
+                } catch(Exception ex){
                     destroyVM(vm.getId());
                     throw ex;
                 }
@@ -1829,7 +1829,7 @@ public class AutoScaleManagerImpl<Type> extends ManagerBase implements AutoScale
             createScaleUpFailedEvent(asGroup.getUuid(), message);
             s_logger.error(message, ex);
             throw ex;
-        }catch(Exception ex){
+        } catch(Exception ex){
             String message = "It was not possible do start VM for Auto Scale Id: " + asGroup.getUuid() + " Reason: unexpected error during execution";
             createScaleUpFailedEvent(asGroup.getUuid(), message);
             s_logger.error(message, ex);
