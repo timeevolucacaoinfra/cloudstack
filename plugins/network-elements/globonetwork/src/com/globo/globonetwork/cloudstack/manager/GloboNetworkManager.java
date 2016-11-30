@@ -52,10 +52,12 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.math.BigInteger;
 import java.net.URI;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1411,7 +1413,11 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } else {
             cmd.setNicIp(nic.getIp6Address());
         }
-        cmd.setNicDescription("");
+
+        SimpleDateFormat format = new SimpleDateFormat("dd-MM-YYYY-HH:mm:ss");
+        String description = "ACS_IP_" + GloboNetworkRegion.value()+ "_"+ format.format(new Date());
+
+        cmd.setNicDescription(description);
         cmd.setVmName(getEquipNameFromUuid(vm.getUuid()));
         cmd.setVlanId(globoNetworkNetworkVO.getGloboNetworkVlanId());
         cmd.setEnvironmentId(globoNetworkNetworkVO.getGloboNetworkEnvironmentId());
@@ -1869,6 +1875,8 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
         Long gnLoadBalancerEnvironment = globoNetworkLBEnvironment.getGloboNetworkLoadBalancerEnvironmentId();
         AcquireNewIpForLbCommand cmd = new AcquireNewIpForLbCommand(gnLoadBalancerEnvironment, isv6);
+        SimpleDateFormat format = new SimpleDateFormat("dd-MM-YYYY-HH:mm:ss");
+        cmd.setDescription("ACS_LB_IP_" + GloboNetworkRegion.value()+ "_"+ format.format(new Date()));
 
         final GloboNetworkAndIPResponse globoNetwork = (GloboNetworkAndIPResponse)this.callCommand(cmd, network.getDataCenterId());
 

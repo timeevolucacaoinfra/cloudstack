@@ -707,7 +707,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             } else {
                 ip = _globoNetworkApi.getIpAPI().getIp(ip.getId(), false);
                 if (!ip.getEquipments().contains(cmd.getVmName())) {
-                    _globoNetworkApi.getIpAPI().assocIp(ip.getId(), equipment.getId(), network.getId(), network.isv6());
+                    _globoNetworkApi.getIpAPI().assocIp(ip.getId(), equipment.getId(), network.getId(), network.isv6(), cmd.getNicDescription());
                 }
             }
 
@@ -804,7 +804,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
     public Answer execute(AcquireNewIpForLbCommand cmd) {
         try {
             long globoNetworkLBEnvironmentId = cmd.getGloboNetworkLBEnvironmentId();
-            Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIpForVip(globoNetworkLBEnvironmentId, "", cmd.isv6());
+            Ip globoIp = _globoNetworkApi.getIpAPI().getAvailableIpForVip(globoNetworkLBEnvironmentId, cmd.getDescription(), cmd.isv6());
             if (globoIp == null) {
                 return new Answer(cmd, false, "No available ip address for load balancer environment network " + globoNetworkLBEnvironmentId);
             }
