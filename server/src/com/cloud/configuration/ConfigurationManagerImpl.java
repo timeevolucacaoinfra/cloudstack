@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1392,7 +1393,7 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
                 selectSql += " AND taken IS NOT NULL";
             }
 
-            if (tableName.equals("host_pod_ref") || tableName.equals("host") || tableName.equals("volumes") || tableName.equals("physical_network")) {
+            if (shouldHaveRemovedQuery(tableName)) {
                 selectSql += " AND removed is NULL";
             }
 
@@ -1413,6 +1414,13 @@ public class ConfigurationManagerImpl extends ManagerBase implements Configurati
             }
         }
 
+    }
+
+    protected boolean shouldHaveRemovedQuery(String tableName) {
+        final String[] tablesArray = {"host_pod_ref", "host", "volumes", "physical_network", "vm_instance"};
+        final List<String> tables = Arrays.asList(tablesArray);
+
+        return tables.contains(tableName);
     }
 
     private void checkZoneParameters(String zoneName, String dns1, String dns2, String internalDns1, String internalDns2, boolean checkForDuplicates, Long domainId,
