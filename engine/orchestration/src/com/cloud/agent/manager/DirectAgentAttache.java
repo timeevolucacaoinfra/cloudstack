@@ -309,7 +309,7 @@ public class DirectAgentAttache extends AgentAttache {
                         }
                     } catch (Throwable t) {
                         // Catch Throwable as all exceptions will otherwise be eaten by the executor framework
-                        s_logger.warn(log(seq, "Throwable caught while executing command"), t);
+                        s_logger.error(log(seq, "Throwable caught while executing command"), t);
                         answer = new Answer(cmds[i], false, t.toString());
                     }
                     answers.add(answer);
