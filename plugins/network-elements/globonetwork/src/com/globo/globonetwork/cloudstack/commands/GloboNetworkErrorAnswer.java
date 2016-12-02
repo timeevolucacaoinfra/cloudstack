@@ -18,16 +18,22 @@ package com.globo.globonetwork.cloudstack.commands;
 
 import com.cloud.agent.api.Answer;
 import com.cloud.agent.api.Command;
+import org.apache.cloudstack.context.CallContext;
 
 public class GloboNetworkErrorAnswer extends Answer {
 
     protected int napiCode;
     protected String napiDescription;
+    protected String context;
 
     public GloboNetworkErrorAnswer(Command command, int napiCode, String napiDescription) {
         super(command, false, napiCode + " - " + napiDescription);
         this.napiCode = napiCode;
         this.napiDescription = napiDescription;
+        CallContext callContext = CallContext.current();
+        if (callContext != null){
+            context = callContext.getNdcContext();
+        }
     }
 
     public int getNapiCode() {
@@ -36,5 +42,9 @@ public class GloboNetworkErrorAnswer extends Answer {
 
     public String getNapiDescription() {
         return this.napiDescription;
+    }
+
+    public String getNdcContext() {
+        return context;
     }
 }

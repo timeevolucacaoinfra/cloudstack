@@ -24,11 +24,18 @@ public class CloudstackGloboNetworkException extends CloudRuntimeException {
 
     private int napiCode;
     private String napiDescription;
+    private String context;
 
     public CloudstackGloboNetworkException(int napiCode, String napiDescription) {
         super(napiCode + " - " + napiDescription);
         this.napiCode = napiCode;
         this.napiDescription = napiDescription;
+    }
+    public CloudstackGloboNetworkException(int napiCode, String napiDescription, String context) {
+        super(napiCode + " - " + napiDescription);
+        this.napiCode = napiCode;
+        this.napiDescription = napiDescription;
+        this.context = context;
     }
 
     public CloudstackGloboNetworkException(String message) {
@@ -42,4 +49,6 @@ public class CloudstackGloboNetworkException extends CloudRuntimeException {
     public String getNapiDescription() {
         return napiDescription;
     }
+
+    public String getContext() { return this.context; }
 }

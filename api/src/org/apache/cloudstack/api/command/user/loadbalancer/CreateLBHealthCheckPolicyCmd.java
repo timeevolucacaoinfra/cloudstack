@@ -159,22 +159,18 @@ public class CreateLBHealthCheckPolicyCmd extends BaseAsyncCreateCmd {
 
     @Override
     public void execute() throws ResourceAllocationException, ResourceUnavailableException {
-        HealthCheckPolicy policy = null;
-        boolean success = false;
+        HealthCheckPolicy policy;
+        boolean success;
 
-        try {
-            CallContext.current().setEventDetails("Load balancer healthcheck policy Id : " + getEntityId());
-            success = _lbService.applyLBHealthCheckPolicy(this);
-            if (success) {
-                // State might be different after the rule is applied, so get new object here
-                policy = _entityMgr.findById(HealthCheckPolicy.class, getEntityId());
-                LoadBalancer lb = _lbService.findById(policy.getLoadBalancerId());
-                LBHealthCheckResponse hcResponse = _responseGenerator.createLBHealthCheckPolicyResponse(policy, lb);
-                setResponseObject(hcResponse);
-                hcResponse.setResponseName(getCommandName());
-            }
-        }catch (Exception ex) {
-            throw ex;
+        CallContext.current().setEventDetails("Load balancer healthcheck policy Id : " + getEntityId());
+        success = _lbService.applyLBHealthCheckPolicy(this);
+        if (success) {
+            // State might be different after the rule is applied, so get new object here
+            policy = _entityMgr.findById(HealthCheckPolicy.class, getEntityId());
+            LoadBalancer lb = _lbService.findById(policy.getLoadBalancerId());
+            LBHealthCheckResponse hcResponse = _responseGenerator.createLBHealthCheckPolicyResponse(policy, lb);
+            setResponseObject(hcResponse);
+            hcResponse.setResponseName(getCommandName());
         }
     }
 

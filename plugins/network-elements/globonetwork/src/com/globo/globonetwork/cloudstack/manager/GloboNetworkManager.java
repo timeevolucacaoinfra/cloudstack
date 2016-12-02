@@ -718,7 +718,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             if (answer instanceof GloboNetworkErrorAnswer) {
                 GloboNetworkErrorAnswer napiAnswer = (GloboNetworkErrorAnswer)answer;
-                throw new CloudstackGloboNetworkException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription());
+                throw new CloudstackGloboNetworkException(napiAnswer.getNapiCode(), napiAnswer.getNapiDescription(), napiAnswer.getNdcContext());
             } else {
                 if (raisesExceptionWhenNoAnswer) {
                     String msg = "Error executing command " + cmd + ". Maybe GloboNetwork Host is down";
@@ -2015,7 +2015,15 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
         } catch (Exception e) {
             // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions only show 'error'
             s_logger.error("[load balancer "+ rule.getName()+ "] Error applying load balancer rules. Uuid: " + rule.getUuid(), e);
+
             String context = CallContext.current().getNdcContext();
+            if (e instanceof CloudstackGloboNetworkException) {
+                CloudstackGloboNetworkException ex = (CloudstackGloboNetworkException)e;
+                String integrationContext =  ex.getContext();
+                String msg = "Integration problem with NetworkAPI, please contact your system administrator. Context: " + context + ", Integration context: " + integrationContext + ", lbuuid: "+rule.getUuid()+ ". Details: " + ex.getMessage();
+                throw new CloudRuntimeException(msg);
+            }
+
 
             throw new CloudRuntimeException("Error applying load balancer in NetworkAPI. Context: "+ context+ ", lb uuid=" + rule.getUuid(), e);
         } finally {
