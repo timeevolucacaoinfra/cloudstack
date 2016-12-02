@@ -88,9 +88,9 @@ public class ApiResponseSerializer {
                 boolean nonZeroCount = (count != null && count.longValue() != 0);
                 if (nonZeroCount) {
                     sb.append("{\"").append(ApiConstants.COUNT).append("\":").append(count);
-                }
-                if (context != null) {
-                    sb.append(",\"").append(ApiConstants.CONTEXT).append("\":\"").append(context).append("\"");
+                    if (context != null) {
+                        sb.append(",\"").append(ApiConstants.CONTEXT).append("\":\"").append(context).append("\"");
+                    }
                 }
 
                 if ((responses != null) && !responses.isEmpty()) {

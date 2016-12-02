@@ -748,7 +748,7 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 s_logger.debug("LB Rollback rule id: " + loadBalancer.getId() + " lb state rolback while creating healthcheck policy");
             }
             deleteLBHealthCheckPolicy(cmd.getEntityId(), false);
-            success = false;
+            throw new CloudRuntimeException(e.getMessage());
         }
         return success;
     }

@@ -2014,7 +2014,10 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             }
         } catch (Exception e) {
             // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions only show 'error'
-            throw new ResourceUnavailableException("Error applying loadbalancer rules. lb uuid=" + rule.getUuid(), DataCenter.class, network.getDataCenterId(), e);
+            s_logger.error("[load balancer "+ rule.getName()+ "] Error applying load balancer rules. Uuid: " + rule.getUuid(), e);
+            String context = CallContext.current().getNdcContext();
+
+            throw new CloudRuntimeException("Error applying load balancer in NetworkAPI. Context: "+ context+ ", lb uuid=" + rule.getUuid(), e);
         } finally {
             if (lock != null && lock.isHeldByCurrentThread()) {
                 lock.unlock();
