@@ -962,7 +962,7 @@ public class GloboNetworkManagerTest {
         verify(_globoNetworkIpDetailDao).persist(any(GloboNetworkIpDetailVO.class));
     }
 
-    @Test(expected = ResourceUnavailableException.class)
+    @Test(expected = CloudRuntimeException.class)
     public void testAddVipGivenLBEnvNotFound() throws ResourceUnavailableException {
         LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
 
@@ -978,7 +978,7 @@ public class GloboNetworkManagerTest {
         assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
     }
 
-    @Test(expected = ResourceUnavailableException.class)
+    @Test(expected = CloudRuntimeException.class)
     public void testAddVipGivenIPDetailNotFound() throws ResourceUnavailableException {
         LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
 
@@ -989,7 +989,7 @@ public class GloboNetworkManagerTest {
         assertTrue(_globoNetworkService.applyLbRuleInGloboNetwork(new NetworkVO(), rule));
     }
 
-    @Test(expected = ResourceUnavailableException.class)
+    @Test(expected = CloudRuntimeException.class)
     public void testAddVipGivenIPAddressNotFound() throws ResourceUnavailableException {
         LoadBalancingRule rule = createMockLbRule("dummy.test.com", false);
         when(_ipAddrDao.findByIpAndNetworkId(anyLong(), anyString())).thenReturn(null);
