@@ -156,6 +156,7 @@ public class ApiConstants {
     public static final String ISO_GUEST_OS_NONE = "None";
     public static final String JOB_ID = "jobid";
     public static final String JOB_STATUS = "jobstatus";
+    public static final String CONTEXT = "context";
     public static final String LASTNAME = "lastname";
     public static final String LEVEL = "level";
     public static final String LENGTH = "length";

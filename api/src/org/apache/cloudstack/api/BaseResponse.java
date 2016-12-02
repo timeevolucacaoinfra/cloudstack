@@ -19,6 +19,7 @@ package org.apache.cloudstack.api;
 import com.google.gson.annotations.SerializedName;
 
 import com.cloud.serializer.Param;
+import org.apache.cloudstack.context.CallContext;
 
 public abstract class BaseResponse implements ResponseObject {
     private transient String responseName;
@@ -57,6 +58,10 @@ public abstract class BaseResponse implements ResponseObject {
     @Param(description = "the current status of the latest async job acting on this object")
     private Integer jobStatus;
 
+    @SerializedName(ApiConstants.CONTEXT)
+    @Param(description = "context error")
+    private String context;
+
     @Override
     public String getJobId() {
         return jobId;
@@ -75,5 +80,21 @@ public abstract class BaseResponse implements ResponseObject {
     @Override
     public void setJobStatus(Integer jobStatus) {
         this.jobStatus = jobStatus;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public void setContext(String context) {
+        this.context = context;
+    }
+
+
+    public void buildCurrentContext() {
+        CallContext context = CallContext.current();
+        if (context != null) {
+            setContext(context.getNdcContext());
+        }
     }
 }

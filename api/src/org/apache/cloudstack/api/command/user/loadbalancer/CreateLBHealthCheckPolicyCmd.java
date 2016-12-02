@@ -173,10 +173,8 @@ public class CreateLBHealthCheckPolicyCmd extends BaseAsyncCreateCmd {
                 setResponseObject(hcResponse);
                 hcResponse.setResponseName(getCommandName());
             }
-        } finally {
-            if (!success || (policy == null)) {
-                throw new ServerApiException(ApiErrorCode.INTERNAL_ERROR, "Failed to create healthcheck policy ");
-            }
+        }catch (Exception ex) {
+            throw ex;
         }
     }
 

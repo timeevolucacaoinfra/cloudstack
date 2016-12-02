@@ -60,6 +60,8 @@ public class CallContext {
     private long userId;
     private final Map<Object, Object> context = new HashMap<Object, Object>();
 
+    private String ndcContext;
+
     static EntityManager s_entityMgr;
 
     public static void init(EntityManager entityMgr) {
@@ -158,7 +160,9 @@ public class CallContext {
             callingContext = new CallContext(userId, accountId, contextId);
         }
         s_currentContext.set(callingContext);
-        NDC.push("ctx-" + UuidUtils.first(contextId));
+        String ndc = "ctx-" + UuidUtils.first(contextId);
+        NDC.push(ndc);
+        callingContext.setNdcContenxt(ndc);
         if (s_logger.isTraceEnabled()) {
             s_logger.trace("Registered: " + callingContext);
         }
@@ -354,5 +358,13 @@ public class CallContext {
             .append(contextId)
             .append("]")
             .toString();
+    }
+
+    public void setNdcContenxt(String ndcContext) {
+        this.ndcContext = ndcContext;
+    }
+
+    public String getNdcContext() {
+        return this.ndcContext;
     }
 }

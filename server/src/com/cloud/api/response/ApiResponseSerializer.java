@@ -30,6 +30,7 @@ import com.google.gson.annotations.SerializedName;
 import org.apache.cloudstack.acl.RoleType;
 import org.apache.cloudstack.api.ApiConstants;
 import org.apache.cloudstack.api.BaseCmd;
+import org.apache.cloudstack.api.BaseResponse;
 import org.apache.cloudstack.api.ResponseObject;
 import org.apache.cloudstack.api.response.AsyncJobResponse;
 import org.apache.cloudstack.api.response.AuthenticationCmdResponse;
@@ -83,9 +84,13 @@ public class ApiResponseSerializer {
             if (result instanceof ListResponse) {
                 List<? extends ResponseObject> responses = ((ListResponse)result).getResponses();
                 Integer count = ((ListResponse)result).getCount();
+                String context = ((ListResponse)result).getContext();
                 boolean nonZeroCount = (count != null && count.longValue() != 0);
                 if (nonZeroCount) {
                     sb.append("{\"").append(ApiConstants.COUNT).append("\":").append(count);
+                }
+                if (context != null) {
+                    sb.append(",\"").append(ApiConstants.CONTEXT).append("\":\"").append(context).append("\"");
                 }
 
                 if ((responses != null) && !responses.isEmpty()) {
@@ -116,6 +121,7 @@ public class ApiResponseSerializer {
                 jsonErrorText = unescape(jsonErrorText);
                 sb.append(jsonErrorText);
             } else {
+                ((BaseResponse)result).buildCurrentContext();
                 String jsonStr = gson.toJson(result);
                 if ((jsonStr != null) && !"".equals(jsonStr)) {
                     jsonStr = unescape(jsonStr);

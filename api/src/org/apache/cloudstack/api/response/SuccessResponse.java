@@ -48,6 +48,7 @@ public class SuccessResponse extends BaseResponse {
     }
 
     public SuccessResponse() {
+        buildCurrentContext();
     }
 
     public SuccessResponse(String responseName) {

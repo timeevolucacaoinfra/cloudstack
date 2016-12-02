@@ -25,6 +25,10 @@ public class ListResponse<T extends ResponseObject> extends BaseResponse {
     List<T> responses;
     private transient Integer count;
 
+    public ListResponse(){
+        buildCurrentContext();
+    }
+
     public List<T> getResponses() {
         return responses;
     }

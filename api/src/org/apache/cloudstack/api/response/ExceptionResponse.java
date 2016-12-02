@@ -46,6 +46,7 @@ public class ExceptionResponse extends BaseResponse {
 
     public ExceptionResponse() {
         idList = new ArrayList<ExceptionProxyObject>();
+        buildCurrentContext();
     }
 
     public Integer getErrorCode() {
