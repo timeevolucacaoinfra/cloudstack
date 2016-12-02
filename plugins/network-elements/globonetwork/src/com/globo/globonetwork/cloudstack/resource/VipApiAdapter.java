@@ -193,27 +193,17 @@ class VipApiAdapter {
 
     private VipV3 updateVipV3(ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {
         String lbPersistence = getPersistenceMethod(cmd.getPersistencePolicy());
+        OptionVipV3 persistence = globoNetworkAPI.getOptionVipV3API().findOptionsByTypeAndName(cmd.getVipEnvironmentId(), "Persistencia", lbPersistence).get(0);
 
         if (vipV3.getCreated()) {
-            vip = globoNetworkAPI.getVipAPI().getByPk(vipV3.getId());
-            if (!lbPersistence.equals(vip.getPersistence())) {
-                globoNetworkAPI.getVipAPI().alterPersistence(vip.getId(), lbPersistence);
+            if(!persistence.getId().equals(vipV3.getOptions().getPersistenceId())) {
+                globoNetworkAPI.getVipV3API().updatePersistence(vipV3.getId(), persistence.getId());
             }
             return vipV3;
+        }else{
+            vipV3.setOptions(buildVipOptions(cmd));
+            return globoNetworkAPI.getVipV3API().save(vipV3);
         }
-
-        vipV3.setOptions(buildVipOptions(cmd));
-        return globoNetworkAPI.getVipV3API().save(vipV3);
-
-
-//        vipV3.setOptions(buildVipOptions(cmd));
-//
-//        if (!vipV3.getCreated()) {
-//            return globoNetworkAPI.getVipV3API().save(vipV3);
-//        }else{
-//            globoNetworkAPI.getVipV3API().deployUpdate(vipV3);
-//        }
-//        return vipV3;
     }
 
     private VipV3.VipOptions buildVipOptions(ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {

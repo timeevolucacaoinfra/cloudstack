@@ -187,12 +187,9 @@ public class VipApiAdapterTest {
         ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
         LoadBalancingRule.LbStickinessPolicy stickinessPolicy = new LoadBalancingRule.LbStickinessPolicy("Source-ip", null, false);
         cmd.setPersistencePolicy(stickinessPolicy);
+        cmd.setVipEnvironmentId(1L);
 
-
-        VipJson vipJson = buildFakeVipV2(21L, true);
-        vipJson.setPersistence("Cookie");
-        when(vipV2API.getByPk(21L)).thenReturn(vipJson);
-
+        when(optionVipV3API.findOptionsByTypeAndName(1L, "Persistencia", "source-ip")).thenReturn(Collections.singletonList(new OptionVipV3(7L, "Persistencia","Source-ip")));
 
         String networkAPIStickiness = GloboNetworkResource.PersistenceMethod.fromPersistencePolicy(stickinessPolicy);
         doNothing().when(vipV2API).alterPersistence(21L, networkAPIStickiness);
@@ -200,11 +197,8 @@ public class VipApiAdapterTest {
         //execute
         adapter.update(cmd, null, null);
 
-
         //test
-        assertTrue(adapter.hasVip());
-        verify(vipV2API).getByPk(21L);
-        verify(vipV2API).alterPersistence(21L, networkAPIStickiness);
+        verify(vipV3API).updatePersistence(21L, 7L);
     }
 
     @Test
@@ -328,6 +322,7 @@ public class VipApiAdapterTest {
         VipV3 vip = new VipV3();
         vip.setId(vipId);
         vip.setCreated(created);
+        vip.setOptions(new VipV3.VipOptions());
         return vip;
     }
 
