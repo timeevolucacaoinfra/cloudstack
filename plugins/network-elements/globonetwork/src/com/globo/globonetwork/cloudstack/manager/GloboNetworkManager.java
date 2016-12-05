@@ -2020,7 +2020,7 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
             if (e instanceof CloudstackGloboNetworkException) {
                 CloudstackGloboNetworkException ex = (CloudstackGloboNetworkException)e;
                 String integrationContext =  ex.getContext();
-                String msg = "Integration problem with NetworkAPI, please contact your system administrator. Context: " + context + ", Integration context: " + integrationContext + ", lbuuid: "+rule.getUuid()+ ". Details: " + ex.getMessage();
+                String msg = "Integration problem with NetworkAPI, please contact your system administrator. Context: " + context + ", Integration context: " + integrationContext + ", lbuuid: "+rule.getUuid();
                 throw new CloudRuntimeException(msg);
             }
 
