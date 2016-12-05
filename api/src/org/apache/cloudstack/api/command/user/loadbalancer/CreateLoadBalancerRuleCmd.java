@@ -138,6 +138,14 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.EXPECTED_HEALTHCHECK, type = CommandType.STRING, description = "Expected healthcheck string to check if is in service.")
     private String expectedHealthCheck;
 
+    public boolean isSkipDnsError() {
+        return skipDnsError;
+    }
+
+    public void setSkipDnsError(boolean skipDnsError) {
+        this.skipDnsError = skipDnsError;
+    }
+
     @Parameter(name = "skipdnserror", type = CommandType.BOOLEAN, description = "when false if dns integration failed, the loadbalancer will not be created and throw an exception, else lb will be created and dns it could be register later")
     private boolean skipDnsError = false ;
 

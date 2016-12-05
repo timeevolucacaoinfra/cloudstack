@@ -268,6 +268,8 @@ public interface GloboNetworkService {
 
     GloboResourceConfigurationVO getGloboResourceConfiguration(String uuid, GloboResourceType resourceType, GloboResourceKey key);
 
+    public List<GloboResourceConfigurationVO> getGloboResourceConfigs(String uuid, GloboResourceType resourceType);
+
     public boolean validateLBRule(Network network, LoadBalancingRule rule);
 
     public LoadBalancer importGloboNetworkLoadBalancer(Long lbId, Long networkId, Long projectId);

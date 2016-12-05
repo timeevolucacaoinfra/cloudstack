@@ -630,6 +630,7 @@ public class ApiConstants {
     public static final String NETWORK_SPANNED_ZONES = "zonesnetworkspans";
     public static final String PHYSICAL_SIZE = "physicalsize";
     public static final String GURU_NAME = "guruname";
+    public static final String GLOBO_RESOURCE_CONFIG = "globoresourceconfig";
 
     public enum HostDetails {
         all, capacity, events, stats, min;
