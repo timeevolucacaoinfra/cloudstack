@@ -132,8 +132,8 @@ public class CreateLoadBalancerRuleCmd extends BaseAsyncCreateCmd /*implements L
     @Parameter(name = ApiConstants.HEALTHCHECK_DESTINATION, type = CommandType.STRING, description = "Port to be used as health check alternative to the service port (optional)")
     private String healthCheckDestination;
 
-    @Parameter(name = ApiConstants.HEALTHCHECK_TYPE, type = CommandType.STRING, description = "Healthcheck type (TCP/HTTP)")
-    private String healthCheckType;
+    @Parameter(name = ApiConstants.HEALTHCHECK_TYPE, type = CommandType.STRING, description = "Healthcheck type (TCP, UDP, HTTP or HTTPS)")
+    protected String healthCheckType;
 
     @Parameter(name = ApiConstants.EXPECTED_HEALTHCHECK, type = CommandType.STRING, description = "Expected healthcheck string to check if is in service.")
     private String expectedHealthCheck;

@@ -17,6 +17,7 @@
 package com.globo.globonetwork.cloudstack.api.loadbalancer;
 
 import com.cloud.event.EventTypes;
+import com.cloud.exception.NetworkRuleConflictException;
 import com.cloud.exception.ResourceAllocationException;
 import com.cloud.exception.ResourceUnavailableException;
 
@@ -26,8 +27,12 @@ import com.cloud.network.addr.PublicIp;
 
 import com.cloud.network.rules.HealthCheckPolicy;
 import com.cloud.network.rules.StickinessPolicy;
+import com.cloud.utils.StringUtils;
 import com.cloud.utils.exception.CloudRuntimeException;
+import com.cloud.utils.exception.UserCloudRuntimeException;
 import com.globo.globonetwork.cloudstack.manager.GloboNetworkService;
+import com.globo.globonetwork.cloudstack.manager.HealthCheckHelper;
+import com.globo.globonetwork.cloudstack.resource.GloboNetworkResource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -68,8 +73,8 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     @Parameter(name = "lbenvironmentid", type = CommandType.LONG, description = "Globo Network LB Environment Id", required = true)
     private Long globoNetworkLBEnvironmentId;
 
-    @Parameter(name = ApiConstants.HEALTHCHECK_PINGPATH, type = CommandType.STRING, required = false, description = "HTTP Ping Path")
-    private String pingPath;
+    @Parameter(name = "healthcheckrequest", type = CommandType.STRING, required = false, description = "HTTP Request Path (ex: /healthcheck.html)")
+    private String healthcheckRequest;
 
 
     @Parameter(name = "stickinessmethodname", type = CommandType.STRING,
@@ -84,9 +89,43 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     /////////////// API Implementation///////////////////
     /////////////////////////////////////////////////////
 
+
+    private boolean ipCreated = false;
+    private CreateLBHealthCheckPolicyCmd healthCmd;
+    private CreateLBStickinessPolicyCmd stickinessCmd;
+    private Long ipAddressId = null;
+
     @Override
     public String getCommandName() {
         return s_name;
+    }
+
+    @Override
+    public void create() throws CloudRuntimeException{
+        validation();
+
+        final String name = getName();
+        try {
+            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), getGloboNetworkLBEnvironmentId());
+            IpAddress ipAddress = _networkService.associateIPToNetwork(ip.getId(), getNetworkId());
+            ipAddressId = ipAddress.getId();
+            ipCreated = true;
+
+            setPublicIpId(ip.getId());
+            setSourceIpAddressId(ipAddress.getId());
+
+            s_logger.debug("[load_balancer " + name + "] portable ip created with id " + ip.getId() + ", ipaddress " + ipAddress.getId());
+
+            super.create();
+        } catch (Exception e) {
+            s_logger.error("[load_balancer " + name + "] error creating load balancer ", e);
+            handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
+
+            if ( e instanceof UserCloudRuntimeException) {
+                throw (UserCloudRuntimeException)e;
+            }
+            throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
+        }
     }
 
     @Override
@@ -100,7 +139,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             createStickiness();
             loadGloboResourceConfig();
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             s_logger.warn("[load_balancer " + name + "] removing loadbalancer after error", e);
             _lbService.deleteLoadBalancerRule(getEntityId(), false);
             handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
@@ -108,21 +147,19 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
         }
     }
 
-    private void loadGloboResourceConfig() {
-        LoadBalancerResponse lbResponse = (LoadBalancerResponse)getResponseObject();
-        List<GloboResourceConfigurationVO> globoResourceConfigs = _globoNetworkService.getGloboResourceConfigs(this.getEntityUuid(), GloboResourceType.LOAD_BALANCER);
-        List<LoadBalancerResponse.GloboResourceConfigurationResponse> configs = new ArrayList<LoadBalancerResponse.GloboResourceConfigurationResponse>();
-        for (GloboResourceConfiguration config : globoResourceConfigs) {
-            LoadBalancerResponse.GloboResourceConfigurationResponse conf = new LoadBalancerResponse.GloboResourceConfigurationResponse();
-            conf.setConfigurationKey(config.getKey().name());
-            conf.setConfigurationValue(config.getValue());
-            configs.add(conf);
-        }
+    private void validation() {
+        HealthCheckHelper healthcheck = HealthCheckHelper.build(getName(), getHealthCheckType(), healthcheckRequest, getExpectedHealthCheck());
 
-        lbResponse.setGloboResourceConfigs(configs);
+        if ( HealthCheckHelper.HealthCheckType.isLayer7(healthcheck.getHealthCheckType())
+                && healthcheck.getHealthCheck().isEmpty()) {
+            throw new CloudRuntimeException("Health check validation: when health check type is HTTP/HTTPS, health check request can not be empty. type: " + healthcheck.getHealthCheckType() + ", request: " + healthcheck.getHealthCheck());
+        }
+        if (stickinessMethodName != null)
+            GloboNetworkResource.PersistenceMethod.validateValue(stickinessMethodName);
+
     }
 
-    protected void createStickiness() throws CloudRuntimeException {
+    protected void createStickiness() throws ResourceUnavailableException {
         final String name = getName();
 
         if (!isToCreateStickiness()) {
@@ -145,80 +182,57 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             if (!success) {
                 throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE);
             }
-        } catch (Exception e) {
+        } catch (NetworkRuleConflictException e) {
             throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
         }
 
     }
 
 
-    protected void createHealthcheck() throws ResourceUnavailableException {
+    protected void createHealthcheck() {
         final String name = getName();
 
         if (!isToCreateHealthcheck()) {
-            s_logger.debug("[load_balancer " + name + "] it is not necessary to create healthcheck. pingpath: " + pingPath);
+            s_logger.debug("[load_balancer " + name + "] it is not necessary to create healthcheck. healthcheckRequest: " + healthcheckRequest);
             return;
         }
-
 
         s_logger.debug("[load_balancer " + name + "] creating healthcheck ");
         healthCmd = new CreateLBHealthCheckPolicyCmd();
         healthCmd.setFullUrlParams(new HashMap<String, String>());
-        healthCmd.setPingPath(pingPath);
+        healthCmd.setPingPath(healthcheckRequest);
         healthCmd.setLbRuleId(this.getEntityId());
 
+
+        HealthCheckPolicy healthcheck = _lbService.createLBHealthCheckPolicy(healthCmd);
+
+        healthCmd.setEntityId(healthcheck.getId());
+        healthCmd.setEntityUuid(healthcheck.getUuid());
+
+        s_logger.debug("[load_balancer " + name + "] apply healthcheck: " + healthcheck.getUuid());
         try {
-            HealthCheckPolicy healthcheck = _lbService.createLBHealthCheckPolicy(healthCmd);
-
-            healthCmd.setEntityId(healthcheck.getId());
-            healthCmd.setEntityUuid(healthcheck.getUuid());
-
-            s_logger.debug("[load_balancer " + name + "] apply healthcheck: " + healthcheck.getUuid());
-            boolean healthcheckApplied = _lbService.applyLBHealthCheckPolicy(healthCmd); // with error it already rollback the healthcheck
-            if (!healthcheckApplied) {
-                throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE);
-            }
-
-        } catch (Exception e) {
-            if ( e instanceof  CloudRuntimeException) {
-                throw e;
-            }
-
+            _lbService.applyLBHealthCheckPolicy(healthCmd); // with error it already rollback the healthcheck
+        } catch (ResourceUnavailableException e) {
             throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
         }
+
     }
 
 
-    @Override
-    public void create() {
-        final String name = getName();
-
-
-
-        try {
-            PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), getGloboNetworkLBEnvironmentId());
-            IpAddress ipAddress = _networkService.associateIPToNetwork(ip.getId(), getNetworkId());
-            ipAddressId = ipAddress.getId();
-            ipCreated = true;
-
-            setPublicIpId(ip.getId());
-            setSourceIpAddressId(ipAddress.getId());
-
-            s_logger.debug("[load_balancer " + name + "] portable ip created with id " + ip.getId() + ", ipaddress " + ipAddress.getId());
-
-            super.create();
-        } catch (Exception e) {
-            s_logger.error("[load_balancer " + name + "] error creating load balancer ", e);
-            handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
-
-            throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
+    private void loadGloboResourceConfig() {
+        LoadBalancerResponse lbResponse = (LoadBalancerResponse)getResponseObject();
+        List<GloboResourceConfigurationVO> globoResourceConfigs = _globoNetworkService.getGloboResourceConfigs(this.getEntityUuid(), GloboResourceType.LOAD_BALANCER);
+        List<LoadBalancerResponse.GloboResourceConfigurationResponse> configs = new ArrayList<LoadBalancerResponse.GloboResourceConfigurationResponse>();
+        for (GloboResourceConfiguration config : globoResourceConfigs) {
+            LoadBalancerResponse.GloboResourceConfigurationResponse conf = new LoadBalancerResponse.GloboResourceConfigurationResponse();
+            conf.setConfigurationKey(config.getKey().name());
+            conf.setConfigurationValue(config.getValue());
+            configs.add(conf);
         }
+
+        lbResponse.setGloboResourceConfigs(configs);
     }
 
-    private boolean ipCreated = false;
-    private CreateLBHealthCheckPolicyCmd healthCmd;
-    private CreateLBStickinessPolicyCmd stickinessCmd;
-    private Long ipAddressId = null;
 
     @Override
     public long getEntityOwnerId() {
@@ -289,15 +303,30 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     }
 
     public boolean isToCreateHealthcheck() {
-        return pingPath != null && !pingPath.isEmpty();
+        return healthcheckRequest != null && !healthcheckRequest.isEmpty();
     }
 
 
     public void setPingPath(String pingPath) {
-        this.pingPath = pingPath;
+        this.healthcheckRequest = pingPath;
     }
 
     public void setStickinessMethodName(String stickinessMethodName) {
         this.stickinessMethodName = stickinessMethodName;
+    }
+
+    public String getStickinessMethodName() {
+        return stickinessMethodName;
+    }
+
+    @Override
+    public String getHealthCheckType() {
+        try {
+            HealthCheckHelper.HealthCheckType.valueOf(healthCheckType);
+        }catch (IllegalArgumentException e) {
+            throw new UserCloudRuntimeException("Health check type \'"+ healthCheckType + "\' not allow, possible values: " + StringUtils.join(", ", HealthCheckHelper.HealthCheckType.values()) + ".");
+        }
+
+        return healthCheckType;
     }
 }

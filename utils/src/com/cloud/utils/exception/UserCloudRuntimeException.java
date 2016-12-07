@@ -28,4 +28,8 @@ public class UserCloudRuntimeException extends CloudRuntimeException{
         super(message);
         setCSErrorCode(CSExceptionErrorCode.getCSErrCode(this.getClass().getName()));
     }
+
+    public UserCloudRuntimeException(String message, Throwable th) {
+        super(message, th);
+    }
 }

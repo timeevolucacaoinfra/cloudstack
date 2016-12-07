@@ -74,21 +74,24 @@ public class HealthCheckHelper implements Serializable{
         }
 
 
-        public void validate(String host, String healthehckType, String healthcheck, String expectedHealthcheck){
+        public static void validate(String host, String healthehckType, String healthcheck, String expectedHealthcheck){
+
+
             if ( healthehckType != null && HealthCheckType.isLayer4(healthehckType)){
+
                 if (expectedHealthcheck != null && !expectedHealthcheck.isEmpty()) {
-                    throw new IllegalArgumentException("When healthCheckType is TCP/UDP expectedHealthCheck should be empty! type: " + healthehckType + ", expectedHealthCheck: " + expectedHealthcheck);
+                    throw new IllegalArgumentException("Health check validation error: when health check type is TCP/UDP 'Expected health check' should be empty! type: " + healthehckType + ", 'expected health check': " + expectedHealthcheck);
                 }
 
                 if (healthcheck != null && !healthcheck.isEmpty()) {
-                    throw new IllegalArgumentException("When healthCheckType is TCP/UDP healthCheck should be empty! type: " + healthehckType + ",healthCheck: " + healthcheck);
-                };
+                    throw new IllegalArgumentException("Health check validation error: When health check type is TCP/UDP 'HealthCheck request' should be empty! type: " + healthehckType + ", 'health check request': " + healthcheck);
+                }
             }
         }
 
         public static HealthCheckHelper build(String host, String healthehckType, String healthCheck, String expectedHealthCheck) {
             HealthCheckHelper healthCheckHelper = new HealthCheckHelper(host);
-            healthCheckHelper.validate(host, healthehckType, healthCheck, expectedHealthCheck);
+            validate(host, healthehckType, healthCheck, expectedHealthCheck);
             return healthCheckHelper.build(healthehckType, healthCheck, expectedHealthCheck);
         }
 

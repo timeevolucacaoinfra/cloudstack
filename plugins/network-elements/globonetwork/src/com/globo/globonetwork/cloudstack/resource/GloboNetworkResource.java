@@ -18,6 +18,7 @@ package com.globo.globonetwork.cloudstack.resource;
 
 import com.cloud.exception.InvalidParameterValueException;
 import com.cloud.network.lb.LoadBalancingRule;
+import com.cloud.utils.StringUtils;
 import com.globo.globonetwork.client.api.ExpectHealthcheckAPI;
 import com.globo.globonetwork.client.api.GloboNetworkAPI;
 import com.globo.globonetwork.client.api.PoolAPI;
@@ -31,6 +32,7 @@ import com.globo.globonetwork.cloudstack.manager.HealthCheckHelper;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkExpectHealthcheckResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolResponse;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -492,7 +494,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         if (e instanceof GloboNetworkErrorCodeException) {
             GloboNetworkErrorCodeException ex = (GloboNetworkErrorCodeException)e;
             s_logger.error("Error accessing GloboNetwork: " + ex.getCode() + " - " + ex.getDescription(), ex);
-            return new GloboNetworkErrorAnswer(cmd, ex.getCode(), ex.getDescription());
+            return new GloboNetworkErrorAnswer(cmd, ex.getCode(), getUtf8(ex.getDescription()));
         } else {
             s_logger.error("Generic error accessing GloboNetwork", e);
             return new Answer(cmd, false, e.getMessage());
@@ -1038,6 +1040,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
             throw new InvalidParameterValueException("Invalid persistence policy provided. value: " + policy.getMethodName());
         }
+
+        public static PersistenceMethod validateValue(String value) {
+
+            List<String> values = new ArrayList<>();
+            for (PersistenceMethod persistenceMethod : PersistenceMethod.values()) {
+                if (persistenceMethod.description.equals(value)) {
+                    return persistenceMethod;
+                }
+                values.add(persistenceMethod.description);
+            }
+
+            throw new InvalidParameterValueException("Invalid persistence policy provided. value: " + value + ", possible values: " + StringUtils.join(values, ", ")+ ".");
+        }
     }
 
     protected List<VipPoolMap> savePools(List<Long> poolIds, VipInfoHelper vipInfos, List<PoolV3.PoolMember> poolMembers, ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {
@@ -1214,5 +1229,17 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     private String getVipApiVersion() {
         return new ConfigurationDaoImpl().getValue("globonetwork.vip.apiversion");
+    }
+
+
+    public String getUtf8(String value) {
+        try {
+            Charset charsetISO = Charset.forName("ISO_8859_1");
+            byte text[] = value.getBytes(charsetISO);
+            return new String(text, Charset.defaultCharset());
+        } catch (Exception e) {
+            s_logger.warn("could not convert message: " + value + " error:" + e.getMessage());
+        }
+        return value;
     }
 }

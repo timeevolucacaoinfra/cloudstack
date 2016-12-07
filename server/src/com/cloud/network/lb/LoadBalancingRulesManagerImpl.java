@@ -570,6 +570,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
         LoadBalancerVO loadBalancer = _lbDao.findById(lbRuleId);
         Ip sourceIp = getSourceIp(loadBalancer);
         LoadBalancingRule lbRule = new LoadBalancingRule(loadBalancer, getExistingDestinations(lbpolicy.getId()), policyList, null, sourceIp, null, loadBalancer.getLbProtocol());
+
+        GloboResourceConfigurationVO skipDnsErrorCmd = _globoResourceConfigurationDao.getFirst(GloboResourceType.LOAD_BALANCER, loadBalancer.getUuid(), GloboResourceKey.skipDnsError);
+        boolean skipDnsError = (skipDnsErrorCmd != null && skipDnsErrorCmd.getBooleanValue());
+        lbRule.setSkipDnsError(skipDnsError);
+
         if (!validateLbRule(lbRule)) {
             throw new InvalidParameterValueException("Failed to create Stickiness policy: Validation Failed " + lbRuleId);
         }
@@ -747,8 +752,9 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 _lbDao.persist(loadBalancer);
                 s_logger.debug("LB Rollback rule id: " + loadBalancer.getId() + " lb state rolback while creating healthcheck policy");
             }
-            deleteLBHealthCheckPolicy(cmd.getEntityId(), false);
             throw new CloudRuntimeException(e.getMessage());
+        } finally {
+            deleteLBHealthCheckPolicy(cmd.getEntityId(), false);
         }
         return success;
     }
