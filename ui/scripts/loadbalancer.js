@@ -1518,7 +1518,7 @@
                         };
 
                         $.ajax({
-                            url: createURL("deleteLoadBalancerRule"),
+                            url: createURL("deleteGloboLoadBalancer"),
                             data: {
                                 id: args.context.loadbalancers[0].id
                             },
@@ -1529,25 +1529,11 @@
                                         section: 'Network',
                                         poll: pollAsyncJobResult,
                                         _custom: {
-                                            jobId: data.deleteloadbalancerruleresponse.jobid
+                                            jobId: data.deletegloboloadbalancerresponse.jobid,
+                                            fullRefreshAfterComplete: true
                                         }
                                     },
                                     function() {
-                                        $.ajax({
-                                            url: createURL('disassociateIpAddressFromGloboNetwork'),
-                                            data: {
-                                                id: ipToBeReleased
-                                            },
-                                            dataType: 'json',
-                                            success: function(data) {
-                                                args.response.success({
-                                                    _custom: {
-                                                        jobId: data.disassociateipaddressfromglobonetworkresponse.jobid
-                                                    }
-                                                });
-                                            },
-                                            error: show_error_message
-                                        });
                                     }, {},
                                     show_error_message, {} // job deleteLoadBalancerRule
                                 );
