@@ -31,6 +31,7 @@ import com.cloud.network.dao.PhysicalNetworkDao;
 import com.cloud.network.dao.PhysicalNetworkVO;
 import com.cloud.network.dao.LoadBalancerVO;
 import com.cloud.network.dao.UserIpv6AddressDao;
+import com.cloud.utils.exception.UserCloudRuntimeException;
 import com.cloud.utils.net.Ip;
 import com.cloud.vm.NicVO;
 
@@ -2011,25 +2012,22 @@ public class GloboNetworkManager implements GloboNetworkService, PluggableServic
 
             Account account = _accountMgr.getAccount(network.getAccountId());
 
-            if(rule.getState().equals(FirewallRule.State.Revoke)){
+            if (rule.getState().equals(FirewallRule.State.Revoke)) {
                 removeLBFromGloboNetwork(network, rule, globoNetworkIpDetail);
-            }else{
+            } else {
                 saveLBInGloboNetwork(network, rule, account, globoNetworkIpDetail, lbEnvironment);
             }
+
+        } catch (CloudstackGloboNetworkException ex) {
+            String context = CallContext.current().getNdcContext();
+            String integrationContext =  ex.getContext();
+            String msg = "Integration problem with NetworkAPI, please contact your system administrator. Context: " + context + ", Integration context: " + integrationContext + ", name=" + rule.getName();
+            throw new UserCloudRuntimeException(msg);
         } catch (Exception e) {
             // Convert all exceptions to ResourceUnavailable to user have feedback of what happens. All others exceptions only show 'error'
             s_logger.error("[load balancer "+ rule.getName()+ "] Error applying load balancer rules. Uuid: " + rule.getUuid(), e);
-
             String context = CallContext.current().getNdcContext();
-            if (e instanceof CloudstackGloboNetworkException) {
-                CloudstackGloboNetworkException ex = (CloudstackGloboNetworkException)e;
-                String integrationContext =  ex.getContext();
-                String msg = "Integration problem with NetworkAPI, please contact your system administrator. Context: " + context + ", Integration context: " + integrationContext + ", lbuuid: "+rule.getUuid();
-                throw new CloudRuntimeException(msg);
-            }
-
-
-            throw new CloudRuntimeException("Error applying load balancer in NetworkAPI. Context: "+ context+ ", lb uuid=" + rule.getUuid(), e);
+            throw new UserCloudRuntimeException("Error applying load balancer. Context: "+ context+ ", lb name=" + rule.getName(), e);
         } finally {
             if (lock != null && lock.isHeldByCurrentThread()) {
                 lock.unlock();
