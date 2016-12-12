@@ -48,6 +48,7 @@ import org.apache.cloudstack.api.command.user.loadbalancer.CreateLBStickinessPol
 import org.apache.cloudstack.api.command.user.loadbalancer.CreateLoadBalancerRuleCmd;
 import org.apache.cloudstack.api.response.LoadBalancerResponse;
 import org.apache.cloudstack.api.response.ProjectResponse;
+import org.apache.cloudstack.context.CallContext;
 import org.apache.cloudstack.globoconfig.GloboResourceConfiguration;
 import org.apache.cloudstack.globoconfig.GloboResourceConfigurationVO;
 import org.apache.cloudstack.globoconfig.GloboResourceType;
@@ -103,7 +104,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
     @Override
     public void create() throws CloudRuntimeException{
         validation();
-
+        CallContext current = CallContext.current();
         final String name = getName();
         try {
             PublicIp ip = globoNetworkSvc.acquireLbIp(getNetworkId(), getProjectId(), getGloboNetworkLBEnvironmentId());
@@ -117,14 +118,18 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
             s_logger.debug("[load_balancer " + name + "] portable ip created with id " + ip.getId() + ", ipaddress " + ipAddress.getId());
 
             super.create();
+        } catch (UserCloudRuntimeException e) {
+            throw e;
         } catch (Exception e) {
             s_logger.error("[load_balancer " + name + "] error creating load balancer ", e);
             handleErrorAfterIpCreated(name, ipCreated, ipAddressId);
 
-            if ( e instanceof UserCloudRuntimeException) {
-                throw (UserCloudRuntimeException)e;
+
+            String msg = DEFAULT_ERROR_MESSAGE;
+            if ( current != null) {
+                msg += " Context: " + current.getNdcContext() + ". Error: " + e.getLocalizedMessage();
             }
-            throw new CloudRuntimeException(DEFAULT_ERROR_MESSAGE, e);
+            throw new CloudRuntimeException(msg, e);
         }
     }
 
@@ -154,7 +159,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
                 && healthcheck.getHealthCheck().isEmpty()) {
             throw new CloudRuntimeException("Health check validation: when health check type is HTTP/HTTPS, health check request can not be empty. type: " + healthcheck.getHealthCheckType() + ", request: " + healthcheck.getHealthCheck());
         }
-        if (stickinessMethodName != null)
+        if (stickinessMethodName != null && !stickinessMethodName.isEmpty())
             GloboNetworkResource.PersistenceMethod.validateValue(stickinessMethodName);
 
     }

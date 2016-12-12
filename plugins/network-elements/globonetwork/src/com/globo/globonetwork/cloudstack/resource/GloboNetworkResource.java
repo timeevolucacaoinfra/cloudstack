@@ -1050,6 +1050,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 }
                 values.add(persistenceMethod.description);
             }
+            values.remove(PersistenceMethod.NONE.description);
 
             throw new InvalidParameterValueException("Invalid persistence policy provided. value: " + value + ", possible values: " + StringUtils.join(values, ", ")+ ".");
         }

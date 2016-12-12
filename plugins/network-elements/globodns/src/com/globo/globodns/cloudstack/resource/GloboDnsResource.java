@@ -340,7 +340,7 @@ public class GloboDnsResource extends ManagerBase implements ServerResource {
 
        } catch (GloboDnsException e) {
             s_logger.error("[LoadBalancer " + lbName +"] GloboDnsException error:" + e.getMessage(), e);
-           return new Answer(cmd, false, e.getMessage());
+           return new Answer(cmd, false, e.getLocalizedMessage());
        }
    }
 

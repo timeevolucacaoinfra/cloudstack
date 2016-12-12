@@ -33,6 +33,7 @@
                dataType: "json",
                async: false,
                success: function(json) {
+                   networks = [];
                    $(json.listnetworksresponse.network).each(function() {
                        networks.push({id: this.id,
                                       description: this.name,
@@ -116,7 +117,7 @@
                    },
                    dependsOn: ['network'],
                    select: function(args) {
-                       var network = networks[0];
+                       var network = findNetwork(args.data.network);
 
                        $.ajax({
                            url: createURL("listGloboNetworkLBEnvironments"),
@@ -148,7 +149,7 @@
                    },
                    dependsOn: ['network'],
                    select: function(args) {
-                       var network = networks[0];
+                       var network = findNetwork(args.data.network);
 
 
                        var lbService = $.grep(network.service, function(service) {
@@ -254,7 +255,7 @@
                },
                // #hlb
                healthchecktype: {
-                   label: 'Health Check Type',
+                   label: 'Health check type',
                    docID: 'helpHealthcheckType',
                    isHidden: function (args) {
                        var isAdvancedChecked = $('input[name=isLbAdvanced]:checked').length > 0;
@@ -278,10 +279,10 @@
                    }
                },
                healthcheck: {
-                   label: 'Health Check'
+                   label: 'Health check request'
                },
                expectedhealthcheck: {
-                   label: 'Expected Health Check',
+                   label: 'Expected health check',
                    select: function(args) {
                        var expectedHealthcheck = [];
                        $.ajax({
@@ -340,12 +341,14 @@
                                 });
                                 lb.ports = lb.ports.substring(0, lb.ports.length - 2); // remove last ', '
 
+
+                                notifyDnsRegistered(json.queryasyncjobresultresponse.jobresult.loadbalancer);
+
                                 return lb;
                             }
                         }
                     });
                },
-               error: show_error_message // associateipaddress
            });
        },
        messages: {
@@ -455,12 +458,42 @@
         return true;
 
     }
+    var findNetwork = function(networkuuid) {
+        for (var i = 0; i < networks.length; i++) {
+            if (networks[i].id === networkuuid) {
+                return networks[i];
+            }
+        }
+        return null;
+    }
+
+    var notifyDnsRegistered = function(loadbalancer){
+        var configs = loadbalancer.globoresourceconfig;
+        var isLoadBalancerDNSRegistered = false;
+        for (var i = 0; i < configs.length; i++) {
+            if ( configs[i].configurationkey == "isDNSRegistered" ) {
+                isLoadBalancerDNSRegistered = configs[i].configurationvalue == "true";
+            }
+        }
+
+        if (isLoadBalancerDNSRegistered == false) {
+            cloudStack.dialog.notice({message: "The LoadBalancer DNS was not registered!"});
+        }
+    }
 
     var buildLoadBalancerData = function(args) {
         var ports =args.data.ports.split(",");
         additionalportmap = ports.slice(1, ports.length);
 
         var firstport = ports[0].split(":");
+
+
+        var healthcheckrequest = '';
+        var expectedhealthcheck = '';
+        if (healthcheckTypes.isLayer7(args.data.healthchecktype)) {
+            healthcheckrequest = args.data.healthcheck.valueOf().trim()
+            expectedhealthcheck = args.data.expectedhealthcheck
+        }
 
         var data = {
            algorithm:            args.data.algorithm,
@@ -470,9 +503,9 @@
            openfirewall:         false,
            networkid:            args.data.network,
            cache:                args.data.cachegroup,
-           pingpath:             args.data.healthcheck.valueOf().trim(),
            healthcheckType:      args.data.healthchecktype,
-           expectedhealthcheck:  args.data.expectedhealthcheck,
+           healthcheckrequest:   healthcheckrequest,
+           expectedhealthcheck:  expectedhealthcheck,
            additionalportmap:    additionalportmap.join(),
            skipdnserror:         true,
            stickinessmethodname: args.data.sticky.valueOf() != 'None' ? args.data.sticky.valueOf() : "",
