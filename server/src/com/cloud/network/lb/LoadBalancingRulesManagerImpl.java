@@ -752,9 +752,11 @@ public class LoadBalancingRulesManagerImpl<Type> extends ManagerBase implements 
                 _lbDao.persist(loadBalancer);
                 s_logger.debug("LB Rollback rule id: " + loadBalancer.getId() + " lb state rolback while creating healthcheck policy");
             }
+            success = false;
             throw new CloudRuntimeException(e.getMessage());
         } finally {
-            deleteLBHealthCheckPolicy(cmd.getEntityId(), false);
+            if (!success)
+                deleteLBHealthCheckPolicy(cmd.getEntityId(), false);
         }
         return success;
     }
