@@ -79,7 +79,7 @@ public class CreateGloboLoadBalancerCmd extends CreateLoadBalancerRuleCmd /*impl
 
 
     @Parameter(name = "stickinessmethodname", type = CommandType.STRING,
-               description = "name of the LB Stickiness policy method, possible values can be obtained from ListNetworks API ")
+               description = "name of the LB Stickiness policy method.")
     private String stickinessMethodName;
     private static final String DEFAULT_ERROR_MESSAGE = "Error trying to create load balancer, please contact your system administrator.";
 

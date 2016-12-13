@@ -318,23 +318,19 @@
               lbenvironmentid: args.data.lbenvironment
            };
 
-           console.log(data);
            data = buildLoadBalancerData(args);
-           console.log(data)
 
            $.ajax({
                url: createURL("createGloboLoadBalancer"),
                data: data,
                dataType: "json",
                success: function(json) {
-                    console.log(json);
                     var jobID = json.creategloboloadbalancerresponse.jobid;
                     args.response.success({
                         _custom:{
                             jobId: jobID,
                             getUpdatedItem: function(json) {
                                 var lb = json.queryasyncjobresultresponse.jobresult.loadbalancer;
-                                console.log(json)
                                 lb.ports = lb.publicport + ':' + lb.privateport + ', ';
                                 $(lb.additionalportmap).each(function() {
                                     lb.ports += this + ', ';
