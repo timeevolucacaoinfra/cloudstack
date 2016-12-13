@@ -57,7 +57,7 @@ public class CreateGloboLoadBalancerCmdTest {
         verify(lbService, times(1)).applyLBHealthCheckPolicy(cmd1);
     }
 
-    @Test(expected = CloudRuntimeException.class)
+    @Test(expected = RuntimeException.class)
     public void testCreateHealthcheckWhenCreateFail() throws ResourceUnavailableException {
         //when
         cmd.setPingPath("/index.html");
