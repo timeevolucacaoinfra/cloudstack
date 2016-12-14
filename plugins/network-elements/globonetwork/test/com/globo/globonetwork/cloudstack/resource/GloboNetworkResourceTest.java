@@ -196,16 +196,17 @@ public class GloboNetworkResourceTest {
     public void testFindPoolByPort(){
         List<PoolV3> pools = new ArrayList<>();
         PoolV3 pool = new PoolV3();
+        pool.setIdentifier("pool_teste");
         pool.setDefaultPort(80);
         pools.add(pool);
 
-        assertNotNull(_resource.findPoolByPort(80, pools));
-        assertNull(_resource.findPoolByPort(81, pools));
+        assertNotNull(_resource.findPoolByPortAndName(80, pools, "pool_teste"));
+        assertNull(_resource.findPoolByPortAndName(81, pools, "pool_teste_2"));
     }
 
     @Test
     public void testFindPoolByPorGivenNullVip(){
-        assertNull(_resource.findPoolByPort(80, null));
+        assertNull(_resource.findPoolByPortAndName(80, null, "pool_teste"));
     }
 
     private PoolV3 mockPoolSave(Long poolId, Long idReturned, Boolean hasPoolMember, Integer vipPort, Integer port, String ip, String healthCheckType, String healthCheck, String expectedHealthCheck, int maxConn,  String serviceDAction) throws GloboNetworkException {
@@ -797,6 +798,7 @@ public class GloboNetworkResourceTest {
         pool.setDefaultPort(8080);
         pool.setId(12L);
         pool.setMaxconn(0);
+        pool.setIdentifier("ACS_POOL_region_vip.domain.com_80_8080");
 
         List<Long> poolIds = Collections.singletonList(pool.getId());
         Ipv4 ip = new Ipv4();
@@ -821,9 +823,10 @@ public class GloboNetworkResourceTest {
         cmd.setHealthcheckType(build.getHealthCheckType());
         cmd.setExpectedHealthcheck(build.getExpectedHealthCheck());
         cmd.setHealthcheck(build.getHealthCheck());
+        cmd.setRegion("region");
 
         //mock 1 - Pool find by id - v3
-        PoolV3 poolv3GetById = mockPool(12L, "ACS_POOL_", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
+        PoolV3 poolv3GetById = mockPool(12L, "ACS_POOL_region_vip.domain.com_80_8080", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
         PoolV3.PoolMember poolM = mockPoolMember(200L, 8080, 1L, "10.0.0.1", 1L, "vm-01");
         poolv3GetById.getPoolMembers().add(poolM);
 
@@ -831,7 +834,7 @@ public class GloboNetworkResourceTest {
         when(_resource._globoNetworkApi.getPoolAPI().getByIdsV3(Collections.singletonList(12L))).thenReturn(Collections.singletonList(poolv3GetById));
 
         //mock 2 - Pool save pool
-        PoolV3 poolToSave = mockPool(12L, "ACS_POOL_", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
+        PoolV3 poolToSave = mockPool(12L, "ACS_POOL_region_vip.domain.com_80_8080", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
         PoolV3.PoolMember poolMSaved = mockPoolMember(200L, 8080, 1L, "10.0.0.1", 1L, "vm-01");
         poolToSave.getPoolMembers().add(poolMSaved);
         PoolV3.PoolMember poolM2Saved = mockPoolMember(null, 8080, 2L, "10.0.0.2", 2L, "vm-02");
