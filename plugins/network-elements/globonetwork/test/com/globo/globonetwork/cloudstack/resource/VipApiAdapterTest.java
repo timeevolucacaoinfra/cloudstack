@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -204,8 +205,6 @@ public class VipApiAdapterTest {
     @Test
     public void testUpdateVipV3NotCreated() throws GloboNetworkException {
         VipApiAdapter adapter = createTestVipAdapter(21L, false, "3");
-
-
         ApplyVipInGloboNetworkCommand cmd = new ApplyVipInGloboNetworkCommand();
 
         cmd.setVipEnvironmentId(1L);
@@ -224,9 +223,6 @@ public class VipApiAdapterTest {
         //test
         verify(vipV3API).save(adapter.getVipV3());
     }
-
-
-
 
     @Test
     public void testDeployVipV2() throws GloboNetworkException {
@@ -316,6 +312,42 @@ public class VipApiAdapterTest {
     @Test(expected = InvalidParameterValueException.class)
     public void testGetPersistenceMethodGivenInvalidPersistence(){
         VipApiAdapter.getPersistenceMethod(new LoadBalancingRule.LbStickinessPolicy("jsession", null));
+    }
+
+    @Test
+    public void testGetPoolIds() throws GloboNetworkException {
+        VipApiAdapter adapter = createTestVipAdapter(1L, true, "3");
+        VipV3 vip = adapter.getVipV3();
+        VipV3.PortOptions options = new VipV3.PortOptions(1L, 2L);
+        VipV3.Pool pool1 = new VipV3.Pool(1L, 5L, null);
+        VipV3.Pool pool2 = new VipV3.Pool(2L, 2L, "/test");
+        VipV3.Port port = new VipV3.Port(1L, 80, options, Arrays.asList(pool1, pool2));
+        vip.setPorts(Collections.singletonList(port));
+
+        OptionVipV3 l7Rule = new OptionVipV3(5L, "l7_rule", "default_vip");
+        when(optionVipV3API.findOptionsByTypeAndName(vip.getEnvironmentVipId(), "l7_rule", "default_vip")).thenReturn(Collections.singletonList(l7Rule));
+
+        List<Long> poolIds = adapter.getPoolIds();
+
+        assertEquals(1, poolIds.size());
+        assertEquals(new Long(1), poolIds.get(0));
+    }
+
+    @Test
+    public void testGetPoolIdsGivenNoPoolsFound() throws GloboNetworkException {
+        VipApiAdapter adapter = createTestVipAdapter(1L, true, "3");
+        VipV3 vip = adapter.getVipV3();
+        VipV3.PortOptions options = new VipV3.PortOptions(1L, 2L);
+        VipV3.Pool pool1 = new VipV3.Pool(1L, 100L, null);
+        VipV3.Port port = new VipV3.Port(1L, 80, options, Arrays.asList(pool1));
+        vip.setPorts(Collections.singletonList(port));
+
+        OptionVipV3 l7Rule = new OptionVipV3(5L, "l7_rule", "default_vip");
+        when(optionVipV3API.findOptionsByTypeAndName(vip.getEnvironmentVipId(), "l7_rule", "default_vip")).thenReturn(Collections.singletonList(l7Rule));
+
+        List<Long> poolIds = adapter.getPoolIds();
+
+        assertEquals(0, poolIds.size());
     }
 
     private VipV3 buildFakeVipV3(Long vipId, Boolean created) throws GloboNetworkException {
