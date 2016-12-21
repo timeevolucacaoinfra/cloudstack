@@ -119,7 +119,12 @@ public class ElasticSearchAutoScaleStatsCollector extends AutoScaleStatsCollecto
 
     private void buildConnection(){
         if(ElasticSearchHost.value() != null && ElasticSearchPort.value() != null && ElasticSearchClusterName.value() != null){
-            Settings settings = ImmutableSettings.settingsBuilder().put("cluster.name", ElasticSearchClusterName.value()).build();
+            Settings settings = ImmutableSettings.settingsBuilder()
+                    .put("cluster.name", ElasticSearchClusterName.value())
+                    .put("client.transport.sniff", true)
+                    .put("client.transport.ping_timeout", "30s")
+                    .put("client.transport.nodes_sampler_interval", "10s")
+                    .build();
             this.elasticSearchClient = new TransportClient(settings);
             elasticSearchClient.addTransportAddress(new InetSocketTransportAddress(ElasticSearchHost.value(), ElasticSearchPort.value()));
         }
