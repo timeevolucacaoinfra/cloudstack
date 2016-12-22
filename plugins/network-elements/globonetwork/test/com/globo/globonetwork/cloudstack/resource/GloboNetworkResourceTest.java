@@ -88,22 +88,24 @@ import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 public class GloboNetworkResourceTest {
 
     GloboNetworkResource _resource;
+    GloboNetworkAPI gnAPI;
     Ipv4 vipIp;
 
     @Before
     public void setUp() throws ConfigurationException {
         _resource = spy(new GloboNetworkResource());
-        _resource._globoNetworkApi = mock(GloboNetworkAPI.class);
-        when(_resource._globoNetworkApi.getEquipmentAPI()).thenReturn(mock(EquipmentAPI.class));
-        when(_resource._globoNetworkApi.getIpAPI()).thenReturn(mock(IpAPI.class));
-        when(_resource._globoNetworkApi.getVipAPI()).thenReturn(mock(VipAPI.class));
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI()).thenReturn(mock(VipEnvironmentAPI.class));
-        when(_resource._globoNetworkApi.getVlanAPI()).thenReturn(mock(VlanAPI.class));
-        when(_resource._globoNetworkApi.getNetworkAPI()).thenReturn(mock(NetworkAPI.class));
-        when(_resource._globoNetworkApi.getNetworkJsonAPI()).thenReturn(mock(NetworkJsonAPI.class));
-        when(_resource._globoNetworkApi.getPoolAPI()).thenReturn(mock(PoolAPI.class));
-        when(_resource._globoNetworkApi.getExpectHealthcheckAPI()).thenReturn(mock(ExpectHealthcheckAPI.class));
-        when(_resource._globoNetworkApi.getVipAPI()).thenReturn(mock(VipAPI.class));
+        gnAPI = mock(GloboNetworkAPI.class);
+        doReturn(gnAPI).when(_resource).getNewGloobNetworkAPI();
+        when(gnAPI.getEquipmentAPI()).thenReturn(mock(EquipmentAPI.class));
+        when(gnAPI.getIpAPI()).thenReturn(mock(IpAPI.class));
+        when(gnAPI.getVipAPI()).thenReturn(mock(VipAPI.class));
+        when(gnAPI.getVipEnvironmentAPI()).thenReturn(mock(VipEnvironmentAPI.class));
+        when(gnAPI.getVlanAPI()).thenReturn(mock(VlanAPI.class));
+        when(gnAPI.getNetworkAPI()).thenReturn(mock(NetworkAPI.class));
+        when(gnAPI.getNetworkJsonAPI()).thenReturn(mock(NetworkJsonAPI.class));
+        when(gnAPI.getPoolAPI()).thenReturn(mock(PoolAPI.class));
+        when(gnAPI.getExpectHealthcheckAPI()).thenReturn(mock(ExpectHealthcheckAPI.class));
+        when(gnAPI.getVipAPI()).thenReturn(mock(VipAPI.class));
     }
 
     static long s_ipSequence = 100;
@@ -118,9 +120,11 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testRemoveAlreadyRemovedVIP() throws GloboNetworkException {
+
+
         VipApiAdapter adapterMock = mock(VipApiAdapter.class);
         when(adapterMock.hasVip()).thenReturn(false);
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L);
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -133,7 +137,7 @@ public class GloboNetworkResourceTest {
     public void testRemoveVIP() throws GloboNetworkException {
         VipApiAdapter adapterMock = mock(VipApiAdapter.class);
         when(adapterMock.hasVip()).thenReturn(true);
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L);
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -150,7 +154,7 @@ public class GloboNetworkResourceTest {
     public void testRemoveVIPAndDeleteIP() throws GloboNetworkException {
         VipApiAdapter adapterMock = mock(VipApiAdapter.class);
         when(adapterMock.hasVip()).thenReturn(true);
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L);
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -168,7 +172,7 @@ public class GloboNetworkResourceTest {
         VipApiAdapter adapterMock = mock(VipApiAdapter.class);
         when(adapterMock.hasVip()).thenReturn(true);
         doThrow(new GloboNetworkException("API error")).when(adapterMock).undeploy();
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L);
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -243,7 +247,7 @@ public class GloboNetworkResourceTest {
 
         PoolV3 newPool = new PoolV3();
         newPool.setId(idReturned);
-        when(_resource._globoNetworkApi.getPoolAPI().save(expectedPool)).thenReturn(newPool);
+        when(gnAPI.getPoolAPI().save(expectedPool)).thenReturn(newPool);
 
         return expectedPool;
     }
@@ -252,12 +256,12 @@ public class GloboNetworkResourceTest {
     public void testGetVipInfosGivenInvalidVlan() throws GloboNetworkException {
         Ipv4 ip = new Ipv4();
         ip.setNetworkId(1L);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(123L, null, null, null)).thenReturn(new VipEnvironment());
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp("10.0.0.1", 123L, false)).thenReturn(ip);
-        when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
-        when(_resource._globoNetworkApi.getVlanAPI().getById(999L)).thenReturn(new Vlan());
+        when(gnAPI.getVipEnvironmentAPI().search(123L, null, null, null)).thenReturn(new VipEnvironment());
+        when(gnAPI.getIpAPI().checkVipIp("10.0.0.1", 123L, false)).thenReturn(ip);
+        when(gnAPI.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
+        when(gnAPI.getVlanAPI().getById(999L)).thenReturn(new Vlan());
         try{
-            _resource.getVipInfos(123L, "10.0.0.1");
+            _resource.getVipInfos(gnAPI, 123L, "10.0.0.1");
         }catch(InvalidParameterValueException e){
             assertEquals("Vlan " + null + " was not found in GloboNetwork", e.getMessage());
         }
@@ -267,12 +271,12 @@ public class GloboNetworkResourceTest {
     public void testGetVipInfosGivenInvalidNetwork() throws GloboNetworkException {
         Ipv4 ip = new Ipv4();
         ip.setNetworkId(1L);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(123L, null, null, null)).thenReturn(new VipEnvironment());
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp("10.0.0.1", 123L, false)).thenReturn(ip);
-        when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
-        when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
+        when(gnAPI.getVipEnvironmentAPI().search(123L, null, null, null)).thenReturn(new VipEnvironment());
+        when(gnAPI.getIpAPI().checkVipIp("10.0.0.1", 123L, false)).thenReturn(ip);
+        when(gnAPI.getNetworkAPI().getNetwork(1L, false)).thenReturn(new IPv4Network());
+        when(gnAPI.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
         try{
-            _resource.getVipInfos(123L, "10.0.0.1");
+            _resource.getVipInfos(gnAPI, 123L, "10.0.0.1");
         }catch(InvalidParameterValueException e){
             assertEquals("Network " + null + " was not found in GloboNetwork", e.getMessage());
         }
@@ -289,16 +293,16 @@ public class GloboNetworkResourceTest {
         when(adapterMock.hasVip()).thenReturn(false);
         when(adapterMock.validate(any(Ip.class))).thenReturn(adapterMock);
         when(adapterMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId());
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
-        when(_resource._globoNetworkApi.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
+        when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
 
         Answer answer = _resource.execute(cmd);
 
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(any(PoolV3.class));
+        verify(gnAPI.getPoolAPI(), times(1)).save(any(PoolV3.class));
         verify(adapterMock).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
     }
 
@@ -331,16 +335,16 @@ public class GloboNetworkResourceTest {
         when(adapterMock.hasVip()).thenReturn(false);
         when(adapterMock.validate(any(Ip.class))).thenReturn(adapterMock);
         when(adapterMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId());
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
-        when(_resource._globoNetworkApi.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
+        when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
 
         Answer answer = _resource.execute(cmd);
 
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(2)).save(any(PoolV3.class));
+        verify(gnAPI.getPoolAPI(), times(2)).save(any(PoolV3.class));
         verify(adapterMock).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
     }
 
@@ -357,16 +361,16 @@ public class GloboNetworkResourceTest {
         when(adapterMock.hasVip()).thenReturn(true);
         when(adapterMock.validate(any(Ip.class))).thenReturn(adapterMock);
         when(adapterMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId());
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
-        when(_resource._globoNetworkApi.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
+        when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
 
         Answer answer = _resource.execute(cmd);
 
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(any(PoolV3.class));
+        verify(gnAPI.getPoolAPI(), times(1)).save(any(PoolV3.class));
         verify(adapterMock).update(any(ApplyVipInGloboNetworkCommand.class), any(Ip.class), any(List.class));
     }
 
@@ -380,16 +384,16 @@ public class GloboNetworkResourceTest {
         when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
         when(adapterMock.hasVip()).thenReturn(false);
         when(adapterMock.save(eq(cmd), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class))).thenThrow(new GloboNetworkException("API Error"));
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId());
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
-        when(_resource._globoNetworkApi.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
+        when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
         Answer answer = _resource.execute(cmd);
 
         assertFalse(answer.getResult());
         assertFalse(answer instanceof GloboNetworkVipResponse);
         verify(adapterMock, times(1)).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).delete(any(List.class));
+        verify(gnAPI.getPoolAPI(), times(1)).delete(any(List.class));
     }
 
     @Test
@@ -403,23 +407,23 @@ public class GloboNetworkResourceTest {
         when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
         when(adapterMock.hasVip()).thenReturn(true);
         when(adapterMock.update(eq(cmd), any(Ip.class), any(List.class))).thenThrow(new GloboNetworkException("API Error"));
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId());
+        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
-        when(_resource._globoNetworkApi.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
+        when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
         Answer answer = _resource.execute(cmd);
 
         assertFalse(answer.getResult());
         assertFalse(answer instanceof GloboNetworkVipResponse);
         verify(adapterMock, times(1)).update(any(ApplyVipInGloboNetworkCommand.class), any(Ip.class), any(List.class));
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(0)).delete(any(List.class));
+        verify(gnAPI.getPoolAPI(), times(0)).delete(any(List.class));
     }
 
     private void mockGetVipMetadata(ApplyVipInGloboNetworkCommand cmd) throws GloboNetworkException {
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(anyLong(), isNull(String.class), isNull(String.class), isNull(String.class))).thenReturn(new VipEnvironment());
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(cmd.getIpv4(), 120L, false)).thenReturn(new Ipv4());
-        when(_resource._globoNetworkApi.getNetworkAPI().getNetwork(anyLong(), eq(false))).thenReturn(new IPv4Network());
-        when(_resource._globoNetworkApi.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
+        when(gnAPI.getVipEnvironmentAPI().search(anyLong(), isNull(String.class), isNull(String.class), isNull(String.class))).thenReturn(new VipEnvironment());
+        when(gnAPI.getIpAPI().checkVipIp(cmd.getIpv4(), 120L, false)).thenReturn(new Ipv4());
+        when(gnAPI.getNetworkAPI().getNetwork(anyLong(), eq(false))).thenReturn(new IPv4Network());
+        when(gnAPI.getVlanAPI().getById(anyLong())).thenReturn(new Vlan());
     }
 
     @Test
@@ -428,10 +432,10 @@ public class GloboNetworkResourceTest {
 
         VipEnvironment vipEnvironment = new VipEnvironment();
         vipEnvironment.setId(1L);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
+        when(gnAPI.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
+        when(gnAPI.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand(), gnAPI);
 
         assertTrue(answer.getResult());
         assertEquals(1, answer.getReals().size());
@@ -454,10 +458,10 @@ public class GloboNetworkResourceTest {
 
         VipEnvironment vipEnvironment = new VipEnvironment();
         vipEnvironment.setId(1L);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
+        when(gnAPI.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
+        when(gnAPI.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand(), gnAPI);
 
         assertTrue(answer.getResult());
         assertEquals(1, answer.getReals().size());
@@ -470,10 +474,10 @@ public class GloboNetworkResourceTest {
 
         VipEnvironment vipEnvironment = new VipEnvironment();
         vipEnvironment.setId(1L);
-        when(_resource._globoNetworkApi.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
+        when(gnAPI.getVipEnvironmentAPI().search(null, vip.getFinality(), vip.getClient(), vip.getEnvironment())).thenReturn(vipEnvironment);
+        when(gnAPI.getIpAPI().checkVipIp(vip.getIps().get(0), vipEnvironment.getId(), false)).thenReturn(new Ipv4());
 
-        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand());
+        GloboNetworkVipResponse answer = (GloboNetworkVipResponse) _resource.createVipResponse(vip, new ApplyVipInGloboNetworkCommand(), gnAPI);
 
         assertTrue(answer.getResult());
         assertEquals(2, answer.getReals().size());
@@ -486,9 +490,9 @@ public class GloboNetworkResourceTest {
         network.setVlanId(1L);
         Vlan vlan = new Vlan();
         vlan.setEnvironment(1L);
-        when(_resource._globoNetworkApi.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
-        when(_resource._globoNetworkApi.getVlanAPI().getById(1L)).thenReturn(vlan);
-        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenReturn(options);
+        when(gnAPI.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
+        when(gnAPI.getVlanAPI().getById(1L)).thenReturn(vlan);
+        when(gnAPI.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenReturn(options);
         GloboNetworkPoolOptionResponse answer = (GloboNetworkPoolOptionResponse) _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertFalse(answer.getPoolOptions().isEmpty());
         assertEquals(new Long(1L), answer.getPoolOptions().get(0).getId());
@@ -500,9 +504,9 @@ public class GloboNetworkResourceTest {
         network.setVlanId(1L);
         Vlan vlan = new Vlan();
         vlan.setEnvironment(1L);
-        when(_resource._globoNetworkApi.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
-        when(_resource._globoNetworkApi.getVlanAPI().getById(1L)).thenReturn(vlan);
-        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenReturn(new ArrayList<PoolOption>());
+        when(gnAPI.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
+        when(gnAPI.getVlanAPI().getById(1L)).thenReturn(vlan);
+        when(gnAPI.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenReturn(new ArrayList<PoolOption>());
         GloboNetworkPoolOptionResponse answer = (GloboNetworkPoolOptionResponse) _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertTrue(answer.getPoolOptions().isEmpty());
     }
@@ -513,9 +517,9 @@ public class GloboNetworkResourceTest {
         network.setVlanId(1L);
         Vlan vlan = new Vlan();
         vlan.setEnvironment(1L);
-        when(_resource._globoNetworkApi.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
-        when(_resource._globoNetworkApi.getVlanAPI().getById(1L)).thenReturn(vlan);
-        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenThrow(new GloboNetworkException("Netapi failed"));
+        when(gnAPI.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
+        when(gnAPI.getVlanAPI().getById(1L)).thenReturn(vlan);
+        when(gnAPI.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenThrow(new GloboNetworkException("Netapi failed"));
         Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertFalse(answer.getResult());
         assertEquals("Netapi failed", answer.getDetails());
@@ -527,9 +531,9 @@ public class GloboNetworkResourceTest {
         network.setVlanId(1L);
         Vlan vlan = new Vlan();
         vlan.setEnvironment(1L);
-        when(_resource._globoNetworkApi.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
-        when(_resource._globoNetworkApi.getVlanAPI().getById(1L)).thenReturn(vlan);
-        when(_resource._globoNetworkApi.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenThrow(new IOException());
+        when(gnAPI.getNetworkJsonAPI().listVipNetworks(45L, false)).thenReturn(Arrays.<Network>asList(network));
+        when(gnAPI.getVlanAPI().getById(1L)).thenReturn(vlan);
+        when(gnAPI.getPoolAPI().listPoolOptions(1L, "ServiceDownAction")).thenThrow(new IOException());
         Answer answer = _resource.executeRequest(new ListPoolOptionsCommand(45L, "ServiceDownAction"));
         assertFalse(answer.getResult());
     }
@@ -551,7 +555,7 @@ public class GloboNetworkResourceTest {
         pool2.setDefaultPort(8091);
         poolsNetworkApi.add(pool1);
 
-        when(_resource._globoNetworkApi.getPoolAPI().listAllByReqVip(123L)).thenReturn(poolsNetworkApi);
+        when(gnAPI.getPoolAPI().listAllByReqVip(123L)).thenReturn(poolsNetworkApi);
 
         ListPoolLBCommand cmd = new ListPoolLBCommand(123L);
         Answer answer = _resource.executeRequest(cmd);
@@ -577,7 +581,7 @@ public class GloboNetworkResourceTest {
         poolsResponse.add(pool1);
         poolsResponse.add(pool2);
 
-        when(_resource._globoNetworkApi.getPoolAPI().getByIdsV3(Arrays.asList(12L, 13L))).thenReturn(poolsResponse);
+        when(gnAPI.getPoolAPI().getByIdsV3(Arrays.asList(12L, 13L))).thenReturn(poolsResponse);
 
         mockPoolSave(12L, 12L, true, 80, 8080, "10.0.0.1", "HTTP", "GET /heal HTTP/1.0\\r\\nHost: vip.domain.com\\r\\n\\r\\n", "OK", 5, "none" );
         mockPoolSave(13L, 13L, true, 443, 8443, "10.0.0.1", "HTTP", "GET /heal HTTP/1.0\\r\\nHost: vip.domain.com\\r\\n\\r\\n", "OK", 5, "none" );
@@ -646,25 +650,25 @@ public class GloboNetworkResourceTest {
         //real 1
         Ipv4 ipv4 = new Ipv4();
         ipv4.setId(1111L);
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment("10.0.0.1", 1212L, false)).thenReturn(ipv4);
+        when(gnAPI.getIpAPI().findByIpAndEnvironment("10.0.0.1", 1212L, false)).thenReturn(ipv4);
 
         Equipment equipment = new Equipment();
         equipment.setId(111L);
         equipment.setName("equip-1");
-        when(_resource._globoNetworkApi.getEquipmentAPI().listByName("vmname-1")).thenReturn(equipment);
+        when(gnAPI.getEquipmentAPI().listByName("vmname-1")).thenReturn(equipment);
 
         //real 2
         ipv4 = new Ipv4();
         ipv4.setId(2222L);
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment("10.0.0.2", 1212L, false)).thenReturn(ipv4);
+        when(gnAPI.getIpAPI().findByIpAndEnvironment("10.0.0.2", 1212L, false)).thenReturn(ipv4);
 
         equipment = new Equipment();
         equipment.setId(222L);
         equipment.setName("equip-2");
-        when(_resource._globoNetworkApi.getEquipmentAPI().listByName("vmname-2")).thenReturn(equipment);
+        when(gnAPI.getEquipmentAPI().listByName("vmname-2")).thenReturn(equipment);
 
         //execute
-        List<PoolV3.PoolMember> poolMembers = _resource.buildPoolMembers(realList);
+        List<PoolV3.PoolMember> poolMembers = _resource.buildPoolMembers(gnAPI, realList);
 
         //assert
         assertEquals(2, poolMembers.size());
@@ -712,7 +716,7 @@ public class GloboNetworkResourceTest {
         healthcheck.setHealthcheck("HTTP", "/index.html", "WORKING");
         healthcheck.setDestination(null);
 
-        when(_resource._globoNetworkApi.getPoolAPI().save(pool)).thenReturn(new PoolV3(123L));
+        when(gnAPI.getPoolAPI().save(pool)).thenReturn(new PoolV3(123L));
 
         PoolV3 pool2 = new PoolV3();
         pool2.setIdentifier("ACS_POOL_region_vip.domain.com_443_8443");
@@ -725,10 +729,10 @@ public class GloboNetworkResourceTest {
         healthcheck2.setHealthcheck("TCP", "", "");
         healthcheck2.setDestination(null);
 
-        when(_resource._globoNetworkApi.getPoolAPI().save(pool2)).thenReturn(new PoolV3(321L));
+        when(gnAPI.getPoolAPI().save(pool2)).thenReturn(new PoolV3(321L));
 
         //execute
-        List<VipPoolMap> vipPoolMaps = _resource.savePools(null, vipInfos, poolMembers, cmd);
+        List<VipPoolMap> vipPoolMaps = _resource.savePools(gnAPI, null, vipInfos, poolMembers, cmd);
 
         assertEquals(2, vipPoolMaps.size());
 
@@ -782,12 +786,12 @@ public class GloboNetworkResourceTest {
                 cmd.getServiceDownAction());
 
 
-        List<VipPoolMap> vipPoolMaps = _resource.savePools(poolIds, vipInfo, poolMembers, cmd);
+        List<VipPoolMap> vipPoolMaps = _resource.savePools(gnAPI, poolIds, vipInfo, poolMembers, cmd);
 
         VipPoolMap vipPoolMap = vipPoolMaps.get(0);
         assertNotNull(vipPoolMap);
         assertEquals(new Integer(80), vipPoolMap.getPort());
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(expectedPool);
+        verify(gnAPI.getPoolAPI(), times(1)).save(expectedPool);
     }
 
     @Test
@@ -827,8 +831,8 @@ public class GloboNetworkResourceTest {
         PoolV3.PoolMember poolM = mockPoolMember(200L, 8080, 1L, "10.0.0.1", 1L, "vm-01");
         poolv3GetById.getPoolMembers().add(poolM);
 
-        when(_resource._globoNetworkApi.getPoolAPI().getById(12L)).thenReturn(poolv3GetById);
-        when(_resource._globoNetworkApi.getPoolAPI().getByIdsV3(Collections.singletonList(12L))).thenReturn(Collections.singletonList(poolv3GetById));
+        when(gnAPI.getPoolAPI().getById(12L)).thenReturn(poolv3GetById);
+        when(gnAPI.getPoolAPI().getByIdsV3(Collections.singletonList(12L))).thenReturn(Collections.singletonList(poolv3GetById));
 
         //mock 2 - Pool save pool
         PoolV3 poolToSave = mockPool(12L, "ACS_POOL_", 8080, "round-robin", build.getHealthCheckType(), build.getHealthCheck(), build.getExpectedHealthCheck(), "*", 5);
@@ -837,15 +841,15 @@ public class GloboNetworkResourceTest {
         PoolV3.PoolMember poolM2Saved = mockPoolMember(null, 8080, 2L, "10.0.0.2", 2L, "vm-02");
         poolToSave.getPoolMembers().add(poolM2Saved);
 
-        when(_resource._globoNetworkApi.getPoolAPI().save(poolToSave)).thenReturn(new PoolV3(12L));
+        when(gnAPI.getPoolAPI().save(poolToSave)).thenReturn(new PoolV3(12L));
 
 
-        List<VipPoolMap> vipPoolMaps = _resource.savePools(poolIds, vipInfo, poolMembers, cmd);
+        List<VipPoolMap> vipPoolMaps = _resource.savePools(gnAPI, poolIds, vipInfo, poolMembers, cmd);
 
         VipPoolMap vipPoolMap = vipPoolMaps.get(0);
         assertNotNull(vipPoolMap);
         assertEquals(new Integer(80), vipPoolMap.getPort());
-        verify(_resource._globoNetworkApi.getPoolAPI(), times(1)).save(poolToSave);
+        verify(gnAPI.getPoolAPI(), times(1)).save(poolToSave);
     }
 
     @Test
@@ -890,7 +894,7 @@ public class GloboNetworkResourceTest {
         result.add(new ExpectHealthcheck(1L, "OK"));
         result.add(new ExpectHealthcheck(2L, "WORKING"));
 
-        when(_resource._globoNetworkApi.getExpectHealthcheckAPI().listHealthcheck()).thenReturn(result);
+        when(gnAPI.getExpectHealthcheckAPI().listHealthcheck()).thenReturn(result);
 
         Answer answer = _resource.executeRequest(command);
 
@@ -923,7 +927,7 @@ public class GloboNetworkResourceTest {
         vipIp.setOct3(1);
         vipIp.setOct4(15);
         vipIp.setNetworkId(1L);
-        when(_resource._globoNetworkApi.getIpAPI().checkVipIp(vipIp.getIpString(), vipEnvironment, false)).thenReturn(vipIp);
+        when(gnAPI.getIpAPI().checkVipIp(vipIp.getIpString(), vipEnvironment, false)).thenReturn(vipIp);
 
         VipEnvironment environmentVip = new VipEnvironment();
         environmentVip.setId(vipEnvironment);
@@ -943,7 +947,7 @@ public class GloboNetworkResourceTest {
         List<RealIP> realIpList = new ArrayList<>();
         Ip ip = new Ipv4();
         ip.setId(getNewIpID());
-        when(_resource._globoNetworkApi.getIpAPI().findByIpAndEnvironment(ip.toString(), realEnvironment, false)).thenReturn(ip);
+        when(gnAPI.getIpAPI().findByIpAndEnvironment(ip.toString(), realEnvironment, false)).thenReturn(ip);
 
         RealIP realIp = new RealIP();
         realIp.setIpId(ip.getId());
