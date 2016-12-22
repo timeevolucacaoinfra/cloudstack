@@ -279,13 +279,17 @@ class VipApiAdapter {
         globoNetworkAPI.getVipV3API().delete(vipV3.getId(), keepIp);
     }
 
-    List<Long> getPoolIds(){
+    List<Long> getPoolIds() throws GloboNetworkException {
         List<Long> poolIds = new ArrayList<>();
         if(vipV3 != null){
+            Long defaultVipL7Rule = globoNetworkAPI.getOptionVipV3API().findOptionsByTypeAndName(vipV3.getEnvironmentVipId(), "l7_rule", "default_vip").get(0).getId();
+
             Set<Long> poolIdSet = new HashSet<>();
             for(VipV3.Port port : vipV3.getPorts()){
                 for(VipV3.Pool pool : port.getPools()){
-                    poolIdSet.add(pool.getPoolId());
+                    if(pool.getL7RuleId().equals(defaultVipL7Rule)){
+                        poolIdSet.add(pool.getPoolId());
+                    }
                 }
             }
             poolIds = new ArrayList<>(poolIdSet);

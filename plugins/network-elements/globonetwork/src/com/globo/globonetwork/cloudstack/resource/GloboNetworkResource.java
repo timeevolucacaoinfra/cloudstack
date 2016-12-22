@@ -910,10 +910,10 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         return lbAlgorithm;
     }
 
-    protected PoolV3 findPoolByPortAndName(Integer port, List<PoolV3> pools, String poolName) {
+    protected PoolV3 findPoolByPort(Integer port, List<PoolV3> pools) {
         if(pools != null) {
             for (PoolV3 pool : pools) {
-                if (port.equals(pool.getDefaultPort()) && pool.getIdentifier().equals(poolName)) {
+                if (port.equals(pool.getDefaultPort())) {
                     return pool;
                 }
             }
@@ -1085,9 +1085,7 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             if(poolIds != null && !poolIds.isEmpty()){
                 pools = poolAPI.getByIdsV3(poolIds);
             }
-
-            String poolName = buildPoolName(cmd.getRegion(), cmd.getHost(), vipPort, realPort);
-            PoolV3 poolV3 = findPoolByPortAndName(realPort, pools, poolName);
+            PoolV3 poolV3 = findPoolByPort(realPort, pools);
 
             //case when user add or remove real, does not need to update pool settings, only reals
             if (poolV3 != null) {
