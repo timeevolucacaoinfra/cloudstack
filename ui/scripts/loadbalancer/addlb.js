@@ -466,14 +466,16 @@
     var notifyDnsRegistered = function(loadbalancer){
         var configs = loadbalancer.globoresourceconfig;
         var isLoadBalancerDNSRegistered = false;
+        var hasDnsRegiteredConfig = false;
         for (var i = 0; i < configs.length; i++) {
             if ( configs[i].configurationkey == "isDNSRegistered" ) {
+                hasDnsRegiteredConfig = true;
                 isLoadBalancerDNSRegistered = configs[i].configurationvalue == "true";
             }
         }
 
-        if (isLoadBalancerDNSRegistered == false) {
-            cloudStack.dialog.notice({message: "The LoadBalancer DNS was not registered!"});
+        if (hasDnsRegiteredConfig && !isLoadBalancerDNSRegistered) {
+            cloudStack.dialog.notice({message: "The LoadBalancer DNS was not registered. You can retry to register DNS later."});
         }
     }
 
