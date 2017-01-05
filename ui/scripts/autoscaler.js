@@ -809,14 +809,17 @@
                                 success: function(json) {
                                     var networks = json.listnetworksresponse.network;
 
-                                    args.response.success({
-                                        data: $.map(networks, function(network) {
-                                            return {
-                                                name: network.id,
-                                                description: network.name + " - " + network.zonename + " - " + network.cidr
-                                            };
-                                        })
+                                    var networksMaps = []
+                                    $.each(networks, function() {
+                                        if ( this.id != args.context.loadbalancer.networkid ) {
+                                            networksMaps.push({
+                                                name: this.id,
+                                                description: this.name + " - " + this.zonename + " - " + this.cidr
+                                            });
+                                        }
                                     });
+
+                                    args.response.success({data: networksMaps});
                                 }
                             });
                         }
