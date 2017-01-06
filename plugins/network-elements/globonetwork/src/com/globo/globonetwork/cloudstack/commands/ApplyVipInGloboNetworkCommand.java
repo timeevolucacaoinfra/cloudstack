@@ -16,11 +16,13 @@
 */
 package com.globo.globonetwork.cloudstack.commands;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.cloud.agent.api.Command;
 import com.cloud.network.lb.LoadBalancingRule;
 import com.cloud.network.rules.FirewallRule;
+import com.cloud.utils.Pair;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkVipResponse;
 
 public class ApplyVipInGloboNetworkCommand extends Command {
@@ -127,6 +129,15 @@ public class ApplyVipInGloboNetworkCommand extends Command {
 
     public List<String> getPorts() {
         return ports;
+    }
+
+    public List<Pair<Integer, Integer>> getPortPairs(){
+        List<Pair<Integer, Integer>> portPairs = new ArrayList<>();
+        for(String portPair : ports){
+            String[] splitPorts = portPair.split(":");
+            portPairs.add(new Pair<>(new Integer(splitPorts[0]), new Integer(splitPorts[1])));
+        }
+        return portPairs;
     }
 
     public void setPorts(List<String> ports) {
