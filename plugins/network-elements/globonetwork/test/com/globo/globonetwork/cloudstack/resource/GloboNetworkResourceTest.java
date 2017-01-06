@@ -18,7 +18,6 @@ package com.globo.globonetwork.cloudstack.resource;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyLong;
@@ -95,7 +94,7 @@ public class GloboNetworkResourceTest {
     public void setUp() throws ConfigurationException {
         _resource = spy(new GloboNetworkResource());
         gnAPI = mock(GloboNetworkAPI.class);
-        doReturn(gnAPI).when(_resource).getNewGloobNetworkAPI();
+        doReturn(gnAPI).when(_resource).getNewGloboNetworkAPI();
         when(gnAPI.getEquipmentAPI()).thenReturn(mock(EquipmentAPI.class));
         when(gnAPI.getIpAPI()).thenReturn(mock(IpAPI.class));
         when(gnAPI.getVipAPI()).thenReturn(mock(VipAPI.class));
@@ -203,13 +202,13 @@ public class GloboNetworkResourceTest {
         pool.setDefaultPort(80);
         pools.add(pool);
 
-        assertNotNull(_resource.findPoolByPort(80, pools));
-        assertNull(_resource.findPoolByPort(81, pools));
+        assertFalse(_resource.findPoolsByPort(80, pools).isEmpty());
+        assertTrue(_resource.findPoolsByPort(81, pools).isEmpty());
     }
 
     @Test
     public void testFindPoolByPorGivenNullVip(){
-        assertNull(_resource.findPoolByPort(80, null));
+        assertTrue(_resource.findPoolsByPort(80, null).isEmpty());
     }
 
     private PoolV3 mockPoolSave(Long poolId, Long idReturned, Boolean hasPoolMember, Integer vipPort, Integer port, String ip, String healthCheckType, String healthCheck, String expectedHealthCheck, int maxConn,  String serviceDAction) throws GloboNetworkException {
@@ -732,7 +731,7 @@ public class GloboNetworkResourceTest {
         when(gnAPI.getPoolAPI().save(pool2)).thenReturn(new PoolV3(321L));
 
         //execute
-        List<VipPoolMap> vipPoolMaps = _resource.savePools(gnAPI, null, vipInfos, poolMembers, cmd);
+        List<VipPoolMap> vipPoolMaps = _resource.createPools(gnAPI, poolMembers, vipInfos.getEnvironment(), cmd);
 
         assertEquals(2, vipPoolMaps.size());
 
@@ -786,7 +785,7 @@ public class GloboNetworkResourceTest {
                 cmd.getServiceDownAction());
 
 
-        List<VipPoolMap> vipPoolMaps = _resource.savePools(gnAPI, poolIds, vipInfo, poolMembers, cmd);
+        List<VipPoolMap> vipPoolMaps = _resource.createPools(gnAPI, poolMembers, vipInfo.getEnvironment(), cmd);
 
         VipPoolMap vipPoolMap = vipPoolMaps.get(0);
         assertNotNull(vipPoolMap);
@@ -844,11 +843,7 @@ public class GloboNetworkResourceTest {
         when(gnAPI.getPoolAPI().save(poolToSave)).thenReturn(new PoolV3(12L));
 
 
-        List<VipPoolMap> vipPoolMaps = _resource.savePools(gnAPI, poolIds, vipInfo, poolMembers, cmd);
-
-        VipPoolMap vipPoolMap = vipPoolMaps.get(0);
-        assertNotNull(vipPoolMap);
-        assertEquals(new Integer(80), vipPoolMap.getPort());
+        _resource.updatePools(gnAPI, poolIds, poolMembers, cmd.getPortPairs());
         verify(gnAPI.getPoolAPI(), times(1)).save(poolToSave);
     }
 
