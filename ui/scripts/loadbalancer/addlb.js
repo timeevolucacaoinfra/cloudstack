@@ -496,8 +496,8 @@
         var data = {
            algorithm:            args.data.algorithm,
            name:                 args.data.name + args.data.lbdomain,
-           privateport:          firstport[0],
-           publicport:           firstport[1],
+           publicport:           firstport[0],
+           privateport:          firstport[1],
            openfirewall:         false,
            networkid:            args.data.network,
            cache:                args.data.cachegroup,
@@ -509,7 +509,6 @@
            stickinessmethodname: args.data.sticky.valueOf() != 'None' ? args.data.sticky.valueOf() : "",
            lbenvironmentid:      args.data.lbenvironment
        };
-
        return data;
 
     }
