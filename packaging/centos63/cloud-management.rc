@@ -94,22 +94,26 @@ start() {
 # See how we were called.
 case "$1" in
     status)
-		status ${NAME}
-		RETVAL=$?
-        handle_pid_file $RETVAL
-		;;
+      status ${NAME}
+      RETVAL=$?
+      handle_pid_file $RETVAL
+      ;;
     stop)
-		stop
-		;;
+      stop
+      ;;
     restart)
-		stop
-		set start
-        set_ulimit
-	        start
-		;;
-	*)
-        set_ulimit
-                start
+      stop
+      set start
+      set_ulimit
+      start
+      ;;
+    start)
+      set_ulimit
+      start
+      ;;
+    *)
+      echo "Usage: $0 {start|stop|restart|status}"
+      RETVAL=3
 esac
 
 exit $RETVAL
