@@ -119,11 +119,9 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testRemoveAlreadyRemovedVIP() throws GloboNetworkException {
-
-
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.hasVip()).thenReturn(false);
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.hasVip()).thenReturn(false);
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -134,9 +132,9 @@ public class GloboNetworkResourceTest {
 
     @Test
     public void testRemoveVIP() throws GloboNetworkException {
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.hasVip()).thenReturn(true);
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.hasVip()).thenReturn(true);
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -145,15 +143,15 @@ public class GloboNetworkResourceTest {
         Answer answer = _resource.execute(cmd);
 
         assertTrue(answer.getResult());
-        verify(adapterMock).undeploy();
-        verify(adapterMock).delete(true);
+        verify(facadeMock).undeploy();
+        verify(facadeMock).delete(true);
     }
 
     @Test
     public void testRemoveVIPAndDeleteIP() throws GloboNetworkException {
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.hasVip()).thenReturn(true);
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.hasVip()).thenReturn(true);
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -162,16 +160,16 @@ public class GloboNetworkResourceTest {
         Answer answer = _resource.execute(cmd);
 
         assertTrue(answer.getResult());
-        verify(adapterMock).undeploy();
-        verify(adapterMock).delete(false);
+        verify(facadeMock).undeploy();
+        verify(facadeMock).delete(false);
     }
 
     @Test
     public void testRemoveVipWithNetworkApiError() throws GloboNetworkException {
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.hasVip()).thenReturn(true);
-        doThrow(new GloboNetworkException("API error")).when(adapterMock).undeploy();
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(1L, gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.hasVip()).thenReturn(true);
+        doThrow(new GloboNetworkException("API error")).when(facadeMock).undeploy();
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(1L, gnAPI);
 
         RemoveVipFromGloboNetworkCommand cmd = new RemoveVipFromGloboNetworkCommand();
         cmd.setVipId(1L);
@@ -287,12 +285,11 @@ public class GloboNetworkResourceTest {
         VipJson vipToBeCreated = buildFakeVip(120L, 546L, 345L, ports);
         ApplyVipInGloboNetworkCommand cmd = createTestApplyVipCommand(vipToBeCreated);
 
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
-        when(adapterMock.hasVip()).thenReturn(false);
-        when(adapterMock.validate(any(Ip.class))).thenReturn(adapterMock);
-        when(adapterMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.getPoolIds()).thenReturn(new ArrayList<Long>());
+        when(facadeMock.hasVip()).thenReturn(false);
+        when(facadeMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
         when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
@@ -302,7 +299,7 @@ public class GloboNetworkResourceTest {
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
         verify(gnAPI.getPoolAPI(), times(1)).save(any(PoolV3.class));
-        verify(adapterMock).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
+        verify(facadeMock).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
     }
 
     private ApplyVipInGloboNetworkCommand createTestApplyVipCommand(VipJson vipToBeCreated) {
@@ -329,12 +326,11 @@ public class GloboNetworkResourceTest {
         ApplyVipInGloboNetworkCommand cmd = createTestApplyVipCommand(vipToBeCreated);
         cmd.setPorts(ports);
 
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
-        when(adapterMock.hasVip()).thenReturn(false);
-        when(adapterMock.validate(any(Ip.class))).thenReturn(adapterMock);
-        when(adapterMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.getPoolIds()).thenReturn(new ArrayList<Long>());
+        when(facadeMock.hasVip()).thenReturn(false);
+        when(facadeMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
         when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
@@ -344,7 +340,7 @@ public class GloboNetworkResourceTest {
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
         verify(gnAPI.getPoolAPI(), times(2)).save(any(PoolV3.class));
-        verify(adapterMock).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
+        verify(facadeMock).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
     }
 
     @Test
@@ -355,12 +351,11 @@ public class GloboNetworkResourceTest {
         vipToBeCreated.setId(1L);
         cmd.setVipId(1L);
 
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
-        when(adapterMock.hasVip()).thenReturn(true);
-        when(adapterMock.validate(any(Ip.class))).thenReturn(adapterMock);
-        when(adapterMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.getPoolIds()).thenReturn(new ArrayList<Long>());
+        when(facadeMock.hasVip()).thenReturn(true);
+        when(facadeMock.createVipResponse(cmd)).thenReturn(new GloboNetworkVipResponse());
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
         when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
@@ -370,7 +365,7 @@ public class GloboNetworkResourceTest {
         assertTrue(answer.getResult());
         assertTrue(answer instanceof GloboNetworkVipResponse);
         verify(gnAPI.getPoolAPI(), times(1)).save(any(PoolV3.class));
-        verify(adapterMock).update(any(ApplyVipInGloboNetworkCommand.class), any(Ip.class), any(List.class));
+        verify(facadeMock).update(any(ApplyVipInGloboNetworkCommand.class), any(Ip.class), any(List.class));
     }
 
     @Test
@@ -379,11 +374,11 @@ public class GloboNetworkResourceTest {
         VipJson vipToBeCreated = buildFakeVip(120L, 546L, 345L, ports);
         ApplyVipInGloboNetworkCommand cmd = createTestApplyVipCommand(vipToBeCreated);
 
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
-        when(adapterMock.hasVip()).thenReturn(false);
-        when(adapterMock.save(eq(cmd), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class))).thenThrow(new GloboNetworkException("API Error"));
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.getPoolIds()).thenReturn(new ArrayList<Long>());
+        when(facadeMock.hasVip()).thenReturn(false);
+        when(facadeMock.save(eq(cmd), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class))).thenThrow(new GloboNetworkException("API Error"));
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
         when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
@@ -391,7 +386,7 @@ public class GloboNetworkResourceTest {
 
         assertFalse(answer.getResult());
         assertFalse(answer instanceof GloboNetworkVipResponse);
-        verify(adapterMock, times(1)).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
+        verify(facadeMock, times(1)).save(any(ApplyVipInGloboNetworkCommand.class), any(String.class), any(VipEnvironment.class), any(Ip.class), any(List.class));
         verify(gnAPI.getPoolAPI(), times(1)).delete(any(List.class));
     }
 
@@ -402,11 +397,11 @@ public class GloboNetworkResourceTest {
         ApplyVipInGloboNetworkCommand cmd = createTestApplyVipCommand(vipToBeCreated);
         cmd.setVipId(1L);
 
-        VipApiAdapter adapterMock = mock(VipApiAdapter.class);
-        when(adapterMock.getPoolIds()).thenReturn(new ArrayList<Long>());
-        when(adapterMock.hasVip()).thenReturn(true);
-        when(adapterMock.update(eq(cmd), any(Ip.class), any(List.class))).thenThrow(new GloboNetworkException("API Error"));
-        doReturn(adapterMock).when(_resource).createVipApiAdapter(cmd.getVipId(), gnAPI);
+        VipAPIFacade facadeMock = mock(VipAPIFacade.class);
+        when(facadeMock.getPoolIds()).thenReturn(new ArrayList<Long>());
+        when(facadeMock.hasVip()).thenReturn(true);
+        when(facadeMock.update(eq(cmd), any(Ip.class), any(List.class))).thenThrow(new GloboNetworkException("API Error"));
+        doReturn(facadeMock).when(_resource).createVipAPIFacade(cmd.getVipId(), gnAPI);
 
         mockGetVipMetadata(cmd);
         when(gnAPI.getPoolAPI().save(any(PoolV3.class))).thenReturn(new PoolV3());
@@ -414,7 +409,7 @@ public class GloboNetworkResourceTest {
 
         assertFalse(answer.getResult());
         assertFalse(answer instanceof GloboNetworkVipResponse);
-        verify(adapterMock, times(1)).update(any(ApplyVipInGloboNetworkCommand.class), any(Ip.class), any(List.class));
+        verify(facadeMock, times(1)).update(any(ApplyVipInGloboNetworkCommand.class), any(Ip.class), any(List.class));
         verify(gnAPI.getPoolAPI(), times(0)).delete(any(List.class));
     }
 

@@ -54,7 +54,6 @@ import com.globo.globonetwork.cloudstack.commands.ListPoolOptionsCommand;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkCacheGroupsResponse;
 import com.globo.globonetwork.cloudstack.response.GloboNetworkPoolOptionResponse;
 import org.apache.cloudstack.context.CallContext;
-import org.apache.cloudstack.framework.config.dao.ConfigurationDaoImpl;
 import org.apache.log4j.Logger;
 
 import com.cloud.agent.IAgentControl;
@@ -598,15 +597,15 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
             return new Answer(cmd, true, "Vip request was previously removed from GloboNetwork");
         }
         try {
-            VipApiAdapter vipApiAdapter = this.createVipApiAdapter(cmd.getVipId(), gnAPI);
-            if (!vipApiAdapter.hasVip()) {
+            VipAPIFacade vipAPIFacade = this.createVipAPIFacade(cmd.getVipId(), gnAPI);
+            if (!vipAPIFacade.hasVip()) {
                 return new Answer(cmd, true, "Vip request " + cmd.getVipId() + " was previously removed from GloboNetwork");
             }
 
-            vipApiAdapter.undeploy();
+            vipAPIFacade.undeploy();
 
             s_logger.info("Requesting GloboNetwork to delete vip vip_id=" + cmd.getVipId() + " keepIp=" + cmd.isKeepIp());
-            vipApiAdapter.delete(cmd.isKeepIp());
+            vipAPIFacade.delete(cmd.isKeepIp());
 
             return new Answer(cmd);
         } catch (GloboNetworkException e) {
@@ -848,17 +847,17 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
 
     public Answer execute(ApplyVipInGloboNetworkCommand cmd) {
         List<VipPoolMap> vipPoolMapping = new ArrayList<>();
-        VipApiAdapter vipApiAdapter = null;
+        VipAPIFacade vipAPIFacade = null;
         GloboNetworkAPI gnApi = getNewGloboNetworkAPI();
 
         try {
             s_logger.debug("[ApplyVip_" + cmd.getHost() + "] Vip_id: " + cmd.getVipId() + " ip: " + cmd.getIpv4() + " envId: " + cmd.getVipEnvironmentId());
             Long start = new Date().getTime();
 
-            vipApiAdapter = this.createVipApiAdapter(cmd.getVipId(), gnApi);
+            vipAPIFacade = this.createVipAPIFacade(cmd.getVipId(), gnApi);
             VipInfoHelper vipInfo = getVipInfos(gnApi, cmd.getVipEnvironmentId(), cmd.getIpv4());
             List<PoolV3.PoolMember> poolMembers = buildPoolMembers(gnApi,cmd.getRealList());
-            List<Long> poolIds = vipApiAdapter.getPoolIds();
+            List<Long> poolIds = vipAPIFacade.getPoolIds();
 
             if(poolIds.isEmpty()){
                 vipPoolMapping = this.createPools(gnApi, poolMembers, vipInfo.getEnvironment(), cmd);
@@ -866,21 +865,19 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 this.updatePools(gnApi, poolIds, poolMembers, cmd.getPortPairs());
             }
 
-            if (!vipApiAdapter.hasVip()) {
-                vipApiAdapter.save(cmd, cmd.getHost(), vipInfo.vipEnvironment, vipInfo.vipIp, vipPoolMapping);
+            if (!vipAPIFacade.hasVip()) {
+                vipAPIFacade.save(cmd, cmd.getHost(), vipInfo.vipEnvironment, vipInfo.vipIp, vipPoolMapping);
             } else {
-                vipApiAdapter.update(cmd, vipInfo.vipIp, vipPoolMapping);
+                vipAPIFacade.update(cmd, vipInfo.vipIp, vipPoolMapping);
             }
 
-            vipApiAdapter.validate(vipInfo.vipIp).deploy();
-
-            Answer vipResponse = vipApiAdapter.createVipResponse(cmd);
+            Answer vipResponse = vipAPIFacade.createVipResponse(cmd);
             Long time = new Date().getTime() - start;
 
             s_logger.debug("[ApplyVip END] Vip: " + cmd.getHost() + ", ip: " + cmd.getIpv4() +", Operation time: " + time + " ms");
             return vipResponse;
         }catch (GloboNetworkException e) {
-            rollbackVipCreation(cmd, vipApiAdapter, vipPoolMapping);
+            rollbackVipCreation(gnApi, cmd, vipAPIFacade, vipPoolMapping);
             return handleGloboNetworkException(cmd, e);
         } catch (InvalidParameterValueException e){
             s_logger.error("Error", e);
@@ -888,14 +885,14 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    private void rollbackVipCreation(ApplyVipInGloboNetworkCommand cmd, VipApiAdapter adapter, List<VipPoolMap> poolMappings){
-        if(adapter != null && !adapter.hasVip() && cmd.getVipId() == null && poolMappings != null){
+    private void rollbackVipCreation(GloboNetworkAPI gnApi, ApplyVipInGloboNetworkCommand cmd, VipAPIFacade vipAPIFacade, List<VipPoolMap> poolMappings){
+        if(vipAPIFacade != null && !vipAPIFacade.hasVip() && cmd.getVipId() == null && poolMappings != null){
             List<Long> ids = new ArrayList<>();
             for(VipPoolMap vipPoolMap : poolMappings){
                 ids.add(vipPoolMap.getPoolId());
             }
             try {
-                getNewGloboNetworkAPI().getPoolAPI().delete(ids);
+                gnApi.getPoolAPI().delete(ids);
             } catch (GloboNetworkException e) {
                 s_logger.error("It was not possible to cleanup pools after failed vip creation", e);
             }
@@ -1253,14 +1250,9 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
     }
 
-    protected VipApiAdapter createVipApiAdapter(Long vipId, GloboNetworkAPI api) throws GloboNetworkException {
-        return new VipApiAdapter(vipId, api, getVipApiVersion());
+    protected VipAPIFacade createVipAPIFacade(Long vipId, GloboNetworkAPI api) throws GloboNetworkException {
+        return new VipAPIFacade(vipId, api);
     }
-
-    private String getVipApiVersion() {
-        return new ConfigurationDaoImpl().getValue("globonetwork.vip.apiversion");
-    }
-
 
     public String getUtf8(String value) {
         try {
@@ -1272,7 +1264,6 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
         }
         return value;
     }
-
 
     public GloboNetworkAPI getNewGloboNetworkAPI(){
         GloboNetworkAPI api = new GloboNetworkAPI(_url, _username, _password);
