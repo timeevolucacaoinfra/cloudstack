@@ -871,6 +871,8 @@ public class GloboNetworkResource extends ManagerBase implements ServerResource 
                 vipAPIFacade.update(cmd, vipInfo.vipIp, vipPoolMapping);
             }
 
+            vipAPIFacade.deploy();
+
             Answer vipResponse = vipAPIFacade.createVipResponse(cmd);
             Long time = new Date().getTime() - start;
 
